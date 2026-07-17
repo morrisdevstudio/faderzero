@@ -1,0 +1,20 @@
+{
+  auto_https off
+}
+
+http://:8080 {
+  root * /home/docker-yapi/appGroup/faderzero-pwa/current
+  encode zstd gzip
+
+  @staticAssets path /assets/*
+  header @staticAssets Cache-Control "public, max-age=31536000, immutable"
+
+  handle_path /supabase/* {
+    reverse_proxy 127.0.0.1:54321
+  }
+
+  handle {
+    try_files {path} /index.html
+    file_server
+  }
+}

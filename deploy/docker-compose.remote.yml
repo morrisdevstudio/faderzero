@@ -1,0 +1,9 @@
+services:
+  faderzero-caddy:
+    image: caddy:2.10
+    container_name: faderzero-caddy
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - /home/docker-yapi/appGroup/faderzero-pwa:/home/docker-yapi/appGroup/faderzero-pwa:ro
+      - /home/docker-yapi/appGroup/Caddyfile:/etc/caddy/Caddyfile:ro
