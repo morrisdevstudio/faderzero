@@ -1,6 +1,6 @@
-import { supabase } from './client';
 import { createId } from '@/lib/createId';
 import { songAssetsRepository } from '@/db/repositories/songAssetsRepository';
+import { createAudioSignedUrl, uploadAudioObject } from '@/services/audio/r2Client';
 import {
   buildCompressedFileName,
   compressAudioForUpload,
@@ -35,18 +35,8 @@ export async function uploadSongAsset(
     : `workspaces/${workspaceId}/imports/${assetId}.mp3`;
   options.onProgress?.({ phase: 'upload', progress: 10, label: 'Envoi vers le stockage' });
 
-  // 1. Upload du binaire sur Supabase Storage (bucket privé faderzero-audio)
-  const { error: uploadError } = await supabase.storage
-    .from('faderzero-audio')
-    .upload(storagePath, uploadFile, {
-      cacheControl: '3600',
-      upsert: false,
-      contentType: uploadFile.type,
-    });
-
-  if (uploadError) {
-    throw uploadError;
-  }
+  // 1. Upload du binaire dans le bucket R2 privé faderzero-audio
+  await uploadAudioObject(storagePath, uploadFile);
   options.onProgress?.({ phase: 'upload', progress: 88, label: "Finalisation de l'upload" });
 
   // 2. Création de l'enregistrement de métadonnées local (qui alimente la file syncQueue)
@@ -112,14 +102,6 @@ export async function getSongAssetPlaybackUrl(
     throw new Error(`Asset not found: ${assetId}`);
   }
 
-  // Génération d'une URL signée temporaire (durée d'une heure)
-  const { data, error } = await supabase.storage
-    .from('faderzero-audio')
-    .createSignedUrl(asset.storagePath, 3600);
-
-  if (error) {
-    throw error;
-  }
-
-  return data.signedUrl;
+  // Génération par le Worker d'une URL R2 signée temporaire (durée d'une heure)
+  return createAudioSignedUrl(asset.storagePath);
 }

@@ -1,0 +1,23 @@
+{
+  "name": "faderzero-audio-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-07-17",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "observability": {
+    "enabled": true,
+    "logs": { "head_sampling_rate": 1 },
+    "traces": { "enabled": true, "head_sampling_rate": 0.01 }
+  },
+  "r2_buckets": [
+    {
+      "binding": "AUDIO_BUCKET",
+      "bucket_name": "faderzero-audio"
+    }
+  ],
+  "vars": {
+    "SUPABASE_URL": "https://lragtkgshbnwvufjqnzm.supabase.co",
+    "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_ABQdDKDfgTgs-fulb8jxBQ_yiemTlfW",
+    "ALLOWED_ORIGINS": "http://localhost:5173,https://localhost:5173,https://faderzero.pages.dev,https://*.faderzero.pages.dev"
+  }
+}
