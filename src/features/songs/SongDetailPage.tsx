@@ -547,7 +547,7 @@ export function SongDetailPage() {
           <div className="flex items-center justify-end gap-2 justify-self-end">
             {!isEditMode ? (
               <Link
-                to={`/prompter?songId=${encodeURIComponent(currentSong.id)}`}
+                to={`/prompter/play?songId=${encodeURIComponent(currentSong.id)}`}
                 aria-label="Ouvrir cette chanson dans le prompteur"
                 className="flex h-11 w-11 items-center justify-center text-emerald-300 transition-colors hover:text-emerald-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300/70"
               >
@@ -694,10 +694,6 @@ export function SongDetailPage() {
           onClose={() => setIsAudioActionsOpen(false)}
         >
           <div className="space-y-4">
-            <div>
-              <p className="truncate text-sm font-black text-white">{primaryAudioAsset?.filename || 'Aucun fichier audio associé'}</p>
-            </div>
-
             {assets === undefined ? (
               <p className="rounded-xl border border-white/8 bg-white/5 p-3 text-sm text-white/50">Chargement des pistes...</p>
             ) : assets.length > 0 ? (

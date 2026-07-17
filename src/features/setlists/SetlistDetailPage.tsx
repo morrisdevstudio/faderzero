@@ -434,7 +434,7 @@ export function SetlistDetailPage() {
 
           <div className="flex items-center justify-end gap-2">
             <Link
-              to={`/prompter?setlistId=${encodeURIComponent(currentSetlist.id)}`}
+              to={`/prompter/play?setlistId=${encodeURIComponent(currentSetlist.id)}`}
               aria-label="Ouvrir le prompteur"
               className="flex h-11 w-11 items-center justify-center text-emerald-300 transition-colors hover:text-emerald-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300/70"
             >

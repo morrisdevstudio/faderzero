@@ -1,19 +1,19 @@
 # Supabase Reset & Bootstrap - FaderZero
 
-Ce dossier contient les scripts SQL necessaires pour initialiser et maintenir l'instance Supabase self-hosted de FaderZero sur `192.168.1.71`.
+Ce dossier contient les scripts SQL necessaires pour initialiser et maintenir l'instance Supabase self-hosted de FaderZero.
 
 ## Instance en service
 
 La stack active est la stack Docker officielle Supabase reconstruite dans :
 
 ```text
-/home/docker-yapi/appGroup/supabase-clean
+/path/to/supabase-clean
 ```
 
 Endpoints utiles :
 
-- API gateway : `http://192.168.1.71:54321`
-- Studio : `http://192.168.1.71:54323`
+- API gateway : `http://your-supabase-host:54321`
+- Studio : `http://your-supabase-host:54323`
 
 > [!WARNING]
 > `00_reset_faderzero.sql` est destructif. Il supprime les donnees FaderZero et le bucket de stockage associe.
@@ -36,13 +36,13 @@ Pour une base vide ou apres reset complet, executez les scripts dans cet ordre :
 
 Le port Postgres n'est pas expose directement a la machine de dev. L'administration se fait donc :
 
-- soit via **Supabase Studio** sur `http://192.168.1.71:54323`
+- soit via **Supabase Studio** sur `http://your-supabase-host:54323`
 - soit en **SSH** sur le serveur, puis `docker exec` dans `supabase-clean`
 
 Exemple :
 
 ```bash
-ssh docker-yapi@192.168.1.71
+ssh your-user@your-host
 cd ~/appGroup/supabase-clean
 docker exec -i supabase-db psql -U postgres -d postgres < faderzero-sql/01_schema.sql
 ```

@@ -6,35 +6,35 @@ Ce document decrit le fonctionnement, la configuration et l'exploitation de la s
 
 ## 1. Variables d'Environnement
 
-Pour connecter la PWA a votre instance Supabase, vous devez renseigner les variables d'environnement suivantes dans `pwa/.env` (a copier depuis `pwa/.env.example`) :
+Pour connecter la PWA a votre instance Supabase, vous devez renseigner les variables d'environnement suivantes dans `.env` (a copier depuis `.env.example`) :
 
 ```env
-VITE_SUPABASE_URL=http://192.168.1.71:54321
+VITE_SUPABASE_URL=http://your-supabase-host:54321
 VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
-- **VITE_SUPABASE_URL** : URL de la passerelle Kong API de votre instance Supabase self-hosted (ex: `http://192.168.1.71:54321`).
+- **VITE_SUPABASE_URL** : URL de la passerelle Kong API de votre instance Supabase self-hosted (ex: `http://your-supabase-host:54321`).
 - **VITE_SUPABASE_ANON_KEY** : cle "anon" publique de votre instance Supabase.
 
 Note de developpement local : si `VITE_SUPABASE_URL` utilise `http://`, le serveur Vite de la PWA desactive automatiquement son HTTPS local pour eviter le blocage navigateur "mixed content" (`https` app -> `http` API).
 
 ## 1.b Instance active
 
-L'instance Supabase propre actuellement en service sur `192.168.1.71` est la stack Docker officielle reconstruite dans :
+L'instance Supabase active doit etre remplacee ici par vos propres informations d'infrastructure. Exemple de structure :
 
 ```text
-/home/docker-yapi/appGroup/supabase-clean
+/path/to/supabase-clean
 ```
 
 Endpoints utiles :
 
-- **API / Auth / Realtime Gateway** : `http://192.168.1.71:54321`
-- **Studio** : `http://192.168.1.71:54323`
+- **API / Auth / Realtime Gateway** : `http://your-supabase-host:54321`
+- **Studio** : `http://your-supabase-host:54323`
 
 Note d'exploitation :
 
 - Le port Postgres n'est pas expose directement a cette machine de dev.
-- Les operations d'administration base de donnees se font soit via **Studio**, soit en **SSH** sur `192.168.1.71`, puis `docker exec` / `psql` dans la stack `supabase-clean`.
+- Les operations d'administration base de donnees se font soit via **Studio**, soit en **SSH** sur votre serveur, puis `docker exec` / `psql` dans la stack `supabase-clean`.
 
 ---
 
@@ -42,7 +42,7 @@ Note d'exploitation :
 
 Pour reinitialiser completement l'environnement de base de donnees FaderZero sur votre instance self-hosted :
 
-1. Ouvrez l'interface **Supabase Studio** a l'adresse `http://192.168.1.71:54323`.
+1. Ouvrez l'interface **Supabase Studio** a l'adresse de votre instance `http://your-supabase-host:54323`.
 2. Accedez a l'editeur SQL (**SQL Editor**).
 3. Executez dans l'ordre les scripts situes dans `pwa/supabase/sql/` :
    - **`00_reset_faderzero.sql`** : nettoie les tables, triggers et structures de donnees existantes.
@@ -58,8 +58,8 @@ Pour reinitialiser completement l'environnement de base de donnees FaderZero sur
 Alternative SSH admin :
 
 ```bash
-ssh docker-yapi@192.168.1.71
-cd ~/appGroup/supabase-clean
+ssh your-user@your-host
+cd /path/to/supabase-clean
 docker exec -i supabase-db psql -U postgres -d postgres < faderzero-sql/01_schema.sql
 ```
 

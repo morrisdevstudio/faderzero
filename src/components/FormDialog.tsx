@@ -34,7 +34,7 @@ export function FormDialog({ eyebrow, title, closeLabel = 'Fermer', onClose, pla
             isBottomSheet ? 'rounded-[1.6rem]' : 'rounded-[1.9rem]',
           ].join(' ')}
         >
-          <div className="flex items-start justify-between gap-3">
+          <div className={['flex justify-between gap-3', eyebrow ? 'items-start' : 'items-center'].join(' ')}>
             <div>
               {eyebrow ? (
                 <p className="text-[0.68rem] font-black uppercase tracking-[0.2em] text-[var(--fz-text-muted)]">{eyebrow}</p>

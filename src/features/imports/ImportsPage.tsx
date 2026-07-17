@@ -256,10 +256,6 @@ function buildTrackSubtitle(asset: ImportedTrack) {
     asset.durationSeconds && asset.durationSeconds > 0 ? formatSongDuration(asset.durationSeconds) : '--:--',
   ];
 
-  if (asset.song?.title) {
-    parts.push(asset.song.title);
-  }
-
   if (asset.syncStatus === 'pending') {
     parts.push('En attente de sync');
   }
@@ -1072,8 +1068,8 @@ export function ImportsPage() {
               };
 
               return (
-                <div key={group.songId} className="space-y-2">
-                  <div className="flex items-center justify-between px-1 pt-2">
+                <div key={group.songId} className="overflow-hidden rounded-[1.35rem] border border-white/8 bg-white/5">
+                  <div className="flex items-center justify-between border-b border-white/8 px-4 py-3">
                     <h3 className="text-xs font-black uppercase tracking-[0.2em] text-[var(--fz-text-muted)]">
                       {group.songTitle}
                     </h3>
@@ -1084,7 +1080,7 @@ export function ImportsPage() {
                       Voir la chanson
                     </Link>
                   </div>
-                  <div className="rounded-[1.35rem] border border-white/8 bg-white/5 px-3">
+                  <div className="px-3">
                     {renderAsset(mainAsset, isMainPrimary, true)}
 
                     {otherAssets.length > 0 && (
@@ -1100,9 +1096,10 @@ export function ImportsPage() {
                         <button
                           type="button"
                           onClick={() => setExpandedSongIds((prev) => ({ ...prev, [group.songId!]: !prev[group.songId!] }))}
-                          className="-mx-3 flex w-[calc(100%+1.5rem)] items-center justify-center gap-1.5 rounded-b-[1.35rem] border-t border-white/6 px-3 py-3 text-xs font-bold uppercase tracking-[0.14em] text-white/60 transition hover:bg-white/5 hover:text-white"
+                          aria-expanded={isExpanded}
+                          aria-label={isExpanded ? 'Masquer les pistes supplémentaires' : `Afficher les ${otherAssets.length} pistes supplémentaires`}
+                          className="-mx-3 flex w-[calc(100%+1.5rem)] items-center justify-center border-t border-white/6 px-3 py-3 text-white/60 transition hover:bg-white/5 hover:text-white"
                         >
-                          <span>{isExpanded ? 'Voir moins' : `Voir plus (${otherAssets.length})`}</span>
                           <ChevronIcon isOpen={isExpanded} />
                         </button>
                       </>
@@ -1222,12 +1219,8 @@ export function ImportsPage() {
             aria-labelledby="track-actions-title"
             className="w-full max-w-md rounded-[1.6rem] border border-white/10 bg-[var(--fz-bg)] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.45)]"
           >
-            <div className="mb-4 flex items-start justify-between gap-4">
-              <div className="min-w-0">
-                <p className="text-[0.65rem] font-black uppercase tracking-[0.2em] text-[var(--fz-text-muted)]">Audio</p>
-                <h2 id="track-actions-title" className="mt-1 truncate text-[1.28rem] font-black tracking-tight text-white">Actions</h2>
-                <p className="mt-1 truncate text-sm text-white/50">{openTrackMenu.asset.filename}</p>
-              </div>
+            <div className="mb-4 flex items-center justify-between gap-4">
+              <h2 id="track-actions-title" className="truncate text-[1.28rem] font-black tracking-tight text-white">Audio</h2>
               <button
                 type="button"
                 onClick={() => setOpenTrackMenu(null)}
@@ -1237,7 +1230,37 @@ export function ImportsPage() {
                 &times;
               </button>
             </div>
-            <div className="space-y-2">
+            <div className="mb-4 flex w-full items-center gap-3 rounded-xl border border-white/8 bg-white/5 px-3 py-2.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setOpenTrackMenu(null);
+                  handlePlay(openTrackMenu.asset.id, openTrackMenu.isCached);
+                }}
+                aria-label={currentTrack?.assetId === openTrackMenu.asset.id && status === 'playing'
+                  ? `Arreter ${openTrackMenu.asset.filename}`
+                  : `Lire ${openTrackMenu.asset.filename}`}
+                className={[
+                  'flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition',
+                  currentTrack?.assetId === openTrackMenu.asset.id && status === 'playing'
+                    ? 'bg-orange-500 text-white'
+                    : 'bg-white text-[#111316] hover:bg-white/88',
+                ].join(' ')}
+              >
+                {currentTrack?.assetId === openTrackMenu.asset.id && status === 'playing' ? <StopIcon /> : <PlayIcon />}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setOpenTrackMenu(null);
+                  handlePlay(openTrackMenu.asset.id, openTrackMenu.isCached);
+                }}
+                className="min-w-0 flex-1 truncate text-left text-sm font-semibold text-white"
+              >
+                {openTrackMenu.asset.filename}
+              </button>
+            </div>
+            <div className="space-y-2 border-t border-white/8 pt-4">
               <button
                 type="button"
                 onClick={() => void handleAssociateAsset(openTrackMenu.asset)}
