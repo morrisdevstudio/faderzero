@@ -609,7 +609,7 @@ export function SetlistDetailPage() {
                         type="button"
                         onClick={() => handleOpenTransitionEditor(entry)}
                         aria-label={`Modifier la note avant ${entry.songTitle}`}
-                        className="flex h-8 w-8 items-center justify-center rounded-[0.85rem] border border-white/6 bg-white/4 text-white/28 transition hover:text-white/60"
+                        className="flex h-8 w-8 items-center justify-center text-white/28 transition hover:text-white/60"
                       >
                         <EditLineIcon className="h-3.5 w-3.5" />
                       </button>
@@ -632,7 +632,7 @@ export function SetlistDetailPage() {
                         onClick={() => handleMoveEntry(entry.id, -1)}
                         disabled={index === 0}
                         aria-label={`Monter ${entry.songTitle}`}
-                        className="flex h-10 w-10 items-center justify-center rounded-[0.95rem] border border-white/10 bg-white/5 text-white/85 disabled:opacity-25"
+                        className="flex h-10 w-10 items-center justify-center text-white/85 transition hover:text-white disabled:opacity-25"
                       >
                         <ArrowUpIcon className="h-4.5 w-4.5" />
                       </button>
@@ -641,7 +641,7 @@ export function SetlistDetailPage() {
                         onClick={() => handleMoveEntry(entry.id, 1)}
                         disabled={index === entries.length - 1}
                         aria-label={`Descendre ${entry.songTitle}`}
-                        className="flex h-10 w-10 items-center justify-center rounded-[0.95rem] border border-white/10 bg-white/5 text-white/85 disabled:opacity-25"
+                        className="flex h-10 w-10 items-center justify-center text-white/85 transition hover:text-white disabled:opacity-25"
                       >
                         <ArrowDownIcon className="h-4.5 w-4.5" />
                       </button>
@@ -671,7 +671,7 @@ export function SetlistDetailPage() {
                   type="button"
                   onClick={handleOpenEndingNotesEditor}
                   aria-label="Modifier la note de fin"
-                  className="flex h-8 w-8 items-center justify-center rounded-[0.85rem] border border-white/6 bg-white/4 text-white/28 transition hover:text-white/60"
+                  className="flex h-8 w-8 items-center justify-center text-white/28 transition hover:text-white/60"
                 >
                   <EditLineIcon className="h-3.5 w-3.5" />
                 </button>

@@ -502,18 +502,14 @@ export function SongFormFields({ values, onChange, disabled = false }: SongFormF
       ) : null}
 
       {activePicker === 'bpm' ? (
-        <PickerDialog title="Sélectionner le tempo" description="Faites défiler de 30 à 300 BPM" closeLabel="Fermer" onClose={() => setActivePicker(null)}>
+        <PickerDialog title="Sélectionner le tempo" closeLabel="Fermer" onClose={() => setActivePicker(null)}>
           <WheelColumn options={bpmOptions} selectedValue={values.bpm} onSelect={(value) => updateField('bpm', value)} suffix="BPM" />
         </PickerDialog>
       ) : null}
 
       {activePicker === 'duration' ? (
-        <PickerDialog title="Sélectionner la durée" description="Faites défiler les minutes et les secondes" closeLabel="Fermer" onClose={() => setActivePicker(null)}>
+        <PickerDialog title="Sélectionner la durée" closeLabel="Fermer" onClose={() => setActivePicker(null)}>
           <div className="overflow-hidden rounded-2xl border border-white/8 bg-black/35 p-2">
-            <div className="grid grid-cols-2 px-2 pb-1 pt-2 text-center text-[0.62rem] font-black uppercase tracking-[0.16em] text-[var(--fz-text-muted)]">
-              <span>Minutes</span>
-              <span>Secondes</span>
-            </div>
             <div className="relative grid grid-cols-2 overflow-hidden rounded-xl">
               <div aria-hidden="true" className="pointer-events-none absolute inset-x-2 top-1/2 z-0 h-14 -translate-y-1/2 rounded-xl bg-white/8 ring-1 ring-inset ring-white/18" />
               <div aria-hidden="true" className="pointer-events-none absolute bottom-4 left-1/2 top-4 z-20 w-px bg-white/8" />

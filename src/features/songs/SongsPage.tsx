@@ -9,6 +9,14 @@ import { songsRepository } from '@/db/repositories/songsRepository';
 import { formatSongDuration, getSongStatusTone } from '@/features/songs/songPresentation';
 import { useAuthStore } from '@/stores/authStore';
 
+function PlusIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
+}
+
 export function SongsPage() {
   const navigate = useNavigate();
   const activeWorkspaceId = useAuthStore((state) => state.activeWorkspace?.id);
@@ -116,9 +124,10 @@ export function SongsPage() {
               setNewSongTitle('');
               setCreationError(null);
             }}
-            className="fz-button-primary px-4 py-2.5 text-[0.82rem] font-black tracking-[0.01em]"
+            aria-label="Nouvelle chanson"
+            className="fz-button-primary h-11 w-11 shrink-0 p-0"
           >
-            + Nouvelle
+            <PlusIcon />
           </button>
         </div>
 

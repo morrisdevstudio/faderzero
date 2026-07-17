@@ -128,6 +128,43 @@ function CachedIcon(props: IconProps) {
   );
 }
 
+function LinkSongIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
+      <path d="M10 13a5 5 0 0 0 7.1.1l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1" />
+      <path d="M14 11a5 5 0 0 0-7.1-.1l-2 2A5 5 0 0 0 12 20l1.1-1.1" />
+    </svg>
+  );
+}
+
+function RemoveCacheIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
+      <path d="M6.7 6.7A7 7 0 0 0 4 20h13" />
+      <path d="M9.2 4.2A9 9 0 0 1 20 15.4" />
+      <path d="m5 5 14 14" />
+    </svg>
+  );
+}
+
+function PrimaryIcon({ active, ...props }: IconProps & { active: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" fill={active ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
+      <path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-2.9-5.6 2.9 1.1-6.2L3 9.6l6.2-.9L12 3Z" />
+    </svg>
+  );
+}
+
+function TrashIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
+      <path d="M4 7h16" />
+      <path d="M10 11v6M14 11v6" />
+      <path d="m6 7 1 13h10l1-13M9 7V4h6v3" />
+    </svg>
+  );
+}
+
 function DotsIcon() {
   return (
     <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true">
@@ -817,10 +854,10 @@ export function ImportsPage() {
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={isImporting}
-            className="fz-button-primary inline-flex shrink-0 items-center gap-2 px-4 py-2.5 text-[0.78rem] font-black tracking-[1px] disabled:opacity-60"
+            aria-label={isImporting ? 'Import en cours' : 'Importer des pistes'}
+            className="fz-button-primary inline-flex h-11 w-11 shrink-0 items-center justify-center p-0 disabled:opacity-60"
           >
             <UploadIcon />
-            {isImporting ? 'Import...' : 'Importer'}
           </button>
           <input
             ref={fileInputRef}
@@ -1204,17 +1241,23 @@ export function ImportsPage() {
               <button
                 type="button"
                 onClick={() => void handleAssociateAsset(openTrackMenu.asset)}
-                className="min-h-12 w-full rounded-xl border border-white/8 bg-white/5 px-4 py-3 text-left text-sm font-black uppercase leading-5 tracking-[0.12em] text-white transition hover:bg-white/10"
+                className="flex min-h-12 w-full items-center gap-3 rounded-xl border border-white/8 bg-white/5 px-4 py-3 text-left text-sm font-black uppercase leading-5 tracking-[0.12em] text-white transition hover:bg-white/10"
               >
-                Associer à une chanson
+                <LinkSongIcon className="h-5 w-5 shrink-0 text-white/70" />
+                <span>Associer à une chanson</span>
               </button>
               <button
                 type="button"
                 disabled={!openTrackMenu.isCached && !openTrackMenu.isOnline}
                 onClick={() => handleToggleTrackCache(openTrackMenu.asset.id, openTrackMenu.isCached)}
-                className="min-h-12 w-full rounded-xl border border-white/8 bg-white/5 px-4 py-3 text-left text-sm font-black uppercase leading-5 tracking-[0.12em] text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+                className="flex min-h-12 w-full items-center gap-3 rounded-xl border border-white/8 bg-white/5 px-4 py-3 text-left text-sm font-black uppercase leading-5 tracking-[0.12em] text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
               >
-                {openTrackMenu.isCached ? 'Supprimer du cache' : 'Mettre en cache hors ligne'}
+                {openTrackMenu.isCached ? (
+                  <RemoveCacheIcon className="h-5 w-5 shrink-0 text-white/70" />
+                ) : (
+                  <DownloadCloudIcon className="h-5 w-5 shrink-0 text-white/70" />
+                )}
+                <span>{openTrackMenu.isCached ? 'Supprimer du cache' : 'Mettre en cache hors ligne'}</span>
               </button>
               {openTrackMenu.songId ? (
                 <button
@@ -1222,17 +1265,19 @@ export function ImportsPage() {
                   onClick={() => openTrackMenu.isPrimary
                     ? handleUnsetPrimaryTrack(openTrackMenu.songId!)
                     : handleSetPrimaryTrack(openTrackMenu.songId!, openTrackMenu.asset.id)}
-                  className="min-h-12 w-full rounded-xl border border-white/8 bg-white/5 px-4 py-3 text-left text-sm font-black uppercase leading-5 tracking-[0.12em] text-white transition hover:bg-white/10"
+                  className="flex min-h-12 w-full items-center gap-3 rounded-xl border border-white/8 bg-white/5 px-4 py-3 text-left text-sm font-black uppercase leading-5 tracking-[0.12em] text-white transition hover:bg-white/10"
                 >
-                  {openTrackMenu.isPrimary ? 'Ne plus définir comme principal' : 'Définir comme principal'}
+                  <PrimaryIcon active={openTrackMenu.isPrimary} className="h-5 w-5 shrink-0 text-white/70" />
+                  <span>{openTrackMenu.isPrimary ? 'Ne plus définir comme principal' : 'Définir comme principal'}</span>
                 </button>
               ) : null}
               <button
                 type="button"
                 onClick={() => handleRequestDeleteAsset(openTrackMenu.asset.id, openTrackMenu.asset.filename)}
-                className="min-h-12 w-full rounded-xl border border-rose-400/10 bg-rose-500/5 px-4 py-3 text-left text-sm font-black uppercase leading-5 tracking-[0.12em] text-rose-300 transition hover:bg-rose-500/12"
+                className="flex min-h-12 w-full items-center gap-3 rounded-xl border border-rose-400/10 bg-rose-500/5 px-4 py-3 text-left text-sm font-black uppercase leading-5 tracking-[0.12em] text-rose-300 transition hover:bg-rose-500/12"
               >
-                Supprimer
+                <TrashIcon className="h-5 w-5 shrink-0" />
+                <span>Supprimer</span>
               </button>
             </div>
           </div>

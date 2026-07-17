@@ -2,7 +2,7 @@ import type { PropsWithChildren } from 'react';
 import { createPortal } from 'react-dom';
 
 interface FormDialogProps extends PropsWithChildren {
-  eyebrow: string;
+  eyebrow?: string;
   title: string;
   closeLabel?: string;
   onClose: () => void;
@@ -36,8 +36,10 @@ export function FormDialog({ eyebrow, title, closeLabel = 'Fermer', onClose, pla
         >
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-[0.68rem] font-black uppercase tracking-[0.2em] text-[var(--fz-text-muted)]">{eyebrow}</p>
-              <h2 className="mt-2 text-[1.35rem] font-black text-white">{title}</h2>
+              {eyebrow ? (
+                <p className="text-[0.68rem] font-black uppercase tracking-[0.2em] text-[var(--fz-text-muted)]">{eyebrow}</p>
+              ) : null}
+              <h2 className={[eyebrow ? 'mt-2' : '', 'text-[1.35rem] font-black text-white'].join(' ')}>{title}</h2>
             </div>
             <button
               type="button"
