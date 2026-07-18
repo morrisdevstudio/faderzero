@@ -73,12 +73,11 @@ export function SortMenu({ value, onChange, label = 'Trier' }: SortMenuProps) {
             role="dialog"
             aria-modal="true"
             aria-labelledby="sort-menu-title"
-            className="w-full max-w-md rounded-[1.6rem] border border-white/10 bg-[var(--fz-bg)] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.45)]"
+            className="fz-card w-full max-w-md rounded-[1.6rem] p-5"
           >
-            <div className="mb-4 flex items-start justify-between gap-4">
+            <div className="mb-4 flex items-center justify-between gap-4">
               <div>
-                <p className="text-[0.65rem] font-black uppercase tracking-[0.2em] text-[var(--fz-text-muted)]">Tri</p>
-                <h2 id="sort-menu-title" className="mt-1 text-[1.28rem] font-black tracking-tight text-white">{label}</h2>
+                <h2 id="sort-menu-title" className="text-[1.28rem] font-black tracking-tight text-white">{label}</h2>
               </div>
               <button
                 type="button"

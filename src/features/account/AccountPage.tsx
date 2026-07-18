@@ -508,7 +508,7 @@ export function AccountPage() {
       </section>
 
       {shareWorkspace ? (
-        <FormDialog eyebrow="Partage" title={`Inviter dans ${shareWorkspace.name}`} onClose={handleCloseShareDialog}>
+        <FormDialog title={`Inviter dans ${shareWorkspace.name}`} onClose={handleCloseShareDialog}>
           <div className="space-y-4">
             <p className="text-sm leading-relaxed text-[var(--fz-text-muted)]">
               Partage ce lien pour permettre a quelqu'un de rejoindre ce groupe sans quitter ses autres groupes.

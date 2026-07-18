@@ -220,7 +220,7 @@ export function SetlistsPage() {
       </section>
 
       {isCreateOpen ? (
-        <FormDialog eyebrow="Creation" title="Nouvelle setlist" onClose={() => setIsCreateOpen(false)}>
+        <FormDialog title="Nouvelle setlist" onClose={() => setIsCreateOpen(false)}>
           <form className="space-y-3" onSubmit={handleCreateSetlist}>
             <label className="block">
               <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-[var(--fz-text-muted)]">

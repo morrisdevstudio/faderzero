@@ -1217,7 +1217,7 @@ export function ImportsPage() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="track-actions-title"
-            className="w-full max-w-md rounded-[1.6rem] border border-white/10 bg-[var(--fz-bg)] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.45)]"
+            className="fz-card w-full max-w-md rounded-[1.6rem] p-5"
           >
             <div className="mb-4 flex items-center justify-between gap-4">
               <h2 id="track-actions-title" className="truncate text-[1.28rem] font-black tracking-tight text-white">Audio</h2>
@@ -1309,7 +1309,6 @@ export function ImportsPage() {
 
       {duplicatePrompt ? (
         <FormDialog
-          eyebrow="Doublon"
           title="Piste deja importee"
           closeLabel="Annuler l'import de cette piste"
           onClose={() => resolveDuplicatePrompt({ action: 'cancel' })}
@@ -1368,7 +1367,6 @@ export function ImportsPage() {
 
       {singleLinkPrompt ? (
         <FormDialog
-          eyebrow="Association"
           title="Lier a une chanson ?"
           closeLabel="Ne pas lier ce fichier"
           onClose={() => resolveSingleLinkPrompt({ action: 'skip' })}
@@ -1428,7 +1426,6 @@ export function ImportsPage() {
 
       {batchLinkPrompt ? (
         <FormDialog
-          eyebrow="Association"
           title="Associer les pistes"
           closeLabel="Continuer sans associer"
           onClose={() => resolveBatchLinkPrompt('skip')}

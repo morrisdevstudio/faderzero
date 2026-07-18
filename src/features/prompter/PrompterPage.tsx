@@ -62,6 +62,7 @@ export function PrompterPage() {
   const [selectedSongId, setSelectedSongId] = useState<string | null>(params.get('songId'));
   const contentRef = useRef<HTMLDivElement>(null);
   const paused = useRef(false);
+  const resumeTimeoutRef = useRef<number | null>(null);
   const frameRef = useRef<number | null>(null);
   const wakeLockRef = useRef<{ release: () => Promise<void> } | null>(null);
   const setlists = useLiveQuery(() => setlistsRepository.list(), [workspaceId]);
@@ -79,10 +80,24 @@ export function PrompterPage() {
   const settingsOptionClass = 'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg p-0 transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300';
   const navigationButtonClass = "pointer-events-auto relative isolate flex min-h-16 items-center rounded-xl border border-white/10 bg-[#111318] px-3 text-xs font-black text-white/70 transition before:pointer-events-none before:absolute before:inset-0 before:-z-10 before:rounded-xl before:bg-black/45 before:blur-2xl before:backdrop-blur-lg before:content-[''] hover:bg-[#1a1d22] hover:text-white active:bg-[#20242a] disabled:cursor-not-allowed disabled:opacity-35";
   const savePreferences = useCallback((next: Preferences) => { setPreferences(next); localStorage.setItem(PREF_KEY, JSON.stringify(next)); }, []);
+  const pauseAutoScroll = useCallback(() => {
+    paused.current = true;
+    if (resumeTimeoutRef.current !== null) window.clearTimeout(resumeTimeoutRef.current);
+  }, []);
+  const resumeAutoScrollLater = useCallback(() => {
+    if (resumeTimeoutRef.current !== null) window.clearTimeout(resumeTimeoutRef.current);
+    resumeTimeoutRef.current = window.setTimeout(() => {
+      paused.current = false;
+      resumeTimeoutRef.current = null;
+    }, 500);
+  }, []);
 
   useEffect(() => { if (!selectedSong && sourceSongs[0]) setSelectedSongId(sourceSongs[0].id); }, [selectedSong, sourceSongs]);
   useEffect(() => { contentRef.current?.scrollTo({ top: 0, behavior: 'auto' }); }, [selectedSong?.id]);
   useEffect(() => { const node = contentRef.current; if (!node || preferences.speed === 0) return; let last = performance.now(); const tick = (time: number) => { const elapsed = Math.min(time - last, 50); last = time; if (!paused.current) node.scrollTop += elapsed * preferences.speed * 0.026; frameRef.current = requestAnimationFrame(tick); }; frameRef.current = requestAnimationFrame(tick); return () => { if (frameRef.current !== null) cancelAnimationFrame(frameRef.current); frameRef.current = null; }; }, [preferences.speed, selectedSong?.id]);
+  useEffect(() => () => {
+    if (resumeTimeoutRef.current !== null) window.clearTimeout(resumeTimeoutRef.current);
+  }, []);
   useEffect(() => {
     const navigatorWithWakeLock = navigator as Navigator & { wakeLock?: { request: (type: 'screen') => Promise<{ release: () => Promise<void> }> } };
     if (!navigatorWithWakeLock.wakeLock) return;
@@ -140,6 +155,6 @@ export function PrompterPage() {
         </div>
       </section>
     ) : null}
-    <main className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col overflow-hidden bg-black px-4 sm:px-6">{selectedSong ? <><section className="flex h-16 shrink-0 touch-none select-none flex-col justify-center border-b border-white/8 text-center"><h1 className="block w-full truncate text-lg font-black sm:text-xl">{selectedSong.title || 'Sans titre'}</h1><div className="mt-1 flex items-center justify-center gap-2 truncate text-[0.68rem] font-bold text-white/60"><span>{selectedSong.bpm ? `${selectedSong.bpm} BPM` : '— BPM'}</span><span aria-hidden="true">·</span><span>{formatDuration(selectedSong.durationSeconds)}</span><span aria-hidden="true">·</span><span>{selectedSong.key || '— Ton'}</span></div></section><div ref={contentRef} onPointerDown={() => { paused.current = true; }} onPointerUp={() => { window.setTimeout(() => { paused.current = false; }, 500); }} className="min-h-0 flex-1 overscroll-contain overflow-y-auto px-1 py-8 sm:px-12 sm:py-12"><Lyrics text={selectedSong.lyrics} scale={preferences.scale} /><p className="pb-8 pt-20 text-center text-xs italic text-white/35">— Fin du morceau —</p></div><div className="pointer-events-none fixed inset-x-0 bottom-[max(4rem,env(safe-area-inset-bottom))] z-30"><div className="mx-auto grid max-w-5xl grid-cols-2 gap-3 px-4 sm:px-6"><button type="button" disabled={!previousSong} onClick={() => moveSong(previousSong)} className={`${navigationButtonClass} justify-start text-left`}><span>‹ Précédent<br /><span className="text-white">{previousSong?.title ?? 'Début'}</span></span></button><button type="button" disabled={!nextSong} onClick={() => moveSong(nextSong)} className={`${navigationButtonClass} justify-end text-right`}><span>Suivant ›<br /><span className="text-white">{nextSong?.title ?? 'Fin'}</span></span></button></div></div></> : <div className="flex flex-1 items-center justify-center text-center"><div><p className="text-lg font-black">Aucun morceau disponible</p><p className="mt-2 text-sm text-white/55">Ajoute des chansons ou choisis une autre source.</p><button type="button" onClick={() => void closePrompter()} className="mt-5 rounded-xl bg-white px-4 py-3 text-sm font-black text-[#111319]">Retour au choix</button></div></div>}</main>
+    <main className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col overflow-hidden bg-black px-4 sm:px-6">{selectedSong ? <><section className="flex h-16 shrink-0 touch-none select-none flex-col justify-center border-b border-white/8 text-center"><h1 className="block w-full truncate text-lg font-black sm:text-xl">{selectedSong.title || 'Sans titre'}</h1><div className="mt-1 flex items-center justify-center gap-2 truncate text-[0.68rem] font-bold text-white/60"><span>{selectedSong.bpm ? `${selectedSong.bpm} BPM` : '— BPM'}</span><span aria-hidden="true">·</span><span>{formatDuration(selectedSong.durationSeconds)}</span><span aria-hidden="true">·</span><span>{selectedSong.key || '— Ton'}</span></div></section><div ref={contentRef} onPointerDown={pauseAutoScroll} onPointerUp={resumeAutoScrollLater} onPointerCancel={resumeAutoScrollLater} onWheel={() => { pauseAutoScroll(); resumeAutoScrollLater(); }} className="min-h-0 flex-1 overscroll-contain overflow-y-auto px-1 py-8 sm:px-12 sm:py-12"><Lyrics text={selectedSong.lyrics} scale={preferences.scale} /><p className="pb-8 pt-20 text-center text-xs italic text-white/35">— Fin du morceau —</p></div><div className="pointer-events-none fixed inset-x-0 bottom-[max(4rem,env(safe-area-inset-bottom))] z-30"><div className="mx-auto grid max-w-5xl grid-cols-2 gap-3 px-4 sm:px-6"><button type="button" disabled={!previousSong} onClick={() => moveSong(previousSong)} className={`${navigationButtonClass} justify-start text-left`}><span>‹ Précédent<br /><span className="text-white">{previousSong?.title ?? 'Début'}</span></span></button><button type="button" disabled={!nextSong} onClick={() => moveSong(nextSong)} className={`${navigationButtonClass} justify-end text-right`}><span>Suivant ›<br /><span className="text-white">{nextSong?.title ?? 'Fin'}</span></span></button></div></div></> : <div className="flex flex-1 items-center justify-center text-center"><div><p className="text-lg font-black">Aucun morceau disponible</p><p className="mt-2 text-sm text-white/55">Ajoute des chansons ou choisis une autre source.</p><button type="button" onClick={() => void closePrompter()} className="mt-5 rounded-xl bg-white px-4 py-3 text-sm font-black text-[#111319]">Retour au choix</button></div></div>}</main>
   </div>;
 }

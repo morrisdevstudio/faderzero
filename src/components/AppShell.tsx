@@ -293,7 +293,6 @@ export function AppShell() {
       ) : null}
       {isWorkspacePickerOpen ? (
         <FormDialog
-          eyebrow="Groupes"
           title="Choisir un groupe"
           closeLabel="Fermer le selecteur de groupe"
           onClose={() => setIsWorkspacePickerOpen(false)}

@@ -212,7 +212,7 @@ export function SongsPage() {
       </section>
 
       {isCreateOpen ? (
-        <FormDialog eyebrow="Creation" title="Nouvelle chanson" onClose={() => setIsCreateOpen(false)}>
+        <FormDialog title="Nouvelle chanson" onClose={() => setIsCreateOpen(false)}>
           <form className="space-y-3" onSubmit={handleCreateSong}>
               <label className="block">
                 <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-[var(--fz-text-muted)]">

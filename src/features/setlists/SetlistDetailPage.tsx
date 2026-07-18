@@ -490,7 +490,7 @@ export function SetlistDetailPage() {
         {error ? <p className="text-sm font-semibold text-rose-400">{error}</p> : null}
 
         {isEditing ? (
-          <FormDialog eyebrow="Setlist" title="Modifier la setlist" placement="bottom" onClose={handleCloseEdit}>
+          <FormDialog title="Modifier la setlist" placement="bottom" onClose={handleCloseEdit}>
             <form className="space-y-4" onSubmit={handleSaveSetlist}>
               <label className="block">
                 <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-[var(--fz-text-muted)]">Nom</span>
@@ -682,7 +682,7 @@ export function SetlistDetailPage() {
       </section>
 
       {isAddSongDialogOpen ? (
-        <FormDialog eyebrow="Ajouter" title="Ajouter des chansons" onClose={() => setIsAddSongDialogOpen(false)}>
+        <FormDialog title="Ajouter des chansons" onClose={() => setIsAddSongDialogOpen(false)}>
           <div className="space-y-3">
             {availableSongs.length === 0 ? (
               <p className="rounded-[1rem] border border-white/8 bg-black/20 px-4 py-4 text-sm text-[var(--fz-text-muted)]">
@@ -717,7 +717,7 @@ export function SetlistDetailPage() {
       ) : null}
 
       {editingTransitionEntry ? (
-        <FormDialog eyebrow="Transition" title="Note au-dessus du morceau" onClose={() => setEditingTransitionEntryId(null)}>
+        <FormDialog title="Note au-dessus du morceau" onClose={() => setEditingTransitionEntryId(null)}>
           <form className="space-y-4" onSubmit={handleSaveTransition}>
             <div>
               <p className="text-sm font-bold text-white">{editingTransitionEntry.songTitle}</p>
@@ -819,7 +819,7 @@ export function SetlistDetailPage() {
       ) : null}
 
       {isEndingNotesOpen ? (
-        <FormDialog eyebrow="Final" title="Note apres la setlist" onClose={() => setIsEndingNotesOpen(false)}>
+        <FormDialog title="Note apres la setlist" onClose={() => setIsEndingNotesOpen(false)}>
           <form className="space-y-4" onSubmit={handleSaveEndingNotes}>
             <label className="block">
               <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-[var(--fz-text-muted)]">Note</span>

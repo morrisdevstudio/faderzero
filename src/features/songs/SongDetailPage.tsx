@@ -788,7 +788,6 @@ export function SongDetailPage() {
 
       {isLinkDialogOpen ? (
         <FormDialog
-          eyebrow="Audio"
           title="Lier une musique"
           onClose={() => setIsLinkDialogOpen(false)}
         >
@@ -839,7 +838,6 @@ export function SongDetailPage() {
 
       {duplicatePrompt ? (
         <FormDialog
-          eyebrow="Doublon"
           title="Piste deja importee"
           closeLabel="Annuler l'import de cette piste"
           onClose={() => resolveDuplicatePrompt({ action: 'cancel' })}

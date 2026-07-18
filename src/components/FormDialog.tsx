@@ -2,14 +2,13 @@ import type { PropsWithChildren } from 'react';
 import { createPortal } from 'react-dom';
 
 interface FormDialogProps extends PropsWithChildren {
-  eyebrow?: string;
   title: string;
   closeLabel?: string;
   onClose: () => void;
   placement?: 'center' | 'bottom';
 }
 
-export function FormDialog({ eyebrow, title, closeLabel = 'Fermer', onClose, placement = 'center', children }: FormDialogProps) {
+export function FormDialog({ title, closeLabel = 'Fermer', onClose, placement = 'center', children }: FormDialogProps) {
   const isBottomSheet = placement === 'bottom';
 
   return createPortal(
@@ -34,12 +33,9 @@ export function FormDialog({ eyebrow, title, closeLabel = 'Fermer', onClose, pla
             isBottomSheet ? 'rounded-[1.6rem]' : 'rounded-[1.9rem]',
           ].join(' ')}
         >
-          <div className={['flex justify-between gap-3', eyebrow ? 'items-start' : 'items-center'].join(' ')}>
+          <div className="flex items-center justify-between gap-3">
             <div>
-              {eyebrow ? (
-                <p className="text-[0.68rem] font-black uppercase tracking-[0.2em] text-[var(--fz-text-muted)]">{eyebrow}</p>
-              ) : null}
-              <h2 className={[eyebrow ? 'mt-2' : '', 'text-[1.35rem] font-black text-white'].join(' ')}>{title}</h2>
+              <h2 className="text-[1.35rem] font-black text-white">{title}</h2>
             </div>
             <button
               type="button"

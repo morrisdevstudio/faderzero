@@ -67,7 +67,7 @@ function PickerDialog({
       <div
         role="dialog"
         aria-modal="true"
-        className="w-full max-w-md rounded-[1.6rem] border border-white/10 bg-[var(--fz-bg)] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.45)]"
+        className="fz-card w-full max-w-md rounded-[1.6rem] p-5"
       >
         <div className="flex items-start justify-between gap-4">
           <div>

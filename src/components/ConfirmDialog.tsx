@@ -56,10 +56,9 @@ export function ConfirmDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="confirm-dialog-title"
-        className="w-full max-w-sm rounded-[1.5rem] border border-white/10 bg-[var(--fz-bg)] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.45)]"
+        className="fz-card w-full max-w-sm rounded-[1.5rem] p-5"
       >
-        <p className="text-[0.66rem] font-black uppercase tracking-[0.24em] text-rose-300">Confirmation</p>
-        <h2 id="confirm-dialog-title" className="mt-2 text-[1.35rem] font-black tracking-tight text-white">
+        <h2 id="confirm-dialog-title" className="text-[1.35rem] font-black tracking-tight text-white">
           {title}
         </h2>
         <p className="mt-2 text-sm leading-6 text-[var(--fz-text-muted)]">{description}</p>
