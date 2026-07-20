@@ -1,6 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { FeatureCard } from '@/components/FeatureCard';
-import { StatusPill } from '@/components/StatusPill';
 import { clampBeatsPerBar, clampBpm, MetronomeEngine } from '@/features/metronome/metronomeEngine';
 
 const TAP_MEMORY = 5;
@@ -97,13 +95,14 @@ export function MetronomePage() {
 
   return (
     <div className="space-y-4">
-      <FeatureCard
-        eyebrow="Metronome"
-        title={`${bpm} BPM`}
-        description="Le clic est pilote par un scheduler Web Audio anticipe, pour garder la pulsation meme si l'UI bouge."
-        aside={`${beatsPerBar}/4`}
+      <section
+        className="sticky z-30 -mx-1 -mt-5 border-b border-white/8 bg-[var(--fz-bg)] px-1 pb-3 pt-2"
+        style={{ top: 'calc(var(--fz-header-height, 64px) + var(--fz-viewport-offset-top, 0px))' }}
       >
-        <div className="rounded-[1.5rem] border border-white/8 bg-black/20 p-4">
+        <h1 className="text-[2rem] font-black tracking-tight text-white">Métronome</h1>
+      </section>
+
+      <section aria-label="Contrôles du métronome" className="rounded-[1.5rem] border border-white/8 bg-black/20 p-4">
           <div className="flex items-end justify-between gap-4">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.22em] text-[var(--fz-text-muted)]">Tempo</p>
@@ -191,14 +190,7 @@ export function MetronomePage() {
           >
             {isRunning ? 'Stopper le clic' : 'Lancer le clic'}
           </button>
-        </div>
-
-        <div className="flex flex-wrap gap-3">
-          <StatusPill label="Web Audio" tone="accent" />
-          <StatusPill label="Offline" tone="success" />
-          <StatusPill label={isRunning ? 'Sync active' : 'Pret a jouer'} />
-        </div>
-      </FeatureCard>
+      </section>
     </div>
   );
 }

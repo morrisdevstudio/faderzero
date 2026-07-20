@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useEffect, useState, type FormEvent, type SVGProps } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type SVGProps } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { FeatureCard } from '@/components/FeatureCard';
@@ -173,6 +173,10 @@ export function SetlistDetailPage() {
   const [notes, setNotes] = useState('');
   const [bpmDisplayMode, setBpmDisplayMode] = useState<SetlistDisplayMode>('per-song');
   const [keyDisplayMode, setKeyDisplayMode] = useState<SetlistDisplayMode>('per-song');
+  const entryElementsRef = useRef(new Map<string, HTMLDivElement>());
+  const entryPositionsRef = useRef(new Map<string, number>());
+  const entryAnimationsRef = useRef(new Map<string, Animation>());
+  const movingEntryIdRef = useRef<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -200,6 +204,49 @@ export function SetlistDetailPage() {
     setKeyDisplayMode(setlist.keyDisplayMode ?? 'per-song');
     setEndingAnnotation(setlist.closingAnnotation ?? '');
   }, [setlist]);
+
+  useLayoutEffect(() => {
+    const nextPositions = new Map<string, number>();
+    const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+    const movingEntryId = movingEntryIdRef.current;
+
+    for (const [entryId, element] of entryElementsRef.current) {
+      const nextTop = element.getBoundingClientRect().top;
+      const previousTop = entryPositionsRef.current.get(entryId);
+      nextPositions.set(entryId, nextTop);
+
+      if (
+        movingEntryId === null ||
+        prefersReducedMotion ||
+        previousTop === undefined ||
+        previousTop === nextTop ||
+        typeof element.animate !== 'function'
+      ) {
+        continue;
+      }
+
+      const deltaY = previousTop - nextTop;
+      entryAnimationsRef.current.get(entryId)?.cancel();
+      const animation = element.animate(
+        [
+          { transform: `translateY(${deltaY}px)` },
+          { transform: 'translateY(0)' },
+        ],
+        { duration: 190, easing: 'cubic-bezier(0.2, 0, 0, 1)' },
+      );
+      entryAnimationsRef.current.set(entryId, animation);
+      const forgetAnimation = () => {
+        if (entryAnimationsRef.current.get(entryId) === animation) {
+          entryAnimationsRef.current.delete(entryId);
+        }
+      };
+      animation.addEventListener('finish', forgetAnimation, { once: true });
+      animation.addEventListener('cancel', forgetAnimation, { once: true });
+    }
+
+    entryPositionsRef.current = nextPositions;
+    movingEntryIdRef.current = null;
+  }, [entries]);
 
   if (setlist === undefined || entries === undefined || songs === undefined) {
     return <FeatureCard eyebrow="Chargement" title="Lecture de la setlist" description="Recuperation des donnees locales..." />;
@@ -309,10 +356,12 @@ export function SetlistDetailPage() {
 
   async function handleMoveEntry(entryId: string, direction: -1 | 1) {
     setError(null);
+    movingEntryIdRef.current = entryId;
 
     try {
       await setlistSongsRepository.move(entryId, direction);
     } catch {
+      movingEntryIdRef.current = null;
       setError('Impossible de reordonner ce morceau.');
     }
   }
@@ -572,7 +621,17 @@ export function SetlistDetailPage() {
               const transitionParts = buildTransitionLine(entry);
 
               return (
-                <div key={entry.id} className="space-y-2">
+                <div
+                  key={entry.id}
+                  ref={(element) => {
+                    if (element) {
+                      entryElementsRef.current.set(entry.id, element);
+                    } else {
+                      entryElementsRef.current.delete(entry.id);
+                    }
+                  }}
+                  className="relative space-y-2"
+                >
                   <div className="flex items-start gap-3 pl-7 pr-1">
                     {index === 0 ? (
                       <div className="mt-0.5 flex w-6 shrink-0 justify-center text-white/28">
