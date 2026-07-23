@@ -379,10 +379,12 @@ export function AccountPage() {
     setLocalWorkspaceError(null);
     clearFeedback();
     try {
-      const isAvailable = await checkWorkspaceNameAvailable(normalizedName);
-      if (!isAvailable) {
-        setLocalWorkspaceError('Un groupe portant ce nom existe d√©j√†.');
-        return;
+      if (navigator.onLine) {
+        const isAvailable = await checkWorkspaceNameAvailable(normalizedName);
+        if (!isAvailable) {
+          setLocalWorkspaceError('Un groupe portant ce nom existe dÈj‡.');
+          return;
+        }
       }
       await createWorkspace(normalizedName);
       setWorkspaceName('');
