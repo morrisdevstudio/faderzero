@@ -515,7 +515,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       localStorage.setItem(LOCAL_STORAGE_KEY, newWorkspace.id);
       configureAudioCacheContext(userId, newWorkspace.id);
     } catch (err: any) {
-      set({ error: err.message, loading: false });
+      console.error('[createWorkspace error]', err);
+      set({ error: err.message || 'Erreur lors de la création du groupe.', loading: false });
       throw err;
     }
   },
