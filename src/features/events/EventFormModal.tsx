@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { eventsRepository } from '@/db/repositories/eventsRepository';
 import type { EventRecord, EventType } from '@/db/schema';
 import { useAuthStore } from '@/stores/authStore';
@@ -16,9 +16,10 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
   onClose,
   onSaved,
 }) => {
-  const activeWorkspace = useAuthStore((state) => state.activeWorkspace);
+  const { workspaces, activeWorkspace } = useAuthStore();
   const [title, setTitle] = useState('');
   const [eventType, setEventType] = useState<EventType>('rehearsal');
+  const [targetWorkspaceId, setTargetWorkspaceId] = useState<string>('');
   const [startDate, setStartDate] = useState('');
   const [startTime, setStartTime] = useState('20:00');
   const [endDate, setEndDate] = useState('');
@@ -34,6 +35,7 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
       if (event) {
         setTitle(event.title);
         setEventType(event.eventType);
+        setTargetWorkspaceId(event.workspaceId || activeWorkspace?.id || workspaces[0]?.id || '');
         const start = new Date(event.startAt);
         setStartDate(start.toISOString().split('T')[0] ?? '');
         setStartTime(start.toTimeString().slice(0, 5));
@@ -53,6 +55,7 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
         const today = new Date().toISOString().split('T')[0] ?? '';
         setTitle('');
         setEventType('rehearsal');
+        setTargetWorkspaceId(activeWorkspace?.id || workspaces[0]?.id || '');
         setStartDate(today);
         setStartTime('20:00');
         setEndDate(today);
@@ -61,19 +64,19 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
         setNotes('');
       }
     }
-  }, [isOpen, event]);
+  }, [isOpen, event, activeWorkspace?.id, workspaces]);
 
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) {
-      setError("Le titre de l'événement est requis.");
+      setError("Le titre de l'?v?nement est requis.");
       return;
     }
 
     if (!startDate || !startTime) {
-      setError("La date et l'heure de début sont requises.");
+      setError("La date et l'heure de d?but sont requises.");
       return;
     }
 
@@ -103,13 +106,13 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
           eventType,
           startAt: startMs,
           ...optionalFields,
-        }, activeWorkspace?.id);
+        }, targetWorkspaceId || activeWorkspace?.id);
       }
 
       if (onSaved) onSaved();
       onClose();
     } catch (err: any) {
-      setError(err.message || "Échec de l'enregistrement de l'événement.");
+      setError(err.message || "?chec de l'enregistrement de l'?v?nement.");
     } finally {
       setLoading(false);
     }
@@ -123,7 +126,7 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
       if (onSaved) onSaved();
       onClose();
     } catch (err: any) {
-      setError(err.message || "Échec de la suppression.");
+      setError(err.message || "?chec de la suppression.");
       setLoading(false);
     }
   };
@@ -133,7 +136,7 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
       <div className="w-full max-w-lg rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl">
         <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
           <h2 className="text-lg font-bold text-zinc-100">
-            {event ? 'Modifier l’événement' : 'Nouvel événement'}
+            {event ? 'Modifier l??v?nement' : 'Nouvel ?v?nement'}
           </h2>
           <button
             onClick={onClose}
@@ -153,17 +156,36 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-1">
-              Titre de l’événement
+              Titre de l??v?nement
             </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Ex: Répétition générale, Concert au Studio..."
+              placeholder="Ex: R?p?tition g?n?rale, Concert au Studio..."
               required
               className="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3.5 py-2.5 text-sm text-zinc-100 focus:outline-none"
             />
           </div>
+
+          {!event && workspaces.length > 0 && (
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-1">
+                Espace / Groupe
+              </label>
+              <select
+                value={targetWorkspaceId}
+                onChange={(e) => setTargetWorkspaceId(e.target.value)}
+                className="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2.5 text-sm text-zinc-100 focus:outline-none"
+              >
+                {workspaces.map((ws) => (
+                  <option key={ws.id} value={ws.id}>
+                    {ws.type === 'personal' ? `Perso (${ws.name})` : `Groupe: ${ws.name}`}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -175,9 +197,9 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
                 onChange={(e) => setEventType(e.target.value as EventType)}
                 className="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2.5 text-sm text-zinc-100 focus:outline-none"
               >
-                <option value="rehearsal">Répétition</option>
+                <option value="rehearsal">R?p?tition</option>
                 <option value="concert">Concert</option>
-                <option value="meeting">Réunion</option>
+                <option value="meeting">R?union</option>
                 <option value="other">Autre</option>
               </select>
             </div>
@@ -198,7 +220,7 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-1">
-                Date de début
+                Date de d?but
               </label>
               <input
                 type="date"
@@ -210,7 +232,7 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
             </div>
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-1">
-                Heure de début
+                Heure de d?but
               </label>
               <input
                 type="time"
@@ -255,7 +277,7 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
-              placeholder="Ordre du jour, liste du matériel, instructions..."
+              placeholder="Ordre du jour, liste du mat?riel, instructions..."
               className="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3.5 py-2 text-sm text-zinc-100 focus:outline-none resize-none"
             />
           </div>

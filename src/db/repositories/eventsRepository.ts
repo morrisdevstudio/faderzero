@@ -1,4 +1,4 @@
-﻿import { db } from '@/db/db';
+import { db } from '@/db/db';
 import type { CreateEventInput, EventRecord, UpdateEventInput } from '@/db/schema';
 import { createId } from '@/lib/createId';
 import { now } from '@/lib/now';
@@ -24,6 +24,31 @@ export const eventsRepository = {
     const items = await collection.toArray();
     return items.sort((a, b) => a.startAt - b.startAt);
   },
+
+  async listByWorkspaces(
+    workspaceIds: string[],
+    options: { includeDeleted?: boolean } = {}
+  ): Promise<EventRecord[]> {
+    if (!workspaceIds || workspaceIds.length === 0) return [];
+    let collection = db.events.where('workspaceId').anyOf(workspaceIds);
+    if (!options.includeDeleted) {
+      collection = collection.filter((event) => event.deletedAt === undefined);
+    }
+    const items = await collection.toArray();
+    return items.sort((a, b) => a.startAt - b.startAt);
+  },
+
+  async listAll(
+    options: { includeDeleted?: boolean } = {}
+  ): Promise<EventRecord[]> {
+    let collection = db.events.toCollection();
+    if (!options.includeDeleted) {
+      collection = collection.filter((event) => event.deletedAt === undefined);
+    }
+    const items = await collection.toArray();
+    return items.sort((a, b) => a.startAt - b.startAt);
+  },
+
 
   async listUpcoming(workspaceId?: string, limit: number = 3): Promise<EventRecord[]> {
     const targetWorkspaceId = workspaceId || useAuthStore.getState().activeWorkspace?.id || 'default-workspace';
