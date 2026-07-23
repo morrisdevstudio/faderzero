@@ -302,16 +302,27 @@ function mapWorkspaceMemberRow(row: any): WorkspaceMember {
 }
 
 export async function listWorkspaceMembersWithProfiles(workspaceId: string): Promise<WorkspaceMember[]> {
-  const res = await supabase
+  const { data: membershipRows, error: membershipError } = await supabase
     .from('workspace_members')
-    .select('id, workspace_id, user_id, role, created_at, updated_at, profile:profiles(display_name, avatar_path)')
+    .select('id, workspace_id, user_id, role, created_at, updated_at')
     .eq('workspace_id', workspaceId);
 
-  const data = res?.data;
-  if (res?.error) throw normalizeWorkspaceError(res.error);
+  if (membershipError) throw normalizeWorkspaceError(membershipError);
 
-  const members = (data || []).map((row: any) => {
-    const profile = Array.isArray(row.profile) ? row.profile[0] : row.profile;
+  const memberIds = (membershipRows || []).map((row: any) => row.user_id);
+  if (memberIds.length === 0) return [];
+
+  const { data: profileRows, error: profileError } = await supabase
+    .from('profiles')
+    .select('id, display_name, avatar_path')
+    .in('id', memberIds);
+
+  if (profileError) throw normalizeWorkspaceError(profileError);
+
+  const profilesById = new Map((profileRows || []).map((profile: any) => [profile.id, profile]));
+
+  const members = (membershipRows || []).map((row: any) => {
+    const profile = profilesById.get(row.user_id);
     return {
       id: row.id,
       workspaceId: row.workspace_id,

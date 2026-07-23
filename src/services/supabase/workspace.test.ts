@@ -18,12 +18,13 @@ import {
   normalizeWorkspaceType,
 } from './workspace';
 
-const { insertMock, selectMock, singleMock, maybeSingleMock, eqMock, rpcMock } = vi.hoisted(() => ({
+const { insertMock, selectMock, singleMock, maybeSingleMock, eqMock, inMock, rpcMock } = vi.hoisted(() => ({
   insertMock: vi.fn(),
   selectMock: vi.fn(),
   singleMock: vi.fn(),
   maybeSingleMock: vi.fn(),
   eqMock: vi.fn(),
+  inMock: vi.fn(),
   rpcMock: vi.fn(),
 }));
 
@@ -33,6 +34,7 @@ const fromBuilder = {
   single: singleMock,
   maybeSingle: maybeSingleMock,
   eq: eqMock,
+  in: inMock,
 };
 
 vi.mock('./client', () => ({
@@ -59,6 +61,7 @@ describe('workspace invite helpers', () => {
     singleMock.mockReset();
     maybeSingleMock.mockReset();
     eqMock.mockReset();
+    inMock.mockReset();
     rpcMock.mockReset();
     window.history.replaceState({}, '', '/account');
   });
@@ -197,8 +200,11 @@ describe('workspace invite helpers', () => {
         role: 'admin',
         created_at: '2026-07-23T10:00:00.000Z',
         updated_at: '2026-07-23T10:00:00.000Z',
-        profile: { display_name: 'Yann', avatar_path: 'avatars/user-123.png' },
       }],
+      error: null,
+    });
+    inMock.mockResolvedValue({
+      data: [{ id: 'user-123', display_name: 'Yann', avatar_path: 'avatars/user-123.png' }],
       error: null,
     });
 
@@ -214,8 +220,10 @@ describe('workspace invite helpers', () => {
     }]);
 
     expect(selectMock).toHaveBeenCalledWith(
-      'id, workspace_id, user_id, role, created_at, updated_at, profile:profiles(display_name, avatar_path)',
+      'id, workspace_id, user_id, role, created_at, updated_at',
     );
+    expect(selectMock).toHaveBeenCalledWith('id, display_name, avatar_path');
+    expect(inMock).toHaveBeenCalledWith('id', ['user-123']);
   });
 
   it('keeps guests read-only while members and admins can write', () => {
@@ -321,6 +329,7 @@ describe('workspace invite helpers', () => {
   });
 
   it('changes a member role through the transactional RPC', async () => {
+    eqMock.mockResolvedValue({ data: [], error: null });
     rpcMock.mockResolvedValue({
       data: {
         id: 'membership-123',
@@ -344,6 +353,7 @@ describe('workspace invite helpers', () => {
   });
 
   it('removes and leaves memberships only through RPCs', async () => {
+    eqMock.mockResolvedValue({ data: [], error: null });
     rpcMock.mockResolvedValue({ data: 'membership-123', error: null });
 
     await removeWorkspaceMember('workspace-123', 'user-456');
