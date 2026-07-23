@@ -5,13 +5,22 @@ import { useAuthStore } from '@/stores/authStore';
 
 interface EventFormModalProps {
   event?: EventRecord | null;
+  initialDate?: Date | null;
   isOpen: boolean;
   onClose: () => void;
   onSaved?: () => void;
 }
 
+function formatDateToInput(d: Date): string {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export const EventFormModal: React.FC<EventFormModalProps> = ({
   event,
+  initialDate,
   isOpen,
   onClose,
   onSaved,
@@ -30,41 +39,43 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isOpen) {
-      setError(null);
-      if (event) {
-        setTitle(event.title);
-        setEventType(event.eventType);
-        setTargetWorkspaceId(event.workspaceId || activeWorkspace?.id || workspaces[0]?.id || '');
-        const start = new Date(event.startAt);
-        setStartDate(start.toISOString().split('T')[0] ?? '');
-        setStartTime(start.toTimeString().slice(0, 5));
+    if (!isOpen) return;
 
-        if (event.endAt) {
-          const end = new Date(event.endAt);
-          setEndDate(end.toISOString().split('T')[0] ?? '');
-          setEndTime(end.toTimeString().slice(0, 5));
-        } else {
-          setEndDate('');
-          setEndTime('');
-        }
+    setError(null);
+    if (event) {
+      setTitle(event.title);
+      setEventType(event.eventType);
+      setTargetWorkspaceId(event.workspaceId || activeWorkspace?.id || workspaces[0]?.id || '');
+      const start = new Date(event.startAt);
+      setStartDate(formatDateToInput(start));
+      setStartTime(start.toTimeString().slice(0, 5));
 
-        setLocation(event.location || '');
-        setNotes(event.notes || '');
+      if (event.endAt) {
+        const end = new Date(event.endAt);
+        setEndDate(formatDateToInput(end));
+        setEndTime(end.toTimeString().slice(0, 5));
       } else {
-        const today = new Date().toISOString().split('T')[0] ?? '';
-        setTitle('');
-        setEventType('rehearsal');
-        setTargetWorkspaceId(activeWorkspace?.id || workspaces[0]?.id || '');
-        setStartDate(today);
-        setStartTime('20:00');
-        setEndDate(today);
-        setEndTime('22:00');
-        setLocation('');
-        setNotes('');
+        setEndDate('');
+        setEndTime('');
       }
+
+      setLocation(event.location || '');
+      setNotes(event.notes || '');
+    } else {
+      const baseDate = initialDate || new Date();
+      const dateStr = formatDateToInput(baseDate);
+      setTitle('');
+      setEventType('rehearsal');
+      setTargetWorkspaceId(activeWorkspace?.id || workspaces[0]?.id || '');
+      setStartDate(dateStr);
+      setStartTime('20:00');
+      setEndDate(dateStr);
+      setEndTime('22:00');
+      setLocation('');
+      setNotes('');
     }
-  }, [isOpen, event, activeWorkspace?.id, workspaces]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, event, initialDate]);
 
   if (!isOpen) return null;
 
@@ -132,7 +143,7 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/80 p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/80 p-4 backdrop-blur-sm" onClick={(e) => { if (e.target === e.currentTarget && !loading) { onClose(); } }}>
       <div className="w-full max-w-lg rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl">
         <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
           <h2 className="text-lg font-bold text-zinc-100">

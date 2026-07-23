@@ -87,6 +87,7 @@ export function CalendarPage() {
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<EventRecord | null>(null);
+  const [creationDate, setCreationDate] = useState<Date | null>(null);
   const [loading, setLoading] = useState(true);
 
   const loadEvents = async () => {
@@ -230,11 +231,13 @@ export function CalendarPage() {
   const handleEditEvent = (event: EventRecord, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     setSelectedEvent(event);
+    setCreationDate(null);
     setIsModalOpen(true);
   };
 
-  const handleCreateNew = () => {
+  const handleCreateNew = (date?: Date) => {
     setSelectedEvent(null);
+    setCreationDate(date || null);
     setIsModalOpen(true);
   };
 
@@ -252,7 +255,7 @@ export function CalendarPage() {
 
           <button
             type="button"
-            onClick={handleCreateNew}
+            onClick={() => handleCreateNew()}
             aria-label="Nouvel événement"
             className="fz-button-primary h-11 w-11 shrink-0 p-0"
           >
@@ -413,7 +416,7 @@ export function CalendarPage() {
               return (
                 <div
                   key={idx}
-                  onClick={handleCreateNew}
+                  onClick={() => handleCreateNew()}
                   className={[
                     'group relative min-h-[64px] rounded-xl border p-1.5 transition flex flex-col justify-between cursor-pointer md:min-h-[85px]',
                     item.isCurrentMonth
@@ -501,7 +504,7 @@ export function CalendarPage() {
               : 'Aucun événement prévu pour le moment.'}
           </p>
           <button
-            onClick={handleCreateNew}
+            onClick={() => handleCreateNew()}
             className="mt-3 text-xs font-bold text-orange-400 hover:underline"
           >
             Créer un événement
@@ -581,6 +584,7 @@ export function CalendarPage() {
 
       <EventFormModal
         event={selectedEvent}
+        initialDate={creationDate}
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSaved={loadEvents}
