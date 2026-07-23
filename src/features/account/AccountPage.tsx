@@ -382,7 +382,7 @@ export function AccountPage() {
       if (navigator.onLine) {
         const isAvailable = await checkWorkspaceNameAvailable(normalizedName);
         if (!isAvailable) {
-          setLocalWorkspaceError('Un groupe portant ce nom existe déjà.');
+          setLocalWorkspaceError('Un groupe portant ce nom existe dï¿½jï¿½.');
           return;
         }
       }
@@ -921,6 +921,23 @@ export function AccountPage() {
             {loading ? 'Mise Ã  jour...' : 'Mettre a jour le mot de passe'}
           </button>
         </form>
+      </section>
+
+      {/* Sign Out Section */}
+      <section className="rounded-[1.6rem] border border-white/10 bg-white/[0.045] p-5">
+        <p className="text-[0.66rem] font-black uppercase tracking-[0.22em] text-[var(--fz-accent)]">Session</p>
+        <h2 className="mt-2 text-lg font-black uppercase tracking-[0.16em] text-white">Déconnexion</h2>
+        <p className="mt-2 text-sm leading-relaxed text-[var(--fz-text-muted)]">
+          Ferme ta session sur cet appareil. Tes données locales et morceaux en cache restent conservés.
+        </p>
+        <button
+          type="button"
+          onClick={() => void signOut()}
+          disabled={loading}
+          className="mt-4 w-full rounded-[1rem] border border-white/15 bg-white/5 px-4 py-3 text-[0.72rem] font-black uppercase tracking-[0.18em] text-white transition hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-300 disabled:opacity-40"
+        >
+          Se déconnecter
+        </button>
       </section>
 
       {/* Account Deletion Section */}
