@@ -11,6 +11,7 @@ import { downloadSetlistPdf } from '@/features/setlists/setlistPdf';
 import { songsRepository } from '@/db/repositories/songsRepository';
 import { formatSetDuration, formatSongDuration } from '@/features/songs/songPresentation';
 import { useAuthStore } from '@/stores/authStore';
+import { canWriteWorkspace } from '@/services/supabase/workspace';
 
 type IconProps = SVGProps<SVGSVGElement>;
 
@@ -164,7 +165,9 @@ function DisplayModeSelector({
 export function SetlistDetailPage() {
   const { setlistId = '' } = useParams();
   const navigate = useNavigate();
-  const activeWorkspaceId = useAuthStore((state) => state.activeWorkspace?.id);
+  const activeWorkspace = useAuthStore((state) => state.activeWorkspace);
+  const activeWorkspaceId = activeWorkspace?.id;
+  const canWrite = canWriteWorkspace(activeWorkspace?.role);
   const setlist = useLiveQuery(() => setlistsRepository.getById(setlistId), [setlistId, activeWorkspaceId]);
   const entries = useLiveQuery(() => setlistSongsRepository.listDetailedBySetlistId(setlistId), [setlistId, activeWorkspaceId]);
   const songs = useLiveQuery(() => songsRepository.list(), [activeWorkspaceId]);
@@ -301,6 +304,7 @@ export function SetlistDetailPage() {
 
   async function handleSaveSetlist(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!canWrite) return;
 
     const trimmedName = name.trim();
     if (!trimmedName) {
@@ -328,6 +332,7 @@ export function SetlistDetailPage() {
   }
 
   async function handleDeleteSetlist() {
+    if (!canWrite) return;
     setIsDeleting(true);
     setError(null);
 
@@ -342,6 +347,7 @@ export function SetlistDetailPage() {
   }
 
   async function handleAddSong(songId: string) {
+    if (!canWrite) return;
     setError(null);
     setIsAddingSongId(songId);
 
@@ -355,6 +361,7 @@ export function SetlistDetailPage() {
   }
 
   async function handleMoveEntry(entryId: string, direction: -1 | 1) {
+    if (!canWrite) return;
     setError(null);
     movingEntryIdRef.current = entryId;
 
@@ -368,6 +375,7 @@ export function SetlistDetailPage() {
 
   async function handleSaveTransition(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!canWrite) return;
 
     if (!editingTransitionEntry) {
       return;
@@ -392,6 +400,7 @@ export function SetlistDetailPage() {
 
   async function handleSaveEndingNotes(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!canWrite) return;
 
     setIsSavingTransition(true);
     setError(null);
@@ -409,6 +418,7 @@ export function SetlistDetailPage() {
   }
 
   async function handleToggleDirectSegue(entry: SetlistSongDetail) {
+    if (!canWrite) return;
     setError(null);
 
     try {
@@ -489,7 +499,7 @@ export function SetlistDetailPage() {
             >
               <PrompterIcon className="h-5 w-5" />
             </Link>
-            {isEditing ? (
+            {canWrite && isEditing ? (
               <button
                 type="button"
                 onClick={() => setIsDeleteDialogOpen(true)}
@@ -510,7 +520,7 @@ export function SetlistDetailPage() {
               <PdfIcon className="h-4.5 w-4.5" />
             </button>
 
-            <button
+            {canWrite ? <button
               type="button"
               onClick={() => {
                 if (isEditing) {
@@ -530,7 +540,7 @@ export function SetlistDetailPage() {
               ].join(' ')}
             >
               {isEditing ? <CheckIcon className="h-4.5 w-4.5" /> : <PencilIcon className="h-4.5 w-4.5" />}
-            </button>
+            </button> : null}
           </div>
         </div>
       </section>
@@ -538,7 +548,7 @@ export function SetlistDetailPage() {
       <section className="space-y-4 pt-1">
         {error ? <p className="text-sm font-semibold text-rose-400">{error}</p> : null}
 
-        {isEditing ? (
+        {canWrite && isEditing ? (
           <FormDialog title="Modifier la setlist" placement="bottom" onClose={handleCloseEdit}>
             <form className="space-y-4" onSubmit={handleSaveSetlist}>
               <label className="block">
@@ -592,7 +602,7 @@ export function SetlistDetailPage() {
         ) : null}
 
         <section className="space-y-3">
-          <button
+          {canWrite ? <button
             type="button"
             onClick={() => {
               setError(null);
@@ -602,7 +612,7 @@ export function SetlistDetailPage() {
           >
             <PlusIcon className="h-5 w-5" />
             Ajouter des chansons
-          </button>
+          </button> : null}
 
           {entries.length === 0 ? (
             <FeatureCard
@@ -641,6 +651,7 @@ export function SetlistDetailPage() {
                       <button
                         type="button"
                         onClick={() => void handleToggleDirectSegue(entry)}
+                        disabled={!canWrite}
                         aria-label={entry.isDirectSegue ? `Retirer l'enchainement avant ${entry.songTitle}` : `Activer l'enchainement avant ${entry.songTitle}`}
                         className={[
                           'mt-0.5 flex w-6 shrink-0 justify-center transition',
@@ -667,6 +678,7 @@ export function SetlistDetailPage() {
                       <button
                         type="button"
                         onClick={() => handleOpenTransitionEditor(entry)}
+                        disabled={!canWrite}
                         aria-label={`Modifier la note avant ${entry.songTitle}`}
                         className="flex h-8 w-8 items-center justify-center text-white/28 transition hover:text-white/60"
                       >
@@ -689,7 +701,7 @@ export function SetlistDetailPage() {
                       <button
                         type="button"
                         onClick={() => handleMoveEntry(entry.id, -1)}
-                        disabled={index === 0}
+                        disabled={!canWrite || index === 0}
                         aria-label={`Monter ${entry.songTitle}`}
                         className="flex h-10 w-10 items-center justify-center text-white/85 transition hover:text-white disabled:opacity-25"
                       >
@@ -698,7 +710,7 @@ export function SetlistDetailPage() {
                       <button
                         type="button"
                         onClick={() => handleMoveEntry(entry.id, 1)}
-                        disabled={index === entries.length - 1}
+                        disabled={!canWrite || index === entries.length - 1}
                         aria-label={`Descendre ${entry.songTitle}`}
                         className="flex h-10 w-10 items-center justify-center text-white/85 transition hover:text-white disabled:opacity-25"
                       >
@@ -729,6 +741,7 @@ export function SetlistDetailPage() {
                 <button
                   type="button"
                   onClick={handleOpenEndingNotesEditor}
+                  disabled={!canWrite}
                   aria-label="Modifier la note de fin"
                   className="flex h-8 w-8 items-center justify-center text-white/28 transition hover:text-white/60"
                 >
@@ -740,7 +753,7 @@ export function SetlistDetailPage() {
         </section>
       </section>
 
-      {isAddSongDialogOpen ? (
+      {canWrite && isAddSongDialogOpen ? (
         <FormDialog title="Ajouter des chansons" onClose={() => setIsAddSongDialogOpen(false)}>
           <div className="space-y-3">
             {availableSongs.length === 0 ? (
@@ -775,7 +788,7 @@ export function SetlistDetailPage() {
         </FormDialog>
       ) : null}
 
-      {editingTransitionEntry ? (
+      {canWrite && editingTransitionEntry ? (
         <FormDialog title="Note au-dessus du morceau" onClose={() => setEditingTransitionEntryId(null)}>
           <form className="space-y-4" onSubmit={handleSaveTransition}>
             <div>
@@ -877,7 +890,7 @@ export function SetlistDetailPage() {
         </FormDialog>
       ) : null}
 
-      {isEndingNotesOpen ? (
+      {canWrite && isEndingNotesOpen ? (
         <FormDialog title="Note apres la setlist" onClose={() => setIsEndingNotesOpen(false)}>
           <form className="space-y-4" onSubmit={handleSaveEndingNotes}>
             <label className="block">
@@ -910,7 +923,7 @@ export function SetlistDetailPage() {
       ) : null}
 
       <ConfirmDialog
-        isOpen={isDeleteDialogOpen}
+        isOpen={canWrite && isDeleteDialogOpen}
         title="Voulez-vous supprimer cette setlist ?"
         description="La setlist sera retiree de la base locale active sur cet appareil apres confirmation."
         confirmLabel="Supprimer"

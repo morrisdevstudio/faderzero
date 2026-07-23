@@ -15,6 +15,8 @@ import { buildCompressedFileName } from '@/features/songs/audioCompression';
 import { uploadSongAsset } from '@/services/supabase/storage';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useAudioCacheStore } from '@/features/audio/audioCacheStore';
+import { canWriteWorkspace } from '@/services/supabase/workspace';
+import { CopySongModal } from '@/features/songs/CopySongModal';
 
 type IconProps = SVGProps<SVGSVGElement>;
 
@@ -209,12 +211,15 @@ function areFormValuesEqual(left: SongFormValues, right: SongFormValues) {
 export function SongDetailPage() {
   const { songId = '' } = useParams();
   const navigate = useNavigate();
-  const activeWorkspaceId = useAuthStore((state) => state.activeWorkspace?.id);
+  const activeWorkspace = useAuthStore((state) => state.activeWorkspace);
+  const activeWorkspaceId = activeWorkspace?.id;
+  const canWrite = canWriteWorkspace(activeWorkspace?.role);
   const song = useLiveQuery(() => songsRepository.getById(songId), [songId, activeWorkspaceId]);
   const [formValues, setFormValues] = useState<SongFormValues>(initialFormValues);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isCopyModalOpen, setIsCopyModalOpen] = useState(false);
   const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false);
   const [isAudioActionsOpen, setIsAudioActionsOpen] = useState(false);
   const [duplicatePrompt, setDuplicatePrompt] = useState<DuplicatePromptState | null>(null);
@@ -274,6 +279,7 @@ export function SongDetailPage() {
   }
 
   async function handleDirectAudioImport(event: ChangeEvent<HTMLInputElement>) {
+    if (!canWrite) return;
     const file = event.target.files?.[0];
     if (!file) {
       return;
@@ -316,6 +322,7 @@ export function SongDetailPage() {
   }
 
   async function handleLinkExistingAsset() {
+    if (!canWrite) return;
     if (!selectedAssetToLinkId) {
       setError('Choisis un fichier audio a lier.');
       return;
@@ -356,7 +363,7 @@ export function SongDetailPage() {
   }, []);
 
   useEffect(() => {
-    if (!isEditMode || isSaving) {
+    if (!canWrite || !isEditMode || isSaving) {
       return;
     }
 
@@ -435,7 +442,7 @@ export function SongDetailPage() {
         window.clearTimeout(autosaveTimeoutRef.current);
       }
     };
-  }, [formValues, isEditMode, isSaving, song]);
+  }, [canWrite, formValues, isEditMode, isSaving, song]);
 
   if (song === undefined) {
     return <FeatureCard eyebrow="Chargement" title="Lecture de la chanson" description="Recuperation des donnees locales..." />;
@@ -465,6 +472,7 @@ export function SongDetailPage() {
     : assets;
 
   async function handleDeleteSong() {
+    if (!canWrite) return;
     setIsSaving(true);
     setError(null);
 
@@ -504,6 +512,7 @@ export function SongDetailPage() {
   const isPrimaryAudioPlaying = primaryAudioAsset?.id === currentTrack?.assetId && status === 'playing';
 
   function handleSetPrimaryAudio(assetId: string) {
+    if (!canWrite) return;
     try {
       localStorage.setItem(getPrimaryTrackStorageKey(currentSong.id), assetId);
     } catch {
@@ -545,6 +554,21 @@ export function SongDetailPage() {
           <h1 className="truncate text-center text-[1rem] font-black text-white">{currentSong.title || 'Sans titre'}</h1>
 
           <div className="flex items-center justify-end gap-2 justify-self-end">
+
+            {canWrite && !isEditMode ? (
+              <button
+                type="button"
+                onClick={() => setIsCopyModalOpen(true)}
+                aria-label="Copier vers un autre espace"
+                title="Copier vers un autre espace"
+                className="flex h-11 w-11 items-center justify-center text-amber-300 transition-colors hover:text-amber-200"
+              >
+                <svg className="h-4.5 w-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+              </button>
+            ) : null}
             {!isEditMode ? (
               <Link
                 to={`/prompter/play?songId=${encodeURIComponent(currentSong.id)}`}
@@ -554,7 +578,7 @@ export function SongDetailPage() {
                 <PrompterIcon className="h-5 w-5" />
               </Link>
             ) : null}
-            {isEditMode ? (
+            {canWrite && isEditMode ? (
               <button
                 type="button"
                 onClick={() => setIsDeleteDialogOpen(true)}
@@ -566,7 +590,7 @@ export function SongDetailPage() {
               </button>
             ) : null}
 
-            <button
+            {canWrite ? <button
               type="button"
               onClick={() => {
                 if (isEditMode) {
@@ -586,7 +610,7 @@ export function SongDetailPage() {
               ].join(' ')}
             >
               {isEditMode ? <CheckIcon className="h-4.5 w-4.5" /> : <PencilIcon className="h-4.5 w-4.5" />}
-            </button>
+            </button> : null}
           </div>
         </div>
       </section>
@@ -595,7 +619,7 @@ export function SongDetailPage() {
         {error ? <p className="text-sm font-semibold text-rose-400">{error}</p> : null}
 
         <section>
-          {isEditMode ? (
+          {canWrite && isEditMode ? (
             <div className="space-y-3">
               <SongFormFields values={formValues} onChange={setFormValues} />
             </div>
@@ -729,7 +753,7 @@ export function SongDetailPage() {
                       >
                         {asset.filename}
                       </button>
-                      <button
+                      {canWrite ? <button
                         type="button"
                         onClick={() => handleSetPrimaryAudio(asset.id)}
                         aria-label={isPrimary ? `${asset.filename} est la piste principale` : `Définir ${asset.filename} comme piste principale`}
@@ -737,7 +761,7 @@ export function SongDetailPage() {
                         className={["flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition", isPrimary ? 'border-orange-400/35 bg-orange-500/15 text-orange-300' : 'border-white/8 bg-white/5 text-white/55 hover:bg-white/10 hover:text-white'].join(' ')}
                       >
                         <PrimaryAudioIcon active={isPrimary} className="h-4 w-4" />
-                      </button>
+                      </button> : null}
                     </div>
                   );
                 })}
@@ -746,7 +770,7 @@ export function SongDetailPage() {
               <p className="rounded-xl border border-white/8 bg-white/5 p-3 text-sm text-white/50">Aucune piste associée.</p>
             )}
 
-            <div className="grid gap-2 border-t border-white/8 pt-4">
+            {canWrite ? <div className="grid gap-2 border-t border-white/8 pt-4">
               <button
                 type="button"
                 disabled={isUploadingAudio}
@@ -771,13 +795,13 @@ export function SongDetailPage() {
                 <LinkAudioIcon className="h-5 w-5 shrink-0 text-white/75" />
                 <span>Associer un audio</span>
               </button>
-            </div>
+            </div> : null}
           </div>
         </FormDialog>
       ) : null}
 
       <ConfirmDialog
-        isOpen={isDeleteDialogOpen}
+        isOpen={canWrite && isDeleteDialogOpen}
         title="Voulez-vous supprimer cette chanson ?"
         description="La chanson sera retiree de la liste active sur cet appareil. Cette action demande une confirmation explicite."
         confirmLabel="Supprimer"
@@ -786,7 +810,7 @@ export function SongDetailPage() {
         onConfirm={handleDeleteSong}
       />
 
-      {isLinkDialogOpen ? (
+      {canWrite && isLinkDialogOpen ? (
         <FormDialog
           title="Lier une musique"
           onClose={() => setIsLinkDialogOpen(false)}
@@ -835,6 +859,18 @@ export function SongDetailPage() {
           </div>
         </FormDialog>
       ) : null}
+
+
+      {canWrite && (
+        <CopySongModal
+          songId={currentSong.id}
+          songTitle={currentSong.title}
+          currentWorkspaceId={currentSong.workspaceId}
+          isOpen={isCopyModalOpen}
+          onClose={() => setIsCopyModalOpen(false)}
+          onSuccess={() => setIsCopyModalOpen(false)}
+        />
+      )}
 
       {duplicatePrompt ? (
         <FormDialog

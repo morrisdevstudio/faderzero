@@ -1,17 +1,21 @@
 import { supabase } from './client';
 import { getSession } from './auth';
 
+const REALTIME_TABLES = ['songs', 'setlists', 'setlist_songs', 'song_assets', 'events'] as const;
+
 export function subscribeToWorkspaceChanges(
   workspaceId: string,
   onChange: (tableName: string) => void
 ) {
-  const channel = supabase
-    .channel(`workspace:${workspaceId}`)
-    .on(
+  let channel = supabase.channel(`workspace:${workspaceId}`);
+
+  for (const table of REALTIME_TABLES) {
+    channel = channel.on(
       'postgres_changes',
       {
         event: '*',
         schema: 'public',
+        table,
         filter: `workspace_id=eq.${workspaceId}`,
       },
       async (payload) => {
@@ -30,9 +34,11 @@ export function subscribeToWorkspaceChanges(
           console.error('[Realtime Event Handler Error]', err);
           onChange(payload.table);
         }
-      }
-    )
-    .subscribe((status) => {
+      },
+    );
+  }
+
+  channel.subscribe((status) => {
       if (status === 'SUBSCRIBED') {
         return;
       }
@@ -41,7 +47,7 @@ export function subscribeToWorkspaceChanges(
         console.warn('[Realtime Status]', status);
         onChange('__realtime__');
       }
-    });
+  });
 
   return {
     unsubscribe: () => {

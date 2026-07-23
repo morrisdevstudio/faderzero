@@ -1,20 +1,17 @@
-interface WorkerEnv extends Cloudflare.Env {
+export interface WorkerEnv extends Cloudflare.Env {
   URL_SIGNING_SECRET: string;
+  SUPABASE_SECRET_KEY?: string;
 }
 
 const MAX_AUDIO_BYTES = 50 * 1024 * 1024;
-const SIGNED_URL_TTL_SECONDS = 3600;
+const SIGNED_URL_TTL_SECONDS = 300;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const SAFE_SEGMENT_PATTERN = /^[a-zA-Z0-9._-]+$/;
 const AUDIO_TYPES = new Set([
   'audio/mpeg',
   'audio/mp3',
-  'audio/wav',
-  'audio/x-wav',
-  'audio/ogg',
-  'audio/aac',
-  'audio/flac',
 ]);
+const MAX_AUDIT_BATCH_SIZE = 1000;
 
 interface AuthenticatedUser {
   id: string;
@@ -25,6 +22,8 @@ interface ObjectKeyDetails {
   key: string;
   workspaceId: string;
 }
+
+type WorkspaceRole = 'admin' | 'member' | 'guest';
 
 export default {
   async fetch(request: Request, env: WorkerEnv): Promise<Response> {
@@ -71,6 +70,9 @@ export default {
       return jsonResponse(request, env, { error: 'Internal server error' }, 500);
     }
   },
+  async scheduled(_controller: ScheduledController, env: WorkerEnv, ctx: ExecutionContext): Promise<void> {
+    ctx.waitUntil(auditR2Objects(env));
+  },
 } satisfies ExportedHandler<WorkerEnv>;
 
 async function uploadObject(
@@ -83,7 +85,8 @@ async function uploadObject(
     return jsonResponse(request, env, { error: 'Unauthorized' }, 401);
   }
 
-  if (!(await isWorkspaceMember(user, details.workspaceId, env))) {
+  const role = await getWorkspaceRole(user, details.workspaceId, env);
+  if (role !== 'admin' && role !== 'member') {
     return jsonResponse(request, env, { error: 'Forbidden' }, 403);
   }
 
@@ -101,20 +104,51 @@ async function uploadObject(
     return jsonResponse(request, env, { error: 'Missing request body' }, 400);
   }
 
+  const reservationId = request.headers.get('x-audio-reservation-id');
+  if (!reservationId || !UUID_PATTERN.test(reservationId)) {
+    return jsonResponse(request, env, { error: 'Invalid audio reservation' }, 400);
+  }
+
+  const claimError = await claimAudioReservation(
+    request,
+    env,
+    user,
+    details,
+    reservationId,
+    contentLength,
+  );
+  if (claimError) {
+    const isLimited = claimError.includes('concurrency') || claimError.includes('rate exceeded');
+    return jsonResponse(request, env, { error: claimError }, isLimited ? 429 : 409);
+  }
+
+  const validatedBody = await validateAndReplayMp3Body(request.body);
+  if (!validatedBody) {
+    await releaseAudioReservation(env, user, reservationId);
+    return jsonResponse(request, env, { error: 'Invalid MP3 content' }, 415);
+  }
+
   const onlyIf = new Headers({ 'if-none-match': '*' });
-  const object = await env.AUDIO_BUCKET.put(details.key, request.body, {
-    onlyIf,
-    httpMetadata: {
-      contentType,
-      cacheControl: 'private, max-age=3600',
-    },
-    customMetadata: {
-      workspaceId: details.workspaceId,
-      uploadedBy: user.id,
-    },
-  });
+  let object: R2Object | null;
+  try {
+    object = await env.AUDIO_BUCKET.put(details.key, validatedBody, {
+      onlyIf,
+      httpMetadata: {
+        contentType,
+        cacheControl: 'private, max-age=3600',
+      },
+      customMetadata: {
+        workspaceId: details.workspaceId,
+        uploadedBy: user.id,
+      },
+    });
+  } catch (error) {
+    await releaseAudioReservation(env, user, reservationId);
+    throw error;
+  }
 
   if (!object) {
+    await releaseAudioReservation(env, user, reservationId);
     return jsonResponse(request, env, { error: 'Object already exists' }, 409);
   }
 
@@ -123,6 +157,101 @@ async function uploadObject(
     size: object.size,
     etag: object.httpEtag,
   }, 201);
+}
+
+async function claimAudioReservation(
+  request: Request,
+  env: WorkerEnv,
+  user: AuthenticatedUser,
+  details: ObjectKeyDetails,
+  reservationId: string,
+  requestedBytes: number,
+): Promise<string | null> {
+  const ipHash = await hashIdentifier(
+    request.headers.get('cf-connecting-ip') ?? 'unknown',
+    env.URL_SIGNING_SECRET,
+  );
+  const response = await callSupabaseRpc(env, user.accessToken, 'begin_audio_upload', {
+    p_reservation_id: reservationId,
+    p_workspace_id: details.workspaceId,
+    p_requested_bytes: requestedBytes,
+    p_ip_hash: ipHash,
+  });
+  if (response.ok) return null;
+
+  const body: unknown = await response.json().catch(() => null);
+  return isRecord(body) && typeof body.message === 'string'
+    ? body.message
+    : 'audio reservation rejected';
+}
+
+async function releaseAudioReservation(
+  env: WorkerEnv,
+  user: AuthenticatedUser,
+  reservationId: string,
+): Promise<void> {
+  const response = await callSupabaseRpc(env, user.accessToken, 'release_audio_upload_reservation', {
+    p_reservation_id: reservationId,
+  });
+  if (!response.ok) {
+    console.error(JSON.stringify({
+      message: 'audio reservation release failed',
+      reservationId,
+      status: response.status,
+    }));
+  }
+}
+
+function callSupabaseRpc(
+  env: WorkerEnv,
+  accessToken: string,
+  functionName: string,
+  body: Record<string, unknown>,
+) {
+  return fetch(`${env.SUPABASE_URL}/rest/v1/rpc/${functionName}`, {
+    method: 'POST',
+    headers: {
+      apikey: env.SUPABASE_PUBLISHABLE_KEY,
+      authorization: `Bearer ${accessToken}`,
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+}
+
+async function auditR2Objects(env: WorkerEnv): Promise<void> {
+  if (!env.SUPABASE_SECRET_KEY) {
+    console.error(JSON.stringify({ message: 'R2 audit skipped', error: 'SUPABASE_SECRET_KEY missing' }));
+    return;
+  }
+
+  let cursor: string | undefined;
+  let quarantinedCount = 0;
+  do {
+    const page = await env.AUDIO_BUCKET.list({
+      limit: MAX_AUDIT_BATCH_SIZE,
+      ...(cursor ? { cursor } : {}),
+    });
+    if (page.objects.length > 0) {
+      const response = await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/audit_audio_r2_keys`, {
+        method: 'POST',
+        headers: {
+          apikey: env.SUPABASE_SECRET_KEY,
+          authorization: `Bearer ${env.SUPABASE_SECRET_KEY}`,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({ p_r2_keys: page.objects.map((object) => object.key) }),
+      });
+      if (!response.ok) {
+        throw new Error(`R2 audit RPC failed (${response.status})`);
+      }
+      const count: unknown = await response.json();
+      if (typeof count === 'number') quarantinedCount += count;
+    }
+    cursor = page.truncated ? page.cursor : undefined;
+  } while (cursor);
+
+  console.log(JSON.stringify({ message: 'R2 audit complete', quarantinedCount }));
 }
 
 async function createSignedUrl(request: Request, env: WorkerEnv): Promise<Response> {
@@ -141,7 +270,7 @@ async function createSignedUrl(request: Request, env: WorkerEnv): Promise<Respon
     return jsonResponse(request, env, { error: 'Invalid object key' }, 400);
   }
 
-  if (!(await isWorkspaceMember(user, details.workspaceId, env))) {
+  if (!(await getWorkspaceRole(user, details.workspaceId, env))) {
     return jsonResponse(request, env, { error: 'Forbidden' }, 403);
   }
 
@@ -187,6 +316,9 @@ async function serveObject(request: Request, env: WorkerEnv, key: string): Promi
   headers.set('accept-ranges', 'bytes');
   headers.set('etag', object.httpEtag);
   headers.set('content-security-policy', "default-src 'none'");
+  headers.set('x-content-type-options', 'nosniff');
+  headers.set('referrer-policy', 'no-referrer');
+  headers.set('cache-control', 'private, no-store');
 
   let status = 200;
   if (object.range && 'offset' in object.range && 'length' in object.range) {
@@ -199,6 +331,49 @@ async function serveObject(request: Request, env: WorkerEnv, key: string): Promi
   }
 
   return new Response(request.method === 'HEAD' ? null : object.body, { status, headers });
+}
+
+async function validateAndReplayMp3Body(body: ReadableStream<Uint8Array>): Promise<ReadableStream<Uint8Array> | null> {
+  const reader = body.getReader();
+  const firstChunk = await reader.read();
+  if (firstChunk.done || !firstChunk.value || !hasMp3FrameHeader(firstChunk.value)) {
+    await reader.cancel();
+    return null;
+  }
+
+  return new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(firstChunk.value);
+    },
+    async pull(controller) {
+      try {
+        const next = await reader.read();
+        if (next.done) {
+          controller.close();
+          return;
+        }
+        controller.enqueue(next.value);
+      } catch (error) {
+        controller.error(error);
+      }
+    },
+    async cancel(reason) {
+      await reader.cancel(reason);
+    },
+  });
+}
+
+function hasMp3FrameHeader(bytes: Uint8Array): boolean {
+  for (let index = 0; index + 1 < bytes.byteLength; index += 1) {
+    const first = bytes[index] ?? 0;
+    const second = bytes[index + 1] ?? 0;
+    const versionBits = second & 0x18;
+    const layerBits = second & 0x06;
+    if (first === 0xff && (second & 0xe0) === 0xe0 && versionBits !== 0x08 && layerBits !== 0x00) {
+      return true;
+    }
+  }
+  return false;
 }
 
 async function authenticate(request: Request, env: WorkerEnv): Promise<AuthenticatedUser | null> {
@@ -224,13 +399,13 @@ async function authenticate(request: Request, env: WorkerEnv): Promise<Authentic
     : null;
 }
 
-async function isWorkspaceMember(
+async function getWorkspaceRole(
   user: AuthenticatedUser,
   workspaceId: string,
   env: WorkerEnv
-): Promise<boolean> {
+): Promise<WorkspaceRole | null> {
   const url = new URL(`${env.SUPABASE_URL}/rest/v1/workspace_members`);
-  url.searchParams.set('select', 'id');
+  url.searchParams.set('select', 'role');
   url.searchParams.set('workspace_id', `eq.${workspaceId}`);
   url.searchParams.set('user_id', `eq.${user.id}`);
   url.searchParams.set('limit', '1');
@@ -243,11 +418,19 @@ async function isWorkspaceMember(
     },
   });
   if (!response.ok) {
-    return false;
+    return null;
   }
 
   const body: unknown = await response.json();
-  return Array.isArray(body) && body.length > 0;
+  if (!Array.isArray(body) || body.length === 0 || !isRecord(body[0])) {
+    return null;
+  }
+
+  const role = body[0].role;
+  if (role === 'owner') {
+    return 'admin';
+  }
+  return role === 'admin' || role === 'member' || role === 'guest' ? role : null;
 }
 
 function parseObjectKey(encodedKey: string): ObjectKeyDetails | null {
@@ -300,6 +483,18 @@ async function signObject(key: string, expires: number, secret: string): Promise
     new TextEncoder().encode(`${expires}:${key}`)
   );
   return bytesToHex(new Uint8Array(signature));
+}
+
+async function hashIdentifier(value: string, secret: string): Promise<string> {
+  const cryptoKey = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  );
+  const digest = await crypto.subtle.sign('HMAC', cryptoKey, new TextEncoder().encode(value));
+  return bytesToHex(new Uint8Array(digest));
 }
 
 async function verifyObjectSignature(
@@ -365,7 +560,7 @@ function matchesOrigin(origin: string, allowed: string): boolean {
 function corsHeaders(request: Request, env: WorkerEnv): Headers {
   const headers = new Headers({
     'access-control-allow-methods': 'GET, HEAD, PUT, POST, OPTIONS',
-    'access-control-allow-headers': 'authorization, content-type',
+    'access-control-allow-headers': 'authorization, content-type, x-audio-reservation-id',
     'access-control-expose-headers': 'content-length, content-range, etag',
     'access-control-max-age': '86400',
     vary: 'Origin',

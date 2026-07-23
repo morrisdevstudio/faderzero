@@ -51,7 +51,7 @@ Etapes suivantes:
    docker exec faderzero-tailscale tailscale --socket=/tmp/tailscaled.sock up --hostname faderzero-server --accept-dns=false
 
 2. Activer Tailscale Serve:
-   docker exec faderzero-tailscale tailscale --socket=/tmp/tailscaled.sock serve --bg --yes 8080
+   docker exec faderzero-tailscale tailscale --socket=/tmp/tailscaled.sock serve --bg --yes https+insecure://localhost:8443
 
 3. Verifier:
    docker exec faderzero-tailscale tailscale --socket=/tmp/tailscaled.sock serve status

@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildSyncExportPayload,
+  deserializeSyncQrFragment,
   fragmentCompressedPayload,
+  MAX_QR_FRAGMENTS,
   reconstructSyncExportPayload,
   serializeSyncQrFragment,
   SYNC_PROTOCOL,
@@ -98,5 +100,63 @@ describe('qrTransfer', () => {
     expect(exportPayload.protocolVersion).toBe(SYNC_PROTOCOL_VERSION);
     expect(exportPayload.sourceApp).toBe('faderzero-pwa');
     expect(exportPayload.payloadHash).toHaveLength(64);
+  });
+
+  it('rejects QR fragments with unexpected fields or invalid boundaries', () => {
+    const fragment = {
+      protocol: SYNC_PROTOCOL,
+      protocolVersion: SYNC_PROTOCOL_VERSION,
+      transferId: 'transfer-strict',
+      index: 2,
+      total: 1,
+      payloadHash: 'a'.repeat(64),
+      chunk: 'abc',
+      injected: true,
+    };
+
+    expect(() => deserializeSyncQrFragment(JSON.stringify(fragment))).toThrow('unexpected fields');
+    delete (fragment as Partial<typeof fragment>).injected;
+    expect(() => deserializeSyncQrFragment(JSON.stringify(fragment))).toThrow('index exceeds total');
+  });
+
+  it('rejects fragment collections over the configured limit', async () => {
+    const fragment = fragmentCompressedPayload('abc', 'a'.repeat(64), 'transfer-limit')[0];
+    expect(fragment).toBeDefined();
+
+    await expect(reconstructSyncExportPayload(Array.from({ length: MAX_QR_FRAGMENTS + 1 }, () => fragment!)))
+      .rejects.toThrow('Too many QR fragments.');
+  });
+
+  it('rejects highly expanded decompressed payloads', async () => {
+    const exportPayload = await buildSyncExportPayload({
+      songs: [{
+        id: 'song-expanded',
+        title: 'Expanded',
+        lyrics: 'a'.repeat(200_000),
+        createdAt: 1,
+        updatedAt: 1,
+      }],
+      setlists: [],
+      setlistSongs: [],
+    });
+    const compressed = LZString.compressToEncodedURIComponent(JSON.stringify(exportPayload));
+    const fragments = fragmentCompressedPayload(compressed, exportPayload.payloadHash, 'transfer-expanded');
+
+    await expect(reconstructSyncExportPayload(fragments)).rejects.toThrow('Decompressed QR payload exceeds');
+  });
+
+  it('rejects duplicate IDs and dangling relationships', async () => {
+    const exportPayload = await buildSyncExportPayload({
+      songs: [
+        { id: 'song-1', title: 'A', lyrics: '', createdAt: 1, updatedAt: 1 },
+        { id: 'song-1', title: 'B', lyrics: '', createdAt: 1, updatedAt: 1 },
+      ],
+      setlists: [{ id: 'set-1', name: 'Set', createdAt: 1, updatedAt: 1 }],
+      setlistSongs: [{ id: 'entry-1', setlistId: 'set-1', songId: 'missing', position: 0, createdAt: 1, updatedAt: 1 }],
+    });
+    const compressed = LZString.compressToEncodedURIComponent(JSON.stringify(exportPayload));
+    const fragments = fragmentCompressedPayload(compressed, exportPayload.payloadHash, 'transfer-invalid');
+
+    await expect(reconstructSyncExportPayload(fragments)).rejects.toThrow('duplicate identifiers');
   });
 });

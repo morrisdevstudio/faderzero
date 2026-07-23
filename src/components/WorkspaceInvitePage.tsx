@@ -26,14 +26,18 @@ export function WorkspaceInvitePage({ inviteToken, onDismiss }: WorkspaceInviteP
 
         if (!cancelled) {
           if (!nextInvite) {
-            setLocalError("Ce lien d'invitation est introuvable.");
+            setLocalError("Ce lien d'invitation n'est plus disponible.");
           } else {
             setInvite(nextInvite);
           }
         }
       } catch (error) {
         if (!cancelled) {
-          setLocalError(error instanceof Error ? error.message : "Impossible de verifier l'invitation.");
+          setLocalError(
+            error instanceof Error && error.message.includes('Connectez-vous')
+              ? error.message
+              : "Ce lien d'invitation n'est plus disponible."
+          );
         }
       } finally {
         if (!cancelled) {
@@ -67,8 +71,7 @@ export function WorkspaceInvitePage({ inviteToken, onDismiss }: WorkspaceInviteP
     }
   }
 
-  const isExpired = invite?.status === 'expired';
-  const isUnavailable = invite?.status === 'declined' || isExpired;
+  const isUnavailable = invite?.status !== 'pending';
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#0c0d10] px-4 text-[#f5f0ea]">
@@ -95,7 +98,7 @@ export function WorkspaceInvitePage({ inviteToken, onDismiss }: WorkspaceInviteP
             <p className="text-[0.65rem] font-black uppercase tracking-[0.18em] text-white/45">Groupe cible</p>
             <p className="mt-2 text-lg font-semibold text-white">{invite.workspaceName}</p>
             <p className="mt-2 text-[0.72rem] uppercase tracking-[0.14em] text-orange-200">
-              Statut du lien: {invite.status}
+              Rôle proposé : {invite.role === 'admin' ? 'administrateur' : invite.role === 'member' ? 'membre' : 'invité'}
             </p>
           </div>
         ) : null}

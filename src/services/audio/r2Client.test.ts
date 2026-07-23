@@ -11,14 +11,17 @@ describe('R2 audio client', () => {
     });
     const file = new Blob(['audio'], { type: 'audio/mpeg' });
 
-    await client.uploadObject('workspaces/work-1/imports/asset.mp3', file);
+    await client.uploadObject('workspaces/work-1/imports/asset.mp3', file, 'reservation-1');
 
     expect(fetchMock).toHaveBeenCalledWith(
       'https://audio.example.workers.dev/objects/workspaces/work-1/imports/asset.mp3',
       expect.objectContaining({
         method: 'PUT',
         body: file,
-        headers: expect.objectContaining({ authorization: 'Bearer access-token' }),
+        headers: expect.objectContaining({
+          authorization: 'Bearer access-token',
+          'x-audio-reservation-id': 'reservation-1',
+        }),
       })
     );
   });

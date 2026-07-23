@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -43,9 +44,9 @@ export function ConfirmDialog({
     return null;
   }
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 px-4 pb-4 pt-16 sm:items-center"
+      className="fixed inset-0 z-[60] flex items-end justify-center bg-black/70 px-4 pb-4 pt-16 sm:items-center"
       onClick={(event) => {
         if (event.target === event.currentTarget && !isBusy) {
           onCancel();
@@ -82,6 +83,7 @@ export function ConfirmDialog({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

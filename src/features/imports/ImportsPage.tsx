@@ -16,6 +16,7 @@ import { uploadSongAsset, type SongAssetUploadProgress } from '@/services/supaba
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useAudioCacheStore } from '@/features/audio/audioCacheStore';
 import type { SVGProps } from 'react';
+import { canWriteWorkspace } from '@/services/supabase/workspace';
 
 type IconProps = SVGProps<SVGSVGElement>;
 
@@ -264,7 +265,9 @@ function buildTrackSubtitle(asset: ImportedTrack) {
 }
 
 export function ImportsPage() {
-  const activeWorkspaceId = useAuthStore((state) => state.activeWorkspace?.id);
+  const activeWorkspace = useAuthStore((state) => state.activeWorkspace);
+  const activeWorkspaceId = activeWorkspace?.id;
+  const canWrite = canWriteWorkspace(activeWorkspace?.role);
   const importedTracks = useLiveQuery(() => songAssetsRepository.listImportedTracks(), [activeWorkspaceId]);
   const songs = useLiveQuery(() => songsRepository.list(), [activeWorkspaceId]);
   const playQueue = useAudioPlayerStore((state) => state.playQueue);
@@ -540,6 +543,7 @@ export function ImportsPage() {
   }
 
   async function handleConfirmSingleLinkPrompt() {
+    if (!canWrite) return;
     if (!singleLinkPrompt) {
       return;
     }
@@ -576,6 +580,7 @@ export function ImportsPage() {
   }
 
   async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    if (!canWrite) return;
     const files = Array.from(event.target.files ?? []);
     if (files.length === 0) {
       return;
@@ -779,11 +784,13 @@ export function ImportsPage() {
   }
 
   function handleRequestDeleteAsset(assetId: string, filename: string) {
+    if (!canWrite) return;
     setOpenTrackMenu(null);
     setDeletePrompt({ assetId, filename });
   }
 
   async function handleDeleteAsset() {
+    if (!canWrite) return;
     if (!deletePrompt) {
       return;
     }
@@ -802,6 +809,7 @@ export function ImportsPage() {
   }
 
   async function handleAssociateAsset(asset: ImportedTrack) {
+    if (!canWrite) return;
     setOpenTrackMenu(null);
     const decision = await askSingleLinkDecision(asset.id, asset.filename);
     if (decision.action === 'link') {
@@ -810,6 +818,7 @@ export function ImportsPage() {
   }
 
   function handleSetPrimaryTrack(songId: string, assetId: string) {
+    if (!canWrite) return;
     localStorage.setItem(`fz-primary-track:${songId}`, assetId);
     setPrimaryTracks((prev) => ({
       ...prev,
@@ -819,6 +828,7 @@ export function ImportsPage() {
   }
 
   function handleUnsetPrimaryTrack(songId: string) {
+    if (!canWrite) return;
     localStorage.removeItem(`fz-primary-track:${songId}`);
     setPrimaryTracks((prev) => {
       const next = { ...prev };
@@ -846,7 +856,7 @@ export function ImportsPage() {
       >
         <div className="flex items-start justify-between gap-3">
           <h1 className="min-w-0 flex-1 text-[2rem] font-black tracking-tight text-white">Musiques</h1>
-          <button
+          {canWrite ? <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={isImporting}
@@ -854,15 +864,15 @@ export function ImportsPage() {
             className="fz-button-primary inline-flex h-11 w-11 shrink-0 items-center justify-center p-0 disabled:opacity-60"
           >
             <UploadIcon />
-          </button>
-          <input
+          </button> : null}
+          {canWrite ? <input
             ref={fileInputRef}
             type="file"
             accept="audio/*"
             multiple
             onChange={handleFileChange}
             className="hidden"
-          />
+          /> : null}
         </div>
         <div className="mt-3 flex items-center gap-2">
           <input
@@ -930,9 +940,9 @@ export function ImportsPage() {
           <FeatureCard
             eyebrow="Audio"
             title="Aucune piste importee"
-            description="Importe une ou plusieurs pistes audio pour creer automatiquement les chansons associees."
+            description={canWrite ? 'Importe une ou plusieurs pistes audio pour creer automatiquement les chansons associees.' : 'Aucune piste audio disponible dans ce groupe.'}
           >
-            <button
+            {canWrite ? <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={isImporting}
@@ -940,7 +950,7 @@ export function ImportsPage() {
             >
               <UploadIcon />
               Importer des pistes
-            </button>
+            </button> : null}
           </FeatureCard>
         ) : filteredImportedTracks?.length === 0 ? (
           <FeatureCard
@@ -1261,14 +1271,14 @@ export function ImportsPage() {
               </button>
             </div>
             <div className="space-y-2 border-t border-white/8 pt-4">
-              <button
+              {canWrite ? <button
                 type="button"
                 onClick={() => void handleAssociateAsset(openTrackMenu.asset)}
                 className="flex min-h-12 w-full items-center gap-3 rounded-xl border border-white/8 bg-white/5 px-4 py-3 text-left text-sm font-black uppercase leading-5 tracking-[0.12em] text-white transition hover:bg-white/10"
               >
                 <LinkSongIcon className="h-5 w-5 shrink-0 text-white/70" />
                 <span>Associer à une chanson</span>
-              </button>
+              </button> : null}
               <button
                 type="button"
                 disabled={!openTrackMenu.isCached && !openTrackMenu.isOnline}
@@ -1282,7 +1292,7 @@ export function ImportsPage() {
                 )}
                 <span>{openTrackMenu.isCached ? 'Supprimer du cache' : 'Mettre en cache hors ligne'}</span>
               </button>
-              {openTrackMenu.songId ? (
+              {canWrite && openTrackMenu.songId ? (
                 <button
                   type="button"
                   onClick={() => openTrackMenu.isPrimary
@@ -1294,14 +1304,14 @@ export function ImportsPage() {
                   <span>{openTrackMenu.isPrimary ? 'Ne plus définir comme principal' : 'Définir comme principal'}</span>
                 </button>
               ) : null}
-              <button
+              {canWrite ? <button
                 type="button"
                 onClick={() => handleRequestDeleteAsset(openTrackMenu.asset.id, openTrackMenu.asset.filename)}
                 className="flex min-h-12 w-full items-center gap-3 rounded-xl border border-rose-400/10 bg-rose-500/5 px-4 py-3 text-left text-sm font-black uppercase leading-5 tracking-[0.12em] text-rose-300 transition hover:bg-rose-500/12"
               >
                 <TrashIcon className="h-5 w-5 shrink-0" />
                 <span>Supprimer</span>
-              </button>
+              </button> : null}
             </div>
           </div>
         </div>
@@ -1506,7 +1516,7 @@ export function ImportsPage() {
       ) : null}
 
       <ConfirmDialog
-        isOpen={deletePrompt !== null}
+        isOpen={canWrite && deletePrompt !== null}
         title="Voulez-vous supprimer ce fichier audio ?"
         description={
           deletePrompt

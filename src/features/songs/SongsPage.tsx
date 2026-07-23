@@ -8,6 +8,7 @@ import { StatusPill } from '@/components/StatusPill';
 import { songsRepository } from '@/db/repositories/songsRepository';
 import { formatSongDuration, getSongStatusTone } from '@/features/songs/songPresentation';
 import { useAuthStore } from '@/stores/authStore';
+import { canWriteWorkspace } from '@/services/supabase/workspace';
 
 function PlusIcon() {
   return (
@@ -19,7 +20,9 @@ function PlusIcon() {
 
 export function SongsPage() {
   const navigate = useNavigate();
-  const activeWorkspaceId = useAuthStore((state) => state.activeWorkspace?.id);
+  const activeWorkspace = useAuthStore((state) => state.activeWorkspace);
+  const activeWorkspaceId = activeWorkspace?.id;
+  const canWrite = canWriteWorkspace(activeWorkspace?.role);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [isVirtualKeyboardOpen, setIsVirtualKeyboardOpen] = useState(false);
@@ -76,6 +79,7 @@ export function SongsPage() {
 
   async function handleCreateSong(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!canWrite) return;
 
     const trimmedTitle = newSongTitle.trim();
     if (!trimmedTitle) {
@@ -117,7 +121,7 @@ export function SongsPage() {
       >
         <div className="flex items-start justify-between gap-3">
           <h1 className="min-w-0 flex-1 text-[2rem] font-black tracking-tight text-white">Repertoire</h1>
-          <button
+          {canWrite ? <button
             type="button"
             onClick={() => {
               setIsCreateOpen(true);
@@ -128,7 +132,7 @@ export function SongsPage() {
             className="fz-button-primary h-11 w-11 shrink-0 p-0"
           >
             <PlusIcon />
-          </button>
+          </button> : null}
         </div>
 
         {songs && (songs.length > 0 || searchQuery.trim()) ? (
@@ -167,9 +171,9 @@ export function SongsPage() {
           <FeatureCard
             eyebrow="Vide"
             title="Votre repertoire est vide"
-            description="Cree une premiere chanson pour lancer le repertoire web sans casser l'app Expo."
+            description={canWrite ? "Cree une premiere chanson pour lancer le repertoire web sans casser l'app Expo." : 'Aucune chanson disponible dans ce groupe.'}
           >
-            <button
+            {canWrite ? <button
               type="button"
               onClick={() => {
                 setIsCreateOpen(true);
@@ -179,7 +183,7 @@ export function SongsPage() {
               className="fz-button-primary w-full px-4 py-4 text-sm font-black uppercase tracking-[0.16em]"
             >
               Creer ma premiere chanson
-            </button>
+            </button> : null}
           </FeatureCard>
         ) : (
           sortedSongs?.map((song) => (
@@ -211,7 +215,7 @@ export function SongsPage() {
         )}
       </section>
 
-      {isCreateOpen ? (
+      {canWrite && isCreateOpen ? (
         <FormDialog title="Nouvelle chanson" onClose={() => setIsCreateOpen(false)}>
           <form className="space-y-3" onSubmit={handleCreateSong}>
               <label className="block">

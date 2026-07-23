@@ -50,20 +50,26 @@ describe('qrTransfer import', () => {
         setlistSongsImported: 1,
         setlistSongsSkipped: 0,
       });
-      expect(await database.songs.get('song-1')).toMatchObject({
+      const [importedSong] = await database.songs.toArray();
+      const [importedSetlist] = await database.setlists.toArray();
+      const [importedSetlistSong] = await database.setlistSongs.toArray();
+      expect(importedSong?.id).not.toBe('song-1');
+      expect(importedSong).toMatchObject({
         title: 'Song A',
         bpm: 120,
         status: 'Pret',
         durationSeconds: 245,
       });
-      expect(await database.setlists.get('set-1')).toMatchObject({ name: 'Set A' });
-      expect(await database.setlistSongs.get('entry-1')).toMatchObject({ setlistId: 'set-1', songId: 'song-1' });
+      expect(importedSetlist?.id).not.toBe('set-1');
+      expect(importedSetlist).toMatchObject({ name: 'Set A' });
+      expect(importedSetlistSong?.id).not.toBe('entry-1');
+      expect(importedSetlistSong).toMatchObject({ setlistId: importedSetlist?.id, songId: importedSong?.id });
     } finally {
       await destroyTestDatabase(database);
     }
   });
 
-  it('skips older incoming records when newer local records already exist', async () => {
+  it('regenerates colliding IDs without overwriting local records', async () => {
     const database = await createTestDatabase('sync-import-merge');
 
     try {
@@ -94,9 +100,11 @@ describe('qrTransfer import', () => {
 
       const result = await applySyncImport(exportPayload, database);
 
-      expect(result.songsImported).toBe(0);
-      expect(result.songsSkipped).toBe(1);
+      expect(result.songsImported).toBe(1);
+      expect(result.songsSkipped).toBe(0);
       expect(await database.songs.get('song-1')).toMatchObject({ title: 'Local Song', updatedAt: 50 });
+      expect(await database.songs.count()).toBe(2);
+      expect((await database.songs.toArray()).find((song) => song.id !== 'song-1')).toMatchObject({ title: 'Remote Older Song' });
     } finally {
       await destroyTestDatabase(database);
     }
@@ -183,15 +191,19 @@ describe('qrTransfer import', () => {
       const preview = await previewSyncImport(exportPayload, database);
 
       expect(preview).toEqual({
-        songsToCreate: 1,
+        songsToCreate: 2,
         songsToUpdate: 0,
-        songsToSkip: 1,
-        setlistsToCreate: 0,
-        setlistsToUpdate: 1,
+        songsToSkip: 0,
+        setlistsToCreate: 1,
+        setlistsToUpdate: 0,
         setlistsToSkip: 0,
-        setlistSongsToCreate: 1,
+        setlistSongsToCreate: 2,
         setlistSongsToUpdate: 0,
-        setlistSongsToSkip: 1,
+        setlistSongsToSkip: 0,
+        songIdCollisions: 1,
+        setlistIdCollisions: 1,
+        setlistSongIdCollisions: 1,
+        idsRegenerated: 5,
       });
     } finally {
       await destroyTestDatabase(database);

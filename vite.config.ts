@@ -19,6 +19,7 @@ function getProtocol(value?: string): string | null {
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, __dirname, '');
+  const appVersion = env.VITE_APP_VERSION || process.env.CF_PAGES_COMMIT_SHA || 'development';
   const supabaseProtocol = getProtocol(env.VITE_SUPABASE_URL);
   const canUseHttps = fs.existsSync(devPfxPath) && supabaseProtocol !== 'http:';
   const httpsConfig = canUseHttps
@@ -35,6 +36,9 @@ export default defineConfig(({ mode }) => {
   }
 
   return {
+    define: {
+      'import.meta.env.VITE_APP_VERSION': JSON.stringify(appVersion),
+    },
     server: {
       host: true,
       port: 5173,

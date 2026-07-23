@@ -11,6 +11,8 @@ import {
   toLocalSetlistSong,
   toDbSongAsset,
   toLocalSongAsset,
+  toDbEvent,
+  toLocalEvent,
   mapTimestampToMs,
 } from './mappers';
 
@@ -38,6 +40,12 @@ const ENTITY_CONFIGS = {
     localTable: 'songAssets',
     toDb: toDbSongAsset,
     toLocal: toLocalSongAsset,
+  },
+  event: {
+    dbTable: 'events',
+    localTable: 'events',
+    toDb: toDbEvent,
+    toLocal: toLocalEvent,
   },
 } as const;
 

@@ -2,10 +2,33 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type SVGProps } from 'react';
 import { FormDialog } from '@/components/FormDialog';
 import { AudioMiniPlayer } from '@/features/audio/AudioMiniPlayer';
+import { AudioQuotaBanner } from '@/features/audio/AudioQuotaBanner';
 import { useAuthStore } from '@/stores/authStore';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 
 type IconProps = SVGProps<SVGSVGElement>;
+
+const scrollPositions = new Map<string, number>();
+
+function HomeIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+      <polyline points="9 22 9 12 15 12 15 22" />
+    </svg>
+  );
+}
+
+function CalendarIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+      <line x1="16" y1="2" x2="16" y2="6" />
+      <line x1="8" y1="2" x2="8" y2="6" />
+      <line x1="3" y1="10" x2="21" y2="10" />
+    </svg>
+  );
+}
 
 function SongsIcon(props: IconProps) {
   return (
@@ -104,6 +127,8 @@ function MenuIcon(props: IconProps) {
 }
 
 const navItems = [
+  { to: '/home', label: 'Accueil', Icon: HomeIcon },
+  { to: '/calendar', label: 'Calendrier', Icon: CalendarIcon },
   { to: '/songs', label: 'Songs', Icon: SongsIcon },
   { to: '/musiques', label: 'Musiques', Icon: ImportsIcon },
   { to: '/setlists', label: 'Setlists', Icon: SetlistIcon },
@@ -185,6 +210,19 @@ export function AppShell() {
     setIsMenuOpen(false);
     setIsWorkspacePickerOpen(false);
   }, [location.pathname]);
+
+  useLayoutEffect(() => {
+    const scrollKey = `${location.pathname}${location.search}`;
+    const restorePosition = scrollPositions.get(scrollKey) ?? 0;
+    const frameId = window.requestAnimationFrame(() => {
+      window.scrollTo({ top: restorePosition, behavior: 'instant' as ScrollBehavior });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      scrollPositions.set(scrollKey, window.scrollY);
+    };
+  }, [location.key, location.pathname, location.search]);
 
   const shellStyle = {
     '--fz-header-height': `${headerHeight}px`,
@@ -359,6 +397,7 @@ export function AppShell() {
       ) : null}
       <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-3 pb-28 sm:px-4" style={{ paddingTop: `${headerHeight + 12}px` }}>
         <main className="flex-1 py-2">
+          <AudioQuotaBanner workspace={activeWorkspace} isOnline={isOnline} />
           <Outlet />
         </main>
       </div>

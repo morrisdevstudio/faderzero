@@ -5,17 +5,24 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:audio": "powershell -ExecutionPolicy Bypass -File ./scripts/dev-audio-worker.ps1",
     "build": "tsc -b && vite build",
     "build:deploy": "tsc -b && vite build --mode deploy",
     "deploy:test": "powershell -ExecutionPolicy Bypass -File ./scripts/deploy-pwa.ps1",
     "deploy:test:watch": "powershell -ExecutionPolicy Bypass -File ./scripts/watch-deploy-pwa.ps1",
     "lint": "oxlint",
     "preview": "vite preview",
+    "security:headers": "node ./scripts/validate-security-headers.mjs",
+    "security:secrets": "node ./scripts/scan-repository-secrets.mjs",
+    "epic10:gate": "node ./scripts/validate-epic-10-gate.mjs",
     "test": "vitest run",
+    "test:worker": "vitest run cloudflare/audio-worker/src/index.test.ts",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit -p tsconfig.app.json"
+    "typecheck": "tsc --noEmit -p tsconfig.app.json",
+    "typecheck:worker": "tsc --noEmit -p cloudflare/audio-worker/tsconfig.json"
   },
   "dependencies": {
+    "@breezystack/lamejs": "^1.2.7",
     "@supabase/supabase-js": "2.108.2",
     "@tailwindcss/vite": "^4.3.1",
     "dexie": "^4.4.4",

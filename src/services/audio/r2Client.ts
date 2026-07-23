@@ -13,13 +13,14 @@ interface SignedUrlResponse {
 export function createR2AudioClient(dependencies: R2AudioClientDependencies) {
   const apiUrl = dependencies.apiUrl.replace(/\/$/, '');
 
-  async function uploadObject(key: string, file: Blob): Promise<void> {
+  async function uploadObject(key: string, file: Blob, reservationId: string): Promise<void> {
     const accessToken = await dependencies.getAccessToken();
     const response = await dependencies.fetch(`${apiUrl}/objects/${encodeObjectKey(key)}`, {
       method: 'PUT',
       headers: {
         authorization: `Bearer ${accessToken}`,
         'content-type': file.type || 'audio/mpeg',
+        'x-audio-reservation-id': reservationId,
       },
       body: file,
     });
@@ -69,9 +70,9 @@ const r2AudioClient = createR2AudioClient({
   },
 });
 
-export async function uploadAudioObject(key: string, file: Blob): Promise<void> {
+export async function uploadAudioObject(key: string, file: Blob, reservationId: string): Promise<void> {
   assertAudioApiConfig();
-  await r2AudioClient.uploadObject(key, file);
+  await r2AudioClient.uploadObject(key, file, reservationId);
 }
 
 export async function createAudioSignedUrl(key: string): Promise<string> {

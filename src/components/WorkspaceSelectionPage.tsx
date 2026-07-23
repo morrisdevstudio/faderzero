@@ -60,7 +60,7 @@ export function WorkspaceSelectionPage() {
               <path d="M16 3.13a4 4 0 0 1 0 7.75" />
             </svg>
           </span>
-          <h1 className="text-2xl font-black uppercase tracking-[0.2em] text-white">Espace Groupe</h1>
+          <h1 className="text-2xl font-black uppercase tracking-[0.2em] text-white">Vos espaces</h1>
           <p className="mt-1 text-[0.72rem] uppercase tracking-[0.16em] text-white/50">Selectionnez ou creez votre espace</p>
         </div>
 
@@ -73,7 +73,7 @@ export function WorkspaceSelectionPage() {
         {!showCreateForm && workspaces.length > 0 ? (
           <div className="space-y-6">
             <div className="space-y-2">
-              <p className="mb-3 text-[0.68rem] font-black uppercase tracking-[0.18em] text-white/60">Vos groupes actifs</p>
+              <p className="mb-3 text-[0.68rem] font-black uppercase tracking-[0.18em] text-white/60">Mon espace et mes groupes</p>
               <div className="max-h-[220px] space-y-2.5 overflow-y-auto pr-1">
                 {workspaces.map((ws) => (
                   <button
@@ -81,8 +81,13 @@ export function WorkspaceSelectionPage() {
                     onClick={() => setActiveWorkspace(ws)}
                     className="flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/5 p-4 text-left transition hover:border-orange-500/50 hover:bg-white/10"
                   >
-                    <span className="text-sm font-semibold text-white">{ws.name}</span>
-                    <span className="text-[0.65rem] font-bold uppercase tracking-[0.1em] text-orange-400">Rejoindre -&gt;</span>
+                    <span>
+                      <span className="block text-sm font-semibold text-white">{ws.name}</span>
+                      <span className="mt-1 block text-[0.6rem] font-bold uppercase tracking-[0.14em] text-white/40">
+                        {ws.type === 'personal' ? 'Personnel' : 'Groupe'}
+                      </span>
+                    </span>
+                    <span className="text-[0.65rem] font-bold uppercase tracking-[0.1em] text-orange-400">Ouvrir -&gt;</span>
                   </button>
                 ))}
               </div>
@@ -166,13 +171,21 @@ export function WorkspaceSelectionPage() {
               {joinInviteFeedback ? <p className="text-[0.75rem] text-white/70">{joinInviteFeedback}</p> : null}
             </form>
 
-            {workspaces.length > 0 && (
+            {workspaces.length > 0 ? (
               <button
                 type="button"
                 onClick={() => setShowCreateForm(false)}
                 className="w-full py-2 text-center text-[0.72rem] font-bold uppercase tracking-[0.16em] text-white/60 transition hover:text-white"
               >
                 Annuler
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => void signOut()}
+                className="w-full py-2 text-center text-[0.72rem] font-bold uppercase tracking-[0.16em] text-white/40 transition hover:text-red-400"
+              >
+                Deconnexion
               </button>
             )}
           </div>

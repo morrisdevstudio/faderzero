@@ -9,35 +9,18 @@ import { WorkspaceSelectionPage } from '@/components/WorkspaceSelectionPage';
 import { pushPendingMutations, pullRemoteChanges } from '@/services/supabase/sync';
 import { subscribeToWorkspaceChanges } from '@/services/supabase/realtime';
 import { db } from '@/db/db';
-
-const INVITE_STORAGE_KEY = 'faderzero_pending_invite_token';
-
-function readInviteToken(): string | null {
-  const url = new URL(window.location.href);
-  const inviteFromUrl = url.searchParams.get('invite');
-
-  if (inviteFromUrl) {
-    localStorage.setItem(INVITE_STORAGE_KEY, inviteFromUrl);
-    return inviteFromUrl;
-  }
-
-  return localStorage.getItem(INVITE_STORAGE_KEY);
-}
-
-function clearInviteToken() {
-  const url = new URL(window.location.href);
-  url.searchParams.delete('invite');
-  window.history.replaceState({}, '', url.toString());
-  localStorage.removeItem(INVITE_STORAGE_KEY);
-}
+import { canWriteWorkspace } from '@/services/supabase/workspace';
+import { clearPendingInviteToken, readPendingInviteToken } from '@/services/supabase/inviteContext';
 
 function SyncBootstrap() {
   const activeWorkspace = useAuthStore((state) => state.activeWorkspace);
+  const refreshWorkspaceAccess = useAuthStore((state) => state.refreshWorkspaceAccess);
+  const canWrite = canWriteWorkspace(activeWorkspace?.role);
   const syncInFlightRef = useRef(false);
   const [isForcingSync, setIsForcingSync] = useState(false);
 
   const pendingMutationCount = useLiveQuery(async () => {
-    if (!activeWorkspace) {
+    if (!activeWorkspace || !canWrite) {
       return 0;
     }
 
@@ -46,10 +29,10 @@ function SyncBootstrap() {
       .equals(activeWorkspace.id)
       .filter((item) => item.status === 'pending' || item.status === 'failed')
       .count();
-  }, [activeWorkspace?.id]);
+  }, [activeWorkspace?.id, canWrite]);
 
   const failedMutation = useLiveQuery(async () => {
-    if (!activeWorkspace) {
+    if (!activeWorkspace || !canWrite) {
       return null;
     }
 
@@ -61,7 +44,7 @@ function SyncBootstrap() {
 
     failedItems.sort((left, right) => (right.lastTriedAt ?? 0) - (left.lastTriedAt ?? 0));
     return failedItems[0] ?? null;
-  }, [activeWorkspace?.id]);
+  }, [activeWorkspace?.id, canWrite]);
 
   useEffect(() => {
     if (!activeWorkspace) {
@@ -79,7 +62,12 @@ function SyncBootstrap() {
       syncInFlightRef.current = true;
 
       try {
-        await pushPendingMutations(workspaceId);
+        const verifiedWorkspaces = await refreshWorkspaceAccess();
+        const verifiedWorkspace = verifiedWorkspaces.find(({ id }) => id === workspaceId);
+        if (!verifiedWorkspace) return;
+        if (canWriteWorkspace(verifiedWorkspace.role)) {
+          await pushPendingMutations(workspaceId);
+        }
         await pullRemoteChanges(workspaceId);
       } catch (error) {
         console.error('[Auto Sync]', error);
@@ -110,10 +98,10 @@ function SyncBootstrap() {
       window.removeEventListener('online', handleOnline);
       window.clearInterval(intervalId);
     };
-  }, [activeWorkspace]);
+  }, [activeWorkspace, canWrite, refreshWorkspaceAccess]);
 
   useEffect(() => {
-    if (!activeWorkspace || !pendingMutationCount || pendingMutationCount <= 0 || !navigator.onLine) {
+    if (!activeWorkspace || !canWrite || !pendingMutationCount || pendingMutationCount <= 0 || !navigator.onLine) {
       return;
     }
 
@@ -125,7 +113,12 @@ function SyncBootstrap() {
       syncInFlightRef.current = true;
 
       try {
-        await pushPendingMutations(activeWorkspace.id);
+        const verifiedWorkspaces = await refreshWorkspaceAccess();
+        const verifiedWorkspace = verifiedWorkspaces.find(({ id }) => id === activeWorkspace.id);
+        if (!verifiedWorkspace) return;
+        if (canWriteWorkspace(verifiedWorkspace.role)) {
+          await pushPendingMutations(activeWorkspace.id);
+        }
         await pullRemoteChanges(activeWorkspace.id);
       } catch (error) {
         console.error('[Queue Triggered Sync]', error);
@@ -133,10 +126,10 @@ function SyncBootstrap() {
         syncInFlightRef.current = false;
       }
     })();
-  }, [activeWorkspace, pendingMutationCount]);
+  }, [activeWorkspace, canWrite, pendingMutationCount, refreshWorkspaceAccess]);
 
   async function handleForceSync() {
-    if (!activeWorkspace || syncInFlightRef.current || isForcingSync) {
+    if (!activeWorkspace || !canWrite || syncInFlightRef.current || isForcingSync) {
       return;
     }
 
@@ -144,6 +137,9 @@ function SyncBootstrap() {
     syncInFlightRef.current = true;
 
     try {
+      const verifiedWorkspaces = await refreshWorkspaceAccess();
+      const verifiedWorkspace = verifiedWorkspaces.find(({ id }) => id === activeWorkspace.id);
+      if (!verifiedWorkspace || !canWriteWorkspace(verifiedWorkspace.role)) return;
       await pushPendingMutations(activeWorkspace.id, { includeFailed: true });
       await pullRemoteChanges(activeWorkspace.id);
     } catch (error) {
@@ -182,14 +178,14 @@ function SyncBootstrap() {
 
 function AppContent() {
   const { session, activeWorkspace, loading, initialize, initialized } = useAuthStore();
-  const [inviteToken, setInviteToken] = useState<string | null>(() => readInviteToken());
+  const [inviteToken, setInviteToken] = useState<string | null>(() => readPendingInviteToken());
 
   useEffect(() => {
     initialize();
   }, [initialize]);
 
   useEffect(() => {
-    const nextToken = readInviteToken();
+    const nextToken = readPendingInviteToken();
     setInviteToken((currentToken) => (currentToken === nextToken ? currentToken : nextToken));
   }, [session]);
 
@@ -213,7 +209,7 @@ function AppContent() {
       <WorkspaceInvitePage
         inviteToken={inviteToken}
         onDismiss={() => {
-          clearInviteToken();
+          clearPendingInviteToken();
           setInviteToken(null);
         }}
       />

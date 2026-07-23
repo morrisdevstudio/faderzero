@@ -1,6 +1,7 @@
 import { createId } from '@/lib/createId';
 import { songAssetsRepository } from '@/db/repositories/songAssetsRepository';
 import { createAudioSignedUrl, uploadAudioObject } from '@/services/audio/r2Client';
+import { supabase } from '@/services/supabase/client';
 import {
   buildCompressedFileName,
   compressAudioForUpload,
@@ -33,11 +34,31 @@ export async function uploadSongAsset(
   const storagePath = songId
     ? `workspaces/${workspaceId}/songs/${songId}/${assetId}.mp3`
     : `workspaces/${workspaceId}/imports/${assetId}.mp3`;
+  const { data: reservationId, error: reservationError } = await supabase.rpc('reserve_audio_upload', {
+    p_workspace_id: workspaceId,
+    p_requested_bytes: uploadFile.size,
+    p_requested_seconds: durationSeconds ?? null,
+  });
+  if (reservationError || typeof reservationId !== 'string') {
+    throw reservationError ?? new Error('Reservation audio invalide.');
+  }
   options.onProgress?.({ phase: 'upload', progress: 10, label: 'Envoi vers le stockage' });
 
-  // 1. Upload du binaire dans le bucket R2 privé faderzero-audio
-  await uploadAudioObject(storagePath, uploadFile);
+  try {
+    await uploadAudioObject(storagePath, uploadFile, reservationId);
+  } catch (error) {
+    await supabase.rpc('release_audio_upload_reservation', { p_reservation_id: reservationId });
+    throw error;
+  }
   options.onProgress?.({ phase: 'upload', progress: 88, label: "Finalisation de l'upload" });
+
+  const { error: completionError } = await supabase.rpc('complete_audio_upload_reservation', {
+    p_reservation_id: reservationId,
+    p_storage_path: storagePath,
+  });
+  if (completionError) {
+    throw completionError;
+  }
 
   // 2. Création de l'enregistrement de métadonnées local (qui alimente la file syncQueue)
   await songAssetsRepository.create({
@@ -102,6 +123,6 @@ export async function getSongAssetPlaybackUrl(
     throw new Error(`Asset not found: ${assetId}`);
   }
 
-  // Génération par le Worker d'une URL R2 signée temporaire (durée d'une heure)
+  // Génération par le Worker d'une URL R2 signée temporaire (durée de cinq minutes)
   return createAudioSignedUrl(asset.storagePath);
 }

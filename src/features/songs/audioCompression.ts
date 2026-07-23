@@ -1,11 +1,10 @@
-export const MAX_AUDIO_FILE_SIZE_BYTES = 5 * 1024 * 1024;
+import { Mp3Encoder } from '@breezystack/lamejs';
+
+export const MAX_AUDIO_FILE_SIZE_BYTES = 50 * 1024 * 1024;
 
 const DEFAULT_MP3_MIME_TYPE = 'audio/mpeg';
-const MAX_MP3_BITRATE_KBPS = 192;
-const MIN_MP3_BITRATE_KBPS = 32;
-const BITRATE_STEP_KBPS = 16;
+const MP3_BITRATE_KBPS = 192;
 const MP3_FRAME_SAMPLE_COUNT = 1152;
-const TARGET_SIZE_MARGIN = 0.94;
 
 export interface AudioCompressionProgress {
   phase: 'compression';
@@ -15,17 +14,6 @@ export interface AudioCompressionProgress {
 
 export type AudioCompressionProgressHandler = (progress: AudioCompressionProgress) => void;
 
-type Mp3EncoderConstructor = new (
-  channels: number,
-  sampleRate: number,
-  kbps: number
-) => {
-  encodeBuffer(left: Int16Array, right?: Int16Array): Int8Array;
-  flush(): Int8Array;
-};
-
-let Mp3EncoderConstructorCache: Mp3EncoderConstructor | null = null;
-
 export function isMp3File(file: File) {
   return file.type === DEFAULT_MP3_MIME_TYPE || file.name.toLowerCase().endsWith('.mp3');
 }
@@ -33,20 +21,11 @@ export function isMp3File(file: File) {
 export function buildCompressedFileName(originalName: string) {
   const trimmedName = originalName.trim();
   const baseName = trimmedName.includes('.') ? trimmedName.replace(/\.[^/.]+$/, '') : trimmedName;
-  const safeBaseName = baseName || 'audio';
-
-  return `${safeBaseName}.mp3`;
+  return `${baseName || 'audio'}.mp3`;
 }
 
-export function estimateTargetBitrateKbps(durationSeconds: number) {
-  if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) {
-    return MAX_MP3_BITRATE_KBPS;
-  }
-
-  const targetBits = MAX_AUDIO_FILE_SIZE_BYTES * 8 * TARGET_SIZE_MARGIN;
-  const estimatedBitrate = Math.floor(targetBits / durationSeconds / 1000);
-
-  return clampBitrateKbps(estimatedBitrate);
+export function estimateTargetBitrateKbps(_durationSeconds: number) {
+  return MP3_BITRATE_KBPS;
 }
 
 export async function compressAudioForUpload(
@@ -54,153 +33,99 @@ export async function compressAudioForUpload(
   onProgress?: AudioCompressionProgressHandler
 ): Promise<File> {
   onProgress?.({ phase: 'compression', progress: 0, label: 'Preparation du fichier audio' });
-
-  if (isMp3File(file) && file.size <= MAX_AUDIO_FILE_SIZE_BYTES) {
-    onProgress?.({ phase: 'compression', progress: 100, label: 'Compression inutile' });
-    return file;
-  }
-
   onProgress?.({ phase: 'compression', progress: 8, label: 'Decodage audio' });
   const audioBuffer = await decodeAudioFile(file);
-  const channelCount = Math.min(audioBuffer.numberOfChannels, 2);
-  const sampleRate = audioBuffer.sampleRate;
-  const targetBitrate = estimateTargetBitrateKbps(audioBuffer.duration);
+  const channels = Math.min(audioBuffer.numberOfChannels, 2);
   onProgress?.({ phase: 'compression', progress: 18, label: 'Initialisation MP3' });
-  const Mp3Encoder = await getMp3EncoderConstructor();
-  const bitrateAttempts = buildBitrateAttempts(targetBitrate);
+  const encodedBlob = await encodeAudioBufferToMp3(audioBuffer, channels, (progress) => {
+    onProgress?.({ phase: 'compression', progress: Math.min(96, Math.round(20 + progress * 74)), label: 'Compression MP3 192 kbps' });
+  });
 
-  for (let attemptIndex = 0; attemptIndex < bitrateAttempts.length; attemptIndex += 1) {
-    const bitrateKbps = bitrateAttempts[attemptIndex] ?? MIN_MP3_BITRATE_KBPS;
-    const encodedBlob = await encodeAudioBufferToMp3(
-      audioBuffer,
-      channelCount,
-      sampleRate,
-      bitrateKbps,
-      Mp3Encoder,
-      (encodingProgress) => {
-        const attemptSpan = 74 / bitrateAttempts.length;
-        const progress = 20 + attemptIndex * attemptSpan + encodingProgress * attemptSpan;
-        onProgress?.({
-          phase: 'compression',
-          progress: Math.min(96, Math.round(progress)),
-          label: `Compression MP3 ${bitrateKbps} kbps`,
-        });
-      }
-    );
-
-    if (encodedBlob.size <= MAX_AUDIO_FILE_SIZE_BYTES) {
-      onProgress?.({ phase: 'compression', progress: 100, label: 'Compression terminee' });
-      return new File([encodedBlob], buildCompressedFileName(file.name), {
-        type: DEFAULT_MP3_MIME_TYPE,
-        lastModified: Date.now(),
-      });
-    }
+  if (encodedBlob.size > MAX_AUDIO_FILE_SIZE_BYTES) {
+    throw new Error('Le fichier audio depasse 50 Mo apres conversion en MP3 192 kb/s.');
   }
-
-  throw new Error("Le fichier audio depasse 5 Mo meme apres compression en MP3.");
-}
-
-function clampBitrateKbps(value: number) {
-  return Math.max(MIN_MP3_BITRATE_KBPS, Math.min(MAX_MP3_BITRATE_KBPS, value));
-}
-
-function buildBitrateAttempts(targetBitrate: number) {
-  const bitrates: number[] = [];
-  for (
-    let bitrateKbps = targetBitrate;
-    bitrateKbps >= MIN_MP3_BITRATE_KBPS;
-    bitrateKbps -= BITRATE_STEP_KBPS
-  ) {
-    bitrates.push(bitrateKbps);
-  }
-
-  return bitrates.length > 0 ? bitrates : [MIN_MP3_BITRATE_KBPS];
+  onProgress?.({ phase: 'compression', progress: 100, label: 'Compression terminee' });
+  return new File([encodedBlob], buildCompressedFileName(file.name), {
+    type: DEFAULT_MP3_MIME_TYPE,
+    lastModified: Date.now(),
+  });
 }
 
 async function decodeAudioFile(file: File) {
   const AudioContextConstructor = window.AudioContext ?? window.webkitAudioContext;
-  if (!AudioContextConstructor) {
-    throw new Error("Ce navigateur ne supporte pas la compression audio locale.");
-  }
-
+  if (!AudioContextConstructor) throw new Error('Ce navigateur ne supporte pas la compression audio locale.');
   const audioContext = new AudioContextConstructor();
-
   try {
-    const fileBuffer = await file.arrayBuffer();
-    return await audioContext.decodeAudioData(fileBuffer.slice(0));
+    return await audioContext.decodeAudioData((await file.arrayBuffer()).slice(0));
   } catch {
-    throw new Error("Impossible de decoder ce fichier audio pour le convertir en MP3.");
+    throw new Error('Impossible de decoder ce fichier audio pour le convertir en MP3.');
   } finally {
     await audioContext.close();
   }
 }
 
-async function encodeAudioBufferToMp3(
+function encodeAudioBufferToMp3(
   audioBuffer: AudioBuffer,
-  channelCount: number,
-  sampleRate: number,
-  bitrateKbps: number,
-  Mp3Encoder: Mp3EncoderConstructor,
+  channels: number,
   onProgress?: (progress: number) => void
 ) {
-  const encoder = new Mp3Encoder(channelCount, sampleRate, bitrateKbps);
-  const leftChannel = float32ToInt16(audioBuffer.getChannelData(0));
-  const rightChannel =
-    channelCount === 2 ? float32ToInt16(audioBuffer.getChannelData(1)) : leftChannel;
-  const chunks: Int8Array[] = [];
+  const left = float32ToInt16(audioBuffer.getChannelData(0));
+  const right = channels === 2 ? float32ToInt16(audioBuffer.getChannelData(1)) : left;
+  return typeof Worker === 'undefined'
+    ? encodeOnCurrentThread(left, right, channels, audioBuffer.sampleRate, onProgress)
+    : encodeInWorker(left, right, channels, audioBuffer.sampleRate, onProgress);
+}
 
-  for (let offset = 0; offset < leftChannel.length; offset += MP3_FRAME_SAMPLE_COUNT) {
-    const leftChunk = leftChannel.subarray(offset, offset + MP3_FRAME_SAMPLE_COUNT);
-    const rightChunk = rightChannel.subarray(offset, offset + MP3_FRAME_SAMPLE_COUNT);
-    const encodedChunk =
-      channelCount === 2 ? encoder.encodeBuffer(leftChunk, rightChunk) : encoder.encodeBuffer(leftChunk);
-
-    if (encodedChunk.length > 0) {
-      chunks.push(encodedChunk);
-    }
-
+async function encodeOnCurrentThread(left: Int16Array, right: Int16Array, channels: number, sampleRate: number, onProgress?: (progress: number) => void) {
+  const encoder = new Mp3Encoder(channels, sampleRate, MP3_BITRATE_KBPS);
+  const chunks: Uint8Array[] = [];
+  for (let offset = 0; offset < left.length; offset += MP3_FRAME_SAMPLE_COUNT) {
+    const encoded = channels === 2
+      ? encoder.encodeBuffer(left.subarray(offset, offset + MP3_FRAME_SAMPLE_COUNT), right.subarray(offset, offset + MP3_FRAME_SAMPLE_COUNT))
+      : encoder.encodeBuffer(left.subarray(offset, offset + MP3_FRAME_SAMPLE_COUNT));
+    if (encoded.length > 0) chunks.push(Uint8Array.from(encoded));
     if (offset % (MP3_FRAME_SAMPLE_COUNT * 24) === 0) {
-      onProgress?.(offset / leftChannel.length);
-      await waitForUiFrame();
+      onProgress?.(offset / Math.max(left.length, 1));
+      await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
     }
   }
-
   const finalChunk = encoder.flush();
-  if (finalChunk.length > 0) {
-    chunks.push(finalChunk);
-  }
-
+  if (finalChunk.length > 0) chunks.push(Uint8Array.from(finalChunk));
   onProgress?.(1);
-  return new Blob(chunks.map((chunk) => Uint8Array.from(chunk)), { type: DEFAULT_MP3_MIME_TYPE });
+  return new Blob(chunks.map(copyToArrayBuffer), { type: DEFAULT_MP3_MIME_TYPE });
 }
 
-function waitForUiFrame() {
-  return new Promise<void>((resolve) => {
-    window.setTimeout(resolve, 0);
+function encodeInWorker(left: Int16Array, right: Int16Array, channels: number, sampleRate: number, onProgress?: (progress: number) => void): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(new URL('./audioCompression.worker.ts', import.meta.url), { type: 'module' });
+    worker.onmessage = (event: MessageEvent<{ type: string; progress?: number; chunks?: Uint8Array[]; message?: string }>) => {
+      if (event.data.type === 'progress') {
+        onProgress?.(event.data.progress ?? 0);
+        return;
+      }
+      worker.terminate();
+      if (event.data.type === 'complete' && event.data.chunks) {
+        resolve(new Blob(event.data.chunks.map(copyToArrayBuffer), { type: DEFAULT_MP3_MIME_TYPE }));
+        return;
+      }
+      reject(new Error(event.data.message ?? 'Encodage MP3 impossible.'));
+    };
+    worker.onerror = () => { worker.terminate(); reject(new Error('Encodage MP3 impossible.')); };
+    worker.postMessage({ type: 'encode', channels, sampleRate, bitrateKbps: MP3_BITRATE_KBPS, leftBuffer: left.buffer, rightBuffer: right.buffer }, [left.buffer, right.buffer]);
   });
-}
-
-async function getMp3EncoderConstructor() {
-  if (Mp3EncoderConstructorCache) {
-    return Mp3EncoderConstructorCache;
-  }
-
-  const { default: lamejsBrowserSource } = await import('lamejs/lame.all.js?raw');
-  const lamejs = new Function(`${lamejsBrowserSource}; return lamejs;`)() as {
-    Mp3Encoder: Mp3EncoderConstructor;
-  };
-  Mp3EncoderConstructorCache = lamejs.Mp3Encoder;
-
-  return Mp3EncoderConstructorCache;
 }
 
 function float32ToInt16(channelData: Float32Array) {
   const output = new Int16Array(channelData.length);
-
   for (let index = 0; index < channelData.length; index += 1) {
     const sample = Math.max(-1, Math.min(1, channelData[index] ?? 0));
     output[index] = sample < 0 ? sample * 0x8000 : sample * 0x7fff;
   }
-
   return output;
+}
+
+function copyToArrayBuffer(chunk: Uint8Array): ArrayBuffer {
+  const copy = new Uint8Array(chunk.byteLength);
+  copy.set(chunk);
+  return copy.buffer;
 }

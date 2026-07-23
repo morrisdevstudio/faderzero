@@ -24,14 +24,14 @@ describe('audioCompression helpers', () => {
     expect(isMp3File(new File(['data'], 'mix.wav', { type: 'audio/wav' }))).toBe(false);
   });
 
-  it('estimates a lower bitrate for longer files while staying bounded', () => {
+  it('uses the uniform 192 kb/s MP3 bitrate', () => {
     expect(estimateTargetBitrateKbps(30)).toBe(192);
-    expect(estimateTargetBitrateKbps(60 * 5)).toBeLessThan(192);
-    expect(estimateTargetBitrateKbps(60 * 30)).toBe(32);
+    expect(estimateTargetBitrateKbps(60 * 5)).toBe(192);
+    expect(estimateTargetBitrateKbps(60 * 30)).toBe(192);
   });
 
-  it('keeps the 5 Mo ceiling constant', () => {
-    expect(MAX_AUDIO_FILE_SIZE_BYTES).toBe(5 * 1024 * 1024);
+  it('keeps the Worker-compatible 50 Mo ceiling constant', () => {
+    expect(MAX_AUDIO_FILE_SIZE_BYTES).toBe(50 * 1024 * 1024);
   });
 
   it('encodes decoded audio to an mp3 file under the upload ceiling', async () => {
@@ -64,5 +64,27 @@ describe('audioCompression helpers', () => {
     expect(compressedFile.size).toBeLessThanOrEqual(MAX_AUDIO_FILE_SIZE_BYTES);
     expect(progressEvents[0]).toBe(0);
     expect(progressEvents.at(-1)).toBe(100);
+  });
+
+  it('re-encodes MP3 inputs so every upload uses the uniform bitrate', async () => {
+    const decodeAudioData = vi.fn(async () => ({
+      duration: 1,
+      numberOfChannels: 1,
+      sampleRate: 44100,
+      getChannelData: () => new Float32Array(44100),
+    }));
+    class FakeAudioContext {
+      decodeAudioData = decodeAudioData;
+      async close() {}
+    }
+    vi.stubGlobal('AudioContext', FakeAudioContext);
+
+    const result = await compressAudioForUpload(
+      new File([new Uint8Array([0xff, 0xfb, 0x90, 0x64])], 'legacy.mp3', { type: 'audio/mpeg' })
+    );
+
+    expect(decodeAudioData).toHaveBeenCalledOnce();
+    expect(result.name).toBe('legacy.mp3');
+    expect(result).not.toBeInstanceOf(Promise);
   });
 });

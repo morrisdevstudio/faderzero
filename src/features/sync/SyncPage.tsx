@@ -19,6 +19,8 @@ import {
   type SyncQrFragment,
 } from '@/features/sync/qrTransfer';
 import type { Html5Qrcode } from 'html5-qrcode';
+import { canWriteWorkspace } from '@/services/supabase/workspace';
+import { recoverPendingItems } from '@/db/userDataMigration';
 
 const QR_ROTATION_INTERVAL_MS = 1200;
 const SCANNER_ELEMENT_ID = 'faderzero-sync-scanner';
@@ -50,10 +52,34 @@ export function SyncPage() {
   const [transfer, setTransfer] = useState<PreparedSyncTransfer | null>(null);
   
   // États et hooks pour la synchronisation Supabase
-  const { session, activeWorkspace, signOut } = useAuthStore();
+  const { session, activeWorkspace, workspaces, signOut, refreshWorkspaceAccess } = useAuthStore();
+  const canWrite = canWriteWorkspace(activeWorkspace?.role);
   const [isCloudSyncing, setIsCloudSyncing] = useState(false);
   const [cloudSyncError, setCloudSyncError] = useState<string | null>(null);
   const [cloudSyncSuccess, setCloudSyncSuccess] = useState<boolean>(false);
+  const [isRecovering, setIsRecovering] = useState(false);
+  const [recoveryMessage, setRecoveryMessage] = useState<string | null>(null);
+
+  const personalWorkspace = workspaces.find((workspace) => workspace.type === 'personal') ?? null;
+  const pendingRecoveryCount = useLiveQuery(
+    () => db.recoveryItems.where('status').equals('pending').count(),
+    [session?.user.id],
+    0,
+  );
+
+  async function handleRecovery() {
+    if (!personalWorkspace || isRecovering) return;
+    setIsRecovering(true);
+    setRecoveryMessage(null);
+    try {
+      const recoveredCount = await recoverPendingItems(personalWorkspace.id);
+      setRecoveryMessage(`${recoveredCount} element(s) rattache(s) a Mon espace et places dans la file de synchronisation.`);
+    } catch (error) {
+      setRecoveryMessage(error instanceof Error ? error.message : 'La recuperation locale a echoue.');
+    } finally {
+      setIsRecovering(false);
+    }
+  }
 
   const pendingCount = useLiveQuery(async () => {
     if (!activeWorkspace) return 0;
@@ -87,7 +113,15 @@ export function SyncPage() {
     setCloudSyncSuccess(false);
 
     try {
-      const pushReport = await pushPendingMutations(activeWorkspace.id, { includeFailed: true });
+      const verifiedWorkspaces = await refreshWorkspaceAccess();
+      const verifiedWorkspace = verifiedWorkspaces.find(({ id }) => id === activeWorkspace.id);
+      if (!verifiedWorkspace) {
+        setCloudSyncError('Vous n avez plus acces a cet espace. Ses donnees locales ont ete retirees.');
+        return;
+      }
+      const pushReport = canWriteWorkspace(verifiedWorkspace.role)
+        ? await pushPendingMutations(activeWorkspace.id, { includeFailed: true })
+        : { failedCount: 0 };
       await pullRemoteChanges(activeWorkspace.id);
 
       if (pushReport.failedCount > 0) {
@@ -104,6 +138,7 @@ export function SyncPage() {
   }
 
   async function handleResolveConflict(conflictId: string, resolution: 'local' | 'remote') {
+    if (!canWrite) return;
     try {
       await resolveConflict(conflictId, resolution);
     } catch (err: any) {
@@ -418,6 +453,7 @@ export function SyncPage() {
   }
 
   async function confirmImport() {
+    if (!canWrite) return;
     if (!pendingImportPayload || isImportingRef.current) {
       return;
     }
@@ -445,6 +481,33 @@ export function SyncPage() {
 
   return (
     <div className="space-y-4">
+      {pendingRecoveryCount > 0 ? (
+        <FeatureCard
+          eyebrow="Recuperation locale"
+          title={`${pendingRecoveryCount} element(s) historique(s) a verifier`}
+          description="Ces donnees provenaient de default-workspace et n ont ete attribuees a aucun groupe sans preuve."
+          aside="Sans perte"
+        >
+          <div className="space-y-3">
+            <p className="text-sm leading-6 text-white/70">
+              Vous pouvez les rattacher a Mon espace. Les identifiants et relations sont conserves, puis chaque element est synchronise comme une nouvelle creation.
+            </p>
+            <button
+              type="button"
+              onClick={() => void handleRecovery()}
+              disabled={!personalWorkspace || isRecovering}
+              className="fz-button-primary w-full px-4 py-3 text-sm font-black uppercase tracking-[0.14em] disabled:opacity-50"
+            >
+              {isRecovering ? 'Recuperation...' : 'Rattacher a Mon espace'}
+            </button>
+            {!personalWorkspace ? (
+              <p className="text-sm font-semibold text-amber-300">Mon espace est requis pour terminer la recuperation.</p>
+            ) : null}
+            {recoveryMessage ? <p className="text-sm font-semibold text-white/80">{recoveryMessage}</p> : null}
+          </div>
+        </FeatureCard>
+      ) : null}
+
       {/* SECTION SUPABASE SYNC */}
       <FeatureCard
         eyebrow="Supabase"
@@ -487,7 +550,7 @@ export function SyncPage() {
           </div>
 
           {/* LISTE DES CONFLITS */}
-          {conflicts && conflicts.length > 0 && (
+          {canWrite && conflicts && conflicts.length > 0 && (
             <div className="rounded-[1.35rem] border border-orange-500/20 bg-orange-500/5 p-4 space-y-3">
               <p className="text-xs font-black uppercase tracking-[0.2em] text-orange-400">Conflits Détectés ({conflicts.length})</p>
               <div className="space-y-3.5">
@@ -540,7 +603,7 @@ export function SyncPage() {
               disabled={isCloudSyncing || !activeWorkspace}
               className="fz-button-primary flex-1 py-3.5 text-sm font-black uppercase tracking-[0.16em]"
             >
-              {isCloudSyncing ? 'Synchronisation...' : 'Synchroniser maintenant'}
+              {isCloudSyncing ? 'Synchronisation...' : canWrite ? 'Synchroniser maintenant' : 'Actualiser maintenant'}
             </button>
             <button
               type="button"
@@ -628,7 +691,7 @@ export function SyncPage() {
         </div>
       </FeatureCard>
 
-      <FeatureCard
+      {canWrite ? <FeatureCard
         eyebrow="Receive"
         title="Recevoir un transfert QR"
         description="Scan progressif des fragments, verification du hash global puis import propre dans IndexedDB."
@@ -726,6 +789,10 @@ export function SyncPage() {
                 </div>
               </div>
 
+              <p className="mt-3 text-sm font-semibold text-amber-200">
+                {`${importPreview.idsRegenerated} identifiants seront regeneres. ${importPreview.songIdCollisions + importPreview.setlistIdCollisions + importPreview.setlistSongIdCollisions} collision(s) detectee(s) : aucun contenu local ne sera ecrase.`}
+              </p>
+
               <div className="mt-4 flex flex-wrap gap-3">
                 <button
                   type="button"
@@ -764,7 +831,7 @@ export function SyncPage() {
             </div>
           ) : null}
         </div>
-      </FeatureCard>
+      </FeatureCard> : null}
     </div>
   );
 }

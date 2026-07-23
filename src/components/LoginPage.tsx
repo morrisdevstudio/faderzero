@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { getSupabaseConfigError } from '@/services/supabase/client';
+import { normalizeDisplayName } from '@/services/supabase/profile';
+import { assertValidPassword, getPasswordRequirements } from '@/services/supabase/passwordPolicy';
 
-type AuthMode = 'signin' | 'signup';
-
-const MIN_PASSWORD_LENGTH = 8;
+type AuthMode = 'signin' | 'signup' | 'forgot';
 
 function EyeIcon({ crossed = false }: { crossed?: boolean }) {
   return (
@@ -31,14 +31,25 @@ interface LoginPageProps {
 
 export function LoginPage({ inviteTokenPresent = false }: LoginPageProps) {
   const [mode, setMode] = useState<AuthMode>('signin');
+  const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
+  const [pendingConfirmationEmail, setPendingConfirmationEmail] = useState<string | null>(null);
 
-  const { signIn, signUp, loading, error, infoMessage, clearFeedback } = useAuthStore();
+  const {
+    signIn,
+    signUp,
+    requestPasswordReset,
+    resendSignupConfirmation,
+    loading,
+    error,
+    infoMessage,
+    clearFeedback,
+  } = useAuthStore();
   const configError = getSupabaseConfigError();
   const displayedError = configError ?? localError ?? error;
 
@@ -55,39 +66,51 @@ export function LoginPage({ inviteTokenPresent = false }: LoginPageProps) {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    if (!normalizedEmail || !password) return;
-
-    if (password.length < MIN_PASSWORD_LENGTH) {
-      setLocalError(`Le mot de passe doit contenir au moins ${MIN_PASSWORD_LENGTH} caracteres.`);
-      return;
-    }
-
-    if (mode === 'signup' && password !== confirmPassword) {
-      setLocalError('Les mots de passe ne correspondent pas.');
-      return;
-    }
+    if (!normalizedEmail || (mode !== 'forgot' && !password)) return;
 
     setLocalError(null);
     clearFeedback();
 
     try {
-      if (mode === 'signin') {
+      if (mode === 'forgot') {
+        await requestPasswordReset(normalizedEmail);
+      } else if (mode === 'signin') {
         await signIn(normalizedEmail, password);
       } else {
-        await signUp(normalizedEmail, password);
+        const normalizedDisplayName = normalizeDisplayName(displayName);
+        assertValidPassword(password);
+        if (password !== confirmPassword) {
+          throw new Error('Les mots de passe ne correspondent pas.');
+        }
+        const result = await signUp(normalizedDisplayName, normalizedEmail, password);
+        setPendingConfirmationEmail(result.needsEmailConfirmation ? normalizedEmail : null);
       }
     } catch (err) {
-      console.error(err);
+      setLocalError(err instanceof Error ? err.message : 'Impossible de traiter la demande.');
     }
   }
 
-  const title = mode === 'signin' ? 'Connexion' : 'Creer un compte';
+  async function handleResendConfirmation() {
+    if (!pendingConfirmationEmail || loading) return;
+    setLocalError(null);
+    clearFeedback();
+    try {
+      await resendSignupConfirmation(pendingConfirmationEmail);
+    } catch (err) {
+      setLocalError(err instanceof Error ? err.message : "Impossible de renvoyer l'e-mail.");
+    }
+  }
+
+  const passwordRequirements = getPasswordRequirements(password);
+  const title = mode === 'signin' ? 'Connexion' : mode === 'signup' ? 'Creer un compte' : 'Mot de passe oublié';
   const subtitle =
     mode === 'signin'
       ? inviteTokenPresent
         ? 'Connectez-vous pour accepter le lien de groupe que vous avez recu.'
         : 'Connectez-vous pour retrouver votre groupe et vos donnees.'
-      : 'Creez votre acces FaderZero avec votre e-mail et un mot de passe.';
+      : mode === 'signup'
+        ? 'Créez votre accès FaderZero. Votre e-mail devra être confirmé avant la connexion.'
+        : 'Saisissez votre adresse. La réponse reste volontairement identique pour toutes les demandes.';
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#0c0d10] px-4 text-[#f5f0ea]">
@@ -143,6 +166,28 @@ export function LoginPage({ inviteTokenPresent = false }: LoginPageProps) {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
+          {mode === 'signup' ? (
+            <div>
+              <label htmlFor="displayName" className="mb-2 block text-[0.68rem] font-black uppercase tracking-[0.18em] text-white/60">
+                Pseudo
+              </label>
+              <input
+                id="displayName"
+                type="text"
+                required
+                minLength={2}
+                maxLength={30}
+                autoComplete="nickname"
+                value={displayName}
+                onChange={(event) => setDisplayName(event.target.value)}
+                placeholder="Votre nom affiché"
+                disabled={loading}
+                className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3.5 text-sm text-white placeholder-white/20 transition focus:border-orange-500/50 focus:bg-white/10 focus:outline-none focus:ring-0"
+              />
+              <p className="mt-2 text-[0.68rem] text-white/40">2 à 30 caractères, non unique.</p>
+            </div>
+          ) : null}
+
           <div>
             <label htmlFor="email" className="block text-[0.68rem] font-black uppercase tracking-[0.18em] text-white/60 mb-2">
               Adresse e-mail
@@ -160,7 +205,7 @@ export function LoginPage({ inviteTokenPresent = false }: LoginPageProps) {
             />
           </div>
 
-          <div>
+          {mode !== 'forgot' ? <div>
             <label htmlFor="password" className="block text-[0.68rem] font-black uppercase tracking-[0.18em] text-white/60 mb-2">
               Mot de passe
             </label>
@@ -187,7 +232,22 @@ export function LoginPage({ inviteTokenPresent = false }: LoginPageProps) {
                 <EyeIcon crossed={!isPasswordVisible} />
               </button>
             </div>
-          </div>
+          </div> : null}
+
+          {mode === 'signup' ? (
+            <ul className="grid grid-cols-2 gap-2 text-[0.68rem]" aria-label="Règles du mot de passe">
+              {[
+                ['8 caractères', passwordRequirements.minimumLength],
+                ['Une majuscule', passwordRequirements.uppercase],
+                ['Une minuscule', passwordRequirements.lowercase],
+                ['Un chiffre', passwordRequirements.digit],
+              ].map(([label, valid]) => (
+                <li key={String(label)} className={valid ? 'text-emerald-300' : 'text-white/40'}>
+                  {valid ? '✓' : '○'} {label}
+                </li>
+              ))}
+            </ul>
+          ) : null}
 
           {mode === 'signup' && (
             <div>
@@ -224,6 +284,26 @@ export function LoginPage({ inviteTokenPresent = false }: LoginPageProps) {
             </div>
           )}
 
+          {mode === 'signin' ? (
+            <button
+              type="button"
+              onClick={() => setMode('forgot')}
+              className="w-full text-center text-[0.7rem] font-bold text-orange-300 transition hover:text-orange-200"
+            >
+              Mot de passe oublié ?
+            </button>
+          ) : null}
+
+          {mode === 'forgot' ? (
+            <button
+              type="button"
+              onClick={() => setMode('signin')}
+              className="w-full text-center text-[0.7rem] font-bold text-white/55 transition hover:text-white"
+            >
+              Retour à la connexion
+            </button>
+          ) : null}
+
           {displayedError && (
             <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-center text-[0.75rem] text-red-400">
               {displayedError}
@@ -236,18 +316,39 @@ export function LoginPage({ inviteTokenPresent = false }: LoginPageProps) {
             </div>
           )}
 
+          {mode === 'signup' && pendingConfirmationEmail ? (
+            <button
+              type="button"
+              onClick={() => void handleResendConfirmation()}
+              disabled={loading}
+              className="w-full rounded-xl border border-orange-500/25 bg-orange-500/10 px-4 py-3 text-[0.7rem] font-black uppercase tracking-[0.14em] text-orange-200 transition hover:bg-orange-500/20 disabled:opacity-45"
+            >
+              Renvoyer l'e-mail de confirmation
+            </button>
+          ) : null}
+
           <button
             type="submit"
-            disabled={loading || !email.trim() || !password || Boolean(configError)}
+            disabled={
+              loading
+              || !email.trim()
+              || Boolean(configError)
+              || (mode !== 'forgot' && !password)
+              || (mode === 'signup' && (!displayName.trim() || !confirmPassword))
+            }
             className="relative w-full overflow-hidden rounded-2xl bg-white px-4 py-4 text-[0.72rem] font-black uppercase tracking-[0.2em] text-[#0c0d10] transition hover:bg-orange-500 hover:text-white disabled:bg-white/10 disabled:text-white/40 shadow-lg"
           >
             {loading
               ? mode === 'signin'
                 ? 'Connexion...'
-                : 'Creation...'
+                : mode === 'signup'
+                  ? 'Creation...'
+                  : 'Envoi...'
               : mode === 'signin'
                 ? 'Se connecter'
-                : 'Creer mon compte'}
+                : mode === 'signup'
+                  ? 'Creer mon compte'
+                  : 'Envoyer le lien'}
           </button>
         </form>
 
@@ -257,7 +358,9 @@ export function LoginPage({ inviteTokenPresent = false }: LoginPageProps) {
               ? inviteTokenPresent
                 ? "Une fois connecte, vous pourrez rejoindre directement le groupe partage avec ce lien."
                 : "Connectez-vous puis vous retrouverez directement votre groupe si vous en avez deja un."
-              : "Si la confirmation e-mail est active sur Supabase, vous devrez valider votre adresse avant votre premiere connexion."}
+              : mode === 'signup'
+                ? "Vous devrez valider votre adresse e-mail avant votre première connexion."
+                : "Pour votre sécurité, l’application ne confirme jamais si une adresse possède un compte."}
           </p>
         </div>
       </div>

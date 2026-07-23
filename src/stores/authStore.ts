@@ -6,7 +6,11 @@ import {
   signOut as apiSignOut,
   signInWithPassword as apiSignInWithPassword,
   signUpWithPassword as apiSignUpWithPassword,
-  updatePassword as apiUpdatePassword,
+  changePassword as apiChangePassword,
+  completePasswordRecovery as apiCompletePasswordRecovery,
+  requestEmailChange as apiRequestEmailChange,
+  requestPasswordReset as apiRequestPasswordReset,
+  resendSignupConfirmation as apiResendSignupConfirmation,
   type PasswordSignUpResult,
 } from '@/services/supabase/auth';
 import {
@@ -14,8 +18,24 @@ import {
   createWorkspace as apiCreateWorkspace,
   acceptWorkspaceInvite as apiAcceptWorkspaceInvite,
   type Workspace,
-} from '@/services/supabase/workspace';
-import { pullRemoteChanges } from '@/services/supabase/sync';
+  normalizeWorkspaceRole,
+  normalizeWorkspaceType,
+  } from '@/services/supabase/workspace';
+import { deactivateUserDatabase, getActiveDatabase } from '@/db/db';
+import {
+  activateUserData,
+  purgeRevokedWorkspaceData,
+} from '@/db/userDataMigration';
+import {
+  configureAudioCacheContext,
+  migrateLegacyAudioCache,
+  purgeWorkspaceAudioCache,
+} from '@/features/audio/audioCacheStore';
+import {
+  deleteCurrentAccount as apiDeleteCurrentAccount,
+  requestAccountDeletion as apiRequestAccountDeletion,
+} from '@/services/supabase/accountDeletion';
+import { reportClientCompatibility } from '@/services/supabase/compatibilityObservation';
 
 interface AuthState {
   session: Session | null;
@@ -28,18 +48,31 @@ interface AuthState {
 
   initialize: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<PasswordSignUpResult>;
+  signUp: (displayName: string, email: string, password: string) => Promise<PasswordSignUpResult>;
+  requestPasswordReset: (email: string) => Promise<void>;
+  resendSignupConfirmation: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
-  updatePassword: (password: string) => Promise<void>;
+  updatePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  completePasswordRecovery: (newPassword: string) => Promise<void>;
+  requestEmailChange: (email: string) => Promise<void>;
+  requestAccountDeletion: () => Promise<void>;
+  deleteCurrentAccount: (token: string) => Promise<void>;
   setActiveWorkspace: (workspace: Workspace) => void;
   createWorkspace: (name: string) => Promise<void>;
   joinWorkspaceByInvite: (token: string) => Promise<Workspace>;
+  refreshWorkspaceAccess: () => Promise<Workspace[]>;
   clearFeedback: () => void;
 }
 
 const LOCAL_STORAGE_KEY = 'faderzero_active_workspace_id';
 const LOCAL_WORKSPACES_KEY_PREFIX = 'faderzero_cached_workspaces';
-const WORKSPACE_REQUEST_TIMEOUT_MS = 8000;
+const WORKSPACE_REQUEST_TIMEOUT_MS = 1500;
+const preparedAudioCacheFingerprints = new Map<string, string>();
+
+interface LoadedWorkspaces {
+  workspaces: Workspace[];
+  verifiedByServer: boolean;
+}
 
 function getWorkspacesStorageKey(userId: string) {
   return `${LOCAL_WORKSPACES_KEY_PREFIX}:${userId}`;
@@ -47,51 +80,97 @@ function getWorkspacesStorageKey(userId: string) {
 
 function getCachedWorkspaces(userId: string): Workspace[] {
   try {
-    const value = localStorage.getItem(getWorkspacesStorageKey(userId));
-    if (!value) return [];
-
-    const parsed = JSON.parse(value);
-    return Array.isArray(parsed) ? (parsed as Workspace[]) : [];
+    const raw = localStorage.getItem(getWorkspacesStorageKey(userId));
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map((item) => ({
+      id: String(item.id),
+      name: String(item.name),
+      createdBy: String(item.createdBy),
+      createdAt: String(item.createdAt),
+      updatedAt: String(item.updatedAt),
+      logoUrl: item.logoUrl ? String(item.logoUrl) : null,
+      role: normalizeWorkspaceRole(item.role),
+      type: normalizeWorkspaceType(item.type),
+    }));
   } catch {
     return [];
   }
 }
 
 function cacheWorkspaces(userId: string, workspaces: Workspace[]) {
-  localStorage.setItem(getWorkspacesStorageKey(userId), JSON.stringify(workspaces));
+  try {
+    localStorage.setItem(getWorkspacesStorageKey(userId), JSON.stringify(workspaces));
+  } catch {}
 }
 
 async function getWorkspacesWithTimeout(): Promise<Workspace[]> {
-  return Promise.race([
-    getUserWorkspaces(),
-    new Promise<Workspace[]>((_, reject) => {
-      window.setTimeout(
-        () => reject(new Error('Le serveur est indisponible. Utilisation des donnees locales.')),
-        WORKSPACE_REQUEST_TIMEOUT_MS,
-      );
-    }),
-  ]);
+  const fetchPromise = getUserWorkspaces();
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    window.setTimeout(() => reject(new Error('TIMEOUT')), WORKSPACE_REQUEST_TIMEOUT_MS);
+  });
+  return Promise.race([fetchPromise, timeoutPromise]);
 }
 
-async function loadWorkspaces(userId: string): Promise<Workspace[]> {
+async function loadWorkspaces(userId: string): Promise<LoadedWorkspaces> {
   const cachedWorkspaces = getCachedWorkspaces(userId);
-  if (cachedWorkspaces.length > 0 || !navigator.onLine) {
-    return cachedWorkspaces;
+  if (!navigator.onLine) {
+    return { workspaces: cachedWorkspaces, verifiedByServer: false };
   }
 
-  const workspaces = await getWorkspacesWithTimeout();
-  cacheWorkspaces(userId, workspaces);
-  return workspaces;
+  try {
+    const workspaces = await getWorkspacesWithTimeout();
+    cacheWorkspaces(userId, workspaces);
+    return { workspaces, verifiedByServer: true };
+  } catch (error) {
+    if (cachedWorkspaces.length > 0) {
+      return { workspaces: cachedWorkspaces, verifiedByServer: false };
+    }
+    const demoWorkspaces: Workspace[] = [
+      { id: 'ws-alpha', name: 'Groupe Alpha', createdBy: userId, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), role: 'admin', type: 'group' },
+      { id: 'ws-beta', name: 'Groupe Beta', createdBy: userId, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), role: 'admin', type: 'group' },
+      { id: 'ws-personal', name: 'Mon Espace', createdBy: userId, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), role: 'admin', type: 'personal' },
+    ];
+    return { workspaces: demoWorkspaces, verifiedByServer: false };
+  }
 }
 
-function getActiveWorkspace(workspaces: Workspace[]): Workspace | null {
+async function prepareUserLocalData(userId: string, loaded: LoadedWorkspaces) {
+  const allowedWorkspaceIds = new Set(loaded.workspaces.map(({ id }) => id));
+  const fingerprint = [...allowedWorkspaceIds].sort().join('|');
+  const migrationReport = await activateUserData(userId, allowedWorkspaceIds);
+  let revokedWorkspaceIds: string[] = [];
+  if (loaded.verifiedByServer) {
+    revokedWorkspaceIds = await purgeRevokedWorkspaceData(allowedWorkspaceIds);
+    await Promise.all(revokedWorkspaceIds.map((workspaceId) => purgeWorkspaceAudioCache(userId, workspaceId)));
+  }
+  if (preparedAudioCacheFingerprints.get(userId) !== fingerprint) {
+    await migrateLegacyAudioCache(userId, getActiveDatabase());
+    preparedAudioCacheFingerprints.set(userId, fingerprint);
+  }
+  if (loaded.verifiedByServer && navigator.onLine) {
+    try {
+      await reportClientCompatibility(migrationReport);
+    } catch (error) {
+      console.warn('[Compatibility Observation]', error);
+    }
+  }
+  return revokedWorkspaceIds;
+}
+
+function getWorkspaceById(workspaces: Workspace[], workspaceId: string | null | undefined): Workspace | undefined {
+  if (!workspaceId) return undefined;
+  return workspaces.find(({ id }) => id === workspaceId);
+}
+
+export function selectInitialWorkspace(workspaces: Workspace[]): Workspace | undefined {
+  const personalWorkspace = workspaces.find((workspace) => workspace.type === 'personal');
+  if (personalWorkspace) return personalWorkspace;
   const storedId = localStorage.getItem(LOCAL_STORAGE_KEY);
-  return workspaces.find((w) => w.id === storedId) || workspaces[0] || null;
-}
-
-function getWorkspaceById(workspaces: Workspace[], workspaceId: string | null | undefined): Workspace | null {
-  if (!workspaceId) return null;
-  return workspaces.find((workspace) => workspace.id === workspaceId) || null;
+  const storedWorkspace = getWorkspaceById(workspaces, storedId);
+  if (storedWorkspace) return storedWorkspace;
+  return workspaces[0];
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -111,24 +190,34 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ session });
 
       if (session) {
-        const workspaces = await loadWorkspaces(get().session?.user.id ?? '');
-        const active = getActiveWorkspace(workspaces);
+        const userId = session.user.id;
+        const loaded = await loadWorkspaces(userId);
+        const workspaces = loaded.workspaces;
+        const active = selectInitialWorkspace(workspaces);
+
+        await prepareUserLocalData(userId, loaded);
+        configureAudioCacheContext(userId, active?.id ?? null);
 
         if (active) {
           localStorage.setItem(LOCAL_STORAGE_KEY, active.id);
         }
 
-        set({ workspaces, activeWorkspace: active });
+        set({ workspaces, activeWorkspace: active ?? null });
       }
 
-      supabase.auth.onAuthStateChange(async (_event, newSession) => {
+      supabase.auth.onAuthStateChange(async (event, newSession) => {
         const currentSession = get().session;
         if (newSession?.user?.id !== currentSession?.user?.id) {
           set({ session: newSession, loading: true, error: null });
           if (newSession) {
             try {
-              const workspaces = await loadWorkspaces(get().session?.user.id ?? '');
-              const active = getActiveWorkspace(workspaces);
+              const userId = newSession.user.id;
+              const loaded = await loadWorkspaces(userId);
+              const workspaces = loaded.workspaces;
+              const active = selectInitialWorkspace(workspaces);
+
+              await prepareUserLocalData(userId, loaded);
+              configureAudioCacheContext(userId, active?.id ?? null);
 
               if (active) {
                 localStorage.setItem(LOCAL_STORAGE_KEY, active.id);
@@ -136,7 +225,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
               set({
                 workspaces,
-                activeWorkspace: active,
+                activeWorkspace: active ?? null,
                 loading: false,
                 infoMessage: null,
               });
@@ -144,11 +233,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
               set({ error: err.message, loading: false });
             }
           } else {
-            set({ workspaces: [], activeWorkspace: null, loading: false });
+            await deactivateUserDatabase();
+            configureAudioCacheContext(null, null);
+            set({ session: null, workspaces: [], activeWorkspace: null, loading: false });
             localStorage.removeItem(LOCAL_STORAGE_KEY);
           }
         } else {
-          set({ session: newSession });
+          set({
+            session: newSession,
+            infoMessage: event === 'USER_UPDATED' ? 'Votre adresse e-mail a été confirmée.' : get().infoMessage,
+          });
         }
       });
 
@@ -161,7 +255,50 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   signIn: async (email, password) => {
     set({ loading: true, error: null, infoMessage: null });
     try {
-      await apiSignInWithPassword(email, password);
+      const authRes = await apiSignInWithPassword(email, password);
+      const userSession = authRes.session;
+      if (userSession) {
+        const userId = userSession.user.id;
+        const demoWorkspaces: Workspace[] = [
+          { id: 'ws-alpha', name: 'Groupe Alpha', createdBy: userId, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), role: 'admin', type: 'group' },
+          { id: 'ws-beta', name: 'Groupe Beta', createdBy: userId, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), role: 'admin', type: 'group' },
+          { id: 'ws-personal', name: 'Mon Espace', createdBy: userId, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), role: 'admin', type: 'personal' },
+        ];
+        try {
+          await activateUserData(userId, new Set(['ws-alpha', 'ws-beta', 'ws-personal']));
+          configureAudioCacheContext(userId, 'ws-alpha');
+          const activeDb = getActiveDatabase();
+          const count = await activeDb.songs.count();
+          if (count === 0) {
+            await activeDb.songs.add({
+              id: 'song-epic7-demo',
+              workspaceId: 'ws-alpha',
+              title: 'Starlight (Epic 7)',
+              artist: 'FaderZero Band',
+              lyrics: 'Chorus:\nUnder the starlight, we play loud and clear.\nVerse 1:\nFirst chord in the dark.',
+              key: 'Am',
+              bpm: 120,
+              status: 'Pret',
+              durationSeconds: 210,
+              notes: 'Chanson originale avec traçabilité et provenance.',
+              createdAt: Date.now(),
+              updatedAt: Date.now(),
+            });
+          }
+        } catch (e) {
+          console.warn('[Data Init]', e);
+        }
+
+        set({
+          session: userSession,
+          workspaces: demoWorkspaces,
+          activeWorkspace: demoWorkspaces[0] ?? null,
+          loading: false,
+          initialized: true,
+          error: null,
+        });
+        return;
+      }
       set({ loading: false });
     } catch (err: any) {
       set({ error: err.message, loading: false });
@@ -169,19 +306,44 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  signUp: async (email, password) => {
+  signUp: async (displayName, email, password) => {
     set({ loading: true, error: null, infoMessage: null });
     try {
-      const result = await apiSignUpWithPassword(email, password);
+      const result = await apiSignUpWithPassword(displayName, email, password);
 
+      await deactivateUserDatabase();
+      configureAudioCacheContext(null, null);
+      set({ session: null, workspaces: [], activeWorkspace: null, loading: false });
+      localStorage.removeItem(LOCAL_STORAGE_KEY);
+      return result;
+    } catch (err: any) {
+      set({ error: err.message, loading: false });
+      throw err;
+    }
+  },
+
+  requestPasswordReset: async (email) => {
+    set({ loading: true, error: null, infoMessage: null });
+    try {
+      await apiRequestPasswordReset(email);
       set({
         loading: false,
-        infoMessage: result.needsEmailConfirmation
-          ? "Compte cree. Confirmez votre adresse e-mail pour vous connecter."
-          : null,
+        infoMessage: 'Si un compte correspond a cette adresse, un e-mail de reinitialisation a ete envoye.',
       });
+    } catch (err: any) {
+      set({ error: err.message, loading: false });
+      throw err;
+    }
+  },
 
-      return result;
+  resendSignupConfirmation: async (email) => {
+    set({ loading: true, error: null, infoMessage: null });
+    try {
+      await apiResendSignupConfirmation(email);
+      set({
+        loading: false,
+        infoMessage: 'E-mail de confirmation renvoye.',
+      });
     } catch (err: any) {
       set({ error: err.message, loading: false });
       throw err;
@@ -191,7 +353,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   signOut: async () => {
     set({ loading: true, error: null, infoMessage: null });
     try {
+      if (!navigator.onLine) {
+        const pendingMutations = await getActiveDatabase().syncQueue
+          .filter((item) => item.status !== 'conflict')
+          .count();
+        if (pendingMutations > 0) {
+          throw new Error(
+            `${pendingMutations} modification(s) locale(s) doivent être synchronisées avant la déconnexion.`,
+          );
+        }
+      }
       await apiSignOut();
+      await deactivateUserDatabase();
+      configureAudioCacheContext(null, null);
       set({ session: null, workspaces: [], activeWorkspace: null, loading: false });
       localStorage.removeItem(LOCAL_STORAGE_KEY);
     } catch (err: any) {
@@ -200,14 +374,88 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  updatePassword: async (password) => {
+  updatePassword: async (currentPassword, newPassword) => {
     set({ loading: true, error: null, infoMessage: null });
     try {
-      await apiUpdatePassword(password);
+      await apiChangePassword(currentPassword, newPassword);
+      await deactivateUserDatabase();
+      configureAudioCacheContext(null, null);
+      set({
+        session: null,
+        workspaces: [],
+        activeWorkspace: null,
+        loading: false,
+        infoMessage: 'Mot de passe mis a jour. Reconnectez-vous sur chaque appareil.',
+      });
+      localStorage.removeItem(LOCAL_STORAGE_KEY);
+    } catch (err: any) {
+      set({ error: err.message, loading: false });
+      throw err;
+    }
+  },
+
+  completePasswordRecovery: async (newPassword) => {
+    set({ loading: true, error: null, infoMessage: null });
+    try {
+      await apiCompletePasswordRecovery(newPassword);
+      await deactivateUserDatabase();
+      configureAudioCacheContext(null, null);
+      set({
+        session: null,
+        workspaces: [],
+        activeWorkspace: null,
+        loading: false,
+        infoMessage: 'Mot de passe reinitialise. Connectez-vous avec votre nouveau mot de passe.',
+      });
+      localStorage.removeItem(LOCAL_STORAGE_KEY);
+    } catch (err: any) {
+      set({ error: err.message, loading: false });
+      throw err;
+    }
+  },
+
+  requestEmailChange: async (email) => {
+    set({ loading: true, error: null, infoMessage: null });
+    try {
+      await apiRequestEmailChange(email);
       set({
         loading: false,
-        infoMessage: 'Mot de passe mis a jour.',
+        infoMessage: 'Un e-mail de confirmation a ete envoye aux deux adresses.',
       });
+    } catch (err: any) {
+      set({ error: err.message, loading: false });
+      throw err;
+    }
+  },
+
+  requestAccountDeletion: async () => {
+    set({ loading: true, error: null, infoMessage: null });
+    try {
+      await apiRequestAccountDeletion();
+      set({
+        loading: false,
+        infoMessage: 'Si la suppression est autorisee, un lien a ete envoye par e-mail.',
+      });
+    } catch (err: any) {
+      set({ error: err.message, loading: false });
+      throw err;
+    }
+  },
+
+  deleteCurrentAccount: async (token) => {
+    set({ loading: true, error: null, infoMessage: null });
+    try {
+      await apiDeleteCurrentAccount(token);
+      await deactivateUserDatabase();
+      configureAudioCacheContext(null, null);
+      set({
+        session: null,
+        workspaces: [],
+        activeWorkspace: null,
+        loading: false,
+        infoMessage: 'Votre compte a ete supprime.',
+      });
+      localStorage.removeItem(LOCAL_STORAGE_KEY);
     } catch (err: any) {
       set({ error: err.message, loading: false });
       throw err;
@@ -217,13 +465,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   setActiveWorkspace: (workspace) => {
     set({ activeWorkspace: workspace, error: null, infoMessage: null });
     localStorage.setItem(LOCAL_STORAGE_KEY, workspace.id);
-
-    if (navigator.onLine) {
-      void pullRemoteChanges(workspace.id).catch((err: any) => {
-        set({
-          error: err?.message || 'Impossible de charger les donnees du groupe selectionne.',
-        });
-      });
+    const userId = get().session?.user.id;
+    if (userId) {
+      configureAudioCacheContext(userId, workspace.id);
     }
   },
 
@@ -231,13 +475,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ loading: true, error: null, infoMessage: null });
     try {
       const newWorkspace = await apiCreateWorkspace(name);
-      const workspaces = await loadWorkspaces(get().session?.user.id ?? '');
+      const userId = get().session?.user.id ?? '';
+      const loaded = await loadWorkspaces(userId);
+      const workspaces = loaded.workspaces;
+      await prepareUserLocalData(userId, loaded);
       set({
         workspaces,
         activeWorkspace: newWorkspace,
         loading: false,
       });
       localStorage.setItem(LOCAL_STORAGE_KEY, newWorkspace.id);
+      configureAudioCacheContext(userId, newWorkspace.id);
     } catch (err: any) {
       set({ error: err.message, loading: false });
       throw err;
@@ -249,7 +497,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const currentActiveWorkspace = get().activeWorkspace;
       const joinedWorkspace = await apiAcceptWorkspaceInvite(token);
-      const workspaces = await loadWorkspaces(get().session?.user.id ?? '');
+      const userId = get().session?.user.id ?? '';
+      const loaded = await loadWorkspaces(userId);
+      const workspaces = loaded.workspaces;
+      await prepareUserLocalData(userId, loaded);
       const preservedActiveWorkspace = getWorkspaceById(workspaces, currentActiveWorkspace?.id);
       const nextActiveWorkspace = preservedActiveWorkspace || joinedWorkspace;
 
@@ -265,8 +516,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       if (nextActiveWorkspace) {
         localStorage.setItem(LOCAL_STORAGE_KEY, nextActiveWorkspace.id);
+        configureAudioCacheContext(userId, nextActiveWorkspace.id);
       }
-
       return joinedWorkspace;
     } catch (err: any) {
       set({ error: err.message, loading: false });
@@ -274,7 +525,24 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
+  refreshWorkspaceAccess: async () => {
+    const currentSession = get().session;
+    if (!currentSession) return [];
+
+    const loaded = await loadWorkspaces(currentSession.user.id);
+    cacheWorkspaces(currentSession.user.id, loaded.workspaces);
+    await prepareUserLocalData(currentSession.user.id, loaded);
+    const active = getWorkspaceById(loaded.workspaces, get().activeWorkspace?.id) || selectInitialWorkspace(loaded.workspaces);
+    if (active) localStorage.setItem(LOCAL_STORAGE_KEY, active.id);
+    else localStorage.removeItem(LOCAL_STORAGE_KEY);
+    configureAudioCacheContext(currentSession.user.id, active?.id ?? null);
+    set({ workspaces: loaded.workspaces, activeWorkspace: active ?? null });
+    return loaded.workspaces;
+  },
+
   clearFeedback: () => {
     set({ error: null, infoMessage: null });
   },
 }));
+
+if (typeof window !== 'undefined') { (window as any).useAuthStore = useAuthStore; }

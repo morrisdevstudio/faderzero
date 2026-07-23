@@ -1,5 +1,77 @@
 import { create } from 'zustand';
 import { getSongAssetPlaybackUrl } from '@/services/supabase/storage';
+import type { FaderZeroDatabase } from '@/db/db';
+
+export const LEGACY_AUDIO_CACHE_NAME = 'faderzero-audio-cache';
+const AUDIO_CACHE_PREFIX = 'faderzero-audio';
+
+let currentUserId: string | null = null;
+let currentWorkspaceId: string | null = null;
+
+export function getAudioCacheName(userId: string, workspaceId: string) {
+  return `${AUDIO_CACHE_PREFIX}:${encodeURIComponent(userId)}:${encodeURIComponent(workspaceId)}`;
+}
+
+function getCurrentAudioCacheName(workspaceId = currentWorkspaceId) {
+  if (!currentUserId || !workspaceId) return null;
+  return getAudioCacheName(currentUserId, workspaceId);
+}
+
+export function configureAudioCacheContext(userId: string | null, workspaceId: string | null) {
+  if (currentUserId === userId && currentWorkspaceId === workspaceId) return;
+  currentUserId = userId;
+  currentWorkspaceId = workspaceId;
+  useAudioCacheStore.setState({
+    cachedAssetIds: new Set<string>(),
+    downloadingAssetIds: {},
+    error: null,
+  });
+}
+
+export async function migrateLegacyAudioCache(userId: string, database: FaderZeroDatabase) {
+  if (typeof caches === 'undefined') return { copied: 0, skipped: 0 };
+  const legacyCache = await caches.open(LEGACY_AUDIO_CACHE_NAME);
+  const requests = await legacyCache.keys();
+  let copied = 0;
+  let skipped = 0;
+
+  for (const request of requests) {
+    const match = new URL(request.url, window.location.href).pathname.match(/\/audio\/([^/]+)/);
+    const assetId = match?.[1];
+    if (!assetId) {
+      skipped += 1;
+      continue;
+    }
+    const asset = await database.songAssets.get(assetId);
+    const response = await legacyCache.match(request);
+    if (!asset || !response) {
+      skipped += 1;
+      continue;
+    }
+    const copyResponse = response.clone();
+    const blob = await response.blob();
+    if (asset.sizeBytes > 0 && blob.size !== asset.sizeBytes) {
+      skipped += 1;
+      continue;
+    }
+    const partition = await caches.open(getAudioCacheName(userId, asset.workspaceId));
+    await partition.put(`/audio/${assetId}`, copyResponse);
+    const copiedResponse = await partition.match(`/audio/${assetId}`);
+    if (!copiedResponse || (await copiedResponse.blob()).size !== blob.size) {
+      await partition.delete(`/audio/${assetId}`);
+      skipped += 1;
+      continue;
+    }
+    copied += 1;
+  }
+
+  return { copied, skipped };
+}
+
+export async function purgeWorkspaceAudioCache(userId: string, workspaceId: string) {
+  if (typeof caches === 'undefined') return false;
+  return caches.delete(getAudioCacheName(userId, workspaceId));
+}
 
 interface AudioCacheState {
   cachedAssetIds: Set<string>;
@@ -20,9 +92,11 @@ export const useAudioCacheStore = create<AudioCacheState>((set) => ({
 
   async checkCacheStatus() {
     if (typeof caches === 'undefined') return;
+    const cacheName = getCurrentAudioCacheName();
+    if (!cacheName) return;
     set({ isChecking: true });
     try {
-      const cache = await caches.open('faderzero-audio-cache');
+      const cache = await caches.open(cacheName);
       const requests = await cache.keys();
       const cachedIds = new Set<string>();
       for (const req of requests) {
@@ -41,6 +115,8 @@ export const useAudioCacheStore = create<AudioCacheState>((set) => ({
 
   async downloadAsset(workspaceId, assetId) {
     if (typeof caches === 'undefined') return;
+    const cacheName = getCurrentAudioCacheName(workspaceId);
+    if (!cacheName) throw new Error('Cache audio indisponible sans utilisateur connecte.');
     set((state) => ({
       downloadingAssetIds: { ...state.downloadingAssetIds, [assetId]: 0 },
       error: null,
@@ -94,7 +170,7 @@ export const useAudioCacheStore = create<AudioCacheState>((set) => ({
       const blob = new Blob([combined], { type: mimeType });
 
       // 3. Put in Cache Storage
-      const cache = await caches.open('faderzero-audio-cache');
+      const cache = await caches.open(cacheName);
       const cleanResponse = new Response(blob, {
         headers: {
           'Content-Type': mimeType,
@@ -131,8 +207,10 @@ export const useAudioCacheStore = create<AudioCacheState>((set) => ({
 
   async removeAsset(assetId) {
     if (typeof caches === 'undefined') return;
+    const cacheName = getCurrentAudioCacheName();
+    if (!cacheName) return;
     try {
-      const cache = await caches.open('faderzero-audio-cache');
+      const cache = await caches.open(cacheName);
       await cache.delete(`/audio/${assetId}`);
       set((state) => {
         const nextCached = new Set(state.cachedAssetIds);
@@ -146,8 +224,10 @@ export const useAudioCacheStore = create<AudioCacheState>((set) => ({
 
   async clearCache() {
     if (typeof caches === 'undefined') return;
+    const cacheName = getCurrentAudioCacheName();
+    if (!cacheName) return;
     try {
-      await caches.delete('faderzero-audio-cache');
+      await caches.delete(cacheName);
       set({ cachedAssetIds: new Set<string>() });
     } catch (err) {
       console.error('Failed to clear audio cache:', err);
@@ -158,8 +238,10 @@ export const useAudioCacheStore = create<AudioCacheState>((set) => ({
 // Helper function to get cached audio as local URL
 export async function getCachedAudioUrl(assetId: string): Promise<string | null> {
   if (typeof caches === 'undefined') return null;
+  const cacheName = getCurrentAudioCacheName();
+  if (!cacheName) return null;
   try {
-    const cache = await caches.open('faderzero-audio-cache');
+    const cache = await caches.open(cacheName);
     const matched = await cache.match(`/audio/${assetId}`);
     if (!matched) return null;
     const blob = await matched.blob();

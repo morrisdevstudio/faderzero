@@ -1,0 +1,117 @@
+project: FaderZero
+method: BMAD
+updated_at: "2026-07-23"
+allowed_story_statuses: [backlog, ready, in-progress, review, user-validation, done]
+current_epic: 10
+gate: "Epic suivant interdit sans validation explicite de l'utilisateur"
+data_safety:
+  production_reset: forbidden
+  migration_strategy: "expand-backfill-cutover-contract"
+  compatibility_min_versions: 2
+  compatibility_min_days: 30
+  block_on_count_decrease: true
+  block_on_missing_r2_reference: true
+
+epics:
+  - id: 0
+    title: Sécuriser le chantier de migration
+    status: done
+    pause: done
+    stories:
+      - { id: "0.1", title: "Créer les artefacts BMAD", status: done }
+      - { id: "0.2", title: "Inventorier toutes les données", status: done }
+      - { id: "0.3", title: "Sauvegarder et tester la restauration", status: done }
+      - { id: "0.4", title: "Installer les migrations versionnées", status: done }
+  - id: 1
+    title: Corriger les autorisations P0
+    status: done
+    pause: done
+    stories:
+      - { id: "1.1", title: "Étendre le modèle de rôles", status: done }
+      - { id: "1.2", title: "Introduire les fonctions privées d’autorisation", status: done }
+      - { id: "1.3", title: "Refaire la matrice RLS", status: done }
+      - { id: "1.4", title: "Sécuriser le cycle des membres", status: done }
+      - { id: "1.5", title: "Garantir l’intégrité multi-espace", status: done }
+  - id: 2
+    title: Sécuriser les invitations
+    status: done
+    pause: done
+    stories:
+      - { id: "2.1", title: "Étendre les invitations sans casser les liens actifs", status: done }
+      - { id: "2.2", title: "Créer les RPC atomiques", status: done }
+      - { id: "2.3", title: "Adapter l’administration des invitations", status: done }
+      - { id: "2.4", title: "Sécuriser le parcours sans compte", status: done }
+  - id: 3
+    title: Comptes et espace personnel
+    status: done
+    pause: done
+    stories:
+      - { id: "3.1", title: "Étendre les profils", status: done }
+      - { id: "3.2", title: "Créer Mon espace", status: done }
+      - { id: "3.3", title: "Aligner l’inscription et Auth", status: done }
+      - { id: "3.4", title: "Sécuriser les paramètres du compte", status: done }
+      - { id: "3.5", title: "Ajouter la suppression du compte", status: done }
+  - id: 4
+    title: Migrer les données locales sans perte
+    status: done
+    pause: done
+    stories:
+      - { id: "4.1", title: "Créer une base Dexie par utilisateur", status: done }
+      - { id: "4.2", title: "Traiter les données non attribuables", status: done }
+      - { id: "4.3", title: "Partitionner les caches audio", status: done }
+      - { id: "4.4", title: "Sécuriser sync, révocation et déconnexion", status: done }
+  - id: 5
+    title: Audios, quotas et sécurité R2
+    status: done
+    pause: done
+    stories:
+      - { id: "5.1", title: "Séparer fichier physique et référence logique", status: done }
+      - { id: "5.2", title: "Ajouter les quotas transactionnels", status: done }
+      - { id: "5.3", title: "Durcir le Worker", status: done }
+      - { id: "5.4", title: "Sécuriser la lecture", status: done }
+      - { id: "5.5", title: "Aligner la conversion locale", status: done }
+  - id: 6
+    title: Administration et corbeille
+    status: done
+    pause: done
+    stories:
+      - { id: "6.1", title: "Nom, logo et création de groupe", status: done }
+      - { id: "6.2", title: "Interface d’administration", status: done }
+      - { id: "6.3", title: "Corbeille des contenus", status: done }
+      - { id: "6.4", title: "Corbeille des groupes", status: done }
+  - id: 7
+    title: Copies entre espaces
+    status: done
+    pause: done
+    stories:
+      - { id: "7.1", title: "Modèle de copie et historique", status: done }
+      - { id: "7.2", title: "RPC transactionnelle", status: done }
+      - { id: "7.3", title: "Références audio partagées", status: done }
+      - { id: "7.4", title: "Interface de copie", status: done }
+  - id: 8
+    title: Événements, calendrier et home globale
+    status: done
+    pause: done
+    stories:
+      - { id: "8.1", title: "Ajouter les événements", status: done }
+      - { id: "8.2", title: "Créer le calendrier global", status: done }
+      - { id: "8.3", title: "Calculer les nouveautés artistiques", status: done }
+      - { id: "8.4", title: "Construire la home Mon espace", status: done }
+      - { id: "8.5", title: "Finaliser la navigation", status: done }
+  - id: 9
+    title: Durcissement avant production
+    status: done
+    pause: done
+    stories:
+      - { id: "9.1", title: "En-têtes et CSP", status: done }
+      - { id: "9.2", title: "Sécuriser le QR", status: done }
+      - { id: "9.3", title: "Hygiène du dépôt", status: done }
+      - { id: "9.4", title: "CI et surveillance", status: done }
+  - id: 10
+    title: Retrait contrôlé de la compatibilité
+    status: in-progress
+    pause: pending
+    stories:
+      - { id: "10.1", title: "Observer deux versions et trente jours", status: in-progress }
+      - { id: "10.2", title: "Effectuer une dernière sauvegarde", status: backlog }
+      - { id: "10.3", title: "Retirer le legacy", status: backlog }

@@ -7,6 +7,7 @@ import { SortMenu, type SortMode } from '@/components/SortMenu';
 import { setlistsRepository } from '@/db/repositories/setlistsRepository';
 import { formatSetDuration } from '@/features/songs/songPresentation';
 import { useAuthStore } from '@/stores/authStore';
+import { canWriteWorkspace } from '@/services/supabase/workspace';
 
 function PlusIcon() {
   return (
@@ -18,7 +19,9 @@ function PlusIcon() {
 
 export function SetlistsPage() {
   const navigate = useNavigate();
-  const activeWorkspaceId = useAuthStore((state) => state.activeWorkspace?.id);
+  const activeWorkspace = useAuthStore((state) => state.activeWorkspace);
+  const activeWorkspaceId = activeWorkspace?.id;
+  const canWrite = canWriteWorkspace(activeWorkspace?.role);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [isVirtualKeyboardOpen, setIsVirtualKeyboardOpen] = useState(false);
@@ -92,6 +95,7 @@ export function SetlistsPage() {
 
   async function handleCreateSetlist(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!canWrite) return;
 
     const trimmedName = name.trim();
     if (!trimmedName) {
@@ -138,7 +142,7 @@ export function SetlistsPage() {
             <h1 className="min-w-0 text-[2rem] font-black tracking-tight text-white">Setlists</h1>
           </div>
 
-          <button
+          {canWrite ? <button
             type="button"
             onClick={() => {
               setIsCreateOpen(true);
@@ -150,7 +154,7 @@ export function SetlistsPage() {
             className="fz-button-primary h-11 w-11 shrink-0 p-0"
           >
             <PlusIcon />
-          </button>
+          </button> : null}
         </div>
 
         {setlists && setlists.length > 0 ? (
@@ -177,7 +181,7 @@ export function SetlistsPage() {
             title="Vos setlists sont vides"
             description="Creez une premiere setlist pour preparer le live web sans casser l'application Expo."
           >
-            <button
+            {canWrite ? <button
               type="button"
               onClick={() => {
                 setIsCreateOpen(true);
@@ -188,7 +192,7 @@ export function SetlistsPage() {
               className="fz-button-primary w-full px-4 py-4 text-sm font-black uppercase tracking-[0.16em]"
             >
               Creer ma premiere setlist
-            </button>
+            </button> : null}
           </FeatureCard>
         ) : filteredSetlists.length === 0 ? (
           <FeatureCard
@@ -219,7 +223,7 @@ export function SetlistsPage() {
         )}
       </section>
 
-      {isCreateOpen ? (
+      {canWrite && isCreateOpen ? (
         <FormDialog title="Nouvelle setlist" onClose={() => setIsCreateOpen(false)}>
           <form className="space-y-3" onSubmit={handleCreateSetlist}>
             <label className="block">

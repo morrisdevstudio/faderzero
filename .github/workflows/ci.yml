@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 4 * * 1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  application:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+
+  audio-worker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck:worker
+      - run: npm run test:worker
+      - run: npx wrangler types --check --config cloudflare/audio-worker/wrangler.jsonc cloudflare/audio-worker/worker-configuration.d.ts
+
+  repository-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run security:headers
+      - run: npm run security:secrets
+      - run: npm audit --audit-level=high
+
+  database-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.109.1
+      - run: supabase start
+      - run: supabase db lint --local --schema public,private --level warning --fail-on error
+      - run: supabase db advisors --local --type security --level warn --fail-on error
+      - name: Run database security matrices
+        run: |
+          docker cp supabase/tests/epic-1-rls.sql supabase_db_pwa:/tmp/epic-1-rls.sql
+          docker exec supabase_db_pwa psql -U postgres -d postgres -X -v ON_ERROR_STOP=1 -f /tmp/epic-1-rls.sql
+          docker cp supabase/tests/epic-9-events-rls.sql supabase_db_pwa:/tmp/epic-9-events-rls.sql
+          docker exec supabase_db_pwa psql -U postgres -d postgres -X -v ON_ERROR_STOP=1 -f /tmp/epic-9-events-rls.sql
+          docker cp supabase/tests/epic-10-compatibility-observation.sql supabase_db_pwa:/tmp/epic-10-compatibility-observation.sql
+          docker exec supabase_db_pwa psql -U postgres -d postgres -X -v ON_ERROR_STOP=1 -f /tmp/epic-10-compatibility-observation.sql
+      - if: always()
+        run: supabase stop --no-backup

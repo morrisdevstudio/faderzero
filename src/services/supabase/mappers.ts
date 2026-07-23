@@ -3,6 +3,7 @@ import type {
   SetlistRecord,
   SetlistSongRecord,
   SongAssetRecord,
+  EventRecord,
 } from '@/db/schema';
 
 export interface DbSong {
@@ -68,6 +69,23 @@ export interface DbSongAsset {
   mime_type: string;
   size_bytes: string | number;
   duration_seconds: number | null;
+  created_at: string;
+  updated_at: string;
+  client_updated_at: string | null;
+  deleted_at: string | null;
+  server_version: number;
+  last_modified_by: string | null;
+}
+
+export interface DbEvent {
+  id: string;
+  workspace_id: string;
+  title: string;
+  event_type: 'rehearsal' | 'concert' | 'meeting' | 'other';
+  start_at: string;
+  end_at: string | null;
+  location: string | null;
+  notes: string | null;
   created_at: string;
   updated_at: string;
   client_updated_at: string | null;
@@ -279,5 +297,43 @@ export function toDbSongAsset(
     updated_at: mapMsToTimestamp(songAsset.updatedAt)!,
     client_updated_at: mapMsToTimestamp(songAsset.updatedAt),
     deleted_at: mapMsToTimestamp(songAsset.deletedAt),
+  };
+}
+
+export function toLocalEvent(dbEvent: DbEvent): EventRecord {
+  const event: EventRecord = {
+    id: dbEvent.id,
+    workspaceId: dbEvent.workspace_id,
+    title: dbEvent.title,
+    eventType: dbEvent.event_type,
+    startAt: mapTimestampToMs(dbEvent.start_at)!,
+    createdAt: mapTimestampToMs(dbEvent.created_at)!,
+    updatedAt: mapTimestampToMs(dbEvent.client_updated_at) ?? mapTimestampToMs(dbEvent.updated_at)!,
+    syncStatus: 'synced',
+    serverVersion: dbEvent.server_version,
+  };
+  const endAt = mapTimestampToMs(dbEvent.end_at);
+  const deletedAt = mapTimestampToMs(dbEvent.deleted_at);
+  if (endAt !== undefined) event.endAt = endAt;
+  if (dbEvent.location) event.location = dbEvent.location;
+  if (dbEvent.notes) event.notes = dbEvent.notes;
+  if (deletedAt !== undefined) event.deletedAt = deletedAt;
+  return event;
+}
+
+export function toDbEvent(event: EventRecord): Omit<DbEvent, 'server_version' | 'last_modified_by'> {
+  return {
+    id: event.id,
+    workspace_id: event.workspaceId,
+    title: event.title,
+    event_type: event.eventType,
+    start_at: mapMsToTimestamp(event.startAt)!,
+    end_at: mapMsToTimestamp(event.endAt),
+    location: event.location ?? null,
+    notes: event.notes ?? null,
+    created_at: mapMsToTimestamp(event.createdAt)!,
+    updated_at: mapMsToTimestamp(event.updatedAt)!,
+    client_updated_at: mapMsToTimestamp(event.updatedAt),
+    deleted_at: mapMsToTimestamp(event.deletedAt),
   };
 }

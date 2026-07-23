@@ -14,6 +14,10 @@ dist-ssr
 .env
 .env.deploy.local
 *.local
+.backups/
+.codex-remote-attachments/
+.wrangler/
+cloudflare/audio-worker/wrangler.local.jsonc
 
 # Editor directories and files
 .vscode/*

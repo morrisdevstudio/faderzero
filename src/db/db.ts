@@ -8,11 +8,15 @@ import type {
   SyncQueueItem,
   SyncConflictRecord,
   SyncStateRecord,
+  LocalMigrationJournalRecord,
+  RecoveryItemRecord,
+  EventRecord,
 } from '@/db/schema';
 import { createId } from '@/lib/createId';
 import { now } from '@/lib/now';
 
 export const FADERZERO_DB_NAME = 'faderzero-pwa';
+export const FADERZERO_LOCAL_SCHEMA_VERSION = 10;
 
 const version1Stores = {
   songs: 'id, title, updatedAt',
@@ -50,7 +54,7 @@ const version6Stores = {
   setlistSongs: 'id, setlistId, songId, [setlistId+position], updatedAt',
 } satisfies Record<string, string>;
 
-  const version7Stores = {
+const version7Stores = {
   songs: 'id, title, updatedAt, deletedAt, status, workspaceId, syncStatus',
   setlists: 'id, name, updatedAt, deletedAt, workspaceId, syncStatus',
   setlistSongs: 'id, setlistId, songId, [setlistId+position], updatedAt, deletedAt, workspaceId, syncStatus',
@@ -58,9 +62,20 @@ const version6Stores = {
   syncQueue: '++id, status, queuedAt, entityType, entityId, workspaceId',
   syncConflicts: 'id, workspaceId, entityId, detectedAt',
   syncState: 'id, workspaceId, tableName',
-  } satisfies Record<keyof DatabaseSchema, string>;
+} satisfies Record<Exclude<keyof DatabaseSchema, 'localMigrationJournal' | 'recoveryItems' | 'events'>, string>;
 
 const version8Stores = version7Stores;
+
+const version9Stores = {
+  ...version8Stores,
+  localMigrationJournal: 'id, userId, status, updatedAt',
+  recoveryItems: 'id, status, entityType, sourceWorkspaceId',
+} satisfies Record<Exclude<keyof DatabaseSchema, 'events'>, string>;
+
+const version10Stores = {
+  ...version9Stores,
+  events: 'id, workspaceId, startAt, eventType, updatedAt, deletedAt, syncStatus',
+} satisfies Record<keyof DatabaseSchema, string>;
 
 export class FaderZeroDatabase extends Dexie {
   songs!: EntityTable<SongRecord, 'id'>;
@@ -70,6 +85,9 @@ export class FaderZeroDatabase extends Dexie {
   syncQueue!: EntityTable<SyncQueueItem, 'id'>;
   syncConflicts!: EntityTable<SyncConflictRecord, 'id'>;
   syncState!: EntityTable<SyncStateRecord, 'id'>;
+  localMigrationJournal!: EntityTable<LocalMigrationJournalRecord, 'id'>;
+  recoveryItems!: EntityTable<RecoveryItemRecord, 'id'>;
+  events!: EntityTable<EventRecord, 'id'>;
 
   constructor(name = FADERZERO_DB_NAME) {
     super(name);
@@ -206,6 +224,9 @@ export class FaderZeroDatabase extends Dexie {
             setlist.keyDisplayMode ||= 'per-song';
           });
       });
+
+    this.version(9).stores(version9Stores);
+    this.version(10).stores(version10Stores);
   }
 }
 
@@ -213,4 +234,34 @@ export function createDatabase(name = FADERZERO_DB_NAME) {
   return new FaderZeroDatabase(name);
 }
 
-export const db = createDatabase();
+const legacyDatabase = createDatabase();
+let activeDatabase = legacyDatabase;
+
+export function getLegacyDatabase() {
+  return legacyDatabase;
+}
+
+export function getActiveDatabase() {
+  return activeDatabase;
+}
+
+export function activateDatabase(database: FaderZeroDatabase) {
+  activeDatabase = database;
+}
+
+export async function deactivateUserDatabase() {
+  if (activeDatabase !== legacyDatabase) {
+    activeDatabase.close();
+  }
+  activeDatabase = legacyDatabase;
+}
+
+export const db = new Proxy({} as FaderZeroDatabase, {
+  get(_target, property) {
+    const value = Reflect.get(activeDatabase, property, activeDatabase);
+    return typeof value === 'function' ? value.bind(activeDatabase) : value;
+  },
+  set(_target, property, value) {
+    return Reflect.set(activeDatabase, property, value, activeDatabase);
+  },
+});

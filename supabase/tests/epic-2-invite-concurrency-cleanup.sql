@@ -1,0 +1,13 @@
+DO $cleanup$
+BEGIN
+    DELETE FROM public.workspaces
+    WHERE id = '22000000-0000-4000-8000-000000000002';
+
+    DELETE FROM auth.users
+    WHERE id IN (
+        '12000000-0000-4000-8000-000000000004',
+        '12000000-0000-4000-8000-000000000005',
+        '12000000-0000-4000-8000-000000000006'
+    );
+END;
+$cleanup$;
