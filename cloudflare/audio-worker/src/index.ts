@@ -128,10 +128,12 @@ async function uploadObject(
     return jsonResponse(request, env, { error: 'Invalid MP3 content' }, 415);
   }
 
+  const uploadBody = validatedBody.pipeThrough(new FixedLengthStream(contentLength));
+
   const onlyIf = new Headers({ 'if-none-match': '*' });
   let object: R2Object | null;
   try {
-    object = await env.AUDIO_BUCKET.put(details.key, validatedBody, {
+    object = await env.AUDIO_BUCKET.put(details.key, uploadBody, {
       onlyIf,
       httpMetadata: {
         contentType,

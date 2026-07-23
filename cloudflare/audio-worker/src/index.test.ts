@@ -11,6 +11,13 @@ const workspaceId = '11111111-1111-4111-8111-111111111111';
 const reservationId = '22222222-2222-4222-8222-222222222222';
 const validMp3Bytes = new Uint8Array([0xff, 0xfb, 0x90, 0x64]);
 
+class TestFixedLengthStream extends TransformStream<Uint8Array, Uint8Array> {
+  constructor(expectedLength: number) {
+    super();
+    Object.defineProperty(this.readable, 'expectedLength', { value: expectedLength });
+  }
+}
+
 function makeAudioEnv() {
   // @ts-expect-error The test double implements only the R2 methods exercised by this Worker.
   return {
@@ -19,11 +26,16 @@ function makeAudioEnv() {
     SUPABASE_URL: 'https://supabase.example',
     SUPABASE_PUBLISHABLE_KEY: 'publishable-test-key',
     AUDIO_BUCKET: {
-      put: vi.fn(async () => ({
-        key: `workspaces/${workspaceId}/imports/test.mp3`,
-        size: 4,
-        httpEtag: '"etag"',
-      })),
+      put: vi.fn(async (_key: string, value: ReadableStream | ArrayBuffer | ArrayBufferView | string | null | Blob) => {
+        if (value instanceof ReadableStream) {
+          await new Response(value).arrayBuffer();
+        }
+        return {
+          key: `workspaces/${workspaceId}/imports/test.mp3`,
+          size: 4,
+          httpEtag: '"etag"',
+        };
+      }),
       head: vi.fn(async () => ({ key: 'test' })),
       get: vi.fn(async (_key: string, options?: { range?: Headers }) => {
         const rangeRequested = options?.range?.has('range') ?? false;
@@ -59,6 +71,7 @@ describe('audio Worker request boundary', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+    vi.stubGlobal('FixedLengthStream', TestFixedLengthStream);
   });
 
   it('allows a Cloudflare Pages preview origin', async () => {
@@ -104,7 +117,11 @@ describe('audio Worker request boundary', () => {
     );
 
     expect(response.status).toBe(201);
-    expect(env.AUDIO_BUCKET.put).toHaveBeenCalledOnce();
+    expect(env.AUDIO_BUCKET.put).toHaveBeenCalledWith(
+      `workspaces/${workspaceId}/imports/test.mp3`,
+      expect.objectContaining({ expectedLength: validMp3Bytes.byteLength }),
+      expect.any(Object),
+    );
   });
 
   it('treats the legacy owner role as admin for uploads', async () => {
