@@ -6,6 +6,7 @@ import {
   createWorkspaceInviteLink,
   getUserWorkspaces,
   listWorkspaceInvites,
+  listWorkspaceMembersWithProfiles,
   canAdministerWorkspace,
   canWriteWorkspace,
   extractWorkspaceInviteToken,
@@ -185,6 +186,36 @@ describe('workspace invite helpers', () => {
       type: 'personal',
     }]);
     expect(eqMock).toHaveBeenCalledWith('user_id', 'user-123');
+  });
+
+  it('loads group members using the deployed profile column names', async () => {
+    eqMock.mockResolvedValue({
+      data: [{
+        id: 'membership-123',
+        workspace_id: 'workspace-123',
+        user_id: 'user-123',
+        role: 'admin',
+        created_at: '2026-07-23T10:00:00.000Z',
+        updated_at: '2026-07-23T10:00:00.000Z',
+        profile: { display_name: 'Yann', avatar_path: 'avatars/user-123.png' },
+      }],
+      error: null,
+    });
+
+    await expect(listWorkspaceMembersWithProfiles('workspace-123')).resolves.toEqual([{
+      id: 'membership-123',
+      workspaceId: 'workspace-123',
+      userId: 'user-123',
+      pseudo: 'Yann',
+      avatarUrl: 'avatars/user-123.png',
+      role: 'admin',
+      createdAt: '2026-07-23T10:00:00.000Z',
+      updatedAt: '2026-07-23T10:00:00.000Z',
+    }]);
+
+    expect(selectMock).toHaveBeenCalledWith(
+      'id, workspace_id, user_id, role, created_at, updated_at, profile:profiles(display_name, avatar_path)',
+    );
   });
 
   it('keeps guests read-only while members and admins can write', () => {

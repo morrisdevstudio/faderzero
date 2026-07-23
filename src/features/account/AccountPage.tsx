@@ -217,8 +217,11 @@ export function AccountPage() {
       .then((data) => {
         if (active) setMembers(data);
       })
-      .catch(() => {
-        if (active) setMembers([]);
+      .catch((membersError: unknown) => {
+        if (active) {
+          setMembers([]);
+          setGroupActionError(membersError instanceof Error ? membersError.message : 'Impossible de charger les membres du groupe.');
+        }
       })
       .finally(() => {
         if (active) setMembersLoading(false);

@@ -302,39 +302,35 @@ function mapWorkspaceMemberRow(row: any): WorkspaceMember {
 }
 
 export async function listWorkspaceMembersWithProfiles(workspaceId: string): Promise<WorkspaceMember[]> {
-  try {
-    const res = await supabase
-      .from('workspace_members')
-      .select('id, workspace_id, user_id, role, created_at, updated_at, profile:profiles(pseudo, avatar_url)')
-      .eq('workspace_id', workspaceId);
+  const res = await supabase
+    .from('workspace_members')
+    .select('id, workspace_id, user_id, role, created_at, updated_at, profile:profiles(display_name, avatar_path)')
+    .eq('workspace_id', workspaceId);
 
-    const data = res?.data;
-    if (res?.error) throw normalizeWorkspaceError(res.error);
+  const data = res?.data;
+  if (res?.error) throw normalizeWorkspaceError(res.error);
 
-    const members = (data || []).map((row: any) => {
-      const profile = Array.isArray(row.profile) ? row.profile[0] : row.profile;
-      return {
-        id: row.id,
-        workspaceId: row.workspace_id,
-        userId: row.user_id,
-        role: normalizeWorkspaceRole(row.role),
-        pseudo: profile?.pseudo || 'Membre',
-        avatarUrl: profile?.avatar_url || undefined,
-        createdAt: row.created_at,
-        updatedAt: row.updated_at,
-      };
-    });
-
-    const roleOrder: Record<WorkspaceRole, number> = {
-      admin: 0,
-      member: 1,
-      guest: 2,
+  const members = (data || []).map((row: any) => {
+    const profile = Array.isArray(row.profile) ? row.profile[0] : row.profile;
+    return {
+      id: row.id,
+      workspaceId: row.workspace_id,
+      userId: row.user_id,
+      role: normalizeWorkspaceRole(row.role),
+      pseudo: profile?.display_name || 'Membre',
+      avatarUrl: profile?.avatar_path || undefined,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
     };
+  });
 
-    return members.sort((a, b) => roleOrder[a.role] - roleOrder[b.role]);
-  } catch {
-    return [];
-  }
+  const roleOrder: Record<WorkspaceRole, number> = {
+    admin: 0,
+    member: 1,
+    guest: 2,
+  };
+
+  return members.sort((a, b) => roleOrder[a.role] - roleOrder[b.role]);
 }
 
 export async function setWorkspaceMemberRole(
