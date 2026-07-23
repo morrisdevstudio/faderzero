@@ -8,6 +8,7 @@ import type { Session } from '@supabase/supabase-js';
 const workspaceMocks = vi.hoisted(() => ({
   listWorkspaceInvites: vi.fn(),
   revokeWorkspaceInvite: vi.fn(),
+  checkWorkspaceNameAvailable: vi.fn(),
 }));
 
 const profileMocks = vi.hoisted(() => ({
@@ -23,6 +24,7 @@ vi.mock('@/services/supabase/workspace', async (importOriginal) => {
     ...actual,
     listWorkspaceInvites: workspaceMocks.listWorkspaceInvites,
     revokeWorkspaceInvite: workspaceMocks.revokeWorkspaceInvite,
+    checkWorkspaceNameAvailable: workspaceMocks.checkWorkspaceNameAvailable,
   };
 });
 
@@ -76,6 +78,7 @@ describe('AccountPage invitations', () => {
     window.history.replaceState({}, '', '/account');
     workspaceMocks.listWorkspaceInvites.mockReset();
     workspaceMocks.revokeWorkspaceInvite.mockReset();
+    workspaceMocks.checkWorkspaceNameAvailable.mockReset().mockResolvedValue(true);
     profileMocks.getCurrentProfile.mockReset();
     profileMocks.updateCurrentProfileDisplayName.mockReset();
     profileMocks.getProfileAvatarUrl.mockReset();
@@ -234,5 +237,36 @@ describe('AccountPage invitations', () => {
     });
     expect(screen.getByText('Aucun lien actif.')).toBeInTheDocument();
     expect(screen.getByText('Invitation révoquée.')).toBeInTheDocument();
+  });
+
+  it('cr?e un nouveau groupe et met ? jour les espaces de travail', async () => {
+    const createWorkspace = vi.fn().mockImplementation(async (name: string) => {
+      const newWs: Workspace = {
+        id: 'workspace-new',
+        name,
+        createdBy: 'user-test',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        role: 'admin',
+        type: 'group',
+      };
+      useAuthStore.setState((state) => ({
+        workspaces: [newWs, ...state.workspaces],
+        activeWorkspace: newWs,
+      }));
+    });
+
+    useAuthStore.setState({ createWorkspace });
+
+    render(<AccountPage />);
+
+    const input = screen.getByPlaceholderText('Nom du groupe');
+    fireEvent.change(input, { target: { value: 'Nouveau Groupe Rock' } });
+    fireEvent.click(screen.getByRole('button', { name: /Cr.er un nouveau groupe/i }));
+
+    await waitFor(() => {
+      expect(createWorkspace).toHaveBeenCalledWith('Nouveau Groupe Rock');
+    });
+    expect(input).toHaveValue('');
   });
 });

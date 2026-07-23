@@ -2,7 +2,6 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type SVGProps } from 'react';
 import { FormDialog } from '@/components/FormDialog';
 import { AudioMiniPlayer } from '@/features/audio/AudioMiniPlayer';
-import { AudioQuotaBanner } from '@/features/audio/AudioQuotaBanner';
 import { useAuthStore } from '@/stores/authStore';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 
@@ -397,7 +396,6 @@ export function AppShell() {
       ) : null}
       <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-3 pb-28 sm:px-4" style={{ paddingTop: `${headerHeight + 12}px` }}>
         <main className="flex-1 py-2">
-          <AudioQuotaBanner workspace={activeWorkspace} isOnline={isOnline} />
           <Outlet />
         </main>
       </div>

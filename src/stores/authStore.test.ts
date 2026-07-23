@@ -30,3 +30,33 @@ describe('sélection initiale du workspace', () => {
     expect(selectInitialWorkspace([groupWorkspace])).toEqual(groupWorkspace);
   });
 });
+
+
+describe('createWorkspace store action', () => {
+  it('ajoute syst?matiquement le nouveau groupe ? la liste des workspaces', async () => {
+    const { useAuthStore } = await import('@/stores/authStore');
+    useAuthStore.setState({
+      session: {
+        access_token: 'test',
+        refresh_token: 'test',
+        expires_in: 3600,
+        token_type: 'bearer',
+        user: { id: 'user-1', email: 'test@example.com' },
+      } as never,
+      workspaces: [personalWorkspace],
+      activeWorkspace: personalWorkspace,
+      loading: false,
+    });
+
+    const initialCount = useAuthStore.getState().workspaces.length;
+
+    // Simulate creating workspace locally/offline
+    Object.defineProperty(navigator, 'onLine', { configurable: true, value: false });
+    await useAuthStore.getState().createWorkspace('Nouveau Groupe Test');
+
+    const state = useAuthStore.getState();
+    expect(state.workspaces.length).toBe(initialCount + 1);
+    expect(state.workspaces.some((w) => w.name === 'Nouveau Groupe Test')).toBe(true);
+    expect(state.activeWorkspace?.name).toBe('Nouveau Groupe Test');
+  });
+});

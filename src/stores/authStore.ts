@@ -66,7 +66,7 @@ interface AuthState {
 
 const LOCAL_STORAGE_KEY = 'faderzero_active_workspace_id';
 const LOCAL_WORKSPACES_KEY_PREFIX = 'faderzero_cached_workspaces';
-const WORKSPACE_REQUEST_TIMEOUT_MS = 1500;
+const WORKSPACE_REQUEST_TIMEOUT_MS = 5000;
 const preparedAudioCacheFingerprints = new Map<string, string>();
 
 interface LoadedWorkspaces {
@@ -474,11 +474,39 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   createWorkspace: async (name) => {
     set({ loading: true, error: null, infoMessage: null });
     try {
-      const newWorkspace = await apiCreateWorkspace(name);
       const userId = get().session?.user.id ?? '';
+      let newWorkspace: Workspace;
+      try {
+        newWorkspace = await apiCreateWorkspace(name);
+      } catch (err: any) {
+        if (!navigator.onLine || err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) {
+          newWorkspace = {
+            id: `ws-${Date.now()}`,
+            name: name.trim(),
+            createdBy: userId,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            role: 'admin',
+            type: 'group',
+          };
+        } else {
+          throw err;
+        }
+      }
+
       const loaded = await loadWorkspaces(userId);
-      const workspaces = loaded.workspaces;
-      await prepareUserLocalData(userId, loaded);
+      const existingWorkspaces = get().workspaces;
+      let workspaces = [...loaded.workspaces];
+      for (const existing of existingWorkspaces) {
+        if (!workspaces.some((w) => w.id === existing.id)) {
+          workspaces.push(existing);
+        }
+      }
+      if (!workspaces.some((w) => w.id === newWorkspace.id)) {
+        workspaces = [newWorkspace, ...workspaces];
+      }
+      cacheWorkspaces(userId, workspaces);
+      await prepareUserLocalData(userId, { workspaces, verifiedByServer: loaded.verifiedByServer });
       set({
         workspaces,
         activeWorkspace: newWorkspace,
@@ -499,8 +527,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const joinedWorkspace = await apiAcceptWorkspaceInvite(token);
       const userId = get().session?.user.id ?? '';
       const loaded = await loadWorkspaces(userId);
-      const workspaces = loaded.workspaces;
-      await prepareUserLocalData(userId, loaded);
+      const existingWorkspaces = get().workspaces;
+      let workspaces = [...loaded.workspaces];
+      for (const existing of existingWorkspaces) {
+        if (!workspaces.some((w) => w.id === existing.id)) {
+          workspaces.push(existing);
+        }
+      }
+      if (!workspaces.some((w) => w.id === joinedWorkspace.id)) {
+        workspaces = [joinedWorkspace, ...workspaces];
+      }
+      cacheWorkspaces(userId, workspaces);
+      await prepareUserLocalData(userId, { workspaces, verifiedByServer: loaded.verifiedByServer });
       const preservedActiveWorkspace = getWorkspaceById(workspaces, currentActiveWorkspace?.id);
       const nextActiveWorkspace = preservedActiveWorkspace || joinedWorkspace;
 
