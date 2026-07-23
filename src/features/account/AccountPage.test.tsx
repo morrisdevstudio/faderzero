@@ -9,6 +9,8 @@ const workspaceMocks = vi.hoisted(() => ({
   listWorkspaceInvites: vi.fn(),
   revokeWorkspaceInvite: vi.fn(),
   checkWorkspaceNameAvailable: vi.fn(),
+  listWorkspaceMembersWithProfiles: vi.fn(),
+  removeWorkspaceMember: vi.fn(),
 }));
 
 const profileMocks = vi.hoisted(() => ({
@@ -25,6 +27,8 @@ vi.mock('@/services/supabase/workspace', async (importOriginal) => {
     listWorkspaceInvites: workspaceMocks.listWorkspaceInvites,
     revokeWorkspaceInvite: workspaceMocks.revokeWorkspaceInvite,
     checkWorkspaceNameAvailable: workspaceMocks.checkWorkspaceNameAvailable,
+    listWorkspaceMembersWithProfiles: workspaceMocks.listWorkspaceMembersWithProfiles,
+    removeWorkspaceMember: workspaceMocks.removeWorkspaceMember,
   };
 });
 
@@ -79,6 +83,8 @@ describe('AccountPage invitations', () => {
     workspaceMocks.listWorkspaceInvites.mockReset();
     workspaceMocks.revokeWorkspaceInvite.mockReset();
     workspaceMocks.checkWorkspaceNameAvailable.mockReset().mockResolvedValue(true);
+    workspaceMocks.listWorkspaceMembersWithProfiles.mockReset().mockResolvedValue([]);
+    workspaceMocks.removeWorkspaceMember.mockReset();
     profileMocks.getCurrentProfile.mockReset();
     profileMocks.updateCurrentProfileDisplayName.mockReset();
     profileMocks.getProfileAvatarUrl.mockReset();
@@ -268,5 +274,33 @@ describe('AccountPage invitations', () => {
       expect(createWorkspace).toHaveBeenCalledWith('Nouveau Groupe Rock');
     });
     expect(input).toHaveValue('');
+  });
+
+  it('demande une confirmation avant de retirer un membre du groupe', async () => {
+    workspaceMocks.listWorkspaceMembersWithProfiles.mockResolvedValue([{
+      id: 'membership-guest',
+      workspaceId: adminWorkspace.id,
+      userId: 'user-guest',
+      pseudo: 'Camille',
+      role: 'guest',
+      createdAt: '2026-07-22T10:00:00.000Z',
+      updatedAt: '2026-07-22T10:00:00.000Z',
+    }]);
+    workspaceMocks.removeWorkspaceMember.mockResolvedValue(undefined);
+
+    render(<AccountPage />);
+
+    const removeButton = await screen.findByTitle('Retirer le membre');
+    fireEvent.click(removeButton);
+
+    const confirmation = screen.getByRole('dialog', { name: 'Retirer ce membre ?' });
+    expect(workspaceMocks.removeWorkspaceMember).not.toHaveBeenCalled();
+    expect(within(confirmation).getByText(/Camille/)).toBeInTheDocument();
+
+    fireEvent.click(within(confirmation).getByRole('button', { name: 'Retirer' }));
+
+    await waitFor(() => {
+      expect(workspaceMocks.removeWorkspaceMember).toHaveBeenCalledWith(adminWorkspace.id, 'user-guest');
+    });
   });
 });

@@ -147,6 +147,8 @@ export function AccountPage() {
   // Group Management & Trash
   const [members, setMembers] = useState<WorkspaceMember[]>([]);
   const [membersLoading, setMembersLoading] = useState(false);
+  const [memberToRemove, setMemberToRemove] = useState<WorkspaceMember | null>(null);
+  const [memberRemovalLoading, setMemberRemovalLoading] = useState(false);
   const [editingGroupName, setEditingGroupName] = useState('');
   const [groupNameDuplicateWarning, setGroupNameDuplicateWarning] = useState<string | null>(null);
   const [isTrashOpen, setIsTrashOpen] = useState(false);
@@ -425,15 +427,17 @@ export function AccountPage() {
     }
   }
 
-  async function handleRemoveMember(userId: string) {
-    if (!activeWorkspace) return;
+  async function handleRemoveMember(userId: string): Promise<boolean> {
+    if (!activeWorkspace) return false;
     setGroupActionError(null);
     try {
       await removeWorkspaceMember(activeWorkspace.id, userId);
       const updatedMembers = await listWorkspaceMembersWithProfiles(activeWorkspace.id);
       setMembers(updatedMembers);
+      return true;
     } catch (err: any) {
       setGroupActionError(err.message || 'Impossible de retirer ce membre.');
+      return false;
     }
   }
 
@@ -722,7 +726,7 @@ export function AccountPage() {
                             <option value="guest">Invité</option>
                           </select>
                           <button
-                            onClick={() => handleRemoveMember(m.userId)}
+                            onClick={() => setMemberToRemove(m)}
                             className="rounded-lg p-1 text-red-400 hover:bg-red-500/20"
                             title="Retirer le membre"
                           >
@@ -1064,6 +1068,25 @@ export function AccountPage() {
           </div>
         </FormDialog>
       ) : null}
+
+      <ConfirmDialog
+        isOpen={Boolean(memberToRemove)}
+        title="Retirer ce membre ?"
+        description={`Voulez-vous vraiment retirer ${memberToRemove?.pseudo || 'ce membre'} du groupe ? Cette personne perdra immédiatement l'accès au contenu partagé.`}
+        confirmLabel="Retirer"
+        isBusy={memberRemovalLoading}
+        onCancel={() => setMemberToRemove(null)}
+        onConfirm={async () => {
+          if (!memberToRemove) return;
+          setMemberRemovalLoading(true);
+          try {
+            const removed = await handleRemoveMember(memberToRemove.userId);
+            if (removed) setMemberToRemove(null);
+          } finally {
+            setMemberRemovalLoading(false);
+          }
+        }}
+      />
 
       <ConfirmDialog
         isOpen={Boolean(inviteToRevoke)}
