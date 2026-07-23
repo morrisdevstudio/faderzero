@@ -8,9 +8,9 @@ type CalendarViewMode = 'agenda' | 'week' | 'month';
 type SpaceFilter = 'all' | 'personal' | 'groups' | string;
 
 const EVENT_TYPE_LABELS: Record<string, string> = {
-  rehearsal: 'R\u00e9p\u00e9tition',
+  rehearsal: 'Répétition',
   concert: 'Concert',
-  meeting: 'R\u00e9union',
+  meeting: 'Réunion',
   other: 'Autre',
 };
 
@@ -111,16 +111,16 @@ export function CalendarPage() {
       <section className="-mt-5 space-y-3 bg-[var(--fz-bg)] px-1 pb-3 pt-2">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <h1 className="text-[2rem] font-black tracking-tight text-white">\u00c9v\u00e9nements</h1>
+            <h1 className="text-[2rem] font-black tracking-tight text-white">Événements</h1>
             <p className="mt-0.5 text-xs text-[var(--fz-text-muted)]">
-              Planning consolid\u00e9 de vos groupes et projets personnels
+              Planning consolidé de vos groupes et projets personnels
             </p>
           </div>
 
           <button
             type="button"
             onClick={handleCreateNew}
-            aria-label="Nouvel \u00e9v\u00e9nement"
+            aria-label="Nouvel événement"
             className="fz-button-primary h-11 w-11 shrink-0 p-0"
           >
             <PlusIcon />
@@ -138,7 +138,7 @@ export function CalendarPage() {
                 : 'bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-white',
             ].join(' ')}
           >
-            Tous les \u00e9v\u00e9nements
+            Tous les événements
           </button>
 
           <button
@@ -189,7 +189,7 @@ export function CalendarPage() {
           <input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Rechercher un \u00e9v\u00e9nement..."
+            placeholder="Rechercher un événement..."
             className="fz-input min-w-0 flex-1 text-sm"
           />
 
@@ -218,14 +218,14 @@ export function CalendarPage() {
         <div className="rounded-2xl border border-dashed border-white/10 p-8 text-center">
           <p className="text-sm text-white/50">
             {searchQuery || spaceFilter !== 'all'
-              ? 'Aucun \u00e9v\u00e9nement ne correspond \u00e0 vos filtres.'
-              : 'Aucun \u00e9v\u00e9nement pr\u00e9vu pour le moment.'}
+              ? 'Aucun événement ne correspond à vos filtres.'
+              : 'Aucun événement prévu pour le moment.'}
           </p>
           <button
             onClick={handleCreateNew}
             className="mt-3 text-xs font-bold text-orange-400 hover:underline"
           >
-            Cr\u00e9er un \u00e9v\u00e9nement
+            Créer un événement
           </button>
         </div>
       ) : (
@@ -264,7 +264,7 @@ export function CalendarPage() {
                         EVENT_TYPE_COLORS[evt.eventType] || EVENT_TYPE_COLORS.other,
                       ].join(' ')}
                     >
-                      {EVENT_TYPE_LABELS[evt.eventType] || '\u00c9v\u00e9nement'}
+                      {EVENT_TYPE_LABELS[evt.eventType] || 'Événement'}
                     </span>
 
                     <span
@@ -282,7 +282,7 @@ export function CalendarPage() {
                   </div>
 
                   {evt.location && (
-                    <p className="text-xs text-zinc-400">\U0001F4CD {evt.location}</p>
+                    <p className="text-xs text-zinc-400">📍 {evt.location}</p>
                   )}
                   {evt.notes && (
                     <p className="line-clamp-1 text-xs text-zinc-500">{evt.notes}</p>

@@ -71,12 +71,12 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) {
-      setError("Le titre de l'\u00e9v\u00e9nement est requis.");
+      setError("Le titre de l'événement est requis.");
       return;
     }
 
     if (!startDate || !startTime) {
-      setError("La date et l'heure de d\u00e9but sont requises.");
+      setError("La date et l'heure de début sont requises.");
       return;
     }
 
@@ -112,7 +112,7 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
       if (onSaved) onSaved();
       onClose();
     } catch (err: any) {
-      setError(err.message || "\u00c9chec de l'enregistrement de l'\u00e9v\u00e9nement.");
+      setError(err.message || "Échec de l'enregistrement de l'événement.");
     } finally {
       setLoading(false);
     }
@@ -126,7 +126,7 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
       if (onSaved) onSaved();
       onClose();
     } catch (err: any) {
-      setError(err.message || "\u00c9chec de la suppression.");
+      setError(err.message || "Échec de la suppression.");
       setLoading(false);
     }
   };
@@ -136,7 +136,7 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
       <div className="w-full max-w-lg rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl">
         <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
           <h2 className="text-lg font-bold text-zinc-100">
-            {event ? 'Modifier l\u2019\u00e9v\u00e9nement' : 'Nouvel \u00e9v\u00e9nement'}
+            {event ? 'Modifier l’événement' : 'Nouvel événement'}
           </h2>
           <button
             onClick={onClose}
@@ -156,13 +156,13 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-1">
-              Titre de l\u2019\u00e9v\u00e9nement
+              Titre de l’événement
             </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Ex: R\u00e9p\u00e9tition g\u00e9n\u00e9rale, Concert au Studio..."
+              placeholder="Ex: Répétition générale, Concert au Studio..."
               required
               className="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3.5 py-2.5 text-sm text-zinc-100 focus:outline-none"
             />
@@ -197,9 +197,9 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
                 onChange={(e) => setEventType(e.target.value as EventType)}
                 className="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2.5 text-sm text-zinc-100 focus:outline-none"
               >
-                <option value="rehearsal">R\u00e9p\u00e9tition</option>
+                <option value="rehearsal">Répétition</option>
                 <option value="concert">Concert</option>
-                <option value="meeting">R\u00e9union</option>
+                <option value="meeting">Réunion</option>
                 <option value="other">Autre</option>
               </select>
             </div>
@@ -220,7 +220,7 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-1">
-                Date de d\u00e9but
+                Date de début
               </label>
               <input
                 type="date"
@@ -232,7 +232,7 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
             </div>
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-1">
-                Heure de d\u00e9but
+                Heure de début
               </label>
               <input
                 type="time"
@@ -277,7 +277,7 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
-              placeholder="Ordre du jour, liste du mat\u00e9riel, instructions..."
+              placeholder="Ordre du jour, liste du matériel, instructions..."
               className="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3.5 py-2 text-sm text-zinc-100 focus:outline-none resize-none"
             />
           </div>
