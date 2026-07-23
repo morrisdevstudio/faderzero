@@ -21,6 +21,6 @@
   "vars": {
     "SUPABASE_URL": "https://lragtkgshbnwvufjqnzm.supabase.co",
     "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_ABQdDKDfgTgs-fulb8jxBQ_yiemTlfW",
-    "ALLOWED_ORIGINS": "http://localhost:5173,https://localhost:5173,https://faderzero.pages.dev,https://*.faderzero.pages.dev"
+    "ALLOWED_ORIGINS": "http://localhost:5173,https://localhost:5173,https://faderzero.pages.dev,https://*.faderzero.pages.dev,https://faderzero-server.tailfba668.ts.net:8443"
   }
 }
