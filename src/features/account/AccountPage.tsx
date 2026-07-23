@@ -124,6 +124,7 @@ export function AccountPage() {
     deleteCurrentAccount,
     createWorkspace,
     joinWorkspaceByInvite,
+    signOut,
     clearFeedback,
   } = useAuthStore();
 
@@ -926,9 +927,9 @@ export function AccountPage() {
       {/* Sign Out Section */}
       <section className="rounded-[1.6rem] border border-white/10 bg-white/[0.045] p-5">
         <p className="text-[0.66rem] font-black uppercase tracking-[0.22em] text-[var(--fz-accent)]">Session</p>
-        <h2 className="mt-2 text-lg font-black uppercase tracking-[0.16em] text-white">Déconnexion</h2>
+        <h2 className="mt-2 text-lg font-black uppercase tracking-[0.16em] text-white">DÃ©connexion</h2>
         <p className="mt-2 text-sm leading-relaxed text-[var(--fz-text-muted)]">
-          Ferme ta session sur cet appareil. Tes données locales et morceaux en cache restent conservés.
+          Ferme ta session sur cet appareil. Tes donnÃ©es locales et morceaux en cache restent conservÃ©s.
         </p>
         <button
           type="button"
@@ -936,7 +937,7 @@ export function AccountPage() {
           disabled={loading}
           className="mt-4 w-full rounded-[1rem] border border-white/15 bg-white/5 px-4 py-3 text-[0.72rem] font-black uppercase tracking-[0.18em] text-white transition hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-300 disabled:opacity-40"
         >
-          Se déconnecter
+          Se dÃ©connecter
         </button>
       </section>
 

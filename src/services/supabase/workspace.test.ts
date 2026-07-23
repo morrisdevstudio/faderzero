@@ -133,25 +133,30 @@ describe('workspace invite helpers', () => {
     });
   });
 
-  it('creates new workspace memberships with the admin role', async () => {
-    singleMock.mockResolvedValue({
-      data: {
-        id: 'workspace-new',
-        name: 'New band',
-        created_by: 'user-123',
-        created_at: '2026-07-20T20:00:00.000Z',
-        updated_at: '2026-07-20T20:00:00.000Z',
-      },
-      error: null,
+  it('creates a workspace and its admin membership through the transactional RPC', async () => {
+    rpcMock.mockReturnValue({
+      single: vi.fn().mockResolvedValue({
+        data: {
+          id: 'workspace-new',
+          name: 'New band',
+          created_by: 'user-123',
+          created_at: '2026-07-20T20:00:00.000Z',
+          updated_at: '2026-07-20T20:00:00.000Z',
+          workspace_type: 'group',
+          role: 'admin',
+        },
+        error: null,
+      }),
     });
 
-    await createWorkspace('New band');
-
-    expect(insertMock).toHaveBeenNthCalledWith(2, {
-      workspace_id: 'workspace-new',
-      user_id: 'user-123',
+    await expect(createWorkspace('  New   band  ')).resolves.toMatchObject({
+      id: 'workspace-new',
+      name: 'New band',
       role: 'admin',
+      type: 'group',
     });
+
+    expect(rpcMock).toHaveBeenCalledWith('create_workspace', { p_name: 'New band' });
   });
 
   it('loads each workspace with the authenticated user role', async () => {

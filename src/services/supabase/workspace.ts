@@ -125,6 +125,10 @@ function normalizeWorkspaceError(error: unknown): Error {
       return new Error('Connectez-vous pour rejoindre ce groupe.');
     }
 
+    if (normalizedMessage.includes('WORKSPACE_NAME_UNAVAILABLE')) {
+      return new Error('Ce nom de groupe est déjà utilisé.');
+    }
+
     if (normalizedMessage.includes('INVITE_NOT_FOUND')) {
       return new Error("Ce lien d'invitation est introuvable.");
     }
@@ -160,46 +164,18 @@ export async function createWorkspace(name: string): Promise<Workspace> {
   if (!session || !session.user) {
     throw new Error('User must be authenticated to create a workspace');
   }
-  const userId = session.user.id;
-
   const normalizedName = normalizeWorkspaceName(name);
   if (!normalizedName) {
     throw new Error('Le nom du groupe ne peut pas etre vide.');
   }
 
-  const { data: workspaceData, error: wsError } = await supabase
-    .from('workspaces')
-    .insert({
-      name: normalizedName,
-      created_by: userId,
-    })
-    .select()
+  const { data, error } = await supabase
+    .rpc('create_workspace', { p_name: normalizedName })
     .single();
 
-  if (wsError) throw normalizeWorkspaceError(wsError);
+  if (error) throw normalizeWorkspaceError(error);
 
-  const { error: memberError } = await supabase
-    .from('workspace_members')
-    .insert({
-      workspace_id: workspaceData.id,
-      user_id: userId,
-      role: 'admin',
-    });
-
-  if (memberError) {
-    await supabase.from('workspaces').delete().eq('id', workspaceData.id);
-    throw normalizeWorkspaceError(memberError);
-  }
-
-  return {
-    id: workspaceData.id,
-    name: workspaceData.name,
-    createdBy: workspaceData.created_by,
-    createdAt: workspaceData.created_at,
-    updatedAt: workspaceData.updated_at,
-    role: 'admin',
-    type: 'group',
-  };
+  return mapWorkspaceRow(data as any);
 }
 
 export async function updateWorkspaceGroup(
