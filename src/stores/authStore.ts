@@ -259,40 +259,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const userSession = authRes.session;
       if (userSession) {
         const userId = userSession.user.id;
-        const demoWorkspaces: Workspace[] = [
-          { id: 'ws-alpha', name: 'Groupe Alpha', createdBy: userId, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), role: 'admin', type: 'group' },
-          { id: 'ws-beta', name: 'Groupe Beta', createdBy: userId, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), role: 'admin', type: 'group' },
-          { id: 'ws-personal', name: 'Mon Espace', createdBy: userId, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), role: 'admin', type: 'personal' },
-        ];
-        try {
-          await activateUserData(userId, new Set(['ws-alpha', 'ws-beta', 'ws-personal']));
-          configureAudioCacheContext(userId, 'ws-alpha');
-          const activeDb = getActiveDatabase();
-          const count = await activeDb.songs.count();
-          if (count === 0) {
-            await activeDb.songs.add({
-              id: 'song-epic7-demo',
-              workspaceId: 'ws-alpha',
-              title: 'Starlight (Epic 7)',
-              artist: 'FaderZero Band',
-              lyrics: 'Chorus:\nUnder the starlight, we play loud and clear.\nVerse 1:\nFirst chord in the dark.',
-              key: 'Am',
-              bpm: 120,
-              status: 'Pret',
-              durationSeconds: 210,
-              notes: 'Chanson originale avec traçabilité et provenance.',
-              createdAt: Date.now(),
-              updatedAt: Date.now(),
-            });
-          }
-        } catch (e) {
-          console.warn('[Data Init]', e);
+        const loaded = await loadWorkspaces(userId);
+        const workspaces = loaded.workspaces;
+        const active = selectInitialWorkspace(workspaces);
+
+        await prepareUserLocalData(userId, loaded);
+        configureAudioCacheContext(userId, active?.id ?? null);
+
+        if (active) {
+          localStorage.setItem(LOCAL_STORAGE_KEY, active.id);
         }
 
         set({
           session: userSession,
-          workspaces: demoWorkspaces,
-          activeWorkspace: demoWorkspaces[0] ?? null,
+          workspaces,
+          activeWorkspace: active ?? null,
           loading: false,
           initialized: true,
           error: null,
