@@ -1,11 +1,14 @@
 interface StatusPillProps {
   label: string;
   tone?: 'default' | 'accent' | 'success';
+  style?: React.CSSProperties;
+  className?: string;
 }
 
-export function StatusPill({ label, tone = 'default' }: StatusPillProps) {
+export function StatusPill({ label, tone = 'default', style, className }: StatusPillProps) {
   return (
     <span
+      style={style}
       className={[
         'inline-flex rounded-full border px-2.5 py-1 text-[0.68rem] font-black uppercase tracking-[0.16em]',
         tone === 'accent'
@@ -13,6 +16,7 @@ export function StatusPill({ label, tone = 'default' }: StatusPillProps) {
           : tone === 'success'
             ? 'border-[rgba(74,222,128,0.32)] bg-[rgba(74,222,128,0.12)] text-[var(--fz-success)]'
             : 'border-white/10 bg-white/5 text-[var(--fz-text-muted)]',
+        className || '',
       ].join(' ')}
     >
       {label}

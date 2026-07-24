@@ -18,6 +18,35 @@ function formatDateToInput(d: Date): string {
   return `${year}-${month}-${day}`;
 }
 
+function addHoursToTime(timeStr: string, hours: number): { time: string; daysAdded: number } {
+  const parts = (timeStr || '00:00').split(':').map(Number);
+  const h = parts[0] ?? 0;
+  const m = parts[1] ?? 0;
+  let totalMinutes = (isNaN(h) ? 0 : h) * 60 + (isNaN(m) ? 0 : m) + hours * 60;
+  let daysAdded = 0;
+
+  while (totalMinutes >= 24 * 60) {
+    totalMinutes -= 24 * 60;
+    daysAdded += 1;
+  }
+  while (totalMinutes < 0) {
+    totalMinutes += 24 * 60;
+    daysAdded -= 1;
+  }
+
+  const newH = Math.floor(totalMinutes / 60);
+  const newM = totalMinutes % 60;
+  const time = `${String(newH).padStart(2, '0')}:${String(newM).padStart(2, '0')}`;
+  return { time, daysAdded };
+}
+
+function addDaysToDateString(dateStr: string, days: number): string {
+  if (!dateStr) return dateStr;
+  const d = new Date(dateStr + 'T00:00:00');
+  d.setDate(d.getDate() + days);
+  return formatDateToInput(d);
+}
+
 export const EventFormModal: React.FC<EventFormModalProps> = ({
   event,
   initialDate,
@@ -79,6 +108,40 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
 
   if (!isOpen) return null;
 
+  const handleStartDateChange = (newStart: string) => {
+    setStartDate(newStart);
+    // Automatic sync: if end date is missing or earlier than new start date, update end date to start date
+    if (!endDate || (endDate && newStart > endDate)) {
+      setEndDate(newStart);
+    }
+  };
+
+  const handleStartTimeChange = (newStartTime: string) => {
+    setStartTime(newStartTime);
+    if (!endDate || startDate === endDate) {
+      if (endTime && newStartTime >= endTime) {
+        const { time: targetEndTime, daysAdded } = addHoursToTime(newStartTime, 1);
+        setEndTime(targetEndTime);
+        if (daysAdded > 0 && startDate) {
+          setEndDate(addDaysToDateString(startDate, daysAdded));
+        }
+      }
+    }
+  };
+
+  const handleEndTimeChange = (newEndTime: string) => {
+    setEndTime(newEndTime);
+    if (!endDate || startDate === endDate) {
+      if (startTime && newEndTime <= startTime) {
+        const { time: targetStartTime, daysAdded } = addHoursToTime(newEndTime, -1);
+        setStartTime(targetStartTime);
+        if (daysAdded < 0 && startDate) {
+          setStartDate(addDaysToDateString(startDate, daysAdded));
+        }
+      }
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) {
@@ -88,6 +151,11 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
 
     if (!startDate || !startTime) {
       setError("La date et l'heure de début sont requises.");
+      return;
+    }
+
+    if (endDate && endDate < startDate) {
+      setError("La date de fin ne peut pas être antérieure à la date de début.");
       return;
     }
 
@@ -143,30 +211,39 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/80 p-4 backdrop-blur-sm" onClick={(e) => { if (e.target === e.currentTarget && !loading) { onClose(); } }}>
-      <div className="w-full max-w-lg rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl">
-        <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
-          <h2 className="text-lg font-bold text-zinc-100">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-xs"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !loading) {
+          onClose();
+        }
+      }}
+    >
+      <div className="fz-card w-full max-w-md rounded-[1.6rem] p-5">
+        <div className="flex items-center justify-between border-b border-white/10 pb-3">
+          <h2 className="text-[1.35rem] font-black tracking-tight text-white">
             {event ? 'Modifier l’événement' : 'Nouvel événement'}
           </h2>
           <button
+            type="button"
             onClick={onClose}
             disabled={loading}
-            className="rounded-lg p-2 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
+            aria-label="Fermer"
+            className="fz-dialog-close"
           >
-            Fermer
+            &times;
           </button>
         </div>
 
         {error && (
-          <div className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-400">
+          <div className="mt-3 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-400">
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+        <form onSubmit={handleSubmit} className="mt-4 space-y-3.5">
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-1">
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
               Titre de l’événement
             </label>
             <input
@@ -175,19 +252,19 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Ex: Répétition générale, Concert au Studio..."
               required
-              className="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3.5 py-2.5 text-sm text-zinc-100 focus:outline-none"
+              className="fz-input w-full text-xs"
             />
           </div>
 
           {!event && workspaces.length > 0 && (
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-1">
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
                 Espace / Groupe
               </label>
               <select
                 value={targetWorkspaceId}
                 onChange={(e) => setTargetWorkspaceId(e.target.value)}
-                className="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2.5 text-sm text-zinc-100 focus:outline-none"
+                className="fz-input w-full text-xs"
               >
                 {workspaces.map((ws) => (
                   <option key={ws.id} value={ws.id}>
@@ -200,13 +277,13 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-1">
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
                 Type
               </label>
               <select
                 value={eventType}
                 onChange={(e) => setEventType(e.target.value as EventType)}
-                className="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2.5 text-sm text-zinc-100 focus:outline-none"
+                className="fz-input w-full text-xs"
               >
                 <option value="rehearsal">Répétition</option>
                 <option value="concert">Concert</option>
@@ -215,7 +292,7 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
               </select>
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-1">
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
                 Lieu
               </label>
               <input
@@ -223,65 +300,66 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
                 placeholder="Ex: Salle 3, Studio A..."
-                className="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3.5 py-2.5 text-sm text-zinc-100 focus:outline-none"
+                className="fz-input w-full text-xs"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-1">
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
                 Date de début
               </label>
               <input
                 type="date"
                 value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
+                onChange={(e) => handleStartDateChange(e.target.value)}
                 required
-                className="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 focus:outline-none"
+                className="fz-input w-full text-xs"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-1">
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
                 Heure de début
               </label>
               <input
                 type="time"
                 value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
+                onChange={(e) => handleStartTimeChange(e.target.value)}
                 required
-                className="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 focus:outline-none"
+                className="fz-input w-full text-xs"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-1">
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
                 Date de fin (optionnelle)
               </label>
               <input
                 type="date"
                 value={endDate}
+                min={startDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 focus:outline-none"
+                className="fz-input w-full text-xs"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-1">
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
                 Heure de fin
               </label>
               <input
                 type="time"
                 value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-                className="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 focus:outline-none"
+                onChange={(e) => handleEndTimeChange(e.target.value)}
+                className="fz-input w-full text-xs"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-1">
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
               Notes
             </label>
             <textarea
@@ -289,11 +367,11 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
               placeholder="Ordre du jour, liste du matériel, instructions..."
-              className="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3.5 py-2 text-sm text-zinc-100 focus:outline-none resize-none"
+              className="fz-input w-full text-xs resize-none"
             />
           </div>
 
-          <div className="flex items-center justify-between border-t border-zinc-800 pt-4">
+          <div className="flex items-center justify-between border-t border-white/10 pt-4">
             {event ? (
               <button
                 type="button"
@@ -312,14 +390,14 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
                 type="button"
                 onClick={onClose}
                 disabled={loading}
-                className="rounded-xl border border-zinc-700 px-4 py-2 text-xs font-semibold text-zinc-300 hover:bg-zinc-800"
+                className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-zinc-300 hover:bg-white/10"
               >
                 Annuler
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="rounded-xl bg-orange-500 px-4 py-2 text-xs font-bold text-white hover:bg-orange-400"
+                className="fz-button-primary px-4 py-2 text-xs font-bold disabled:opacity-60"
               >
                 {loading ? 'Enregistrement...' : 'Enregistrer'}
               </button>

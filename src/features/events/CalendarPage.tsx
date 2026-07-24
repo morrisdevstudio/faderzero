@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { StatusPill } from '@/components/StatusPill';
 import { eventsRepository } from '@/db/repositories/eventsRepository';
 import type { EventRecord } from '@/db/schema';
 import { useAuthStore } from '@/stores/authStore';
 import { EventFormModal } from './EventFormModal';
-
-type CalendarViewMode = 'agenda' | 'month';
-type SpaceFilter = 'all' | 'personal' | 'groups' | string;
 
 const EVENT_TYPE_LABELS: Record<string, string> = {
   rehearsal: 'Répétition',
@@ -14,55 +13,69 @@ const EVENT_TYPE_LABELS: Record<string, string> = {
   other: 'Autre',
 };
 
-const EVENT_TYPE_COLORS: Record<string, string> = {
-  rehearsal: 'border-blue-500/30 bg-blue-500/10 text-blue-300',
-  concert: 'border-orange-500/30 bg-orange-500/10 text-orange-300',
-  meeting: 'border-purple-500/30 bg-purple-500/10 text-purple-300',
-  other: 'border-zinc-500/30 bg-zinc-500/10 text-zinc-300',
-};
+const GROUP_COLOR_PALETTE = [
+  '#00F0FF', // Cyan
+  '#10B981', // Emerald
+  '#F59E0B', // Amber
+  '#EC4899', // Pink
+  '#3B82F6', // Blue
+  '#8B5CF6', // Violet
+  '#F97316', // Orange
+  '#14B8A6', // Teal
+  '#E11D48', // Rose
+  '#6366F1', // Indigo
+];
 
-const EVENT_TYPE_DOT_COLORS: Record<string, string> = {
-  rehearsal: 'bg-blue-400',
-  concert: 'bg-orange-400',
-  meeting: 'bg-purple-400',
-  other: 'bg-zinc-400',
-};
+function getWorkspaceColor(workspaceId: string, isPersonal: boolean, userId?: string): string {
+  if (isPersonal || workspaceId === 'personal' || workspaceId === 'default-workspace') {
+    return '#9D00FF'; // Personal Signature Purple
+  }
 
+  const storageKey = `fz_workspace_colors_${userId || 'guest'}`;
+  let colorMap: Record<string, string> = {};
+
+  try {
+    const raw = localStorage.getItem(storageKey);
+    if (raw) {
+      colorMap = JSON.parse(raw);
+    }
+  } catch {
+    colorMap = {};
+  }
+
+  if (colorMap[workspaceId]) {
+    return colorMap[workspaceId];
+  }
+
+  let hash = 0;
+  for (let i = 0; i < workspaceId.length; i++) {
+    hash = workspaceId.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const colorIndex = Math.abs(hash) % GROUP_COLOR_PALETTE.length;
+  const assignedColor = GROUP_COLOR_PALETTE[colorIndex]!;
+
+  colorMap[workspaceId] = assignedColor;
+  try {
+    localStorage.setItem(storageKey, JSON.stringify(colorMap));
+  } catch {
+    // ignore
+  }
+
+  return assignedColor;
+}
+
+// SVG icons as components
 function PlusIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M12 5v14M5 12h14" />
-    </svg>
-  );
-}
-
-function ListIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <line x1="8" y1="6" x2="21" y2="6" />
-      <line x1="8" y1="12" x2="21" y2="12" />
-      <line x1="8" y1="18" x2="21" y2="18" />
-      <line x1="3" y1="6" x2="3.01" y2="6" />
-      <line x1="3" y1="12" x2="3.01" y2="12" />
-      <line x1="3" y1="18" x2="3.01" y2="18" />
-    </svg>
-  );
-}
-
-function CalendarIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-      <line x1="16" y1="2" x2="16" y2="6" />
-      <line x1="8" y1="2" x2="8" y2="6" />
-      <line x1="3" y1="10" x2="21" y2="10" />
     </svg>
   );
 }
 
 function ChevronLeftIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <polyline points="15 18 9 12 15 6" />
     </svg>
   );
@@ -70,25 +83,73 @@ function ChevronLeftIcon() {
 
 function ChevronRightIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <polyline points="9 18 15 12 9 6" />
     </svg>
   );
 }
 
-const WEEKDAYS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+function ChevronUpIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polyline points="18 15 12 9 6 15" />
+    </svg>
+  );
+}
+
+function ChevronDownIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  );
+}
+
+function FilterIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+    </svg>
+  );
+}
+
+function ClockIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="10" />
+      <polyline points="12 6 12 12 16 14" />
+    </svg>
+  );
+}
+
+function LocationIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+      <circle cx="12" cy="10" r="3" />
+    </svg>
+  );
+}
+
+
+
+const WEEKDAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 
 export function CalendarPage() {
-  const { workspaces } = useAuthStore();
+  const { workspaces, session } = useAuthStore();
+  const user = session?.user;
   const [events, setEvents] = useState<EventRecord[]>([]);
-  const [viewMode, setViewMode] = useState<CalendarViewMode>('agenda');
-  const [spaceFilter, setSpaceFilter] = useState<SpaceFilter>('all');
+  const [disabledWorkspaceIds, setDisabledWorkspaceIds] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [isMonthView, setIsMonthView] = useState(true);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<EventRecord | null>(null);
   const [creationDate, setCreationDate] = useState<Date | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeBottomSheetEvent, setActiveBottomSheetEvent] = useState<EventRecord | null>(null);
 
   const loadEvents = async () => {
     setLoading(true);
@@ -106,6 +167,14 @@ export function CalendarPage() {
     void loadEvents();
   }, []);
 
+  // Close filter popover on window click
+  useEffect(() => {
+    if (!isFilterOpen) return;
+    const handleOutsideClick = () => setIsFilterOpen(false);
+    window.addEventListener('click', handleOutsideClick);
+    return () => window.removeEventListener('click', handleOutsideClick);
+  }, [isFilterOpen]);
+
   const workspaceMap = useMemo(() => {
     const map = new Map<string, { name: string; type: 'personal' | 'group' }>();
     for (const ws of workspaces) {
@@ -114,22 +183,52 @@ export function CalendarPage() {
     return map;
   }, [workspaces]);
 
+  const personalWorkspace = useMemo(() => workspaces.find((w) => w.type === 'personal'), [workspaces]);
+  const personalWorkspaceId = personalWorkspace?.id || 'personal';
+  const isPersonalEnabled = !disabledWorkspaceIds.has('personal') && !disabledWorkspaceIds.has(personalWorkspaceId);
+  const personalAvatarUrl = (personalWorkspace as { avatarUrl?: string })?.avatarUrl || user?.user_metadata?.avatar_url;
+  const personalInitial = user?.email ? user.email.charAt(0).toUpperCase() : 'P';
+
   const groupWorkspaces = useMemo(() => {
     return workspaces.filter((w) => w.type === 'group');
   }, [workspaces]);
+
+  const togglePersonalFilter = () => {
+    setDisabledWorkspaceIds((prev) => {
+      const next = new Set(prev);
+      const currentlyDisabled = next.has('personal') || next.has(personalWorkspaceId);
+      if (currentlyDisabled) {
+        next.delete('personal');
+        next.delete(personalWorkspaceId);
+      } else {
+        next.add('personal');
+        next.add(personalWorkspaceId);
+      }
+      return next;
+    });
+  };
+
+  const toggleGroupFilter = (groupId: string) => {
+    setDisabledWorkspaceIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupId)) {
+        next.delete(groupId);
+      } else {
+        next.add(groupId);
+      }
+      return next;
+    });
+  };
 
   const filteredEvents = useMemo(() => {
     return events.filter((evt) => {
       const wsInfo = workspaceMap.get(evt.workspaceId);
       const isPersonal = wsInfo?.type === 'personal' || evt.workspaceId === 'personal' || evt.workspaceId === 'default-workspace';
-      const isGroup = wsInfo?.type === 'group';
 
-      if (spaceFilter === 'personal') {
-        if (!isPersonal) return false;
-      } else if (spaceFilter === 'groups') {
-        if (!isGroup) return false;
-      } else if (spaceFilter !== 'all') {
-        if (evt.workspaceId !== spaceFilter) return false;
+      if (isPersonal) {
+        if (!isPersonalEnabled) return false;
+      } else {
+        if (disabledWorkspaceIds.has(evt.workspaceId)) return false;
       }
 
       if (searchQuery.trim()) {
@@ -145,7 +244,7 @@ export function CalendarPage() {
 
       return true;
     });
-  }, [events, spaceFilter, searchQuery, workspaceMap]);
+  }, [events, isPersonalEnabled, disabledWorkspaceIds, searchQuery, workspaceMap]);
 
   // Month grid calculations
   const year = currentDate.getFullYear();
@@ -205,6 +304,27 @@ export function CalendarPage() {
     return days;
   }, [year, month]);
 
+  // Active week days calculations
+  const activeWeekDays = useMemo(() => {
+    const startOfWeek = new Date(selectedDate);
+    const day = startOfWeek.getDay();
+    const diff = startOfWeek.getDate() - (day === 0 ? 6 : day - 1);
+    startOfWeek.setDate(diff);
+
+    const todayStr = new Date().toDateString();
+    const weekDays = [];
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(startOfWeek);
+      date.setDate(startOfWeek.getDate() + i);
+      weekDays.push({
+        date,
+        dayNumber: date.getDate(),
+        isToday: date.toDateString() === todayStr,
+      });
+    }
+    return weekDays;
+  }, [selectedDate]);
+
   const eventsByDayString = useMemo(() => {
     const map = new Map<string, EventRecord[]>();
     for (const evt of filteredEvents) {
@@ -217,15 +337,24 @@ export function CalendarPage() {
   }, [filteredEvents]);
 
   const handlePrevMonth = () => {
-    setCurrentDate(new Date(year, month - 1, 1));
+    const prev = new Date(year, month - 1, 1);
+    setCurrentDate(prev);
   };
 
   const handleNextMonth = () => {
-    setCurrentDate(new Date(year, month + 1, 1));
+    const next = new Date(year, month + 1, 1);
+    setCurrentDate(next);
   };
 
   const handleTodayMonth = () => {
-    setCurrentDate(new Date());
+    const now = new Date();
+    setCurrentDate(now);
+    setSelectedDate(now);
+  };
+
+  const handleSelectDate = (date: Date) => {
+    setSelectedDate(date);
+    setCurrentDate(date);
   };
 
   const handleEditEvent = (event: EventRecord, e?: React.MouseEvent) => {
@@ -233,26 +362,131 @@ export function CalendarPage() {
     setSelectedEvent(event);
     setCreationDate(null);
     setIsModalOpen(true);
+    setActiveBottomSheetEvent(null); // Close bottom sheet
   };
 
   const handleCreateNew = (date?: Date) => {
     setSelectedEvent(null);
-    setCreationDate(date || null);
+    setCreationDate(date || selectedDate || null);
     setIsModalOpen(true);
   };
 
-  return (
-    <div className="space-y-4">
-      {/* Header section */}
-      <section className="-mt-5 space-y-3 bg-[var(--fz-bg)] px-1 pb-3 pt-2">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <h1 className="text-[2rem] font-black tracking-tight text-white">Événements</h1>
-            <p className="mt-0.5 text-xs text-[var(--fz-text-muted)]">
-              Planning consolidé de vos groupes et projets personnels
-            </p>
-          </div>
+  // Sort and filter feed events starting from selected date (midnight)
+  const startOfSelectedDay = useMemo(() => {
+    const d = new Date(selectedDate);
+    d.setHours(0, 0, 0, 0);
+    return d.getTime();
+  }, [selectedDate]);
 
+  const sortedEvents = useMemo(() => {
+    return [...filteredEvents].sort((a, b) => a.startAt - b.startAt);
+  }, [filteredEvents]);
+
+  const sortedEventsFiltered = useMemo(() => {
+    return sortedEvents.filter(evt => evt.startAt >= startOfSelectedDay);
+  }, [sortedEvents, startOfSelectedDay]);
+
+  const getEventStyles = (evt: EventRecord, isPersonal: boolean) => {
+    const color = getWorkspaceColor(evt.workspaceId, isPersonal, user?.id);
+    const wsInfo = workspaceMap.get(evt.workspaceId);
+    return {
+      color,
+      label: isPersonal ? 'Perso' : wsInfo?.name || EVENT_TYPE_LABELS[evt.eventType] || 'Groupe',
+    };
+  };
+
+  const groupedEvents = useMemo(() => {
+    const dateGroups = new Map<string, EventRecord[]>();
+
+    for (const evt of sortedEventsFiltered) {
+      const dateKey = new Date(evt.startAt).toDateString();
+      const list = dateGroups.get(dateKey) || [];
+      list.push(evt);
+      dateGroups.set(dateKey, list);
+    }
+
+    const sortedKeys = Array.from(dateGroups.keys()).sort((a, b) => {
+      const listA = dateGroups.get(a);
+      const listB = dateGroups.get(b);
+      const firstA = listA ? listA[0] : undefined;
+      const firstB = listB ? listB[0] : undefined;
+      const timeA = firstA ? firstA.startAt : 0;
+      const timeB = firstB ? firstB.startAt : 0;
+      return timeA - timeB;
+    });
+
+    const groups = [];
+    for (const key of sortedKeys) {
+      const evts = dateGroups.get(key) || [];
+      const firstEvt = evts[0];
+      const dateObj = new Date(firstEvt ? firstEvt.startAt : 0);
+      const isToday = dateObj.toDateString() === new Date().toDateString();
+      
+      let dateLabel = dateObj.toLocaleDateString('fr-FR', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+      });
+      dateLabel = dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1);
+      if (isToday) {
+        dateLabel += " (Aujourd'hui)";
+      }
+
+      groups.push({
+        dateKey: key,
+        dateLabel,
+        events: evts,
+      });
+    }
+
+    return groups;
+  }, [sortedEventsFiltered]);
+
+  // Selected date events count
+  const selectedDayEventsCount = useMemo(() => {
+    return eventsByDayString.get(selectedDate.toDateString())?.length || 0;
+  }, [eventsByDayString, selectedDate]);
+
+  // Clean scroll accordion handler
+  useEffect(() => {
+    let ticking = false;
+
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const currentScroll = Math.max(0, window.scrollY || document.documentElement.scrollTop);
+
+          // Collapse to week view when scrolling down past safe threshold (> 140px)
+          if (currentScroll > 140 && isMonthView) {
+            setIsMonthView(false);
+          }
+          // Expand to month view when returned near top (< 10px)
+          else if (currentScroll < 10 && !isMonthView) {
+            setIsMonthView(true);
+          }
+
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [isMonthView]);
+
+  return (
+    <div className="space-y-4 pb-24 text-slate-200">
+      {/* STICKY TOP SEARCH HEADER */}
+      <section
+        className="sticky z-30 -mx-4 -mt-5 border-b border-[#222636]/30 bg-[#090A0F]/95 backdrop-blur-md px-4 pb-3 pt-2"
+        style={{
+          top: 'calc(var(--fz-header-height, 64px) + var(--fz-viewport-offset-top, 0px))',
+        }}
+      >
+        {/* Header Title & Plus button */}
+        <div className="flex items-start justify-between gap-3">
+          <h1 className="min-w-0 flex-1 text-[2rem] font-black tracking-tight text-white">Événements</h1>
           <button
             type="button"
             onClick={() => handleCreateNew()}
@@ -263,325 +497,680 @@ export function CalendarPage() {
           </button>
         </div>
 
-        {/* Space filter tabs */}
-        <div className="flex flex-wrap items-center gap-1.5 pt-1">
-          <button
-            type="button"
-            onClick={() => setSpaceFilter('all')}
-            className={[
-              'rounded-lg px-3 py-1.5 text-xs font-bold transition',
-              spaceFilter === 'all'
-                ? 'bg-orange-500 text-white'
-                : 'bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-white',
-            ].join(' ')}
-          >
-            Tous les événements
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setSpaceFilter('personal')}
-            className={[
-              'rounded-lg px-3 py-1.5 text-xs font-bold transition',
-              spaceFilter === 'personal'
-                ? 'bg-orange-500 text-white'
-                : 'bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-white',
-            ].join(' ')}
-          >
-            Perso
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setSpaceFilter('groups')}
-            className={[
-              'rounded-lg px-3 py-1.5 text-xs font-bold transition',
-              spaceFilter === 'groups'
-                ? 'bg-orange-500 text-white'
-                : 'bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-white',
-            ].join(' ')}
-          >
-            Groupes
-          </button>
-
-          {groupWorkspaces.length > 1 && (
-            <select
-              value={['all', 'personal', 'groups'].includes(spaceFilter) ? '' : spaceFilter}
-              onChange={(e) => {
-                if (e.target.value) setSpaceFilter(e.target.value);
-              }}
-              className="rounded-lg border border-white/10 bg-zinc-900 px-2.5 py-1.5 text-xs font-bold text-zinc-300 focus:outline-none"
-            >
-              <option value="" disabled>Filtrer par groupe...</option>
-              {groupWorkspaces.map((g) => (
-                <option key={g.id} value={g.id}>
-                  {g.name}
-                </option>
-              ))}
-            </select>
-          )}
-        </div>
-
-        {/* View mode switcher & Search input */}
-        <div className="flex items-center gap-2 pt-1">
+        {/* Search box & Filter Trigger */}
+        <div className="mt-3 flex items-center gap-2">
           <input
+            type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Rechercher un événement..."
             className="fz-input min-w-0 flex-1 text-sm"
           />
 
-          {/* Toggle buttons: List vs Calendar (Icon only) */}
-          <div className="flex shrink-0 items-center gap-1 rounded-xl border border-white/8 bg-black/20 p-1">
+          {/* Standard Filter Icon Trigger Button */}
+          <div className="relative shrink-0">
             <button
               type="button"
-              onClick={() => setViewMode('agenda')}
-              aria-label="Vue Liste"
-              title="Vue Liste"
-              className={[
-                'rounded-lg p-2 transition',
-                viewMode === 'agenda'
-                  ? 'bg-white/15 text-white shadow-sm'
-                  : 'text-white/40 hover:text-white/70',
-              ].join(' ')}
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsFilterOpen(!isFilterOpen);
+              }}
+              aria-label="Filtrer les événements"
+              title="Filtrer les événements"
+              className="flex h-10 w-10 items-center justify-center text-white/65 transition hover:text-white shrink-0"
             >
-              <ListIcon />
+              <FilterIcon />
             </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('month')}
-              aria-label="Vue Calendrier"
-              title="Vue Calendrier"
-              className={[
-                'rounded-lg p-2 transition',
-                viewMode === 'month'
-                  ? 'bg-white/15 text-white shadow-sm'
-                  : 'text-white/40 hover:text-white/70',
-              ].join(' ')}
-            >
-              <CalendarIcon />
-            </button>
+
+            {/* Filter Popup Dialog */}
+            {isFilterOpen &&
+              createPortal(
+                <div
+                  className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 px-4 pb-4 pt-16"
+                  onClick={(e) => {
+                    if (e.target === e.currentTarget) {
+                      setIsFilterOpen(false);
+                    }
+                  }}
+                >
+                  <div
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="filter-dialog-title"
+                    className="fz-card w-full max-w-md rounded-[1.6rem] p-5"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="mb-4 flex items-center justify-between gap-4">
+                      <div>
+                        <h2 id="filter-dialog-title" className="text-[1.28rem] font-black tracking-tight text-white">
+                          Filtrer par espace
+                        </h2>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsFilterOpen(false)}
+                        aria-label="Fermer"
+                        className="fz-dialog-close"
+                      >
+                        &times;
+                      </button>
+                    </div>
+
+                    <div role="menu" className="space-y-2">
+                      {/* Perso Option */}
+                      <button
+                        type="button"
+                        role="menuitemcheckbox"
+                        aria-checked={isPersonalEnabled}
+                        onClick={togglePersonalFilter}
+                        className="min-h-12 w-full rounded-xl border border-white/8 bg-white/5 px-4 py-3 text-left text-sm font-black uppercase leading-5 tracking-[0.12em] text-white hover:bg-white/10 transition flex items-center justify-between select-none cursor-pointer"
+                      >
+                        <span className="flex items-center gap-3 truncate">
+                          {personalAvatarUrl ? (
+                            <img
+                              src={personalAvatarUrl}
+                              alt="Perso"
+                              className="w-6.5 h-6.5 rounded-full object-cover border border-white/10 shrink-0"
+                            />
+                          ) : (
+                            <span className="w-6.5 h-6.5 rounded-full bg-[#9D00FF]/20 border border-[#9D00FF]/40 text-[#9D00FF] text-[10px] font-bold flex items-center justify-center shrink-0">
+                              {personalInitial}
+                            </span>
+                          )}
+                          <span className="truncate">Événements Personnels</span>
+                        </span>
+
+                        <input
+                          type="checkbox"
+                          checked={isPersonalEnabled}
+                          onChange={() => {}}
+                          className="w-4.5 h-4.5 rounded border-white/20 accent-purple-600 cursor-pointer pointer-events-none"
+                        />
+                      </button>
+
+                      {/* Group Workspace Options */}
+                      {groupWorkspaces.map((g) => {
+                        const isGroupEnabled = !disabledWorkspaceIds.has(g.id);
+                        const groupAvatarUrl = (g as { avatarUrl?: string }).avatarUrl;
+                        const groupColor = getWorkspaceColor(g.id, false, user?.id);
+
+                        return (
+                          <button
+                            key={g.id}
+                            type="button"
+                            role="menuitemcheckbox"
+                            aria-checked={isGroupEnabled}
+                            onClick={() => toggleGroupFilter(g.id)}
+                            className="min-h-12 w-full rounded-xl border border-white/8 bg-white/5 px-4 py-3 text-left text-sm font-black uppercase leading-5 tracking-[0.12em] text-white hover:bg-white/10 transition flex items-center justify-between select-none cursor-pointer"
+                          >
+                            <span className="flex items-center gap-3 truncate">
+                              {groupAvatarUrl ? (
+                                <img
+                                  src={groupAvatarUrl}
+                                  alt={g.name}
+                                  className="w-6.5 h-6.5 rounded-full object-cover border border-white/10 shrink-0"
+                                />
+                              ) : (
+                                <span
+                                  style={{
+                                    backgroundColor: `${groupColor}25`,
+                                    borderColor: `${groupColor}60`,
+                                    color: groupColor,
+                                  }}
+                                  className="w-6.5 h-6.5 rounded-full text-[10px] font-bold flex items-center justify-center shrink-0 border"
+                                >
+                                  {g.name.charAt(0).toUpperCase()}
+                                </span>
+                              )}
+                              <span className="truncate">{g.name}</span>
+                            </span>
+
+                            <input
+                              type="checkbox"
+                              checked={isGroupEnabled}
+                              onChange={() => {}}
+                              className="w-4.5 h-4.5 rounded border-white/20 accent-purple-600 cursor-pointer pointer-events-none"
+                            />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>,
+                document.body
+              )}
           </div>
         </div>
-      </section>
 
-      {/* Main Content Area */}
-      {loading ? (
-        <div className="py-12 text-center text-sm text-zinc-500">Chargement du calendrier...</div>
-      ) : viewMode === 'month' ? (
-        /* Month Calendar View */
-        <div className="space-y-3 rounded-2xl border border-white/10 bg-zinc-950/60 p-3 shadow-xl md:p-4">
-          {/* Month Navigation Bar */}
-          <div className="flex items-center justify-between pb-2 border-b border-white/8">
-            <h2 className="text-base font-bold text-white md:text-lg">{monthName}</h2>
-
-            <div className="flex items-center gap-1">
+        {/* ACCORDION CALENDAR CARD (100% FIXED IN STICKY HEADER SHELL) */}
+        <div className="bg-[#13151F] border border-[#222636] rounded-2xl p-4 shadow-xl mt-3">
+          {/* Calendar Header with selected info & toggle */}
+          <div className="flex items-center justify-between gap-2 mb-3 pb-2 border-b border-white/8">
+            {/* Left: Today button & selected date badge */}
+            <div className="flex items-center gap-1.5 min-w-[70px] sm:min-w-[150px] shrink-0">
               <button
                 type="button"
                 onClick={handleTodayMonth}
-                className="rounded-lg border border-white/10 px-2.5 py-1 text-xs font-semibold text-zinc-300 transition hover:bg-white/10 hover:text-white"
+                className="fz-button-secondary px-2.5 py-1 text-xs font-bold"
               >
-                Aujourd'hui
+                Auj.
               </button>
+              <span className="text-xs text-purple-300 bg-purple-600/20 px-2 py-0.5 rounded-full border border-purple-500/30 font-bold hidden sm:inline-block">
+                {selectedDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} ({selectedDayEventsCount})
+              </span>
+            </div>
+
+            {/* Center: Fixed-width Month Year Frame with Fixed Arrows */}
+            <div className="flex items-center justify-center min-w-0 flex-1">
+              <div className="flex items-center justify-between w-[200px] shrink-0">
+                <div className="w-8 shrink-0 flex justify-center">
+                  {isMonthView && (
+                    <button
+                      type="button"
+                      onClick={handlePrevMonth}
+                      aria-label="Mois précédent"
+                      title="Mois précédent"
+                      className="flex h-8 w-8 items-center justify-center rounded-xl text-white/70 hover:bg-white/10 hover:text-white transition-colors"
+                    >
+                      <ChevronLeftIcon />
+                    </button>
+                  )}
+                </div>
+                <h2 className="text-base font-black text-white tracking-tight truncate text-center flex-1 px-1">
+                  {monthName}
+                </h2>
+                <div className="w-8 shrink-0 flex justify-center">
+                  {isMonthView && (
+                    <button
+                      type="button"
+                      onClick={handleNextMonth}
+                      aria-label="Mois suivant"
+                      title="Mois suivant"
+                      className="flex h-8 w-8 items-center justify-center rounded-xl text-white/70 hover:bg-white/10 hover:text-white transition-colors"
+                    >
+                      <ChevronRightIcon />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Collapse/Expand chevron arrow */}
+            <div className="flex items-center justify-end min-w-[70px] sm:min-w-[150px] shrink-0">
               <button
                 type="button"
-                onClick={handlePrevMonth}
-                aria-label="Mois précédent"
-                className="rounded-lg p-1.5 text-zinc-400 transition hover:bg-white/10 hover:text-white"
+                onClick={() => setIsMonthView(!isMonthView)}
+                aria-label={isMonthView ? "Réduire le calendrier" : "Déplier le calendrier"}
+                title={isMonthView ? "Réduire le calendrier" : "Déplier le calendrier"}
+                className="flex h-8 w-8 items-center justify-center rounded-xl text-white/70 hover:bg-white/10 hover:text-white transition-colors"
               >
-                <ChevronLeftIcon />
-              </button>
-              <button
-                type="button"
-                onClick={handleNextMonth}
-                aria-label="Mois suivant"
-                className="rounded-lg p-1.5 text-zinc-400 transition hover:bg-white/10 hover:text-white"
-              >
-                <ChevronRightIcon />
+                {isMonthView ? <ChevronUpIcon /> : <ChevronDownIcon />}
               </button>
             </div>
           </div>
 
-          {/* Weekday headers */}
-          <div className="grid grid-cols-7 text-center text-[11px] font-bold uppercase tracking-wider text-zinc-400">
-            {WEEKDAYS.map((day) => (
-              <div key={day} className="py-1">{day}</div>
+          {/* Days of Week Header */}
+          <div className="grid grid-cols-7 text-center text-xs font-bold text-zinc-400 mb-2 uppercase tracking-wider">
+            {WEEKDAYS.map((day, idx) => (
+              <div key={idx}>{day}</div>
             ))}
           </div>
 
-          {/* Month Grid */}
-          <div className="grid grid-cols-7 gap-1 md:gap-1.5">
-            {calendarDays.map((item, idx) => {
-              const dayEvents = eventsByDayString.get(item.date.toDateString()) || [];
-              return (
-                <div
-                  key={idx}
-                  onClick={() => handleCreateNew()}
-                  className={[
-                    'group relative min-h-[64px] rounded-xl border p-1.5 transition flex flex-col justify-between cursor-pointer md:min-h-[85px]',
-                    item.isCurrentMonth
-                      ? 'border-white/6 bg-zinc-900/60 hover:border-zinc-700 hover:bg-zinc-900'
-                      : 'border-transparent bg-zinc-950/20 opacity-40 hover:opacity-70',
-                    item.isToday ? 'ring-1 ring-orange-500/80 bg-orange-500/5' : '',
-                  ].join(' ')}
-                >
-                  <div className="flex items-center justify-between">
-                    <span
-                      className={[
-                        'inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-bold',
-                        item.isToday
-                          ? 'bg-orange-500 text-white'
-                          : item.isCurrentMonth
-                          ? 'text-zinc-300'
-                          : 'text-zinc-600',
-                      ].join(' ')}
-                    >
-                      {item.dayNumber}
-                    </span>
+          {/* Month grid view */}
+          <div
+            className={[
+              'transition-all duration-300 ease-out overflow-hidden',
+              isMonthView ? 'max-h-[300px] opacity-100' : 'max-h-0 opacity-0 pointer-events-none hidden',
+            ].join(' ')}
+          >
+            <div className="grid grid-cols-7 gap-1 text-sm">
+              {calendarDays.map((item, idx) => {
+                const dayEvents = eventsByDayString.get(item.date.toDateString()) || [];
+                const isSelected = selectedDate.toDateString() === item.date.toDateString();
 
-                    {dayEvents.length > 0 && (
-                      <span className="text-[10px] font-bold text-orange-400 md:hidden">
-                        {dayEvents.length}
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => handleSelectDate(item.date)}
+                    className={[
+                      'aspect-square rounded-xl hover:bg-[#1B1E2B] flex flex-col items-center justify-center relative transition-all duration-150 p-1',
+                      item.isCurrentMonth ? 'text-zinc-200' : 'text-zinc-600 opacity-40',
+                      isSelected
+                        ? 'bg-purple-600/25 border-2 border-purple-500 text-white font-bold shadow-[0_0_12px_rgba(124,58,237,0.4)] scale-105 z-10'
+                        : 'border border-transparent',
+                      item.isToday && !isSelected ? 'bg-[#1B1E2B] border border-[#222636]' : '',
+                    ].join(' ')}
+                  >
+                    {item.isToday && !isSelected ? (
+                      <span className="w-5 h-5 rounded-full bg-[#FF2A6D] text-white font-bold text-xs flex items-center justify-center shadow-[0_0_8px_rgba(255,42,109,0.4)]">
+                        {item.dayNumber}
+                      </span>
+                    ) : (
+                      <span className={isSelected ? 'text-purple-300 font-black text-sm' : 'text-xs font-semibold'}>
+                        {item.dayNumber}
                       </span>
                     )}
+
+                    {/* Dots representing workspace colors */}
+                    {dayEvents.length > 0 && (
+                      <div className="flex gap-1 mt-0.5 max-w-full overflow-hidden shrink-0">
+                        {dayEvents.slice(0, 3).map((evt) => {
+                          const wsInfo = workspaceMap.get(evt.workspaceId);
+                          const isPersonal = wsInfo?.type === 'personal' || evt.workspaceId === 'personal' || evt.workspaceId === 'default-workspace';
+                          const dotColor = getWorkspaceColor(evt.workspaceId, isPersonal, user?.id);
+
+                          return (
+                            <span
+                              key={evt.id}
+                              style={{ backgroundColor: dotColor }}
+                              className="w-1.5 h-1.5 rounded-full"
+                            />
+                          );
+                        })}
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Week grid view */}
+          <div
+            className={[
+              'transition-all duration-300 ease-out overflow-hidden',
+              !isMonthView ? 'max-h-[90px] opacity-100' : 'max-h-0 opacity-0 pointer-events-none hidden',
+            ].join(' ')}
+          >
+            <div className="grid grid-cols-7 gap-1 text-sm">
+              {activeWeekDays.map((item, idx) => {
+                const dayEvents = eventsByDayString.get(item.date.toDateString()) || [];
+                const isSelected = selectedDate.toDateString() === item.date.toDateString();
+
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => handleSelectDate(item.date)}
+                    className={[
+                      'aspect-square rounded-xl hover:bg-[#1B1E2B] flex flex-col items-center justify-center relative transition-all duration-150 p-1',
+                      isSelected
+                        ? 'bg-purple-600/25 border-2 border-purple-500 text-white font-bold shadow-[0_0_12px_rgba(124,58,237,0.4)] scale-105 z-10'
+                        : 'border border-transparent text-zinc-300',
+                      item.isToday && !isSelected ? 'bg-[#1B1E2B] border border-[#222636]' : '',
+                    ].join(' ')}
+                  >
+                    {item.isToday && !isSelected ? (
+                      <span className="w-5 h-5 rounded-full bg-[#FF2A6D] text-white font-bold text-xs flex items-center justify-center shadow-[0_0_8px_rgba(255,42,109,0.4)]">
+                        {item.dayNumber}
+                      </span>
+                    ) : (
+                      <span className={isSelected ? 'text-purple-300 font-black text-sm' : 'text-xs font-semibold'}>
+                        {item.dayNumber}
+                      </span>
+                    )}
+
+                    {/* Dots representing workspace colors */}
+                    {dayEvents.length > 0 && (
+                      <div className="flex gap-1 mt-0.5 max-w-full overflow-hidden shrink-0">
+                        {dayEvents.slice(0, 3).map((evt) => {
+                          const wsInfo = workspaceMap.get(evt.workspaceId);
+                          const isPersonal = wsInfo?.type === 'personal' || evt.workspaceId === 'personal' || evt.workspaceId === 'default-workspace';
+                          const dotColor = getWorkspaceColor(evt.workspaceId, isPersonal, user?.id);
+
+                          return (
+                            <span
+                              key={evt.id}
+                              style={{ backgroundColor: dotColor }}
+                              className="w-1.5 h-1.5 rounded-full"
+                            />
+                          );
+                        })}
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FEED LIST AREA */}
+      <div className="space-y-3 pt-1">
+        {loading ? (
+          <div className="py-12 text-center text-sm text-zinc-500">Chargement des événements...</div>
+        ) : groupedEvents.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-white/10 p-8 text-center bg-[#13151F]/40 backdrop-blur-sm">
+            <p className="text-sm text-zinc-500">
+              {searchQuery || disabledWorkspaceIds.size > 0
+                ? 'Aucun événement ne correspond à vos filtres.'
+                : 'Aucun événement prévu pour le moment.'}
+            </p>
+            <button
+              onClick={() => handleCreateNew()}
+              className="mt-3 text-xs font-bold text-purple-400 hover:underline"
+            >
+              Créer un événement
+            </button>
+          </div>
+        ) : (
+          groupedEvents.map((group) => (
+            <div key={group.dateKey} className="space-y-2">
+              {/* Day header */}
+              <div className="pt-1">
+                <span className="text-xs font-black uppercase tracking-wider text-white">
+                  {group.dateLabel}
+                </span>
+              </div>
+
+              {/* Event cards in this day */}
+              <div className="space-y-2">
+                {group.events.map((evt) => {
+                  const wsInfo = workspaceMap.get(evt.workspaceId);
+                  const isPersonal = wsInfo?.type === 'personal' || evt.workspaceId === 'personal' || evt.workspaceId === 'default-workspace';
+                  const styleMeta = getEventStyles(evt, isPersonal);
+
+                  const startVal = new Date(evt.startAt);
+                  const startStr = startVal.toLocaleTimeString('fr-FR', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  });
+                  let timeRangeStr = startStr;
+                  if (evt.endAt) {
+                    const endVal = new Date(evt.endAt);
+                    const endStr = endVal.toLocaleTimeString('fr-FR', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    });
+                    timeRangeStr = `${startStr} - ${endStr}`;
+                  }
+
+                  const spaceBadgeText = isPersonal
+                    ? 'Perso'
+                    : wsInfo?.name
+                    ? wsInfo.name
+                    : 'Groupe';
+
+                  const color = styleMeta.color;
+
+                  return (
+                    <div
+                      key={evt.id}
+                      onClick={() => setActiveBottomSheetEvent(evt)}
+                      style={{ borderLeftColor: color }}
+                      className="fz-card block rounded-[1.2rem] px-4 py-3.5 border-l-4 transition hover:border-[var(--fz-border-strong)] cursor-pointer active:scale-[0.98]"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0 flex-1">
+                          <h2 className="truncate text-[1.12rem] font-black tracking-tight text-white" title={evt.title}>
+                            {evt.title}
+                          </h2>
+                          <p className="mt-2 truncate whitespace-nowrap text-[0.82rem] text-[var(--fz-text-muted)] flex items-center gap-1.5">
+                            <span className="font-mono font-bold shrink-0 flex items-center gap-1">
+                              <ClockIcon /> {timeRangeStr}
+                            </span>
+                            {evt.location && (
+                              <>
+                                <span>·</span>
+                                <span className="truncate flex items-center gap-1">
+                                  <LocationIcon /> {evt.location}
+                                </span>
+                              </>
+                            )}
+                          </p>
+                        </div>
+
+                        {/* Event tag */}
+                        <div className="flex shrink-0 items-start pt-0.5">
+                          <StatusPill
+                            label={spaceBadgeText}
+                            style={{ backgroundColor: `${color}15`, borderColor: `${color}40`, color }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* MOBILE BOTTOM SHEET DRAWER */}
+      {/* Event Details Modal matching EventFormModal form fields (readOnly) */}
+      {activeBottomSheetEvent && createPortal(
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-xs"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setActiveBottomSheetEvent(null);
+            }
+          }}
+        >
+          <div className="fz-card w-full max-w-md rounded-[1.6rem] p-5">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <h2 className="text-[1.35rem] font-black tracking-tight text-white">
+                Détails de l’événement
+              </h2>
+              <button
+                type="button"
+                onClick={() => setActiveBottomSheetEvent(null)}
+                aria-label="Fermer"
+                className="fz-dialog-close"
+              >
+                &times;
+              </button>
+            </div>
+
+            {/* Event Information as Form Controls (ReadOnly) */}
+            {(() => {
+              const wsInfo = workspaceMap.get(activeBottomSheetEvent.workspaceId);
+              const isPersonal = wsInfo?.type === 'personal' || activeBottomSheetEvent.workspaceId === 'personal' || activeBottomSheetEvent.workspaceId === 'default-workspace';
+
+              const startVal = new Date(activeBottomSheetEvent.startAt);
+              const startYear = startVal.getFullYear();
+              const startMonth = String(startVal.getMonth() + 1).padStart(2, '0');
+              const startDay = String(startVal.getDate()).padStart(2, '0');
+              const startDateStr = `${startDay}-${startMonth}-${startYear}`;
+              const startTimeStr = startVal.toTimeString().slice(0, 5);
+
+              let endDateStr = '';
+              let endTimeStr = '';
+              if (activeBottomSheetEvent.endAt) {
+                const endVal = new Date(activeBottomSheetEvent.endAt);
+                const endYear = endVal.getFullYear();
+                const endMonth = String(endVal.getMonth() + 1).padStart(2, '0');
+                const endDay = String(endVal.getDate()).padStart(2, '0');
+                endDateStr = `${endDay}-${endMonth}-${endYear}`;
+                endTimeStr = endVal.toTimeString().slice(0, 5);
+              }
+
+              const spaceBadgeText = isPersonal
+                ? 'Perso'
+                : wsInfo?.name
+                ? wsInfo.name
+                : 'Groupe';
+
+              const readOnlyClass = "w-full rounded-2xl bg-white/[0.04] p-3 text-xs text-white border-0 !border-0 border-none !border-none outline-none focus:outline-none focus:ring-0 appearance-none shadow-none pointer-events-none select-none";
+
+              return (
+                <div className="mt-4 space-y-3.5">
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
+                      Titre de l’événement
+                    </label>
+                    <input
+                      type="text"
+                      value={activeBottomSheetEvent.title}
+                      readOnly
+                      tabIndex={-1}
+                      className={readOnlyClass}
+                    />
                   </div>
 
-                  {/* Day Events list (desktop/tablet) or dots (mobile) */}
-                  <div className="mt-1 space-y-1">
-                    {/* Mobile dots */}
-                    <div className="flex flex-wrap gap-1 md:hidden">
-                      {dayEvents.map((evt) => (
-                        <span
-                          key={evt.id}
-                          className={[
-                            'h-1.5 w-1.5 rounded-full',
-                            EVENT_TYPE_DOT_COLORS[evt.eventType] || 'bg-zinc-400',
-                          ].join(' ')}
-                        />
-                      ))}
-                    </div>
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
+                      Espace / Groupe
+                    </label>
+                    <input
+                      type="text"
+                      value={spaceBadgeText}
+                      readOnly
+                      tabIndex={-1}
+                      className={readOnlyClass}
+                    />
+                  </div>
 
-                    {/* Desktop pills */}
-                    <div className="hidden space-y-1 md:block">
-                      {dayEvents.slice(0, 3).map((evt) => {
-                        const timeStr = new Date(evt.startAt).toLocaleTimeString('fr-FR', {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        });
-                        return (
-                          <div
-                            key={evt.id}
-                            onClick={(e) => handleEditEvent(evt, e)}
-                            title={`${evt.title} (${timeStr})`}
-                            className={[
-                              'truncate rounded px-1.5 py-0.5 text-[10px] font-semibold transition hover:scale-[1.02]',
-                              EVENT_TYPE_COLORS[evt.eventType] || EVENT_TYPE_COLORS.other,
-                            ].join(' ')}
-                          >
-                            <span className="font-bold opacity-80 mr-1">{timeStr}</span>
-                            {evt.title}
-                          </div>
-                        );
-                      })}
-                      {dayEvents.length > 3 && (
-                        <div className="text-[9px] font-bold text-zinc-400 pl-1">
-                          +{dayEvents.length - 3} de plus
-                        </div>
-                      )}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
+                        Type
+                      </label>
+                      <select
+                        value={activeBottomSheetEvent.eventType}
+                        disabled
+                        tabIndex={-1}
+                        className={`${readOnlyClass} opacity-90`}
+                      >
+                        <option value="rehearsal">Répétition</option>
+                        <option value="concert">Concert</option>
+                        <option value="meeting">Réunion</option>
+                        <option value="other">Autre</option>
+                      </select>
                     </div>
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
+                        Lieu
+                      </label>
+                      <input
+                        type="text"
+                        value={activeBottomSheetEvent.location || ''}
+                        readOnly
+                        tabIndex={-1}
+                        placeholder="--"
+                        className={readOnlyClass}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
+                        Date de début
+                      </label>
+                      <input
+                        type="text"
+                        value={startDateStr}
+                        readOnly
+                        tabIndex={-1}
+                        className={readOnlyClass}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
+                        Heure de début
+                      </label>
+                      <input
+                        type="text"
+                        value={startTimeStr}
+                        readOnly
+                        tabIndex={-1}
+                        className={readOnlyClass}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
+                        Date de fin (optionnelle)
+                      </label>
+                      <input
+                        type="text"
+                        value={endDateStr || '--'}
+                        readOnly
+                        tabIndex={-1}
+                        className={readOnlyClass}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
+                        Heure de fin
+                      </label>
+                      <input
+                        type="text"
+                        value={endTimeStr || '--'}
+                        readOnly
+                        tabIndex={-1}
+                        className={readOnlyClass}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
+                      Notes
+                    </label>
+                    <textarea
+                      value={activeBottomSheetEvent.notes || ''}
+                      readOnly
+                      tabIndex={-1}
+                      rows={3}
+                      placeholder="--"
+                      className={`${readOnlyClass} resize-none`}
+                    />
                   </div>
                 </div>
               );
-            })}
-          </div>
-        </div>
-      ) : filteredEvents.length === 0 ? (
-        /* Empty State */
-        <div className="rounded-2xl border border-dashed border-white/10 p-8 text-center">
-          <p className="text-sm text-white/50">
-            {searchQuery || spaceFilter !== 'all'
-              ? 'Aucun événement ne correspond à vos filtres.'
-              : 'Aucun événement prévu pour le moment.'}
-          </p>
-          <button
-            onClick={() => handleCreateNew()}
-            className="mt-3 text-xs font-bold text-orange-400 hover:underline"
-          >
-            Créer un événement
-          </button>
-        </div>
-      ) : (
-        /* Agenda List View */
-        <div className="space-y-2.5">
-          {filteredEvents.map((evt) => {
-            const startDate = new Date(evt.startAt);
-            const dateStr = startDate.toLocaleDateString('fr-FR', {
-              weekday: 'short',
-              day: 'numeric',
-              month: 'short',
-            });
-            const timeStr = startDate.toLocaleTimeString('fr-FR', {
-              hour: '2-digit',
-              minute: '2-digit',
-            });
+            })()}
 
-            const wsInfo = workspaceMap.get(evt.workspaceId);
-            const isPersonal = wsInfo?.type === 'personal' || evt.workspaceId === 'personal' || evt.workspaceId === 'default-workspace';
-            const spaceBadgeText = isPersonal
-              ? 'Perso'
-              : wsInfo?.name
-              ? `Groupe: ${wsInfo.name}`
-              : 'Groupe';
-
-            return (
-              <div
-                key={evt.id}
-                onClick={() => handleEditEvent(evt)}
-                className="flex cursor-pointer items-center justify-between rounded-xl border border-white/8 bg-zinc-900/60 p-4 transition hover:border-zinc-700 hover:bg-zinc-900"
+            {/* Modal Footer Buttons matching EventFormModal */}
+            <div className="flex items-center justify-between border-t border-white/10 pt-4 mt-4">
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!activeBottomSheetEvent) return;
+                  const targetId = activeBottomSheetEvent.id;
+                  setActiveBottomSheetEvent(null);
+                  await eventsRepository.softDelete(targetId);
+                  loadEvents();
+                }}
+                className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-xs font-bold text-red-400 hover:bg-red-500/20"
               >
-                <div className="space-y-1.5">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span
-                      className={[
-                        'rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase',
-                        EVENT_TYPE_COLORS[evt.eventType] || EVENT_TYPE_COLORS.other,
-                      ].join(' ')}
-                    >
-                      {EVENT_TYPE_LABELS[evt.eventType] || 'Événement'}
-                    </span>
+                Supprimer
+              </button>
 
-                    <span
-                      className={[
-                        'rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase',
-                        isPersonal
-                          ? 'border-purple-500/30 bg-purple-500/10 text-purple-300'
-                          : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300',
-                      ].join(' ')}
-                    >
-                      {spaceBadgeText}
-                    </span>
-
-                    <h3 className="text-sm font-bold text-white">{evt.title}</h3>
-                  </div>
-
-                  {evt.location && (
-                    <p className="text-xs text-zinc-400">📍 {evt.location}</p>
-                  )}
-                  {evt.notes && (
-                    <p className="line-clamp-1 text-xs text-zinc-500">{evt.notes}</p>
-                  )}
-                </div>
-
-                <div className="shrink-0 text-right pl-3">
-                  <p className="text-xs font-bold text-orange-300">{dateStr}</p>
-                  <p className="text-[11px] text-zinc-400">{timeStr}</p>
-                </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveBottomSheetEvent(null)}
+                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-zinc-300 hover:bg-white/10"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const targetEvent = activeBottomSheetEvent;
+                    setActiveBottomSheetEvent(null);
+                    handleEditEvent(targetEvent);
+                  }}
+                  className="fz-button-primary px-4 py-2 text-xs font-bold"
+                >
+                  Modifier
+                </button>
               </div>
-            );
-          })}
-        </div>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
 
+      {/* Create/Edit Form Modal */}
       <EventFormModal
         event={selectedEvent}
         initialDate={creationDate}
