@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { StatusPill } from '@/components/StatusPill';
 import { eventsRepository } from '@/db/repositories/eventsRepository';
@@ -150,6 +150,10 @@ export function CalendarPage() {
   const [creationDate, setCreationDate] = useState<Date | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeBottomSheetEvent, setActiveBottomSheetEvent] = useState<EventRecord | null>(null);
+  const [calendarFlowCompensation, setCalendarFlowCompensation] = useState(0);
+  const collapseSentinelRef = useRef<HTMLDivElement | null>(null);
+  const monthGridRef = useRef<HTMLDivElement | null>(null);
+  const weekGridRef = useRef<HTMLDivElement | null>(null);
 
   const loadEvents = async () => {
     setLoading(true);
@@ -447,39 +451,50 @@ export function CalendarPage() {
     return eventsByDayString.get(selectedDate.toDateString())?.length || 0;
   }, [eventsByDayString, selectedDate]);
 
-  // Clean scroll accordion handler
   useEffect(() => {
-    let ticking = false;
+    const sentinel = collapseSentinelRef.current;
+    if (!sentinel || typeof IntersectionObserver === 'undefined') return;
 
-    const handleScroll = () => {
-      if (!ticking) {
-        window.requestAnimationFrame(() => {
-          const currentScroll = Math.max(0, window.scrollY || document.documentElement.scrollTop);
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry) setIsMonthView(entry.isIntersecting);
+    });
 
-          // Collapse to week view when scrolling down past safe threshold (> 140px)
-          if (currentScroll > 140 && isMonthView) {
-            setIsMonthView(false);
-          }
-          // Expand to month view when returned near top (< 10px)
-          else if (currentScroll < 10 && !isMonthView) {
-            setIsMonthView(true);
-          }
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, []);
 
-          ticking = false;
-        });
-        ticking = true;
-      }
+  useLayoutEffect(() => {
+    const monthGrid = monthGridRef.current;
+    const weekGrid = weekGridRef.current;
+    if (!monthGrid || !weekGrid) return;
+
+    const updateCompensation = () => {
+      const nextCompensation = isMonthView
+        ? 0
+        : Math.max(0, Math.ceil(monthGrid.getBoundingClientRect().height - weekGrid.getBoundingClientRect().height));
+      setCalendarFlowCompensation((current) => current === nextCompensation ? current : nextCompensation);
     };
 
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    updateCompensation();
+
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(updateCompensation);
+    observer.observe(monthGrid);
+    observer.observe(weekGrid);
+    return () => observer.disconnect();
   }, [isMonthView]);
 
   return (
-    <div className="space-y-4 pb-24 text-slate-200">
+    <div className="relative pb-24 text-slate-200">
+      <div
+        ref={collapseSentinelRef}
+        aria-hidden="true"
+        data-calendar-collapse-sentinel
+        className="pointer-events-none absolute left-0 top-[140px] h-px w-px"
+      />
       {/* STICKY TOP SEARCH HEADER */}
       <section
-        className="sticky z-30 -mx-4 -mt-5 border-b border-[#222636]/30 bg-[#090A0F]/95 backdrop-blur-md px-4 pb-3 pt-2"
+        className="sticky z-30 -mx-4 -mt-5 mb-4 border-b border-[#222636]/30 bg-[#090A0F]/95 backdrop-blur-md px-4 pb-3 pt-2"
         style={{
           top: 'calc(var(--fz-header-height, 64px) + var(--fz-viewport-offset-top, 0px))',
         }}
@@ -718,12 +733,14 @@ export function CalendarPage() {
 
           {/* Month grid view */}
           <div
+            aria-hidden={!isMonthView}
+            inert={!isMonthView}
             className={[
-              'transition-all duration-300 ease-out overflow-hidden',
-              isMonthView ? 'max-h-[300px] opacity-100' : 'max-h-0 opacity-0 pointer-events-none hidden',
+              'overflow-hidden',
+              isMonthView ? 'max-h-[300px] visible' : 'invisible max-h-0 pointer-events-none',
             ].join(' ')}
           >
-            <div className="grid grid-cols-7 gap-1 text-sm">
+            <div ref={monthGridRef} className="grid grid-cols-7 gap-1 text-sm">
               {calendarDays.map((item, idx) => {
                 const dayEvents = eventsByDayString.get(item.date.toDateString()) || [];
                 const isSelected = selectedDate.toDateString() === item.date.toDateString();
@@ -778,12 +795,14 @@ export function CalendarPage() {
 
           {/* Week grid view */}
           <div
+            aria-hidden={isMonthView}
+            inert={isMonthView}
             className={[
-              'transition-all duration-300 ease-out overflow-hidden',
-              !isMonthView ? 'max-h-[90px] opacity-100' : 'max-h-0 opacity-0 pointer-events-none hidden',
+              'overflow-hidden',
+              !isMonthView ? 'max-h-[90px] visible' : 'invisible max-h-0 pointer-events-none',
             ].join(' ')}
           >
-            <div className="grid grid-cols-7 gap-1 text-sm">
+            <div ref={weekGridRef} className="grid grid-cols-7 gap-1 text-sm">
               {activeWeekDays.map((item, idx) => {
                 const dayEvents = eventsByDayString.get(item.date.toDateString()) || [];
                 const isSelected = selectedDate.toDateString() === item.date.toDateString();
@@ -838,7 +857,10 @@ export function CalendarPage() {
       </section>
 
       {/* FEED LIST AREA */}
-      <div className="space-y-3 pt-1">
+      <div
+        className="space-y-3"
+        style={{ paddingTop: `calc(0.25rem + ${calendarFlowCompensation}px)` }}
+      >
         {loading ? (
           <div className="py-12 text-center text-sm text-zinc-500">Chargement des événements...</div>
         ) : groupedEvents.length === 0 ? (
