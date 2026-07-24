@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { PickerDialog, WheelColumn } from '@/components/PickerDialog';
 import { clampBeatsPerBar, clampBpm, MetronomeEngine } from '@/features/metronome/metronomeEngine';
+import { bpmOptions } from '@/features/songs/songPresentation';
 
 const TAP_MEMORY = 5;
 
@@ -11,6 +13,7 @@ export function MetronomePage() {
   const [isRunning, setIsRunning] = useState(false);
   const [activeBeat, setActiveBeat] = useState(0);
   const [audioError, setAudioError] = useState<string | null>(null);
+  const [isTempoPickerOpen, setIsTempoPickerOpen] = useState(false);
 
   if (engineRef.current === null) {
     engineRef.current = new MetronomeEngine();
@@ -104,10 +107,15 @@ export function MetronomePage() {
 
       <section aria-label="Contrôles du métronome" className="rounded-[1.5rem] border border-white/8 bg-black/20 p-4">
           <div className="flex items-end justify-between gap-4">
-            <div>
-              <p className="text-xs font-black uppercase tracking-[0.22em] text-[var(--fz-text-muted)]">Tempo</p>
-              <div className="mt-2 text-5xl font-black tracking-tight text-white">{bpm}</div>
-            </div>
+            <button
+              type="button"
+              onClick={() => setIsTempoPickerOpen(true)}
+              className="group -m-1.5 flex flex-col items-start rounded-2xl p-1.5 text-left transition hover:bg-white/6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+              title="Cliquer pour changer le tempo"
+            >
+              <p className="text-xs font-black uppercase tracking-[0.22em] text-[var(--fz-text-muted)] transition-colors group-hover:text-white/80">Tempo</p>
+              <div className="mt-2 text-5xl font-black tracking-tight text-white transition-transform origin-left group-hover:scale-105">{bpm}</div>
+            </button>
             <div className="text-right">
               <p className="text-xs font-black uppercase tracking-[0.22em] text-[var(--fz-text-muted)]">Mesure</p>
               <div className="mt-2 text-4xl font-black text-white">{beatsPerBar}/4</div>
@@ -191,6 +199,22 @@ export function MetronomePage() {
             {isRunning ? 'Stopper le clic' : 'Lancer le clic'}
           </button>
       </section>
+
+      {isTempoPickerOpen ? (
+        <PickerDialog title="Sélectionner le tempo" closeLabel="Fermer" onClose={() => setIsTempoPickerOpen(false)}>
+          <WheelColumn
+            options={bpmOptions}
+            selectedValue={String(bpm)}
+            onSelect={(value) => {
+              if (value) {
+                updateBpm(Number(value));
+              }
+            }}
+            suffix="BPM"
+          />
+        </PickerDialog>
+      ) : null}
     </div>
   );
 }
+

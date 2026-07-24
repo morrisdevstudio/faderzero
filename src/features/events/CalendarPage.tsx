@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { StatusPill } from '@/components/StatusPill';
 import { eventsRepository } from '@/db/repositories/eventsRepository';
@@ -150,10 +150,6 @@ export function CalendarPage() {
   const [creationDate, setCreationDate] = useState<Date | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeBottomSheetEvent, setActiveBottomSheetEvent] = useState<EventRecord | null>(null);
-  const [calendarFlowCompensation, setCalendarFlowCompensation] = useState(0);
-  const collapseSentinelRef = useRef<HTMLDivElement | null>(null);
-  const monthGridRef = useRef<HTMLDivElement | null>(null);
-  const weekGridRef = useRef<HTMLDivElement | null>(null);
 
   const loadEvents = async () => {
     setLoading(true);
@@ -452,49 +448,63 @@ export function CalendarPage() {
   }, [eventsByDayString, selectedDate]);
 
   useEffect(() => {
-    const sentinel = collapseSentinelRef.current;
-    if (!sentinel || typeof IntersectionObserver === 'undefined') return;
+    const gestureThreshold = 12;
+    let touchStartY: number | null = null;
+    let lastScrollTop = window.scrollY;
 
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry) setIsMonthView(entry.isIntersecting);
-    });
-
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, []);
-
-  useLayoutEffect(() => {
-    const monthGrid = monthGridRef.current;
-    const weekGrid = weekGridRef.current;
-    if (!monthGrid || !weekGrid) return;
-
-    const updateCompensation = () => {
-      const nextCompensation = isMonthView
-        ? 0
-        : Math.max(0, Math.ceil(monthGrid.getBoundingClientRect().height - weekGrid.getBoundingClientRect().height));
-      setCalendarFlowCompensation((current) => current === nextCompensation ? current : nextCompensation);
+    const handleWheel = (event: WheelEvent) => {
+      if (event.deltaY > 0) setIsMonthView(false);
+      else if (event.deltaY < 0 && window.scrollY <= 0) setIsMonthView(true);
     };
 
-    updateCompensation();
+    const handleTouchStart = (event: TouchEvent) => {
+      touchStartY = event.touches[0]?.clientY ?? null;
+    };
 
-    if (typeof ResizeObserver === 'undefined') return;
-    const observer = new ResizeObserver(updateCompensation);
-    observer.observe(monthGrid);
-    observer.observe(weekGrid);
-    return () => observer.disconnect();
-  }, [isMonthView]);
+    const handleTouchMove = (event: TouchEvent) => {
+      const currentY = event.touches[0]?.clientY;
+      if (touchStartY === null || currentY === undefined) return;
+
+      const deltaY = touchStartY - currentY;
+      if (Math.abs(deltaY) < gestureThreshold) return;
+
+      if (deltaY > 0) setIsMonthView(false);
+      else if (window.scrollY <= 0) setIsMonthView(true);
+      touchStartY = null;
+    };
+
+    const handleTouchEnd = () => {
+      touchStartY = null;
+    };
+
+    const handleScroll = () => {
+      const currentScrollTop = window.scrollY;
+      if (currentScrollTop > lastScrollTop) setIsMonthView(false);
+      lastScrollTop = currentScrollTop;
+    };
+
+    window.addEventListener('wheel', handleWheel, { passive: true });
+    window.addEventListener('touchstart', handleTouchStart, { passive: true });
+    window.addEventListener('touchmove', handleTouchMove, { passive: true });
+    window.addEventListener('touchend', handleTouchEnd, { passive: true });
+    window.addEventListener('touchcancel', handleTouchEnd, { passive: true });
+    window.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener('wheel', handleWheel);
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
+      window.removeEventListener('touchcancel', handleTouchEnd);
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
 
   return (
-    <div className="relative pb-24 text-slate-200">
-      <div
-        ref={collapseSentinelRef}
-        aria-hidden="true"
-        data-calendar-collapse-sentinel
-        className="pointer-events-none absolute left-0 top-[140px] h-px w-px"
-      />
+    <div className="space-y-4 pb-24 text-slate-200">
       {/* STICKY TOP SEARCH HEADER */}
       <section
-        className="sticky z-30 -mx-4 -mt-5 mb-4 border-b border-[#222636]/30 bg-[#090A0F]/95 backdrop-blur-md px-4 pb-3 pt-2"
+        className="sticky z-30 -mx-4 -mt-5 border-b border-[#222636]/30 bg-[#090A0F]/95 backdrop-blur-md px-4 pb-3 pt-2"
         style={{
           top: 'calc(var(--fz-header-height, 64px) + var(--fz-viewport-offset-top, 0px))',
         }}
@@ -733,14 +743,12 @@ export function CalendarPage() {
 
           {/* Month grid view */}
           <div
-            aria-hidden={!isMonthView}
-            inert={!isMonthView}
             className={[
               'overflow-hidden',
-              isMonthView ? 'max-h-[300px] visible' : 'invisible max-h-0 pointer-events-none',
+              isMonthView ? 'max-h-[300px]' : 'max-h-0 pointer-events-none hidden',
             ].join(' ')}
           >
-            <div ref={monthGridRef} className="grid grid-cols-7 gap-1 text-sm">
+            <div className="grid grid-cols-7 gap-1 text-sm">
               {calendarDays.map((item, idx) => {
                 const dayEvents = eventsByDayString.get(item.date.toDateString()) || [];
                 const isSelected = selectedDate.toDateString() === item.date.toDateString();
@@ -795,14 +803,12 @@ export function CalendarPage() {
 
           {/* Week grid view */}
           <div
-            aria-hidden={isMonthView}
-            inert={isMonthView}
             className={[
               'overflow-hidden',
-              !isMonthView ? 'max-h-[90px] visible' : 'invisible max-h-0 pointer-events-none',
+              !isMonthView ? 'max-h-[90px]' : 'max-h-0 pointer-events-none hidden',
             ].join(' ')}
           >
-            <div ref={weekGridRef} className="grid grid-cols-7 gap-1 text-sm">
+            <div className="grid grid-cols-7 gap-1 text-sm">
               {activeWeekDays.map((item, idx) => {
                 const dayEvents = eventsByDayString.get(item.date.toDateString()) || [];
                 const isSelected = selectedDate.toDateString() === item.date.toDateString();
@@ -857,10 +863,7 @@ export function CalendarPage() {
       </section>
 
       {/* FEED LIST AREA */}
-      <div
-        className="space-y-3"
-        style={{ paddingTop: `calc(0.25rem + ${calendarFlowCompensation}px)` }}
-      >
+      <div className="space-y-3 pt-1">
         {loading ? (
           <div className="py-12 text-center text-sm text-zinc-500">Chargement des événements...</div>
         ) : groupedEvents.length === 0 ? (

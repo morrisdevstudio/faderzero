@@ -6,6 +6,9 @@ export const songStatusOptions: Array<{ value: SongStatus; label: string }> = [
   { value: 'Pret', label: 'Pret' },
 ];
 
+export const bpmOptions = ['', ...Array.from({ length: 271 }, (_, index) => String(index + 30))];
+
+
 export function getSongStatusTone(status: SongStatus): 'default' | 'accent' | 'success' {
   if (status === 'Pret') {
     return 'success';
