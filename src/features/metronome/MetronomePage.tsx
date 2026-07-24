@@ -1,19 +1,120 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type SVGProps } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { FormDialog } from '@/components/FormDialog';
 import { PickerDialog, WheelColumn } from '@/components/PickerDialog';
+import { setlistSongsRepository } from '@/db/repositories/setlistSongsRepository';
+import { setlistsRepository } from '@/db/repositories/setlistsRepository';
+import { songsRepository } from '@/db/repositories/songsRepository';
 import { clampBeatsPerBar, clampBpm, MetronomeEngine } from '@/features/metronome/metronomeEngine';
-import { bpmOptions } from '@/features/songs/songPresentation';
+import { bpmOptions, formatSetDuration } from '@/features/songs/songPresentation';
+import { useAuthStore } from '@/stores/authStore';
 
 const TAP_MEMORY = 5;
 
+type IconProps = SVGProps<SVGSVGElement>;
+
+function SetlistIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" {...props}>
+      <path d="M9 7h10" />
+      <path d="M9 12h10" />
+      <path d="M9 17h10" />
+      <path d="M4 7h.01" />
+      <path d="M4 12h.01" />
+      <path d="M4 17h.01" />
+    </svg>
+  );
+}
+
+function PlayIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>
+      <path d="M8 5v14l11-7z" />
+    </svg>
+  );
+}
+
+function PauseIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>
+      <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+    </svg>
+  );
+}
+
+function FullscreenIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M8 3H3v5" />
+      <path d="M16 3h5v5" />
+      <path d="M8 21H3v-5" />
+      <path d="M16 21h5v-5" />
+    </svg>
+  );
+}
+
+function CloseIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true" {...props}>
+      <path d="M18 6 6 18M6 6l12 12" />
+    </svg>
+  );
+}
+
 export function MetronomePage() {
+  const activeWorkspaceId = useAuthStore((state) => state.activeWorkspace?.id);
   const engineRef = useRef<MetronomeEngine | null>(null);
   const tapTimesRef = useRef<number[]>([]);
+  const longPressTimerRef = useRef<number | null>(null);
+  const isLongPressRef = useRef<boolean>(false);
+
   const [bpm, setBpm] = useState(120);
   const [beatsPerBar, setBeatsPerBar] = useState(4);
   const [isRunning, setIsRunning] = useState(false);
   const [activeBeat, setActiveBeat] = useState(0);
   const [audioError, setAudioError] = useState<string | null>(null);
   const [isTempoPickerOpen, setIsTempoPickerOpen] = useState(false);
+
+  const [isSetlistModalOpen, setIsSetlistModalOpen] = useState(false);
+  const [selectedSetlistId, setSelectedSetlistId] = useState<string | null>(null);
+  const [isLiveViewOpen, setIsLiveViewOpen] = useState(false);
+  const [selectedSongId, setSelectedSongId] = useState<string | null>(null);
+  const [editingBpmSongId, setEditingBpmSongId] = useState<string | null>(null);
+
+  const setlists = useLiveQuery(() => setlistsRepository.listSummaries(), [activeWorkspaceId]);
+  const setlistSongs = useLiveQuery(
+    () => (selectedSetlistId ? setlistSongsRepository.listDetailedBySetlistId(selectedSetlistId) : Promise.resolve([])),
+    [selectedSetlistId, activeWorkspaceId]
+  );
+  const currentSetlist = useMemo(
+    () => setlists?.find((item) => item.id === selectedSetlistId),
+    [setlists, selectedSetlistId]
+  );
+
+  const currentIndex = useMemo(() => {
+    if (!setlistSongs || !selectedSongId) return -1;
+    return setlistSongs.findIndex((song) => song.songId === selectedSongId);
+  }, [setlistSongs, selectedSongId]);
+
+  const previousSong = useMemo(() => {
+    if (!setlistSongs || currentIndex <= 0) return undefined;
+    return setlistSongs[currentIndex - 1];
+  }, [setlistSongs, currentIndex]);
+
+  const nextSong = useMemo(() => {
+    if (!setlistSongs || currentIndex < 0 || currentIndex >= setlistSongs.length - 1) return undefined;
+    return setlistSongs[currentIndex + 1];
+  }, [setlistSongs, currentIndex]);
+
+  useEffect(() => {
+    const firstSong = setlistSongs?.[0];
+    if (isLiveViewOpen && firstSong && !selectedSongId) {
+      setSelectedSongId(firstSong.songId);
+    }
+  }, [isLiveViewOpen, setlistSongs, selectedSongId]);
+
+  const navigationButtonClass =
+    "pointer-events-auto relative isolate flex min-h-16 items-center rounded-xl border border-white/10 bg-[#111318] px-3 text-xs font-black text-white/70 transition before:pointer-events-none before:absolute before:inset-0 before:-z-10 before:rounded-xl before:bg-black/45 before:blur-2xl before:backdrop-blur-lg before:content-[''] hover:bg-[#1a1d22] hover:text-white active:bg-[#20242a] disabled:cursor-not-allowed disabled:opacity-35";
 
   if (engineRef.current === null) {
     engineRef.current = new MetronomeEngine();
@@ -71,8 +172,62 @@ export function MetronomePage() {
         setIsRunning(true);
       }
     } catch {
-      setAudioError("Impossible de demarrer l'audio sur cet appareil.");
+      setAudioError("Impossible de démarrer l'audio sur cet appareil.");
       setIsRunning(false);
+    }
+  }
+
+  async function playSongTempo(songBpm?: number, songId?: string) {
+    if (songId) {
+      setSelectedSongId(songId);
+    }
+    if (songBpm && songBpm > 0) {
+      const nextBpm = clampBpm(songBpm);
+      setBpm(nextBpm);
+      const engine = engineRef.current;
+      if (engine) {
+        try {
+          setAudioError(null);
+          await engine.start({ bpm: nextBpm, beatsPerBar });
+          setIsRunning(true);
+        } catch {
+          setAudioError("Impossible de démarrer l'audio sur cet appareil.");
+          setIsRunning(false);
+        }
+      }
+    }
+  }
+
+  function startLongPress(songId: string) {
+    isLongPressRef.current = false;
+    if (longPressTimerRef.current !== null) {
+      window.clearTimeout(longPressTimerRef.current);
+    }
+    longPressTimerRef.current = window.setTimeout(() => {
+      isLongPressRef.current = true;
+      setEditingBpmSongId(songId);
+      setIsTempoPickerOpen(true);
+    }, 450);
+  }
+
+  function cancelLongPress() {
+    if (longPressTimerRef.current !== null) {
+      window.clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  }
+
+  function handleSongClick(songId: string, songBpm?: number) {
+    if (isLongPressRef.current) {
+      isLongPressRef.current = false;
+      return;
+    }
+
+    if (songBpm && songBpm > 0) {
+      playSongTempo(songBpm, songId);
+    } else {
+      setEditingBpmSongId(songId);
+      setIsTempoPickerOpen(true);
     }
   }
 
@@ -96,118 +251,404 @@ export function MetronomePage() {
     updateBpm(60000 / averageInterval);
   }
 
+  async function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      await document.documentElement.requestFullscreen?.();
+    } else {
+      await document.exitFullscreen?.();
+    }
+  }
+
   return (
     <div className="space-y-4">
       <section
         className="sticky z-30 -mx-1 -mt-5 border-b border-white/8 bg-[var(--fz-bg)] px-1 pb-3 pt-2"
         style={{ top: 'calc(var(--fz-header-height, 64px) + var(--fz-viewport-offset-top, 0px))' }}
       >
-        <h1 className="text-[2rem] font-black tracking-tight text-white">Métronome</h1>
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="text-[2rem] font-black tracking-tight text-white">Métronome</h1>
+          <button
+            type="button"
+            onClick={() => setIsSetlistModalOpen(true)}
+            aria-label="Choisir une setlist"
+            className="fz-button-primary h-11 w-11 shrink-0 p-0 flex items-center justify-center"
+            title="Choisir une setlist"
+          >
+            <SetlistIcon className="h-5 w-5" />
+          </button>
+        </div>
       </section>
 
       <section aria-label="Contrôles du métronome" className="rounded-[1.5rem] border border-white/8 bg-black/20 p-4">
-          <div className="flex items-end justify-between gap-4">
-            <button
-              type="button"
-              onClick={() => setIsTempoPickerOpen(true)}
-              className="group -m-1.5 flex flex-col items-start rounded-2xl p-1.5 text-left transition hover:bg-white/6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
-              title="Cliquer pour changer le tempo"
-            >
-              <p className="text-xs font-black uppercase tracking-[0.22em] text-[var(--fz-text-muted)] transition-colors group-hover:text-white/80">Tempo</p>
-              <div className="mt-2 text-5xl font-black tracking-tight text-white transition-transform origin-left group-hover:scale-105">{bpm}</div>
-            </button>
-            <div className="text-right">
-              <p className="text-xs font-black uppercase tracking-[0.22em] text-[var(--fz-text-muted)]">Mesure</p>
-              <div className="mt-2 text-4xl font-black text-white">{beatsPerBar}/4</div>
-            </div>
-          </div>
-
-          <div className="mt-5 grid gap-2" style={{ gridTemplateColumns: `repeat(${beatsPerBar}, minmax(0, 1fr))` }}>
-            {beatSlots.map((slot) => {
-              const isAccent = slot === 0;
-              const isActive = slot === activeBeat && isRunning;
-
-              return (
-                <div
-                  key={slot}
-                  className={[
-                    'h-14 rounded-xl border transition',
-                    isActive && isAccent
-                      ? 'border-[rgba(255,58,99,0.35)] bg-[rgba(255,58,99,0.9)] shadow-[0_0_24px_rgba(255,58,99,0.55)]'
-                      : isActive
-                        ? 'border-[rgba(255,198,92,0.28)] bg-[rgba(255,198,92,0.88)] shadow-[0_0_18px_rgba(255,198,92,0.35)]'
-                        : isAccent
-                          ? 'border-white/10 bg-white/10'
-                          : 'border-white/6 bg-white/6',
-                  ].join(' ')}
-                />
-              );
-            })}
-          </div>
-
-          <div className="mt-5 grid grid-cols-3 gap-3">
-            <button
-              type="button"
-              onClick={() => updateBpm(bpm - 1)}
-              className="fz-button-secondary px-4 py-4 text-lg font-black text-white"
-            >
-              -
-            </button>
-            <button
-              type="button"
-              onClick={handleTapTempo}
-              className="rounded-[1.2rem] border border-white/10 bg-white/8 px-4 py-4 text-sm font-black uppercase tracking-[0.14em] text-white"
-            >
-              Tap tempo
-            </button>
-            <button
-              type="button"
-              onClick={() => updateBpm(bpm + 1)}
-              className="fz-button-secondary px-4 py-4 text-lg font-black text-white"
-            >
-              +
-            </button>
-          </div>
-
-          <div className="mt-3 grid grid-cols-3 gap-3">
-            <button
-              type="button"
-              onClick={() => updateBeatsPerBarValue(beatsPerBar - 1)}
-              className="rounded-[1.1rem] border border-white/10 bg-white/5 px-3 py-3 text-sm font-black uppercase tracking-[0.14em] text-white"
-            >
-              - Beat
-            </button>
-            <div className="flex items-center justify-center rounded-[1.1rem] border border-white/8 bg-black/25 px-3 py-3 text-sm font-black uppercase tracking-[0.16em] text-white">
-              {beatsPerBar}/4
-            </div>
-            <button
-              type="button"
-              onClick={() => updateBeatsPerBarValue(beatsPerBar + 1)}
-              className="rounded-[1.1rem] border border-white/10 bg-white/5 px-3 py-3 text-sm font-black uppercase tracking-[0.14em] text-white"
-            >
-              + Beat
-            </button>
-          </div>
-
-          {audioError ? <p className="mt-4 text-sm font-semibold text-rose-400">{audioError}</p> : null}
-
+        <div className="flex items-end justify-between gap-4">
           <button
             type="button"
-            onClick={handleTogglePlayback}
-            className="fz-button-primary mt-4 w-full px-4 py-4 text-sm font-black uppercase tracking-[0.18em]"
+            onClick={() => {
+              setEditingBpmSongId(null);
+              setIsTempoPickerOpen(true);
+            }}
+            className="group -m-1.5 flex flex-col items-start rounded-2xl p-1.5 text-left transition hover:bg-white/6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+            title="Cliquer pour changer le tempo"
           >
-            {isRunning ? 'Stopper le clic' : 'Lancer le clic'}
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-[var(--fz-text-muted)] transition-colors group-hover:text-white/80">Tempo</p>
+            <div className="mt-2 text-5xl font-black tracking-tight text-white transition-transform origin-left group-hover:scale-105">{bpm}</div>
           </button>
+          <div className="text-right">
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-[var(--fz-text-muted)]">Mesure</p>
+            <div className="mt-2 text-4xl font-black text-white">{beatsPerBar}/4</div>
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-2" style={{ gridTemplateColumns: `repeat(${beatsPerBar}, minmax(0, 1fr))` }}>
+          {beatSlots.map((slot) => {
+            const isAccent = slot === 0;
+            const isActive = slot === activeBeat && isRunning;
+
+            return (
+              <div
+                key={slot}
+                className={[
+                  'h-14 rounded-xl border transition',
+                  isActive && isAccent
+                    ? 'border-[rgba(255,58,99,0.35)] bg-[rgba(255,58,99,0.9)] shadow-[0_0_24px_rgba(255,58,99,0.55)]'
+                    : isActive
+                      ? 'border-[rgba(255,198,92,0.28)] bg-[rgba(255,198,92,0.88)] shadow-[0_0_18px_rgba(255,198,92,0.35)]'
+                      : isAccent
+                        ? 'border-white/10 bg-white/10'
+                        : 'border-white/6 bg-white/6',
+                ].join(' ')}
+              />
+            );
+          })}
+        </div>
+
+        <div className="mt-5 grid grid-cols-3 gap-3">
+          <button
+            type="button"
+            onClick={() => updateBpm(bpm - 1)}
+            className="fz-button-secondary px-4 py-4 text-lg font-black text-white"
+          >
+            -
+          </button>
+          <button
+            type="button"
+            onClick={handleTapTempo}
+            className="rounded-[1.2rem] border border-white/10 bg-white/8 px-4 py-4 text-sm font-black uppercase tracking-[0.14em] text-white"
+          >
+            Tap tempo
+          </button>
+          <button
+            type="button"
+            onClick={() => updateBpm(bpm + 1)}
+            className="fz-button-secondary px-4 py-4 text-lg font-black text-white"
+          >
+            +
+          </button>
+        </div>
+
+        <div className="mt-3 grid grid-cols-3 gap-3">
+          <button
+            type="button"
+            onClick={() => updateBeatsPerBarValue(beatsPerBar - 1)}
+            className="rounded-[1.1rem] border border-white/10 bg-white/5 px-3 py-3 text-sm font-black uppercase tracking-[0.14em] text-white"
+          >
+            - Beat
+          </button>
+          <div className="flex items-center justify-center rounded-[1.1rem] border border-white/8 bg-black/25 px-3 py-3 text-sm font-black uppercase tracking-[0.16em] text-white">
+            {beatsPerBar}/4
+          </div>
+          <button
+            type="button"
+            onClick={() => updateBeatsPerBarValue(beatsPerBar + 1)}
+            className="rounded-[1.1rem] border border-white/10 bg-white/5 px-3 py-3 text-sm font-black uppercase tracking-[0.14em] text-white"
+          >
+            + Beat
+          </button>
+        </div>
+
+        {audioError ? <p className="mt-4 text-sm font-semibold text-rose-400">{audioError}</p> : null}
+
+        <button
+          type="button"
+          onClick={handleTogglePlayback}
+          className="fz-button-primary mt-4 w-full px-4 py-4 text-sm font-black uppercase tracking-[0.18em]"
+        >
+          {isRunning ? 'Stopper le clic' : 'Lancer le clic'}
+        </button>
       </section>
 
+      {/* MODAL POPUP SÉLECTION DE SETLIST */}
+      {isSetlistModalOpen ? (
+        <FormDialog
+          title="Sélectionner une setlist"
+          placement="bottom"
+          onClose={() => setIsSetlistModalOpen(false)}
+        >
+          {setlists === undefined ? (
+            <p className="text-sm text-[var(--fz-text-muted)] py-4">Chargement des setlists...</p>
+          ) : setlists.length === 0 ? (
+            <div className="fz-card-soft rounded-[1.2rem] px-4 py-5 text-sm text-[var(--fz-text-muted)]">
+              Aucune setlist disponible.
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
+              {setlists.map((setlist) => (
+                <button
+                  key={setlist.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedSetlistId(setlist.id);
+                    setIsSetlistModalOpen(false);
+                    setIsLiveViewOpen(true);
+                  }}
+                  className="w-full text-left fz-card-soft block rounded-[1.2rem] px-4 py-3.5 transition hover:border-[var(--fz-border-strong)] hover:bg-white/10"
+                >
+                  <h3 className="truncate text-base font-black text-white">{setlist.name}</h3>
+                  <p className="mt-1 truncate text-xs text-[var(--fz-text-muted)]">
+                    {setlist.songCount} morceau{setlist.songCount > 1 ? 'x' : ''}
+                    {' · '}
+                    {formatSetDuration(setlist.totalDurationSeconds)}
+                  </p>
+                </button>
+              ))}
+            </div>
+          )}
+        </FormDialog>
+      ) : null}
+
+      {/* VUE EN PLEIN ÉCRAN TYPE PROMPTEUR POUR LA SETLIST */}
+      {isLiveViewOpen ? (
+        <div className="fixed inset-0 z-50 flex flex-col bg-[var(--fz-bg)]">
+          {/* Header identique au prompteur */}
+          <header className="sticky top-0 z-30 shrink-0 border-b border-white/10 bg-[var(--fz-bg)]/98 backdrop-blur-sm">
+            <div className="mx-auto w-full max-w-5xl px-4 pb-2 pt-3 sm:px-6">
+              <div className="relative flex h-11 items-center">
+                <button
+                  type="button"
+                  onClick={() => setIsLiveViewOpen(false)}
+                  aria-label="Fermer le prompteur"
+                  className="absolute left-0 z-10 flex h-11 w-11 items-center justify-center text-white/72 transition hover:text-white"
+                >
+                  <CloseIcon className="h-5 w-5" />
+                </button>
+
+                <div className="pointer-events-none absolute inset-x-0 min-w-0 px-24 text-center">
+                  <p className="truncate text-[0.72rem] font-black uppercase tracking-[0.26em] text-[var(--fz-text-muted)]">FaderZero</p>
+                  <p className="mt-1 truncate text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-white/55">
+                    Métronome - {currentSetlist?.name ?? 'Setlist'}
+                  </p>
+                </div>
+
+                <div className="absolute right-0 z-10 flex items-center">
+                  <button
+                    type="button"
+                    onClick={() => void toggleFullscreen()}
+                    aria-label="Plein écran"
+                    className="flex h-11 w-11 items-center justify-center text-white/72 transition hover:text-white"
+                  >
+                    <FullscreenIcon className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </header>
+
+          {/* Bloc Métronome fixe sous le header (Subheader sticky) */}
+          <div className="sticky top-14 z-20 shrink-0 border-b border-white/10 bg-[var(--fz-bg)]/98 backdrop-blur-md px-4 pb-4 pt-3 sm:px-6">
+            <div className="mx-auto max-w-2xl w-full">
+              <section aria-label="Contrôle direct du métronome" className="rounded-[1.5rem] border border-white/10 bg-black/40 p-4 sm:p-5 shadow-2xl">
+                <div className="grid grid-cols-3 items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingBpmSongId(null);
+                      setIsTempoPickerOpen(true);
+                    }}
+                    className="group flex flex-col items-start justify-center rounded-xl p-1 text-left transition hover:bg-white/5 justify-self-start"
+                    title="Changer le tempo"
+                  >
+                    <span className="block text-xs font-black uppercase tracking-[0.22em] text-[var(--fz-text-muted)]">TEMPO</span>
+                    <span className="block mt-1.5 text-5xl font-black tracking-tight text-white leading-none">{bpm}</span>
+                  </button>
+
+                  <div className="flex items-center justify-center justify-self-center">
+                    <button
+                      type="button"
+                      onClick={handleTogglePlayback}
+                      className={[
+                        'flex h-16 w-16 items-center justify-center rounded-full transition transform active:scale-95 shadow-lg shrink-0',
+                        isRunning
+                          ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40 hover:bg-rose-500/30'
+                          : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500/30',
+                      ].join(' ')}
+                      title={isRunning ? 'Stopper le métronome' : 'Lancer le métronome'}
+                    >
+                      {isRunning ? (
+                        <PauseIcon className="h-7 w-7" />
+                      ) : (
+                        <PlayIcon className="h-7 w-7 ml-0.5" />
+                      )}
+                    </button>
+                  </div>
+
+                  <div className="flex flex-col items-end justify-center text-right justify-self-end">
+                    <span className="block text-xs font-black uppercase tracking-[0.22em] text-[var(--fz-text-muted)]">MESURE</span>
+                    <div className="block mt-1.5 text-4xl font-black text-white leading-none">{beatsPerBar}/4</div>
+                  </div>
+                </div>
+
+                <div className="mt-5 grid gap-2" style={{ gridTemplateColumns: `repeat(${beatsPerBar}, minmax(0, 1fr))` }}>
+                  {beatSlots.map((slot) => {
+                    const isAccent = slot === 0;
+                    const isActive = slot === activeBeat && isRunning;
+
+                    return (
+                      <div
+                        key={slot}
+                        className={[
+                          'h-7 rounded-xl border transition',
+                          isActive && isAccent
+                            ? 'border-[rgba(255,58,99,0.35)] bg-[rgba(255,58,99,0.9)] shadow-[0_0_24px_rgba(255,58,99,0.55)]'
+                            : isActive
+                              ? 'border-[rgba(255,198,92,0.28)] bg-[rgba(255,198,92,0.88)] shadow-[0_0_18px_rgba(255,198,92,0.35)]'
+                              : isAccent
+                                ? 'border-white/10 bg-white/10'
+                                : 'border-white/6 bg-white/6',
+                        ].join(' ')}
+                      />
+                    );
+                  })}
+                </div>
+
+                {audioError ? <p className="mt-3 text-sm font-semibold text-rose-400 text-center">{audioError}</p> : null}
+              </section>
+            </div>
+          </div>
+
+          {/* Zone de contenu défilante (Liste des chansons) */}
+          <div className="flex-1 min-h-0 overflow-y-auto px-4 pt-4 pb-28 sm:px-6">
+            <div className="mx-auto max-w-2xl w-full">
+              <section aria-label="Liste des chansons" className="space-y-3">
+                {setlistSongs === undefined ? (
+                  <p className="text-sm text-[var(--fz-text-muted)] py-3">Chargement des chansons...</p>
+                ) : setlistSongs.length === 0 ? (
+                  <div className="fz-card-soft rounded-2xl p-4 text-sm text-[var(--fz-text-muted)]">
+                    Aucune chanson dans cette setlist.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {setlistSongs.map((entry, index) => {
+                      const isSelected = entry.songId === selectedSongId;
+                      return (
+                        <button
+                          key={entry.id}
+                          type="button"
+                          onMouseDown={() => startLongPress(entry.songId)}
+                          onMouseUp={cancelLongPress}
+                          onMouseLeave={cancelLongPress}
+                          onTouchStart={() => startLongPress(entry.songId)}
+                          onTouchEnd={cancelLongPress}
+                          onTouchCancel={cancelLongPress}
+                          onClick={() => handleSongClick(entry.songId, entry.songBpm)}
+                          className={[
+                            'w-full text-left rounded-2xl border p-4 transition flex items-center justify-between gap-4 select-none',
+                            isSelected
+                              ? 'border-emerald-500/50 bg-emerald-500/10 shadow-[0_0_15px_rgba(16,185,129,0.15)]'
+                              : 'border-white/8 bg-black/20 hover:border-white/20 hover:bg-white/5',
+                          ].join(' ')}
+                        >
+                          <div className="min-w-0 flex-1 flex items-center gap-3">
+                            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/10 text-xs font-black text-white/80">
+                              {index + 1}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <h4 className="truncate text-base font-black text-white">{entry.songTitle}</h4>
+                              {entry.songArtist ? (
+                                <p className="truncate text-xs text-[var(--fz-text-muted)]">{entry.songArtist}</p>
+                              ) : null}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            {entry.songKey ? (
+                              <span className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs font-bold text-white/80">
+                                {entry.songKey}
+                              </span>
+                            ) : null}
+                            <span
+                              className={[
+                                'rounded-lg px-2.5 py-1 text-xs font-black',
+                                entry.songBpm ? 'bg-white/10 text-emerald-400' : 'text-white/40',
+                              ].join(' ')}
+                            >
+                              {entry.songBpm ? `${entry.songBpm} BPM` : 'BPM --'}
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+            </div>
+          </div>
+
+          {/* Navigation Précédent / Suivant en bas (comme dans le prompteur) */}
+          <div className="sticky bottom-0 z-30 -mx-4 -mb-4 mt-auto pb-4 pt-3 bg-gradient-to-t from-[var(--fz-bg)] via-[var(--fz-bg)]/95 to-transparent sm:-mx-6 sm:-mb-6">
+            <div className="mx-auto grid max-w-2xl grid-cols-2 gap-3 px-4 sm:px-6">
+              <button
+                type="button"
+                disabled={!previousSong}
+                onClick={() => previousSong && handleSongClick(previousSong.songId, previousSong.songBpm)}
+                className={`${navigationButtonClass} justify-start text-left`}
+              >
+                <span className="min-w-0 truncate">
+                  ‹ Précédent
+                  <br />
+                  <span className="text-white truncate block">{previousSong?.songTitle ?? 'Début'}</span>
+                </span>
+              </button>
+
+              <button
+                type="button"
+                disabled={!nextSong}
+                onClick={() => nextSong && handleSongClick(nextSong.songId, nextSong.songBpm)}
+                className={`${navigationButtonClass} justify-end text-right`}
+              >
+                <span className="min-w-0 truncate">
+                  Suivant ›
+                  <br />
+                  <span className="text-white truncate block">{nextSong?.songTitle ?? 'Fin'}</span>
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {isTempoPickerOpen ? (
-        <PickerDialog title="Sélectionner le tempo" closeLabel="Fermer" onClose={() => setIsTempoPickerOpen(false)}>
+        <PickerDialog
+          title={editingBpmSongId ? 'Régler le tempo de la chanson' : 'Sélectionner le tempo'}
+          closeLabel="Fermer"
+          onClose={() => {
+            setIsTempoPickerOpen(false);
+            setEditingBpmSongId(null);
+          }}
+        >
           <WheelColumn
             options={bpmOptions}
             selectedValue={String(bpm)}
-            onSelect={(value) => {
+            onSelect={async (value) => {
               if (value) {
-                updateBpm(Number(value));
+                const nextBpm = Number(value);
+                updateBpm(nextBpm);
+                if (editingBpmSongId) {
+                  const targetSongId = editingBpmSongId;
+                  setEditingBpmSongId(null);
+                  setIsTempoPickerOpen(false);
+                  await songsRepository.update(targetSongId, { bpm: nextBpm });
+                  await playSongTempo(nextBpm, targetSongId);
+                }
               }
             }}
             suffix="BPM"
@@ -217,4 +658,6 @@ export function MetronomePage() {
     </div>
   );
 }
+
+
 
