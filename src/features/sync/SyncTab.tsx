@@ -551,8 +551,8 @@ export function SyncTab() {
 
           {/* LISTE DES CONFLITS */}
           {canWrite && conflicts && conflicts.length > 0 && (
-            <div className="rounded-[1.35rem] border border-orange-500/20 bg-orange-500/5 p-4 space-y-3">
-              <p className="text-xs font-black uppercase tracking-[0.2em] text-orange-400">Conflits Détectés ({conflicts.length})</p>
+            <div className="rounded-[1.35rem] border border-white/20 bg-white/5 p-4 space-y-3">
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-white/90">Conflits Détectés ({conflicts.length})</p>
               <div className="space-y-3.5">
                 {conflicts.map((conflict) => (
                   <div key={conflict.id} className="rounded-xl border border-white/5 bg-white/3 p-3.5 space-y-3">
@@ -566,7 +566,7 @@ export function SyncTab() {
                       <button
                         type="button"
                         onClick={() => handleResolveConflict(conflict.id, 'local')}
-                        className="flex-1 rounded-lg border border-orange-500/20 bg-orange-500/10 py-2 text-[0.65rem] font-bold uppercase tracking-[0.1em] text-orange-300 hover:bg-orange-500/20 transition"
+                        className="flex-1 rounded-lg border border-white/20 bg-white/10 py-2 text-[0.65rem] font-bold uppercase tracking-[0.1em] text-white hover:bg-white/15 transition"
                       >
                         Garder ma version
                       </button>
@@ -628,7 +628,7 @@ export function SyncTab() {
                   {summary ? `${summary.songs} morceaux, ${summary.setlists} setlists` : 'Chargement du contenu...'}
                 </p>
               </div>
-              <span className="rounded-full border border-orange-400/25 bg-orange-400/10 px-3 py-1 text-xs font-black uppercase tracking-[0.16em] text-[var(--fz-accent)]">
+              <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-black uppercase tracking-[0.16em] text-white">
                 {summary ? `${summary.fragments} QR` : '...'}
               </span>
             </div>

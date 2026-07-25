@@ -248,7 +248,7 @@ export function AppShell() {
                 onClick={() => setIsWorkspacePickerOpen(true)}
                 aria-label={`Changer de groupe (${activeWorkspace?.name ?? 'Mon Espace'})`}
                 title={activeWorkspace?.name ?? 'Changer de groupe'}
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-orange-500/40 bg-gradient-to-b from-orange-500/25 to-orange-600/15 text-[0.72rem] font-black uppercase tracking-wider text-orange-200 shadow-[0_4px_12px_rgba(0,0,0,0.25)] transition hover:border-orange-400 hover:scale-105 hover:bg-orange-500/35"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-[#ff3a63]/40 bg-gradient-to-b from-[#ff3a63]/25 to-[#ff2f5c]/15 text-[0.72rem] font-black uppercase tracking-wider text-rose-200 shadow-[0_4px_12px_rgba(0,0,0,0.25)] transition hover:border-[#ff3a63] hover:scale-105 hover:bg-[#ff3a63]/35"
               >
                 {workspaceInitials}
               </button>
@@ -285,7 +285,7 @@ export function AppShell() {
                       className={[
                         'w-full rounded-[1.2rem] border px-4 py-4 text-left transition',
                         isActive
-                          ? 'border-orange-400/40 bg-orange-500/12 shadow-[0_16px_36px_rgba(249,115,22,0.14)]'
+                          ? 'border-[#ff3a63]/40 bg-[#ff3a63]/12 shadow-[0_16px_36px_rgba(255,58,99,0.14)]'
                           : 'border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/8',
                       ].join(' ')}
                     >
@@ -299,7 +299,7 @@ export function AppShell() {
                         <span
                           className={[
                             'rounded-full px-3 py-1 text-[0.62rem] font-black uppercase tracking-[0.18em]',
-                            isActive ? 'bg-orange-500 text-white' : 'border border-white/10 bg-black/20 text-white/55',
+                            isActive ? 'bg-[#ff3a63] text-white' : 'border border-white/10 bg-black/20 text-white/55',
                           ].join(' ')}
                         >
                           {isActive ? 'Actif' : 'Switch'}
@@ -344,14 +344,15 @@ export function AppShell() {
             className={({ isActive }) =>
               [
                 'flex flex-1 flex-col items-center justify-center gap-1 py-1 text-center transition-colors',
-                isActive ? 'text-orange-400 font-bold' : 'text-white/50 hover:text-white',
+                isActive ? 'text-white font-bold' : 'text-white/40 hover:text-white/70',
               ].join(' ')
             }
           >
             {({ isActive }) => (
               <>
-                <CalendarIcon className={['h-5 w-5 transition-transform', isActive ? 'scale-110 text-orange-400' : ''].join(' ')} />
-                <span className="text-[0.6rem] font-bold uppercase tracking-wider">Calendrier</span>
+                <CalendarIcon className={['h-5 w-5 transition-colors', isActive ? 'text-white' : 'text-white/40'].join(' ')} />
+                <span className="text-[0.6rem] uppercase tracking-wider">Calendrier</span>
+                <span className={['h-1 w-1 rounded-full transition-all', isActive ? 'bg-[#ff3a63] opacity-100 scale-100' : 'bg-transparent opacity-0 scale-50'].join(' ')} />
               </>
             )}
           </NavLink>
@@ -362,14 +363,15 @@ export function AppShell() {
             className={({ isActive }) =>
               [
                 'flex flex-1 flex-col items-center justify-center gap-1 py-1 text-center transition-colors',
-                isActive ? 'text-orange-400 font-bold' : 'text-white/50 hover:text-white',
+                isActive ? 'text-white font-bold' : 'text-white/40 hover:text-white/70',
               ].join(' ')
             }
           >
             {({ isActive }) => (
               <>
-                <ImportsIcon className={['h-5 w-5 transition-transform', isActive ? 'scale-110 text-orange-400' : ''].join(' ')} />
-                <span className="text-[0.6rem] font-bold uppercase tracking-wider">Musique</span>
+                <ImportsIcon className={['h-5 w-5 transition-colors', isActive ? 'text-white' : 'text-white/40'].join(' ')} />
+                <span className="text-[0.6rem] uppercase tracking-wider">Musique</span>
+                <span className={['h-1 w-1 rounded-full transition-all', isActive ? 'bg-[#ff3a63] opacity-100 scale-100' : 'bg-transparent opacity-0 scale-50'].join(' ')} />
               </>
             )}
           </NavLink>
@@ -383,20 +385,20 @@ export function AppShell() {
                   onClick={() => setIsLiveMenuOpen(false)}
                   onTouchStart={() => setIsLiveMenuOpen(false)}
                 />
-                <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 bg-transparent border-0 shadow-none p-0 whitespace-nowrap animate-in fade-in slide-in-from-bottom-2">
+                <div className="absolute bottom-22 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-3 bg-transparent border-0 shadow-none p-0 whitespace-nowrap animate-in fade-in slide-in-from-bottom-3">
                   <NavLink
                     to="/prompter"
                     onClick={() => setIsLiveMenuOpen(false)}
                     className={({ isActive }) =>
                       [
-                        'flex items-center justify-center gap-2.5 rounded-xl px-4 py-2.5 text-xs font-black uppercase tracking-wider transition-all backdrop-blur-xl',
+                        'flex min-w-[180px] items-center justify-center gap-3 rounded-2xl px-6 py-4 text-sm font-black uppercase tracking-[0.14em] transition-all backdrop-blur-2xl active:scale-95',
                         isActive
-                          ? 'bg-amber-500/20 text-amber-200 border border-amber-500/40 shadow-[0_0_14px_rgba(245,158,11,0.3)]'
-                          : 'bg-[#14161b]/95 text-white/90 border border-white/15 hover:bg-white/15 hover:text-white shadow-[0_10px_30px_rgba(0,0,0,0.6)]',
+                          ? 'bg-[#ff3a63]/25 text-rose-200 border border-[#ff3a63]/60 shadow-[0_0_20px_rgba(255,58,99,0.4)]'
+                          : 'bg-[#14161b]/98 text-white border border-white/20 hover:bg-white/18 hover:border-white/35 shadow-[0_14px_36px_rgba(0,0,0,0.7)]',
                       ].join(' ')
                     }
                   >
-                    <PrompterIcon className="h-4 w-4 text-amber-400" />
+                    <PrompterIcon className="h-5 w-5 text-[#ff547b]" />
                     Prompteur
                   </NavLink>
                   <NavLink
@@ -404,14 +406,14 @@ export function AppShell() {
                     onClick={() => setIsLiveMenuOpen(false)}
                     className={({ isActive }) =>
                       [
-                        'flex items-center justify-center gap-2.5 rounded-xl px-4 py-2.5 text-xs font-black uppercase tracking-wider transition-all backdrop-blur-xl',
+                        'flex min-w-[180px] items-center justify-center gap-3 rounded-2xl px-6 py-4 text-sm font-black uppercase tracking-[0.14em] transition-all backdrop-blur-2xl active:scale-95',
                         isActive
-                          ? 'bg-amber-500/20 text-amber-200 border border-amber-500/40 shadow-[0_0_14px_rgba(245,158,11,0.3)]'
-                          : 'bg-[#14161b]/95 text-white/90 border border-white/15 hover:bg-white/15 hover:text-white shadow-[0_10px_30px_rgba(0,0,0,0.6)]',
+                          ? 'bg-[#ff3a63]/25 text-rose-200 border border-[#ff3a63]/60 shadow-[0_0_20px_rgba(255,58,99,0.4)]'
+                          : 'bg-[#14161b]/98 text-white border border-white/20 hover:bg-white/18 hover:border-white/35 shadow-[0_14px_36px_rgba(0,0,0,0.7)]',
                       ].join(' ')
                     }
                   >
-                    <MetronomeIcon className="h-4 w-4 text-amber-400" />
+                    <MetronomeIcon className="h-5 w-5 text-[#ff547b]" />
                     Click
                   </NavLink>
                 </div>
@@ -434,7 +436,7 @@ export function AppShell() {
               >
                 <span className="h-3.5 w-3.5 rounded-full bg-white shadow-inner animate-pulse" />
               </div>
-              <span className={['text-[0.58rem] font-black uppercase tracking-wider', isLiveActive || isLiveMenuOpen ? 'text-red-400' : 'text-white/70'].join(' ')}>
+              <span className={['text-[0.58rem] font-black uppercase tracking-wider', isLiveActive || isLiveMenuOpen ? 'text-red-400 font-black' : 'text-white/70'].join(' ')}>
                 Mode Live
               </span>
             </button>
@@ -446,14 +448,15 @@ export function AppShell() {
             className={({ isActive }) =>
               [
                 'flex flex-1 flex-col items-center justify-center gap-1 py-1 text-center transition-colors',
-                isActive ? 'text-orange-400 font-bold' : 'text-white/50 hover:text-white',
+                isActive ? 'text-white font-bold' : 'text-white/40 hover:text-white/70',
               ].join(' ')
             }
           >
             {({ isActive }) => (
               <>
-                <SongsIcon className={['h-5 w-5 transition-transform', isActive ? 'scale-110 text-orange-400' : ''].join(' ')} />
-                <span className="text-[0.6rem] font-bold uppercase tracking-wider">Répertoire</span>
+                <SongsIcon className={['h-5 w-5 transition-colors', isActive ? 'text-white' : 'text-white/40'].join(' ')} />
+                <span className="text-[0.6rem] uppercase tracking-wider">Répertoire</span>
+                <span className={['h-1 w-1 rounded-full transition-all', isActive ? 'bg-[#ff3a63] opacity-100 scale-100' : 'bg-transparent opacity-0 scale-50'].join(' ')} />
               </>
             )}
           </NavLink>
@@ -464,14 +467,15 @@ export function AppShell() {
             className={({ isActive }) =>
               [
                 'flex flex-1 flex-col items-center justify-center gap-1 py-1 text-center transition-colors',
-                isActive ? 'text-orange-400 font-bold' : 'text-white/50 hover:text-white',
+                isActive ? 'text-white font-bold' : 'text-white/40 hover:text-white/70',
               ].join(' ')
             }
           >
             {({ isActive }) => (
               <>
-                <SetlistIcon className={['h-5 w-5 transition-transform', isActive ? 'scale-110 text-orange-400' : ''].join(' ')} />
-                <span className="text-[0.6rem] font-bold uppercase tracking-wider">Setlist</span>
+                <SetlistIcon className={['h-5 w-5 transition-colors', isActive ? 'text-white' : 'text-white/40'].join(' ')} />
+                <span className="text-[0.6rem] uppercase tracking-wider">Setlist</span>
+                <span className={['h-1 w-1 rounded-full transition-all', isActive ? 'bg-[#ff3a63] opacity-100 scale-100' : 'bg-transparent opacity-0 scale-50'].join(' ')} />
               </>
             )}
           </NavLink>

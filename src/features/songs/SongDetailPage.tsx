@@ -632,7 +632,7 @@ export function SongDetailPage() {
                   disabled={!primaryAudioAsset}
                   className={[
                     'flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-all disabled:cursor-not-allowed disabled:opacity-40',
-                    isPrimaryAudioPlaying ? 'bg-orange-500 text-white' : 'bg-white/8 text-white hover:bg-white/14',
+                    isPrimaryAudioPlaying ? 'bg-white text-[#111319]' : 'bg-white/8 text-white hover:bg-white/14',
                   ].join(' ')}
                   aria-label={isPrimaryAudioPlaying ? 'Arreter la chanson' : 'Lire la chanson'}
                 >
@@ -730,7 +730,7 @@ export function SongDetailPage() {
                   return (
                     <div
                       key={asset.id}
-                      className={["flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition", isThisPlaying ? 'border-orange-400/35 bg-orange-500/10' : 'border-white/8 bg-white/5 hover:bg-white/10'].join(' ')}
+                      className={["flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition", isThisPlaying ? 'border-white/30 bg-white/10' : 'border-white/8 bg-white/5 hover:bg-white/10'].join(' ')}
                     >
                       <button
                         type="button"
@@ -739,7 +739,7 @@ export function SongDetailPage() {
                           handlePlayAsset(asset.id, isCached);
                         }}
                         aria-label={isThisPlaying ? `Arreter ${asset.filename}` : `Lire ${asset.filename}`}
-                        className={["flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition", isThisPlaying ? 'bg-orange-500 text-white' : 'bg-white text-[#111316] hover:bg-white/88'].join(' ')}
+                        className={["flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition", isThisPlaying ? 'bg-white text-[#111319]' : 'bg-white/20 text-white hover:bg-white/30'].join(' ')}
                       >
                         {isThisPlaying ? <StopIcon /> : <PlayIcon />}
                       </button>
@@ -758,7 +758,7 @@ export function SongDetailPage() {
                         onClick={() => handleSetPrimaryAudio(asset.id)}
                         aria-label={isPrimary ? `${asset.filename} est la piste principale` : `Définir ${asset.filename} comme piste principale`}
                         title={isPrimary ? 'Piste principale' : 'Définir comme principale'}
-                        className={["flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition", isPrimary ? 'border-orange-400/35 bg-orange-500/15 text-orange-300' : 'border-white/8 bg-white/5 text-white/55 hover:bg-white/10 hover:text-white'].join(' ')}
+                        className={["flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition", isPrimary ? 'border-white/40 bg-white/20 text-white' : 'border-white/8 bg-white/5 text-white/55 hover:bg-white/10 hover:text-white'].join(' ')}
                       >
                         <PrimaryAudioIcon active={isPrimary} className="h-4 w-4" />
                       </button> : null}
@@ -906,7 +906,7 @@ export function SongDetailPage() {
               <button
                 type="button"
                 onClick={() => resolveDuplicatePrompt({ action: 'replace' })}
-                className="rounded-[1rem] border border-orange-500/30 bg-orange-500/12 px-4 py-3 text-[0.72rem] font-black uppercase tracking-[0.14em] text-orange-200 transition hover:bg-orange-500/18"
+                className="rounded-[1rem] border border-white/20 bg-white/10 px-4 py-3 text-[0.72rem] font-black uppercase tracking-[0.14em] text-white transition hover:bg-white/15"
               >
                 Remplacer
               </button>

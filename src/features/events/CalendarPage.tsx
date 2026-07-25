@@ -501,14 +501,9 @@ export function CalendarPage() {
   }, []);
 
   return (
-    <div className="space-y-4 pb-24 text-slate-200">
-      {/* STICKY TOP SEARCH HEADER */}
-      <section
-        className="sticky z-30 -mx-4 -mt-5 border-b border-[#222636]/30 bg-[#090A0F]/95 backdrop-blur-md px-4 pb-3 pt-2"
-        style={{
-          top: 'calc(var(--fz-header-height, 64px) + var(--fz-viewport-offset-top, 0px))',
-        }}
-      >
+    <div className="w-full overflow-x-hidden space-y-4 pb-24 text-slate-200">
+      {/* PAGE HEADER */}
+      <section className="space-y-3">
         {/* Header Title & Plus button */}
         <div className="flex items-start justify-between gap-3">
           <h1 className="min-w-0 flex-1 text-[2rem] font-black tracking-tight text-white">Événements</h1>
@@ -523,7 +518,7 @@ export function CalendarPage() {
         </div>
 
         {/* Search box & Filter Trigger */}
-        <div className="mt-3 flex items-center gap-2">
+        <div className="flex items-center gap-2">
           <input
             type="text"
             value={searchQuery}
@@ -666,9 +661,10 @@ export function CalendarPage() {
               )}
           </div>
         </div>
+      </section>
 
-        {/* ACCORDION CALENDAR CARD (100% FIXED IN STICKY HEADER SHELL) */}
-        <div className="bg-[#13151F] border border-[#222636] rounded-2xl p-4 shadow-xl mt-3">
+      {/* ACCORDION CALENDAR CARD */}
+      <div className="bg-[#13151F] border border-[#222636] rounded-2xl p-4 shadow-xl">
           {/* Calendar Header with selected info & toggle */}
           <div className="flex items-center justify-between gap-2 mb-3 pb-2 border-b border-white/8">
             {/* Left: Today button & selected date badge */}
@@ -860,7 +856,6 @@ export function CalendarPage() {
             </div>
           </div>
         </div>
-      </section>
 
       {/* FEED LIST AREA */}
       <div className="space-y-3 pt-1">

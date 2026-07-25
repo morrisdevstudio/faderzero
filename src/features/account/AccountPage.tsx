@@ -620,7 +620,7 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
           className={[
             'flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-black uppercase tracking-[0.14em] transition-all',
             activeTab === 'compte'
-              ? 'bg-orange-500 text-white shadow-[0_4px_16px_rgba(249,115,22,0.3)]'
+              ? 'fz-button-primary shadow-[0_4px_16px_rgba(255,58,99,0.3)]'
               : 'text-white/60 hover:text-white hover:bg-white/5',
           ].join(' ')}
         >
@@ -633,7 +633,7 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
           className={[
             'flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-black uppercase tracking-[0.14em] transition-all',
             activeTab === 'groupe'
-              ? 'bg-orange-500 text-white shadow-[0_4px_16px_rgba(249,115,22,0.3)]'
+              ? 'fz-button-primary shadow-[0_4px_16px_rgba(255,58,99,0.3)]'
               : 'text-white/60 hover:text-white hover:bg-white/5',
           ].join(' ')}
         >
@@ -646,7 +646,7 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
           className={[
             'flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-black uppercase tracking-[0.14em] transition-all',
             activeTab === 'sync'
-              ? 'bg-orange-500 text-white shadow-[0_4px_16px_rgba(249,115,22,0.3)]'
+              ? 'fz-button-primary shadow-[0_4px_16px_rgba(255,58,99,0.3)]'
               : 'text-white/60 hover:text-white hover:bg-white/5',
           ].join(' ')}
         >

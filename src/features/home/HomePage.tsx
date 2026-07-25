@@ -98,7 +98,7 @@ export function HomePage() {
           <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-300">
             Prochains événements (3)
           </h2>
-          <Link to="/calendar" className="text-xs font-semibold text-orange-400 hover:underline">
+          <Link to="/calendar" className="text-xs font-semibold text-white/80 hover:text-white hover:underline">
             Voir le calendrier
           </Link>
         </div>
@@ -119,13 +119,13 @@ export function HomePage() {
                   className="flex items-center justify-between rounded-xl border border-white/8 bg-zinc-900/60 p-3.5"
                 >
                   <div>
-                    <span className="rounded bg-orange-500/15 px-2 py-0.5 text-[10px] uppercase font-bold text-orange-300">
+                    <span className="rounded bg-white/15 px-2 py-0.5 text-[10px] uppercase font-bold text-white">
                       {evt.eventType}
                     </span>
                     <h3 className="mt-1 text-sm font-bold text-white">{evt.title}</h3>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs font-bold text-orange-300">
+                    <p className="text-xs font-bold text-white/90">
                       {startDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
                     </p>
                     <p className="text-[11px] text-zinc-500">
@@ -145,7 +145,7 @@ export function HomePage() {
           <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-300">
             Dernières créations (3)
           </h2>
-          <Link to="/songs" className="text-xs font-semibold text-orange-400 hover:underline">
+          <Link to="/songs" className="text-xs font-semibold text-white/80 hover:text-white hover:underline">
             Voir le répertoire
           </Link>
         </div>
@@ -202,7 +202,7 @@ export function HomePage() {
                     const ws = workspaces.find((w) => w.id === group.workspaceId);
                     if (ws) setActiveWorkspace(ws);
                   }}
-                  className="text-[11px] font-semibold text-orange-400 hover:underline"
+                  className="text-[11px] font-semibold text-white/80 hover:text-white hover:underline"
                 >
                   Basculer sur ce groupe
                 </button>
