@@ -198,14 +198,18 @@ export function MetronomePage() {
     }
   }
 
-  function startLongPress(songId: string) {
+  function startLongPress(songId: string, songBpm?: number) {
     isLongPressRef.current = false;
     if (longPressTimerRef.current !== null) {
       window.clearTimeout(longPressTimerRef.current);
     }
     longPressTimerRef.current = window.setTimeout(() => {
       isLongPressRef.current = true;
+      setSelectedSongId(songId);
       setEditingBpmSongId(songId);
+      if (songBpm && songBpm > 0) {
+        setBpm(clampBpm(songBpm));
+      }
       setIsTempoPickerOpen(true);
     }, 450);
   }
@@ -222,6 +226,8 @@ export function MetronomePage() {
       isLongPressRef.current = false;
       return;
     }
+
+    setSelectedSongId(songId);
 
     if (songBpm && songBpm > 0) {
       playSongTempo(songBpm, songId);
@@ -543,10 +549,10 @@ export function MetronomePage() {
                         <button
                           key={entry.id}
                           type="button"
-                          onMouseDown={() => startLongPress(entry.songId)}
+                          onMouseDown={() => startLongPress(entry.songId, entry.songBpm)}
                           onMouseUp={cancelLongPress}
                           onMouseLeave={cancelLongPress}
-                          onTouchStart={() => startLongPress(entry.songId)}
+                          onTouchStart={() => startLongPress(entry.songId, entry.songBpm)}
                           onTouchEnd={cancelLongPress}
                           onTouchCancel={cancelLongPress}
                           onClick={() => handleSongClick(entry.songId, entry.songBpm)}
@@ -593,19 +599,19 @@ export function MetronomePage() {
             </div>
           </div>
 
-          {/* Navigation Précédent / Suivant en bas (comme dans le prompteur) */}
-          <div className="sticky bottom-0 z-30 -mx-4 -mb-4 mt-auto pb-4 pt-3 bg-gradient-to-t from-[var(--fz-bg)] via-[var(--fz-bg)]/95 to-transparent sm:-mx-6 sm:-mb-6">
-            <div className="mx-auto grid max-w-2xl grid-cols-2 gap-3 px-4 sm:px-6">
+          {/* Navigation Précédent / Suivant en bas (exactement comme dans le prompteur) */}
+          <div className="pointer-events-none fixed inset-x-0 bottom-[max(4rem,env(safe-area-inset-bottom))] z-30">
+            <div className="mx-auto grid max-w-5xl grid-cols-2 gap-3 px-4 sm:px-6">
               <button
                 type="button"
                 disabled={!previousSong}
                 onClick={() => previousSong && handleSongClick(previousSong.songId, previousSong.songBpm)}
                 className={`${navigationButtonClass} justify-start text-left`}
               >
-                <span className="min-w-0 truncate">
+                <span>
                   ‹ Précédent
                   <br />
-                  <span className="text-white truncate block">{previousSong?.songTitle ?? 'Début'}</span>
+                  <span className="text-white">{previousSong?.songTitle ?? 'Début'}</span>
                 </span>
               </button>
 
@@ -615,10 +621,10 @@ export function MetronomePage() {
                 onClick={() => nextSong && handleSongClick(nextSong.songId, nextSong.songBpm)}
                 className={`${navigationButtonClass} justify-end text-right`}
               >
-                <span className="min-w-0 truncate">
+                <span>
                   Suivant ›
                   <br />
-                  <span className="text-white truncate block">{nextSong?.songTitle ?? 'Fin'}</span>
+                  <span className="text-white">{nextSong?.songTitle ?? 'Fin'}</span>
                 </span>
               </button>
             </div>
@@ -643,11 +649,7 @@ export function MetronomePage() {
                 const nextBpm = Number(value);
                 updateBpm(nextBpm);
                 if (editingBpmSongId) {
-                  const targetSongId = editingBpmSongId;
-                  setEditingBpmSongId(null);
-                  setIsTempoPickerOpen(false);
-                  await songsRepository.update(targetSongId, { bpm: nextBpm });
-                  await playSongTempo(nextBpm, targetSongId);
+                  await songsRepository.update(editingBpmSongId, { bpm: nextBpm });
                 }
               }
             }}
