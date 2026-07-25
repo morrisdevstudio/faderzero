@@ -34,6 +34,7 @@ import { assertValidPassword, getPasswordRequirements } from '@/services/supabas
 import { getAccountDeletionToken } from '@/services/supabase/accountDeletion';
 import { TrashModal } from '@/features/trash/TrashModal';
 import { AudioQuotaBanner } from '@/features/audio/AudioQuotaBanner';
+import { SyncTab } from '@/features/sync/SyncTab';
 
 const INVITE_ROLE_LABELS: Record<WorkspaceRole, string> = {
   admin: 'Administrateur',
@@ -67,6 +68,35 @@ function CopyIcon() {
     <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
       <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
       <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </svg>
+  );
+}
+
+function AccountTabIcon({ className = 'h-4 w-4' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  );
+}
+
+function GroupTabIcon({ className = 'h-4 w-4' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M7 21v-2a4 4 0 0 1 3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      <circle cx="9" cy="7" r="4" />
+    </svg>
+  );
+}
+
+function SyncTabIcon({ className = 'h-4 w-4' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21.5 2v6h-6" />
+      <path d="M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
     </svg>
   );
 }
@@ -111,7 +141,36 @@ function fallbackCopyTextToClipboard(text: string) {
   return copied;
 }
 
-export function AccountPage() {
+type SettingsTab = 'compte' | 'groupe' | 'sync';
+
+function getInitialTab(defaultTab?: SettingsTab): SettingsTab {
+  if (defaultTab) return defaultTab;
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get('tab') as SettingsTab | null;
+    if (tab === 'compte' || tab === 'groupe' || tab === 'sync') {
+      return tab;
+    }
+  } catch {}
+  return 'compte';
+}
+
+interface AccountPageProps {
+  defaultTab?: SettingsTab;
+}
+
+export function AccountPage({ defaultTab }: AccountPageProps = {}) {
+  const [activeTab, setActiveTabState] = useState<SettingsTab>(() => getInitialTab(defaultTab));
+
+  const setActiveTab = (tab: SettingsTab) => {
+    setActiveTabState(tab);
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', tab);
+      window.history.replaceState({}, '', url.toString());
+    } catch {}
+  };
+
   const {
     session,
     workspaces,
@@ -388,7 +447,7 @@ export function AccountPage() {
       if (navigator.onLine) {
         const isAvailable = await checkWorkspaceNameAvailable(normalizedName);
         if (!isAvailable) {
-          setLocalWorkspaceError('Un groupe portant ce nom existe d�j�.');
+          setLocalWorkspaceError('Un groupe portant ce nom existe déjà.');
           return;
         }
       }
@@ -553,436 +612,494 @@ export function AccountPage() {
 
   return (
     <div className="space-y-4">
-      {/* Account Profile Section */}
-      <section className="rounded-[1.6rem] border border-white/10 bg-white/[0.045] p-5 shadow-[0_24px_48px_rgba(0,0,0,0.18)]">
-        <p className="text-[0.66rem] font-black uppercase tracking-[0.22em] text-[var(--fz-accent)]">Compte</p>
-        <h1 className="mt-2 text-[1.45rem] font-black uppercase tracking-[0.18em] text-white">Espace personnel</h1>
-        <p className="mt-2 text-sm leading-relaxed text-[var(--fz-text-muted)]">
-          Gère ton accès, choisis ton groupe actif et crée de nouveaux espaces de travail.
-        </p>
-
-        {localProfileError && <p className="mt-2 text-xs text-red-400">{localProfileError}</p>}
-
-        <form onSubmit={handleProfileSubmit} className="mt-4 rounded-[1.2rem] border border-white/8 bg-black/20 p-4">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              aria-label={profile ? `Changer l'avatar de ${profile.displayName}` : 'Changer l’avatar du profil'}
-              title="Changer la photo de profil"
-              onClick={() => avatarInputRef.current?.click()}
-              disabled={profileLoading || !profile}
-              className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/15 text-lg font-black text-white shadow-[0_10px_24px_rgba(0,0,0,0.24)] transition hover:border-orange-400/70 focus:outline-none focus:ring-2 focus:ring-orange-400/60 disabled:opacity-45"
-              style={{ backgroundColor: `hsl(${generatedAvatar?.hue ?? 24} 72% 42%)` }}
-            >
-              {avatarUrl ? <img src={avatarUrl} alt="" className="h-full w-full object-cover" /> : generatedAvatar?.initials ?? '…'}
-              <span className="absolute inset-x-0 bottom-0 bg-black/65 py-0.5 text-[0.5rem] uppercase tracking-wide">Photo</span>
-            </button>
-            <input
-              ref={avatarInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              onChange={(event) => void handleAvatarChange(event)}
-              className="sr-only"
-              aria-label="Choisir une photo de profil"
-              disabled={profileLoading || !profile}
-            />
-            <div className="min-w-0 flex-1">
-              <label htmlFor="profileDisplayName" className="block text-[0.62rem] font-black uppercase tracking-[0.2em] text-white/45">
-                Pseudo public
-              </label>
-              <input
-                id="profileDisplayName"
-                type="text"
-                minLength={2}
-                maxLength={30}
-                value={displayName}
-                onChange={(event) => setDisplayName(event.target.value)}
-                disabled={profileLoading || !profile}
-                className="mt-2 w-full rounded-[0.9rem] border border-white/10 bg-white/5 px-3 py-2.5 text-sm font-semibold text-white focus:border-orange-500/50 focus:bg-white/10 focus:outline-none disabled:opacity-45"
-              />
-            </div>
-          </div>
-          <button
-            type="submit"
-            disabled={profileLoading || !profile || displayName.trim() === profile.displayName}
-            className="mt-3 w-full rounded-[0.9rem] border border-orange-500/25 bg-orange-500/12 px-4 py-2.5 text-[0.68rem] font-black uppercase tracking-[0.18em] text-orange-200 transition hover:bg-orange-500/20 disabled:border-white/10 disabled:bg-white/5 disabled:text-white/30"
-          >
-            {profileLoading ? 'Enregistrement...' : 'Enregistrer le pseudo'}
-          </button>
-          {profileFeedback ? <p className="mt-2 text-[0.75rem] text-emerald-300">{profileFeedback}</p> : null}
-        </form>
-
-        {session?.user.email && (
-          <div className="mt-4 rounded-[1.2rem] border border-white/8 bg-black/20 px-4 py-3">
-            <p className="text-[0.62rem] font-black uppercase tracking-[0.2em] text-white/45">E-mail privé — visible uniquement ici</p>
-            <p className="mt-1 text-sm font-semibold text-white">{session.user.email}</p>
-          </div>
-        )}
-      </section>
-
-      {/* Active Workspace & Group Admin Section */}
-      {activeWorkspace && (
-        <section className="rounded-[1.6rem] border border-white/10 bg-white/[0.045] p-5 shadow-[0_24px_48px_rgba(0,0,0,0.18)]">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[0.66rem] font-black uppercase tracking-[0.22em] text-[var(--fz-accent)]">Espace actif</p>
-              <h1 className="mt-1 text-xl font-black uppercase tracking-[0.16em] text-white">{activeWorkspace.name}</h1>
-              {activeWorkspace.type === 'personal' && (
-                <p className="mt-1 text-xs text-white/50">Accueil personnel actif</p>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              {canAdministerWorkspace(activeWorkspace.role) && activeWorkspace.type === 'group' && (
-                <button
-                  type="button"
-                  aria-label={`Partager le groupe ${activeWorkspace.name}`}
-                  onClick={() => void handleOpenShareDialog(activeWorkspace)}
-                  className="flex items-center gap-1.5 rounded-xl border border-orange-500/30 bg-orange-500/10 px-3 py-2 text-xs font-semibold text-orange-300 hover:bg-orange-500/20 transition"
-                >
-                  <ShareIcon />
-                  Partager
-                </button>
-              )}
-              <button
-                onClick={() => setIsTrashOpen(true)}
-                className="flex items-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-300 hover:bg-amber-500/20 transition"
-              >
-                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                </svg>
-                Corbeille
-              </button>
-            </div>
-          </div>
-
-          <div className="mt-4">
-            <AudioQuotaBanner workspace={activeWorkspace} isOnline={true} />
-          </div>
-
-          {/* Group Administration Section */}
-          {activeWorkspace.type === 'group' && (
-            <div className="mt-6 space-y-4 border-t border-white/10 pt-4">
-              <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-300">Administration du groupe</h2>
-
-              {groupActionError && (
-                <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-400">
-                  {groupActionError}
-                </div>
-              )}
-
-              {/* Group Name Editing */}
-              {canAdministerWorkspace(activeWorkspace.role) && (
-                <div className="rounded-xl border border-white/8 bg-black/20 p-4 space-y-3">
-                  <label className="block text-[0.64rem] font-black uppercase tracking-[0.18em] text-white/50">
-                    Nom du groupe
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={editingGroupName}
-                      onChange={(e) => setEditingGroupName(e.target.value)}
-                      className="flex-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none"
-                    />
-                    <button
-                      onClick={handleUpdateGroupName}
-                      className="rounded-xl bg-orange-500 px-4 py-2 text-xs font-bold text-white hover:bg-orange-400"
-                    >
-                      Enregistrer
-                    </button>
-                  </div>
-                  {groupNameDuplicateWarning && (
-                    <p className="text-xs text-amber-400">{groupNameDuplicateWarning}</p>
-                  )}
-                </div>
-              )}
-
-              {/* Member list sorted by role: Admin > Member > Guest */}
-              <div className="space-y-2">
-                <p className="text-[0.64rem] font-black uppercase tracking-[0.18em] text-white/50">Membres du groupe ({members.length})</p>
-                {membersLoading ? (
-                  <p className="text-xs text-white/40">Chargement des membres...</p>
-                ) : (
-                  members.map((m) => (
-                    <div key={m.id} className="flex items-center justify-between rounded-xl border border-white/8 bg-black/20 p-3">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-zinc-800 text-xs font-bold text-white">
-                          {m.pseudo?.charAt(0).toUpperCase() || 'M'}
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold text-white">{m.pseudo}</p>
-                          <span className="text-[10px] uppercase font-bold text-amber-400/90">{INVITE_ROLE_LABELS[m.role]}</span>
-                        </div>
-                      </div>
-
-                      {canAdministerWorkspace(activeWorkspace.role) && (
-                        <div className="flex items-center gap-2">
-                          <select
-                            value={m.role}
-                            onChange={(e) => handleMemberRoleChange(m.userId, e.target.value as WorkspaceRole)}
-                            className="rounded-lg border border-white/10 bg-zinc-900 px-2 py-1 text-xs text-white"
-                          >
-                            <option value="admin">Admin</option>
-                            <option value="member">Membre</option>
-                            <option value="guest">Invité</option>
-                          </select>
-                          <button
-                            onClick={() => setMemberToRemove(m)}
-                            className="rounded-lg p-1 text-red-400 hover:bg-red-500/20"
-                            title="Retirer le membre"
-                          >
-                            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                              <circle cx="8.5" cy="7" r="4" />
-                              <line x1="18" y1="8" x2="23" y2="13" />
-                              <line x1="23" y1="8" x2="18" y2="13" />
-                            </svg>
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  ))
-                )}
-              </div>
-
-              {/* Group actions */}
-              <div className="flex gap-2 pt-2">
-                <button
-                  onClick={handleLeaveGroup}
-                  className="flex-1 rounded-xl border border-white/10 bg-white/5 py-2.5 text-xs font-bold text-white/70 hover:bg-white/10"
-                >
-                  Quitter le groupe
-                </button>
-                {canAdministerWorkspace(activeWorkspace.role) && (
-                  <button
-                    onClick={handleSoftDeleteGroup}
-                    className="flex-1 rounded-xl border border-red-500/30 bg-red-500/10 py-2.5 text-xs font-bold text-red-400 hover:bg-red-500/20"
-                  >
-                    Placer le groupe en corbeille
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-        </section>
-      )}
-
-      {/* Workspaces Creation & Join Section */}
-      <section className="rounded-[1.6rem] border border-white/10 bg-white/[0.045] p-5">
-        <p className="text-[0.66rem] font-black uppercase tracking-[0.22em] text-[var(--fz-accent)]">Espaces de travail</p>
-        <p className="mt-1 text-xs text-white/50">{groupCount} groupe{groupCount > 1 ? 's' : ''}</p>
-        <h2 className="mt-2 text-lg font-black uppercase tracking-[0.16em] text-white">Créer un nouveau groupe</h2>
-        <form onSubmit={handleCreateWorkspace} className="mt-4 space-y-3">
-          <input
-            type="text"
-            value={workspaceName}
-            onChange={(e) => setWorkspaceName(e.target.value)}
-            placeholder="Nom du groupe"
-            disabled={loading}
-            className="w-full rounded-[1rem] border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:outline-none"
-          />
-          {localWorkspaceError && <p className="text-xs text-red-400">{localWorkspaceError}</p>}
-          <button
-            type="submit"
-            disabled={loading || !workspaceName.trim()}
-            className="w-full rounded-[1rem] bg-white px-4 py-3 text-[0.72rem] font-black uppercase tracking-[0.18em] text-[#0c0d10] hover:bg-orange-500 hover:text-white disabled:bg-white/10 disabled:text-white/35"
-          >
-            {loading ? 'Création...' : 'Créer un nouveau groupe'}
-          </button>
-        </form>
-
-        <form onSubmit={handleJoinWorkspaceWithLink} className="mt-5 space-y-3 rounded-[1.2rem] border border-white/8 bg-black/15 p-4">
-          <div>
-            <label htmlFor="workspaceInviteLink" className="block text-[0.66rem] font-black uppercase tracking-[0.18em] text-white/55">
-              Rejoindre un groupe avec un lien
-            </label>
-            <input
-              id="workspaceInviteLink"
-              type="text"
-              value={joinInviteValue}
-              onChange={(e) => setJoinInviteValue(e.target.value)}
-              placeholder="Collez ici un lien d'invitation"
-              disabled={loading || joinInviteLoading}
-              className="mt-2 w-full rounded-[1rem] border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/20 focus:border-orange-500/50 focus:bg-white/10 focus:outline-none"
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={loading || joinInviteLoading || !joinInviteValue.trim()}
-            className="w-full rounded-[1rem] border border-orange-500/25 bg-orange-500/12 px-4 py-3 text-[0.72rem] font-black uppercase tracking-[0.18em] text-orange-200 transition hover:bg-orange-500/20 disabled:border-white/10 disabled:bg-white/5 disabled:text-white/35"
-          >
-            {joinInviteLoading ? 'Connexion...' : 'Ajouter ce groupe'}
-          </button>
-          {joinInviteFeedback ? (
-            <p className="text-[0.75rem] text-white/70">{joinInviteFeedback}</p>
-          ) : null}
-        </form>
-      </section>
-
-      {/* Identity / Email Change Section */}
-      <section className="rounded-[1.6rem] border border-white/10 bg-white/[0.045] p-5">
-        <p className="text-[0.66rem] font-black uppercase tracking-[0.22em] text-[var(--fz-accent)]">Identité</p>
-        <h2 className="mt-2 text-lg font-black uppercase tracking-[0.16em] text-white">Changer d’adresse e-mail</h2>
-        <p className="mt-2 text-sm leading-relaxed text-[var(--fz-text-muted)]">
-          Le changement sera effectif uniquement après confirmation depuis l’ancienne et la nouvelle adresse.
-        </p>
-        {localEmailError && <p className="mt-2 text-xs text-red-400">{localEmailError}</p>}
-        <form onSubmit={handleEmailSubmit} className="mt-4 space-y-3">
-          <div>
-            <label htmlFor="newEmail" className="block text-[0.66rem] font-black uppercase tracking-[0.18em] text-white/55">
-              Nouvelle adresse e-mail
-            </label>
-            <input
-              id="newEmail"
-              type="email"
-              autoComplete="email"
-              value={newEmail}
-              onChange={(event) => setNewEmail(event.target.value)}
-              placeholder="nouvelle@adresse.fr"
-              disabled={loading}
-              className="mt-2 w-full rounded-[1rem] border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/20 focus:border-orange-500/50 focus:bg-white/10 focus:outline-none"
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={loading || !newEmail.trim()}
-            className="w-full rounded-[1rem] border border-orange-500/25 bg-orange-500/12 px-4 py-3 text-[0.72rem] font-black uppercase tracking-[0.18em] text-orange-200 transition hover:bg-orange-500/20 disabled:border-white/10 disabled:bg-white/5 disabled:text-white/35"
-          >
-            {loading ? 'Demande...' : 'Demander le changement'}
-          </button>
-        </form>
-      </section>
-
-      {/* Security / Password Change Section */}
-      <section className="rounded-[1.6rem] border border-white/10 bg-white/[0.045] p-5">
-        <p className="text-[0.66rem] font-black uppercase tracking-[0.22em] text-[var(--fz-accent)]">Sécurité</p>
-        <h2 className="mt-2 text-lg font-black uppercase tracking-[0.16em] text-white">
-          {isPasswordRecovery ? 'Définir un nouveau mot de passe' : 'Changer de mot de passe'}
-        </h2>
-        <p className="mt-2 text-sm leading-relaxed text-[var(--fz-text-muted)]">
-          Toutes les sessions seront révoquées après la modification.
-        </p>
-        {localPasswordError && <p className="mt-2 text-xs text-red-400">{localPasswordError}</p>}
-        <form onSubmit={handlePasswordSubmit} className="mt-4 space-y-3">
-          {!isPasswordRecovery ? (
-            <div>
-              <label htmlFor="currentPassword" className="block text-[0.66rem] font-black uppercase tracking-[0.18em] text-white/55">
-                Mot de passe actuel
-              </label>
-              <input
-                id="currentPassword"
-                type="password"
-                autoComplete="current-password"
-                value={currentPassword}
-                onChange={(event) => setCurrentPassword(event.target.value)}
-                disabled={loading}
-                className="mt-2 w-full rounded-[1rem] border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-orange-500/50 focus:bg-white/10 focus:outline-none"
-              />
-            </div>
-          ) : null}
-          <div>
-            <label htmlFor="newPassword" className="block text-[0.66rem] font-black uppercase tracking-[0.18em] text-white/55">
-              Nouveau mot de passe
-            </label>
-            <input
-              id="newPassword"
-              type="password"
-              autoComplete="new-password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="Au moins 8 caractères"
-              disabled={loading}
-              className="mt-2 w-full rounded-[1rem] border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/20 focus:border-orange-500/50 focus:bg-white/10 focus:outline-none"
-            />
-          </div>
-          <ul className="grid grid-cols-2 gap-2 text-[0.68rem]" aria-label="Règles du nouveau mot de passe">
-            {[
-              ['8 caractères', newPasswordRequirements.minimumLength],
-              ['Une majuscule', newPasswordRequirements.uppercase],
-              ['Une minuscule', newPasswordRequirements.lowercase],
-              ['Un chiffre', newPasswordRequirements.digit],
-            ].map(([label, valid]) => (
-              <li key={String(label)} className={valid ? 'text-emerald-300' : 'text-white/40'}>
-                {valid ? '✓' : '○'} {label}
-              </li>
-            ))}
-          </ul>
-          <div>
-            <label htmlFor="confirmNewPassword" className="block text-[0.66rem] font-black uppercase tracking-[0.18em] text-white/55">
-              Confirmer le nouveau mot de passe
-            </label>
-            <input
-              id="confirmNewPassword"
-              type="password"
-              autoComplete="new-password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Retapez le mot de passe"
-              disabled={loading}
-              className="mt-2 w-full rounded-[1rem] border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/20 focus:border-orange-500/50 focus:bg-white/10 focus:outline-none"
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={loading || (!isPasswordRecovery && !currentPassword) || !newPassword || !confirmPassword}
-            className="w-full rounded-[1rem] border border-orange-500/25 bg-orange-500/12 px-4 py-3 text-[0.72rem] font-black uppercase tracking-[0.18em] text-orange-200 transition hover:bg-orange-500/20 disabled:border-white/10 disabled:bg-white/5 disabled:text-white/35"
-          >
-            {loading ? 'Mise à jour...' : 'Mettre a jour le mot de passe'}
-          </button>
-        </form>
-      </section>
-
-      {/* Sign Out Section */}
-      <section className="rounded-[1.6rem] border border-white/10 bg-white/[0.045] p-5">
-        <p className="text-[0.66rem] font-black uppercase tracking-[0.22em] text-[var(--fz-accent)]">Session</p>
-        <h2 className="mt-2 text-lg font-black uppercase tracking-[0.16em] text-white">Déconnexion</h2>
-        <p className="mt-2 text-sm leading-relaxed text-[var(--fz-text-muted)]">
-          Ferme ta session sur cet appareil. Tes données locales et morceaux en cache restent conservés.
-        </p>
+      {/* Tab Navigation Bar */}
+      <nav className="flex rounded-[1.2rem] border border-white/10 bg-black/25 p-1.5 shadow-[0_16px_32px_rgba(0,0,0,0.24)]" aria-label="Onglets paramètres">
         <button
           type="button"
-          onClick={() => void signOut()}
-          disabled={loading}
-          className="mt-4 w-full rounded-[1rem] border border-white/15 bg-white/5 px-4 py-3 text-[0.72rem] font-black uppercase tracking-[0.18em] text-white transition hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-300 disabled:opacity-40"
+          onClick={() => setActiveTab('compte')}
+          className={[
+            'flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-black uppercase tracking-[0.14em] transition-all',
+            activeTab === 'compte'
+              ? 'bg-orange-500 text-white shadow-[0_4px_16px_rgba(249,115,22,0.3)]'
+              : 'text-white/60 hover:text-white hover:bg-white/5',
+          ].join(' ')}
         >
-          Se déconnecter
+          <AccountTabIcon />
+          Compte
         </button>
-      </section>
+        <button
+          type="button"
+          onClick={() => setActiveTab('groupe')}
+          className={[
+            'flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-black uppercase tracking-[0.14em] transition-all',
+            activeTab === 'groupe'
+              ? 'bg-orange-500 text-white shadow-[0_4px_16px_rgba(249,115,22,0.3)]'
+              : 'text-white/60 hover:text-white hover:bg-white/5',
+          ].join(' ')}
+        >
+          <GroupTabIcon />
+          Groupe
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('sync')}
+          className={[
+            'flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-black uppercase tracking-[0.14em] transition-all',
+            activeTab === 'sync'
+              ? 'bg-orange-500 text-white shadow-[0_4px_16px_rgba(249,115,22,0.3)]'
+              : 'text-white/60 hover:text-white hover:bg-white/5',
+          ].join(' ')}
+        >
+          <SyncTabIcon />
+          Sync
+        </button>
+      </nav>
 
-      {/* Account Deletion Section */}
-      <section className="rounded-[1.6rem] border border-red-500/20 bg-red-500/[0.055] p-5">
-        <p className="text-[0.66rem] font-black uppercase tracking-[0.22em] text-red-300">Zone sensible</p>
-        <h2 className="mt-2 text-lg font-black uppercase tracking-[0.16em] text-white">Supprimer le compte</h2>
-        {localDeletionError && <p className="mt-2 text-xs text-red-400">{localDeletionError}</p>}
-        {accountDeletionToken ? (
-          <>
-            <p className="mt-2 text-sm leading-relaxed text-red-100/75">
-              Le lien e-mail a été ouvert. La confirmation finale supprimera Mon espace et votre identité, mais conservera les groupes partagés.
-            </p>
-            <button
-              type="button"
-              onClick={() => setIsConfirmFinalDeletionOpen(true)}
-              disabled={loading}
-              className="mt-4 w-full rounded-[1rem] border border-red-400/35 bg-red-500/18 px-4 py-3 text-[0.72rem] font-black uppercase tracking-[0.18em] text-red-100 transition hover:bg-red-500/28 disabled:opacity-40"
-            >
-              Supprimer définitivement
-            </button>
-          </>
-        ) : (
-          <>
+      {/* TAB 1: COMPTE */}
+      {activeTab === 'compte' && (
+        <>
+          {/* Account Profile Section */}
+          <section className="rounded-[1.6rem] border border-white/10 bg-white/[0.045] p-5 shadow-[0_24px_48px_rgba(0,0,0,0.18)]">
+            <p className="text-[0.66rem] font-black uppercase tracking-[0.22em] text-[var(--fz-accent)]">Compte</p>
+            <h1 className="mt-2 text-[1.45rem] font-black uppercase tracking-[0.18em] text-white">Espace personnel</h1>
             <p className="mt-2 text-sm leading-relaxed text-[var(--fz-text-muted)]">
-              La demande est impossible si vous êtes le dernier administrateur d’un groupe. Un lien valable une heure sera envoyé par e-mail.
+              Gère ton accès, choisis ton groupe actif et crée de nouveaux espaces de travail.
+            </p>
+
+            {localProfileError && <p className="mt-2 text-xs text-red-400">{localProfileError}</p>}
+
+            <form onSubmit={handleProfileSubmit} className="mt-4 rounded-[1.2rem] border border-white/8 bg-black/20 p-4">
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  aria-label={profile ? `Changer l'avatar de ${profile.displayName}` : 'Changer l’avatar du profil'}
+                  title="Changer la photo de profil"
+                  onClick={() => avatarInputRef.current?.click()}
+                  disabled={profileLoading || !profile}
+                  className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/15 text-lg font-black text-white shadow-[0_10px_24px_rgba(0,0,0,0.24)] transition hover:border-orange-400/70 focus:outline-none focus:ring-2 focus:ring-orange-400/60 disabled:opacity-45"
+                  style={{ backgroundColor: `hsl(${generatedAvatar?.hue ?? 24} 72% 42%)` }}
+                >
+                  {avatarUrl ? <img src={avatarUrl} alt="" className="h-full w-full object-cover" /> : generatedAvatar?.initials ?? '…'}
+                  <span className="absolute inset-x-0 bottom-0 bg-black/65 py-0.5 text-[0.5rem] uppercase tracking-wide">Photo</span>
+                </button>
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={(event) => void handleAvatarChange(event)}
+                  className="sr-only"
+                  aria-label="Choisir une photo de profil"
+                  disabled={profileLoading || !profile}
+                />
+                <div className="min-w-0 flex-1">
+                  <label htmlFor="profileDisplayName" className="block text-[0.62rem] font-black uppercase tracking-[0.2em] text-white/45">
+                    Pseudo public
+                  </label>
+                  <input
+                    id="profileDisplayName"
+                    type="text"
+                    minLength={2}
+                    maxLength={30}
+                    value={displayName}
+                    onChange={(event) => setDisplayName(event.target.value)}
+                    disabled={profileLoading || !profile}
+                    className="mt-2 w-full rounded-[0.9rem] border border-white/10 bg-white/5 px-3 py-2.5 text-sm font-semibold text-white focus:border-orange-500/50 focus:bg-white/10 focus:outline-none disabled:opacity-45"
+                  />
+                </div>
+              </div>
+              <button
+                type="submit"
+                disabled={profileLoading || !profile || displayName.trim() === profile.displayName}
+                className="mt-3 w-full rounded-[0.9rem] border border-orange-500/25 bg-orange-500/12 px-4 py-2.5 text-[0.68rem] font-black uppercase tracking-[0.18em] text-orange-200 transition hover:bg-orange-500/20 disabled:border-white/10 disabled:bg-white/5 disabled:text-white/30"
+              >
+                {profileLoading ? 'Enregistrement...' : 'Enregistrer le pseudo'}
+              </button>
+              {profileFeedback ? <p className="mt-2 text-[0.75rem] text-emerald-300">{profileFeedback}</p> : null}
+            </form>
+
+            {session?.user.email && (
+              <div className="mt-4 rounded-[1.2rem] border border-white/8 bg-black/20 px-4 py-3">
+                <p className="text-[0.62rem] font-black uppercase tracking-[0.2em] text-white/45">E-mail privé — visible uniquement ici</p>
+                <p className="mt-1 text-sm font-semibold text-white">{session.user.email}</p>
+              </div>
+            )}
+          </section>
+
+          {/* Identity / Email Change Section */}
+          <section className="rounded-[1.6rem] border border-white/10 bg-white/[0.045] p-5">
+            <p className="text-[0.66rem] font-black uppercase tracking-[0.22em] text-[var(--fz-accent)]">Identité</p>
+            <h2 className="mt-2 text-lg font-black uppercase tracking-[0.16em] text-white">Changer d’adresse e-mail</h2>
+            <p className="mt-2 text-sm leading-relaxed text-[var(--fz-text-muted)]">
+              Le changement sera effectif uniquement après confirmation depuis l’ancienne et la nouvelle adresse.
+            </p>
+            {localEmailError && <p className="mt-2 text-xs text-red-400">{localEmailError}</p>}
+            <form onSubmit={handleEmailSubmit} className="mt-4 space-y-3">
+              <div>
+                <label htmlFor="newEmail" className="block text-[0.66rem] font-black uppercase tracking-[0.18em] text-white/55">
+                  Nouvelle adresse e-mail
+                </label>
+                <input
+                  id="newEmail"
+                  type="email"
+                  autoComplete="email"
+                  value={newEmail}
+                  onChange={(event) => setNewEmail(event.target.value)}
+                  placeholder="nouvelle@adresse.fr"
+                  disabled={loading}
+                  className="mt-2 w-full rounded-[1rem] border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/20 focus:border-orange-500/50 focus:bg-white/10 focus:outline-none"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={loading || !newEmail.trim()}
+                className="w-full rounded-[1rem] border border-orange-500/25 bg-orange-500/12 px-4 py-3 text-[0.72rem] font-black uppercase tracking-[0.18em] text-orange-200 transition hover:bg-orange-500/20 disabled:border-white/10 disabled:bg-white/5 disabled:text-white/35"
+              >
+                {loading ? 'Demande...' : 'Demander le changement'}
+              </button>
+            </form>
+          </section>
+
+          {/* Security / Password Change Section */}
+          <section className="rounded-[1.6rem] border border-white/10 bg-white/[0.045] p-5">
+            <p className="text-[0.66rem] font-black uppercase tracking-[0.22em] text-[var(--fz-accent)]">Sécurité</p>
+            <h2 className="mt-2 text-lg font-black uppercase tracking-[0.16em] text-white">
+              {isPasswordRecovery ? 'Définir un nouveau mot de passe' : 'Changer de mot de passe'}
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-[var(--fz-text-muted)]">
+              Toutes les sessions seront révoquées après la modification.
+            </p>
+            {localPasswordError && <p className="mt-2 text-xs text-red-400">{localPasswordError}</p>}
+            <form onSubmit={handlePasswordSubmit} className="mt-4 space-y-3">
+              {!isPasswordRecovery ? (
+                <div>
+                  <label htmlFor="currentPassword" className="block text-[0.66rem] font-black uppercase tracking-[0.18em] text-white/55">
+                    Mot de passe actuel
+                  </label>
+                  <input
+                    id="currentPassword"
+                    type="password"
+                    autoComplete="current-password"
+                    value={currentPassword}
+                    onChange={(event) => setCurrentPassword(event.target.value)}
+                    disabled={loading}
+                    className="mt-2 w-full rounded-[1rem] border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-orange-500/50 focus:bg-white/10 focus:outline-none"
+                  />
+                </div>
+              ) : null}
+              <div>
+                <label htmlFor="newPassword" className="block text-[0.66rem] font-black uppercase tracking-[0.18em] text-white/55">
+                  Nouveau mot de passe
+                </label>
+                <input
+                  id="newPassword"
+                  type="password"
+                  autoComplete="new-password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Au moins 8 caractères"
+                  disabled={loading}
+                  className="mt-2 w-full rounded-[1rem] border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/20 focus:border-orange-500/50 focus:bg-white/10 focus:outline-none"
+                />
+              </div>
+              <ul className="grid grid-cols-2 gap-2 text-[0.68rem]" aria-label="Règles du nouveau mot de passe">
+                {[
+                  ['8 caractères', newPasswordRequirements.minimumLength],
+                  ['Une majuscule', newPasswordRequirements.uppercase],
+                  ['Une minuscule', newPasswordRequirements.lowercase],
+                  ['Un chiffre', newPasswordRequirements.digit],
+                ].map(([label, valid]) => (
+                  <li key={String(label)} className={valid ? 'text-emerald-300' : 'text-white/40'}>
+                    {valid ? '✓' : '○'} {label}
+                  </li>
+                ))}
+              </ul>
+              <div>
+                <label htmlFor="confirmNewPassword" className="block text-[0.66rem] font-black uppercase tracking-[0.18em] text-white/55">
+                  Confirmer le nouveau mot de passe
+                </label>
+                <input
+                  id="confirmNewPassword"
+                  type="password"
+                  autoComplete="new-password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Retapez le mot de passe"
+                  disabled={loading}
+                  className="mt-2 w-full rounded-[1rem] border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/20 focus:border-orange-500/50 focus:bg-white/10 focus:outline-none"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={loading || (!isPasswordRecovery && !currentPassword) || !newPassword || !confirmPassword}
+                className="w-full rounded-[1rem] border border-orange-500/25 bg-orange-500/12 px-4 py-3 text-[0.72rem] font-black uppercase tracking-[0.18em] text-orange-200 transition hover:bg-orange-500/20 disabled:border-white/10 disabled:bg-white/5 disabled:text-white/35"
+              >
+                {loading ? 'Mise à jour...' : 'Mettre a jour le mot de passe'}
+              </button>
+            </form>
+          </section>
+
+          {/* Sign Out Section */}
+          <section className="rounded-[1.6rem] border border-white/10 bg-white/[0.045] p-5">
+            <p className="text-[0.66rem] font-black uppercase tracking-[0.22em] text-[var(--fz-accent)]">Session</p>
+            <h2 className="mt-2 text-lg font-black uppercase tracking-[0.16em] text-white">Déconnexion</h2>
+            <p className="mt-2 text-sm leading-relaxed text-[var(--fz-text-muted)]">
+              Ferme ta session sur cet appareil. Tes données locales et morceaux en cache restent conservés.
             </p>
             <button
               type="button"
-              onClick={() => setIsConfirmDeletionRequestOpen(true)}
+              onClick={() => void signOut()}
               disabled={loading}
-              className="mt-4 w-full rounded-[1rem] border border-red-500/25 bg-red-500/10 px-4 py-3 text-[0.72rem] font-black uppercase tracking-[0.18em] text-red-200 transition hover:bg-red-500/18 disabled:opacity-40"
+              className="mt-4 w-full rounded-[1rem] border border-white/15 bg-white/5 px-4 py-3 text-[0.72rem] font-black uppercase tracking-[0.18em] text-white transition hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-300 disabled:opacity-40"
             >
-              Envoyer le lien de suppression
+              Se déconnecter
             </button>
-          </>
-        )}
-      </section>
+          </section>
+
+          {/* Account Deletion Section */}
+          <section className="rounded-[1.6rem] border border-red-500/20 bg-red-500/[0.055] p-5">
+            <p className="text-[0.66rem] font-black uppercase tracking-[0.22em] text-red-300">Zone sensible</p>
+            <h2 className="mt-2 text-lg font-black uppercase tracking-[0.16em] text-white">Supprimer le compte</h2>
+            {localDeletionError && <p className="mt-2 text-xs text-red-400">{localDeletionError}</p>}
+            {accountDeletionToken ? (
+              <>
+                <p className="mt-2 text-sm leading-relaxed text-red-100/75">
+                  Le lien e-mail a été ouvert. La confirmation finale supprimera Mon espace et votre identité, mais conservera les groupes partagés.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setIsConfirmFinalDeletionOpen(true)}
+                  disabled={loading}
+                  className="mt-4 w-full rounded-[1rem] border border-red-400/35 bg-red-500/18 px-4 py-3 text-[0.72rem] font-black uppercase tracking-[0.18em] text-red-100 transition hover:bg-red-500/28 disabled:opacity-40"
+                >
+                  Supprimer définitivement
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="mt-2 text-sm leading-relaxed text-[var(--fz-text-muted)]">
+                  La demande est impossible si vous êtes le dernier administrateur d’un groupe. Un lien valable une heure sera envoyé par e-mail.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setIsConfirmDeletionRequestOpen(true)}
+                  disabled={loading}
+                  className="mt-4 w-full rounded-[1rem] border border-red-500/25 bg-red-500/10 px-4 py-3 text-[0.72rem] font-black uppercase tracking-[0.18em] text-red-200 transition hover:bg-red-500/18 disabled:opacity-40"
+                >
+                  Envoyer le lien de suppression
+                </button>
+              </>
+            )}
+          </section>
+        </>
+      )}
+
+      {/* TAB 2: GROUPE */}
+      {activeTab === 'groupe' && (
+        <>
+          {/* Active Workspace & Group Admin Section */}
+          {activeWorkspace && (
+            <section className="rounded-[1.6rem] border border-white/10 bg-white/[0.045] p-5 shadow-[0_24px_48px_rgba(0,0,0,0.18)]">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[0.66rem] font-black uppercase tracking-[0.22em] text-[var(--fz-accent)]">Espace actif</p>
+                  <h1 className="mt-1 text-xl font-black uppercase tracking-[0.16em] text-white">{activeWorkspace.name}</h1>
+                  {activeWorkspace.type === 'personal' && (
+                    <p className="mt-1 text-xs text-white/50">Accueil personnel actif</p>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  {canAdministerWorkspace(activeWorkspace.role) && activeWorkspace.type === 'group' && (
+                    <button
+                      type="button"
+                      aria-label={`Partager le groupe ${activeWorkspace.name}`}
+                      onClick={() => void handleOpenShareDialog(activeWorkspace)}
+                      className="flex items-center gap-1.5 rounded-xl border border-orange-500/30 bg-orange-500/10 px-3 py-2 text-xs font-semibold text-orange-300 hover:bg-orange-500/20 transition"
+                    >
+                      <ShareIcon />
+                      Partager
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setIsTrashOpen(true)}
+                    className="flex items-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-300 hover:bg-amber-500/20 transition"
+                  >
+                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                    </svg>
+                    Corbeille
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <AudioQuotaBanner workspace={activeWorkspace} isOnline={true} />
+              </div>
+
+              {/* Group Administration Section */}
+              {activeWorkspace.type === 'group' && (
+                <div className="mt-6 space-y-4 border-t border-white/10 pt-4">
+                  <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-300">Administration du groupe</h2>
+
+                  {groupActionError && (
+                    <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-400">
+                      {groupActionError}
+                    </div>
+                  )}
+
+                  {/* Group Name Editing */}
+                  {canAdministerWorkspace(activeWorkspace.role) && (
+                    <div className="rounded-xl border border-white/8 bg-black/20 p-4 space-y-3">
+                      <label className="block text-[0.64rem] font-black uppercase tracking-[0.18em] text-white/50">
+                        Nom du groupe
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={editingGroupName}
+                          onChange={(e) => setEditingGroupName(e.target.value)}
+                          className="flex-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none"
+                        />
+                        <button
+                          onClick={handleUpdateGroupName}
+                          className="rounded-xl bg-orange-500 px-4 py-2 text-xs font-bold text-white hover:bg-orange-400"
+                        >
+                          Enregistrer
+                        </button>
+                      </div>
+                      {groupNameDuplicateWarning && (
+                        <p className="text-xs text-amber-400">{groupNameDuplicateWarning}</p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Member list sorted by role: Admin > Member > Guest */}
+                  <div className="space-y-2">
+                    <p className="text-[0.64rem] font-black uppercase tracking-[0.18em] text-white/50">Membres du groupe ({members.length})</p>
+                    {membersLoading ? (
+                      <p className="text-xs text-white/40">Chargement des membres...</p>
+                    ) : (
+                      members.map((m) => (
+                        <div key={m.id} className="flex items-center justify-between rounded-xl border border-white/8 bg-black/20 p-3">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-zinc-800 text-xs font-bold text-white">
+                              {m.pseudo?.charAt(0).toUpperCase() || 'M'}
+                            </div>
+                            <div>
+                              <p className="text-sm font-semibold text-white">{m.pseudo}</p>
+                              <span className="text-[10px] uppercase font-bold text-amber-400/90">{INVITE_ROLE_LABELS[m.role]}</span>
+                            </div>
+                          </div>
+
+                          {canAdministerWorkspace(activeWorkspace.role) && (
+                            <div className="flex items-center gap-2">
+                              <select
+                                value={m.role}
+                                onChange={(e) => handleMemberRoleChange(m.userId, e.target.value as WorkspaceRole)}
+                                className="rounded-lg border border-white/10 bg-zinc-900 px-2 py-1 text-xs text-white"
+                              >
+                                <option value="admin">Admin</option>
+                                <option value="member">Membre</option>
+                                <option value="guest">Invité</option>
+                              </select>
+                              <button
+                                onClick={() => setMemberToRemove(m)}
+                                className="rounded-lg p-1 text-red-400 hover:bg-red-500/20"
+                                title="Retirer le membre"
+                              >
+                                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                                  <circle cx="8.5" cy="7" r="4" />
+                                  <line x1="18" y1="8" x2="23" y2="13" />
+                                  <line x1="23" y1="8" x2="18" y2="13" />
+                                </svg>
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Group actions */}
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      onClick={handleLeaveGroup}
+                      className="flex-1 rounded-xl border border-white/10 bg-white/5 py-2.5 text-xs font-bold text-white/70 hover:bg-white/10"
+                    >
+                      Quitter le groupe
+                    </button>
+                    {canAdministerWorkspace(activeWorkspace.role) && (
+                      <button
+                        onClick={handleSoftDeleteGroup}
+                        className="flex-1 rounded-xl border border-red-500/30 bg-red-500/10 py-2.5 text-xs font-bold text-red-400 hover:bg-red-500/20"
+                      >
+                        Placer le groupe en corbeille
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* Workspaces Creation & Join Section */}
+          <section className="rounded-[1.6rem] border border-white/10 bg-white/[0.045] p-5">
+            <p className="text-[0.66rem] font-black uppercase tracking-[0.22em] text-[var(--fz-accent)]">Espaces de travail</p>
+            <p className="mt-1 text-xs text-white/50">{groupCount} groupe{groupCount > 1 ? 's' : ''}</p>
+            <h2 className="mt-2 text-lg font-black uppercase tracking-[0.16em] text-white">Créer un nouveau groupe</h2>
+            <form onSubmit={handleCreateWorkspace} className="mt-4 space-y-3">
+              <input
+                type="text"
+                value={workspaceName}
+                onChange={(e) => setWorkspaceName(e.target.value)}
+                placeholder="Nom du groupe"
+                disabled={loading}
+                className="w-full rounded-[1rem] border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:outline-none"
+              />
+              {localWorkspaceError && <p className="text-xs text-red-400">{localWorkspaceError}</p>}
+              <button
+                type="submit"
+                disabled={loading || !workspaceName.trim()}
+                className="w-full rounded-[1rem] bg-white px-4 py-3 text-[0.72rem] font-black uppercase tracking-[0.18em] text-[#0c0d10] hover:bg-orange-500 hover:text-white disabled:bg-white/10 disabled:text-white/35"
+              >
+                {loading ? 'Création...' : 'Créer un nouveau groupe'}
+              </button>
+            </form>
+
+            <form onSubmit={handleJoinWorkspaceWithLink} className="mt-5 space-y-3 rounded-[1.2rem] border border-white/8 bg-black/15 p-4">
+              <div>
+                <label htmlFor="workspaceInviteLink" className="block text-[0.66rem] font-black uppercase tracking-[0.18em] text-white/55">
+                  Rejoindre un groupe avec un lien
+                </label>
+                <input
+                  id="workspaceInviteLink"
+                  type="text"
+                  value={joinInviteValue}
+                  onChange={(e) => setJoinInviteValue(e.target.value)}
+                  placeholder="Collez ici un lien d'invitation"
+                  disabled={loading || joinInviteLoading}
+                  className="mt-2 w-full rounded-[1rem] border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/20 focus:border-orange-500/50 focus:bg-white/10 focus:outline-none"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={loading || joinInviteLoading || !joinInviteValue.trim()}
+                className="w-full rounded-[1rem] border border-orange-500/25 bg-orange-500/12 px-4 py-3 text-[0.72rem] font-black uppercase tracking-[0.18em] text-orange-200 transition hover:bg-orange-500/20 disabled:border-white/10 disabled:bg-white/5 disabled:text-white/35"
+              >
+                {joinInviteLoading ? 'Connexion...' : 'Ajouter ce groupe'}
+              </button>
+              {joinInviteFeedback ? (
+                <p className="text-[0.75rem] text-white/70">{joinInviteFeedback}</p>
+              ) : null}
+            </form>
+          </section>
+        </>
+      )}
+
+      {/* TAB 3: SYNC */}
+      {activeTab === 'sync' && (
+        <SyncTab />
+      )}
 
       {/* Share Dialog */}
       {shareWorkspace ? (

@@ -152,6 +152,7 @@ describe('AccountPage invitations', () => {
   });
 
   it("n'affiche aucune action de partage pour Mon espace", () => {
+    window.history.replaceState({}, '', '/account?tab=groupe');
     const personalWorkspace: Workspace = {
       ...adminWorkspace,
       id: 'personal-workspace',
@@ -217,6 +218,7 @@ describe('AccountPage invitations', () => {
   });
 
   it("retire immédiatement de l'interface une invitation révoquée", async () => {
+    window.history.replaceState({}, '', '/account?tab=groupe');
     workspaceMocks.listWorkspaceInvites.mockResolvedValue([{
       id: 'invite-to-revoke',
       role: 'member',
@@ -246,6 +248,7 @@ describe('AccountPage invitations', () => {
   });
 
   it('cr?e un nouveau groupe et met ? jour les espaces de travail', async () => {
+    window.history.replaceState({}, '', '/account?tab=groupe');
     const createWorkspace = vi.fn().mockImplementation(async (name: string) => {
       const newWs: Workspace = {
         id: 'workspace-new',
@@ -277,6 +280,7 @@ describe('AccountPage invitations', () => {
   });
 
   it('demande une confirmation avant de retirer un membre du groupe', async () => {
+    window.history.replaceState({}, '', '/account?tab=groupe');
     workspaceMocks.listWorkspaceMembersWithProfiles.mockResolvedValue([{
       id: 'membership-guest',
       workspaceId: adminWorkspace.id,
@@ -302,5 +306,18 @@ describe('AccountPage invitations', () => {
     await waitFor(() => {
       expect(workspaceMocks.removeWorkspaceMember).toHaveBeenCalledWith(adminWorkspace.id, 'user-guest');
     });
+  });
+
+  it('bascule entre les 3 onglets (Compte, Groupe, Sync)', async () => {
+    window.history.replaceState({}, '', '/account?tab=compte');
+    render(<AccountPage />);
+
+    expect(screen.getByText('Espace personnel')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /Groupe/i }));
+    expect(screen.getByText('Espaces de travail')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /Sync/i }));
+    expect(screen.getByText('Synchronisation Cloud')).toBeInTheDocument();
   });
 });
