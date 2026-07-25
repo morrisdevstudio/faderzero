@@ -52,7 +52,7 @@ export function SyncTab() {
   const [transfer, setTransfer] = useState<PreparedSyncTransfer | null>(null);
   
   // États et hooks pour la synchronisation Supabase
-  const { session, activeWorkspace, workspaces, signOut, refreshWorkspaceAccess } = useAuthStore();
+  const { session, activeWorkspace, workspaces, refreshWorkspaceAccess } = useAuthStore();
   const canWrite = canWriteWorkspace(activeWorkspace?.role);
   const [isCloudSyncing, setIsCloudSyncing] = useState(false);
   const [cloudSyncError, setCloudSyncError] = useState<string | null>(null);
@@ -610,7 +610,7 @@ export function SyncTab() {
       </FeatureCard>
 
       {/* SECTION PWA / OFFLINE STATUS */}
-      <StatusPill />
+      <StatusPill label="Mode PWA" />
 
       {/* SECTION HORS LIGNE (QR CODES) */}
       {canWrite ? <FeatureCard

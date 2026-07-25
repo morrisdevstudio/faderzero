@@ -79,8 +79,9 @@ function getWorkspaceInitials(name?: string): string {
   const trimmed = name.trim();
   if (trimmed.length <= 2) return trimmed.toUpperCase();
   const words = trimmed.split(/\s+/);
-  if (words.length >= 2 && words[0] && words[1]) {
-    return (words[0][0] + words[1][0]).toUpperCase();
+  const [firstWord = '', secondWord = ''] = words;
+  if (firstWord && secondWord) {
+    return (firstWord.charAt(0) + secondWord.charAt(0)).toUpperCase();
   }
   return trimmed.slice(0, 2).toUpperCase();
 }
