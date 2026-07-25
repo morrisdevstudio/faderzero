@@ -102,70 +102,82 @@ export function LoginPage({ inviteTokenPresent = false }: LoginPageProps) {
   }
 
   const passwordRequirements = getPasswordRequirements(password);
-  const title = mode === 'signin' ? 'Connexion' : mode === 'signup' ? 'Creer un compte' : 'Mot de passe oublié';
+  const title = mode === 'signin' ? 'Connexion' : mode === 'signup' ? 'Créer un compte' : 'Mot de passe oublié';
   const subtitle =
     mode === 'signin'
       ? inviteTokenPresent
-        ? 'Connectez-vous pour accepter le lien de groupe que vous avez recu.'
-        : 'Connectez-vous pour retrouver votre groupe et vos donnees.'
+        ? 'Connectez-vous pour accepter le lien de groupe que vous avez reçu.'
+        : 'Connectez-vous pour retrouver votre groupe et vos données.'
       : mode === 'signup'
         ? 'Créez votre accès FaderZero. Votre e-mail devra être confirmé avant la connexion.'
-        : 'Saisissez votre adresse. La réponse reste volontairement identique pour toutes les demandes.';
+        : 'Saisissez votre adresse e-mail pour recevoir le lien de réinitialisation.';
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#0c0d10] px-4 text-[#f5f0ea]">
+    <div className="flex min-h-screen items-center justify-center bg-[#0c0d10] px-4 py-8 text-[#f5f0ea]">
+      {/* Soft background glow */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-[40%] -left-[40%] h-[80%] w-[80%] rounded-full bg-orange-600/10 blur-[120px]" />
-        <div className="absolute -bottom-[40%] -right-[40%] h-[80%] w-[80%] rounded-full bg-amber-500/10 blur-[120px]" />
+        <div className="absolute -top-[30%] left-1/2 -translate-x-1/2 h-[70%] w-[90%] max-w-2xl rounded-full bg-[#ff3a63]/10 blur-[140px]" />
       </div>
 
-      <div className="relative w-full max-w-md rounded-[1.8rem] border border-white/10 bg-white/5 p-8 shadow-[0_32px_64px_rgba(0,0,0,0.5)] backdrop-blur-2xl">
-        <div className="text-center mb-8">
-          <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-white/5 text-orange-400 mb-4 shadow-[0_0_20px_rgba(251,146,60,0.15)]">
-            <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2v20" />
-              <path d="M2 12h20" />
-              <path d="M5 5l14 14" />
-              <path d="M19 5 5 19" />
-            </svg>
-          </span>
-          <h1 className="text-2xl font-black uppercase tracking-[0.2em] text-white">FaderZero</h1>
-          <p className="text-[0.72rem] uppercase tracking-[0.16em] text-white/50 mt-1">Votre prompteur scenique</p>
-        </div>
-
-        <div className="mb-6 rounded-2xl border border-white/10 bg-black/20 p-1.5">
-          <div className="grid grid-cols-2 gap-1">
-            <button
-              type="button"
-              onClick={() => setMode('signin')}
-              className={`rounded-xl px-4 py-3 text-[0.72rem] font-black uppercase tracking-[0.16em] transition ${
-                mode === 'signin'
-                  ? 'bg-orange-500 text-white shadow-[0_12px_28px_rgba(249,115,22,0.28)]'
-                  : 'text-white/60 hover:bg-white/5 hover:text-white'
-              }`}
-            >
-              Connexion
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode('signup')}
-              className={`rounded-xl px-4 py-3 text-[0.72rem] font-black uppercase tracking-[0.16em] transition ${
-                mode === 'signup'
-                  ? 'bg-orange-500 text-white shadow-[0_12px_28px_rgba(249,115,22,0.28)]'
-                  : 'text-white/60 hover:bg-white/5 hover:text-white'
-              }`}
-            >
-              Inscription
-            </button>
+      <div className="relative w-full max-w-md rounded-[1.8rem] border border-white/10 bg-[rgba(16,18,24,0.96)] p-7 sm:p-8 shadow-[0_32px_80px_rgba(0,0,0,0.6)] backdrop-blur-2xl">
+        {/* Brand Header */}
+        <div className="flex flex-col items-center justify-center text-center mb-8">
+          <div className="flex items-center gap-3">
+            <div className="flex h-[54px] items-center">
+              <svg viewBox="0 0 20 80" className="h-full w-[15px] fill-white">
+                <rect x="9" y="0" width="2" height="80" rx="0.5" />
+                <rect x="2" y="20" width="16" height="24" rx="2" />
+              </svg>
+            </div>
+            <div className="flex w-[120px] flex-col justify-center text-white font-extrabold text-[24px] font-sans">
+              <div className="flex w-full justify-between leading-[1.05]">
+                <span>F</span><span>A</span><span>D</span><span>E</span><span>R</span>
+              </div>
+              <div className="flex w-full justify-between leading-[1.05]">
+                <span>Z</span><span>E</span><span>R</span><span>O</span>
+              </div>
+            </div>
           </div>
         </div>
 
+        {/* Tab Selector */}
+        {mode !== 'forgot' ? (
+          <div className="mb-6 rounded-[1.2rem] border border-white/10 bg-black/40 p-1.5">
+            <div className="grid grid-cols-2 gap-1.5">
+              <button
+                type="button"
+                onClick={() => setMode('signin')}
+                className={`rounded-[0.9rem] px-4 py-3 text-[0.72rem] font-black uppercase tracking-[0.16em] transition ${
+                  mode === 'signin'
+                    ? 'fz-button-primary shadow-[0_8px_20px_rgba(255,58,99,0.35)]'
+                    : 'text-white/55 hover:bg-white/5 hover:text-white'
+                }`}
+              >
+                Connexion
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode('signup')}
+                className={`rounded-[0.9rem] px-4 py-3 text-[0.72rem] font-black uppercase tracking-[0.16em] transition ${
+                  mode === 'signup'
+                    ? 'fz-button-primary shadow-[0_8px_20px_rgba(255,58,99,0.35)]'
+                    : 'text-white/55 hover:bg-white/5 hover:text-white'
+                }`}
+              >
+                Inscription
+              </button>
+            </div>
+          </div>
+        ) : null}
+
+        {/* Title */}
         <div className="mb-6 text-center">
-          <h2 className="text-xl font-black uppercase tracking-[0.18em] text-white">{title}</h2>
-          <p className="mt-2 text-[0.76rem] leading-relaxed text-white/55">{subtitle}</p>
+          <h2 className="text-lg font-black uppercase tracking-[0.18em] text-white">{title}</h2>
+          <p className="mt-1.5 text-[0.76rem] leading-relaxed text-white/55">{subtitle}</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
           {mode === 'signup' ? (
             <div>
               <label htmlFor="displayName" className="mb-2 block text-[0.68rem] font-black uppercase tracking-[0.18em] text-white/60">
@@ -182,9 +194,9 @@ export function LoginPage({ inviteTokenPresent = false }: LoginPageProps) {
                 onChange={(event) => setDisplayName(event.target.value)}
                 placeholder="Votre nom affiché"
                 disabled={loading}
-                className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3.5 text-sm text-white placeholder-white/20 transition focus:border-orange-500/50 focus:bg-white/10 focus:outline-none focus:ring-0"
+                className="w-full rounded-[1.1rem] border border-white/10 bg-white/5 px-4 py-3.5 text-sm text-white placeholder-white/25 transition focus:border-white/30 focus:bg-white/10 focus:outline-none"
               />
-              <p className="mt-2 text-[0.68rem] text-white/40">2 à 30 caractères, non unique.</p>
+              <p className="mt-1.5 text-[0.68rem] text-white/40">2 à 30 caractères, non unique.</p>
             </div>
           ) : null}
 
@@ -201,38 +213,40 @@ export function LoginPage({ inviteTokenPresent = false }: LoginPageProps) {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="nom@exemple.com"
               disabled={loading}
-              className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3.5 text-sm text-white placeholder-white/20 transition focus:border-orange-500/50 focus:bg-white/10 focus:outline-none focus:ring-0"
+              className="w-full rounded-[1.1rem] border border-white/10 bg-white/5 px-4 py-3.5 text-sm text-white placeholder-white/25 transition focus:border-white/30 focus:bg-white/10 focus:outline-none"
             />
           </div>
 
-          {mode !== 'forgot' ? <div>
-            <label htmlFor="password" className="block text-[0.68rem] font-black uppercase tracking-[0.18em] text-white/60 mb-2">
-              Mot de passe
-            </label>
-            <div className="relative">
-              <input
-                id="password"
-                type={isPasswordVisible ? 'text' : 'password'}
-                required
-                autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Au moins 8 caracteres"
-                disabled={loading}
-                className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3.5 pr-13 text-sm text-white placeholder-white/20 transition focus:border-orange-500/50 focus:bg-white/10 focus:outline-none focus:ring-0"
-              />
-              <button
-                type="button"
-                onClick={() => setIsPasswordVisible((currentValue) => !currentValue)}
-                disabled={loading}
-                aria-label={isPasswordVisible ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
-                aria-pressed={isPasswordVisible}
-                className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-white/45 transition hover:text-white disabled:cursor-not-allowed disabled:text-white/20"
-              >
-                <EyeIcon crossed={!isPasswordVisible} />
-              </button>
+          {mode !== 'forgot' ? (
+            <div>
+              <label htmlFor="password" className="block text-[0.68rem] font-black uppercase tracking-[0.18em] text-white/60 mb-2">
+                Mot de passe
+              </label>
+              <div className="relative">
+                <input
+                  id="password"
+                  type={isPasswordVisible ? 'text' : 'password'}
+                  required
+                  autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Au moins 8 caractères"
+                  disabled={loading}
+                  className="w-full rounded-[1.1rem] border border-white/10 bg-white/5 px-4 py-3.5 pr-13 text-sm text-white placeholder-white/25 transition focus:border-white/30 focus:bg-white/10 focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => setIsPasswordVisible((currentValue) => !currentValue)}
+                  disabled={loading}
+                  aria-label={isPasswordVisible ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                  aria-pressed={isPasswordVisible}
+                  className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-white/45 transition hover:text-white disabled:cursor-not-allowed disabled:text-white/20"
+                >
+                  <EyeIcon crossed={!isPasswordVisible} />
+                </button>
+              </div>
             </div>
-          </div> : null}
+          ) : null}
 
           {mode === 'signup' ? (
             <ul className="grid grid-cols-2 gap-2 text-[0.68rem]" aria-label="Règles du mot de passe">
@@ -242,7 +256,7 @@ export function LoginPage({ inviteTokenPresent = false }: LoginPageProps) {
                 ['Une minuscule', passwordRequirements.lowercase],
                 ['Un chiffre', passwordRequirements.digit],
               ].map(([label, valid]) => (
-                <li key={String(label)} className={valid ? 'text-emerald-300' : 'text-white/40'}>
+                <li key={String(label)} className={valid ? 'text-emerald-300 font-medium' : 'text-white/40'}>
                   {valid ? '✓' : '○'} {label}
                 </li>
               ))}
@@ -264,7 +278,7 @@ export function LoginPage({ inviteTokenPresent = false }: LoginPageProps) {
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Retapez votre mot de passe"
                   disabled={loading}
-                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3.5 pr-13 text-sm text-white placeholder-white/20 transition focus:border-orange-500/50 focus:bg-white/10 focus:outline-none focus:ring-0"
+                  className="w-full rounded-[1.1rem] border border-white/10 bg-white/5 px-4 py-3.5 pr-13 text-sm text-white placeholder-white/25 transition focus:border-white/30 focus:bg-white/10 focus:outline-none"
                 />
                 <button
                   type="button"
@@ -285,33 +299,37 @@ export function LoginPage({ inviteTokenPresent = false }: LoginPageProps) {
           )}
 
           {mode === 'signin' ? (
-            <button
-              type="button"
-              onClick={() => setMode('forgot')}
-              className="w-full text-center text-[0.7rem] font-bold text-orange-300 transition hover:text-orange-200"
-            >
-              Mot de passe oublié ?
-            </button>
+            <div className="text-right">
+              <button
+                type="button"
+                onClick={() => setMode('forgot')}
+                className="text-[0.7rem] font-bold text-white/60 transition hover:text-white"
+              >
+                Mot de passe oublié ?
+              </button>
+            </div>
           ) : null}
 
           {mode === 'forgot' ? (
-            <button
-              type="button"
-              onClick={() => setMode('signin')}
-              className="w-full text-center text-[0.7rem] font-bold text-white/55 transition hover:text-white"
-            >
-              Retour à la connexion
-            </button>
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={() => setMode('signin')}
+                className="text-[0.7rem] font-bold text-white/60 transition hover:text-white"
+              >
+                Retour à la connexion
+              </button>
+            </div>
           ) : null}
 
           {displayedError && (
-            <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-center text-[0.75rem] text-red-400">
+            <div className="rounded-xl border border-rose-500/30 bg-rose-500/15 p-3 text-center text-[0.75rem] text-rose-300">
               {displayedError}
             </div>
           )}
 
           {infoMessage && (
-            <div className="rounded-xl border border-orange-500/20 bg-orange-500/10 p-3 text-center text-[0.75rem] text-orange-300">
+            <div className="rounded-xl border border-white/20 bg-white/10 p-3 text-center text-[0.75rem] text-white/90">
               {infoMessage}
             </div>
           )}
@@ -321,7 +339,7 @@ export function LoginPage({ inviteTokenPresent = false }: LoginPageProps) {
               type="button"
               onClick={() => void handleResendConfirmation()}
               disabled={loading}
-              className="w-full rounded-xl border border-orange-500/25 bg-orange-500/10 px-4 py-3 text-[0.7rem] font-black uppercase tracking-[0.14em] text-orange-200 transition hover:bg-orange-500/20 disabled:opacity-45"
+              className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-[0.7rem] font-black uppercase tracking-[0.14em] text-white/90 transition hover:bg-white/15 disabled:opacity-45"
             >
               Renvoyer l'e-mail de confirmation
             </button>
@@ -336,7 +354,7 @@ export function LoginPage({ inviteTokenPresent = false }: LoginPageProps) {
               || (mode !== 'forgot' && !password)
               || (mode === 'signup' && (!displayName.trim() || !confirmPassword))
             }
-            className="relative w-full overflow-hidden rounded-2xl bg-white px-4 py-4 text-[0.72rem] font-black uppercase tracking-[0.2em] text-[#0c0d10] transition hover:bg-orange-500 hover:text-white disabled:bg-white/10 disabled:text-white/40 shadow-lg"
+            className="fz-button-primary relative w-full overflow-hidden rounded-[1.1rem] px-4 py-3.5 text-[0.72rem] font-black uppercase tracking-[0.2em] transition active:scale-[0.99] disabled:opacity-40 disabled:shadow-none"
           >
             {loading
               ? mode === 'signin'
@@ -353,11 +371,11 @@ export function LoginPage({ inviteTokenPresent = false }: LoginPageProps) {
         </form>
 
         <div className="mt-6 border-t border-white/10 pt-5 text-center">
-          <p className="text-[0.72rem] leading-relaxed text-white/45">
+          <p className="text-[0.7rem] leading-relaxed text-white/45">
             {mode === 'signin'
               ? inviteTokenPresent
-                ? "Une fois connecte, vous pourrez rejoindre directement le groupe partage avec ce lien."
-                : "Connectez-vous puis vous retrouverez directement votre groupe si vous en avez deja un."
+                ? "Une fois connecté, vous pourrez rejoindre directement le groupe partagé avec ce lien."
+                : "Connectez-vous puis vous retrouverez directement votre groupe si vous en avez déjà un."
               : mode === 'signup'
                 ? "Vous devrez valider votre adresse e-mail avant votre première connexion."
                 : "Pour votre sécurité, l’application ne confirme jamais si une adresse possède un compte."}

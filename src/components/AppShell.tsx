@@ -74,6 +74,31 @@ function MetronomeIcon(props: IconProps) {
   );
 }
 
+function FaderHeaderLogo() {
+  return (
+    <NavLink
+      to="/home"
+      className="flex items-center gap-2 transition hover:opacity-90"
+      aria-label="FaderZero Accueil"
+    >
+      <div className="flex h-[34px] items-center">
+        <svg viewBox="0 0 20 80" className="h-full w-[9px] fill-white">
+          <rect x="9" y="0" width="2" height="80" rx="0.5" />
+          <rect x="2" y="20" width="16" height="24" rx="2" />
+        </svg>
+      </div>
+      <div className="flex w-[70px] flex-col justify-center text-white font-extrabold text-[14px] font-sans">
+        <div className="flex w-full justify-between leading-[1.05]">
+          <span>F</span><span>A</span><span>D</span><span>E</span><span>R</span>
+        </div>
+        <div className="flex w-full justify-between leading-[1.05]">
+          <span>Z</span><span>E</span><span>R</span><span>O</span>
+        </div>
+      </div>
+    </NavLink>
+  );
+}
+
 function getWorkspaceInitials(name?: string): string {
   if (!name) return 'ME';
   const trimmed = name.trim();
@@ -204,12 +229,7 @@ export function AppShell() {
       >
         <div className="mx-auto w-full max-w-md px-4 pb-2 pt-3 sm:px-5">
           <div className="relative flex h-11 items-center justify-between">
-            <NavLink
-              to="/home"
-              className="text-[0.85rem] font-black uppercase tracking-[0.24em] text-white hover:text-orange-400 transition"
-            >
-              FaderZero
-            </NavLink>
+            <FaderHeaderLogo />
 
             <div className="flex items-center gap-2">
               {!isOnline ? (

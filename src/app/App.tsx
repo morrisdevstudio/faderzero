@@ -12,6 +12,8 @@ import { db } from '@/db/db';
 import { canWriteWorkspace } from '@/services/supabase/workspace';
 import { clearPendingInviteToken, readPendingInviteToken } from '@/services/supabase/inviteContext';
 
+import { SplashScreen } from '@/components/SplashScreen';
+
 function SyncBootstrap() {
   const activeWorkspace = useAuthStore((state) => state.activeWorkspace);
   const refreshWorkspaceAccess = useAuthStore((state) => state.refreshWorkspaceAccess);
@@ -190,14 +192,7 @@ function AppContent() {
   }, [session]);
 
   if (loading || !initialized) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0c0d10] text-[#f5f0ea]">
-        <div className="text-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-white/20 border-t-orange-500 mx-auto mb-4" />
-          <p className="text-[0.72rem] font-bold uppercase tracking-[0.16em] text-white/40">Chargement...</p>
-        </div>
-      </div>
-    );
+    return <SplashScreen />;
   }
 
   if (!session) {
