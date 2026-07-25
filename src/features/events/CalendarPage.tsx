@@ -6,6 +6,8 @@ import type { EventRecord } from '@/db/schema';
 import { useAuthStore } from '@/stores/authStore';
 import { EventFormModal } from './EventFormModal';
 
+import { getWorkspaceColorOption, useWorkspaceBadgeColors } from '@/services/workspaceColors';
+
 const EVENT_TYPE_LABELS: Record<string, string> = {
   rehearsal: 'Répétition',
   concert: 'Concert',
@@ -13,55 +15,8 @@ const EVENT_TYPE_LABELS: Record<string, string> = {
   other: 'Autre',
 };
 
-const GROUP_COLOR_PALETTE = [
-  '#00F0FF', // Cyan
-  '#10B981', // Emerald
-  '#F59E0B', // Amber
-  '#EC4899', // Pink
-  '#3B82F6', // Blue
-  '#8B5CF6', // Violet
-  '#F97316', // Orange
-  '#14B8A6', // Teal
-  '#E11D48', // Rose
-  '#6366F1', // Indigo
-];
-
-function getWorkspaceColor(workspaceId: string, isPersonal: boolean, userId?: string): string {
-  if (isPersonal || workspaceId === 'personal' || workspaceId === 'default-workspace') {
-    return '#9D00FF'; // Personal Signature Purple
-  }
-
-  const storageKey = `fz_workspace_colors_${userId || 'guest'}`;
-  let colorMap: Record<string, string> = {};
-
-  try {
-    const raw = localStorage.getItem(storageKey);
-    if (raw) {
-      colorMap = JSON.parse(raw);
-    }
-  } catch {
-    colorMap = {};
-  }
-
-  if (colorMap[workspaceId]) {
-    return colorMap[workspaceId];
-  }
-
-  let hash = 0;
-  for (let i = 0; i < workspaceId.length; i++) {
-    hash = workspaceId.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const colorIndex = Math.abs(hash) % GROUP_COLOR_PALETTE.length;
-  const assignedColor = GROUP_COLOR_PALETTE[colorIndex]!;
-
-  colorMap[workspaceId] = assignedColor;
-  try {
-    localStorage.setItem(storageKey, JSON.stringify(colorMap));
-  } catch {
-    // ignore
-  }
-
-  return assignedColor;
+function getWorkspaceColor(workspaceId: string, isPersonal: boolean): string {
+  return getWorkspaceColorOption(workspaceId, isPersonal ? 'personal' : 'group').hex;
 }
 
 // SVG icons as components
@@ -138,6 +93,7 @@ const WEEKDAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 export function CalendarPage() {
   const { workspaces, session } = useAuthStore();
   const user = session?.user;
+  useWorkspaceBadgeColors();
   const [events, setEvents] = useState<EventRecord[]>([]);
   const [disabledWorkspaceIds, setDisabledWorkspaceIds] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
@@ -387,7 +343,7 @@ export function CalendarPage() {
   }, [sortedEvents, startOfSelectedDay]);
 
   const getEventStyles = (evt: EventRecord, isPersonal: boolean) => {
-    const color = getWorkspaceColor(evt.workspaceId, isPersonal, user?.id);
+    const color = getWorkspaceColor(evt.workspaceId, isPersonal);
     const wsInfo = workspaceMap.get(evt.workspaceId);
     return {
       color,
@@ -612,7 +568,7 @@ export function CalendarPage() {
                       {groupWorkspaces.map((g) => {
                         const isGroupEnabled = !disabledWorkspaceIds.has(g.id);
                         const groupAvatarUrl = (g as { avatarUrl?: string }).avatarUrl;
-                        const groupColor = getWorkspaceColor(g.id, false, user?.id);
+                        const groupColor = getWorkspaceColor(g.id, false);
 
                         return (
                           <button
@@ -779,7 +735,7 @@ export function CalendarPage() {
                         {dayEvents.slice(0, 3).map((evt) => {
                           const wsInfo = workspaceMap.get(evt.workspaceId);
                           const isPersonal = wsInfo?.type === 'personal' || evt.workspaceId === 'personal' || evt.workspaceId === 'default-workspace';
-                          const dotColor = getWorkspaceColor(evt.workspaceId, isPersonal, user?.id);
+                          const dotColor = getWorkspaceColor(evt.workspaceId, isPersonal);
 
                           return (
                             <span
@@ -838,7 +794,7 @@ export function CalendarPage() {
                         {dayEvents.slice(0, 3).map((evt) => {
                           const wsInfo = workspaceMap.get(evt.workspaceId);
                           const isPersonal = wsInfo?.type === 'personal' || evt.workspaceId === 'personal' || evt.workspaceId === 'default-workspace';
-                          const dotColor = getWorkspaceColor(evt.workspaceId, isPersonal, user?.id);
+                          const dotColor = getWorkspaceColor(evt.workspaceId, isPersonal);
 
                           return (
                             <span

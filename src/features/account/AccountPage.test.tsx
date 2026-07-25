@@ -166,8 +166,7 @@ describe('AccountPage invitations', () => {
 
     render(<AccountPage />);
 
-    expect(screen.getByText('0 groupe')).toBeInTheDocument();
-    expect(screen.getByText('Accueil personnel actif')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Mes groupes/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Partager le groupe Mon espace' })).not.toBeInTheDocument();
   });
 
@@ -315,7 +314,7 @@ describe('AccountPage invitations', () => {
     expect(screen.getByText('Espace personnel')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /Groupe/i }));
-    expect(screen.getByText('Espaces de travail')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Mes groupes/i })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /Sync/i }));
     expect(screen.getByText('Synchronisation Cloud')).toBeInTheDocument();

@@ -4,6 +4,7 @@ import { FormDialog } from '@/components/FormDialog';
 import { AudioMiniPlayer } from '@/features/audio/AudioMiniPlayer';
 import { useAuthStore } from '@/stores/authStore';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { useWorkspaceBadgeColors } from '@/services/workspaceColors';
 
 type IconProps = SVGProps<SVGSVGElement>;
 
@@ -120,11 +121,13 @@ export function AppShell() {
   const [isWorkspacePickerOpen, setIsWorkspacePickerOpen] = useState(false);
   const [isLiveMenuOpen, setIsLiveMenuOpen] = useState(false);
   const isOnline = useOnlineStatus();
+  const { getBadgeColor } = useWorkspaceBadgeColors();
   const [headerHeight, setHeaderHeight] = useState(64);
   const [viewportOffsetTop, setViewportOffsetTop] = useState(0);
   const headerRef = useRef<HTMLElement | null>(null);
 
   const workspaceInitials = getWorkspaceInitials(activeWorkspace?.name);
+  const activeBadgeColor = getBadgeColor(activeWorkspace?.id, activeWorkspace?.type);
   const isLiveActive = location.pathname.startsWith('/prompter') || location.pathname.startsWith('/metronome');
 
   useLayoutEffect(() => {
@@ -248,7 +251,8 @@ export function AppShell() {
                 onClick={() => setIsWorkspacePickerOpen(true)}
                 aria-label={`Changer de groupe (${activeWorkspace?.name ?? 'Mon Espace'})`}
                 title={activeWorkspace?.name ?? 'Changer de groupe'}
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-[#ff3a63]/40 bg-gradient-to-b from-[#ff3a63]/25 to-[#ff2f5c]/15 text-[0.72rem] font-black uppercase tracking-wider text-rose-200 shadow-[0_4px_12px_rgba(0,0,0,0.25)] transition hover:border-[#ff3a63] hover:scale-105 hover:bg-[#ff3a63]/35"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/20 text-[0.75rem] font-black uppercase tracking-wider text-white shadow-[0_4px_12px_rgba(0,0,0,0.25)] transition hover:scale-105 hover:border-white/40"
+                style={{ backgroundColor: activeBadgeColor.hex }}
               >
                 {workspaceInitials}
               </button>
@@ -272,6 +276,8 @@ export function AppShell() {
               {workspaces.length > 0 ? (
                 workspaces.map((workspace) => {
                   const isActive = workspace.id === activeWorkspace?.id;
+                  const initials = getWorkspaceInitials(workspace.name);
+                  const badgeColor = getBadgeColor(workspace.id, workspace.type);
 
                   return (
                     <button
@@ -283,27 +289,20 @@ export function AppShell() {
                         setIsWorkspacePickerOpen(false);
                       }}
                       className={[
-                        'w-full rounded-[1.2rem] border px-4 py-4 text-left transition',
+                        'w-full rounded-[1.2rem] border px-4 py-3.5 text-left transition flex items-center gap-3.5',
                         isActive
-                          ? 'border-[#ff3a63]/40 bg-[#ff3a63]/12 shadow-[0_16px_36px_rgba(255,58,99,0.14)]'
+                          ? 'border-white/25 bg-white/10 shadow-[0_12px_28px_rgba(0,0,0,0.35)]'
                           : 'border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/8',
                       ].join(' ')}
                     >
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-semibold text-[#f5f0ea]">{workspace.name}</p>
-                          <p className="mt-1 text-[0.68rem] uppercase tracking-[0.14em] text-white/40">
-                            {isActive ? 'Groupe actuellement utilise' : 'Activer ce groupe'}
-                          </p>
-                        </div>
-                        <span
-                          className={[
-                            'rounded-full px-3 py-1 text-[0.62rem] font-black uppercase tracking-[0.18em]',
-                            isActive ? 'bg-[#ff3a63] text-white' : 'border border-white/10 bg-black/20 text-white/55',
-                          ].join(' ')}
-                        >
-                          {isActive ? 'Actif' : 'Switch'}
-                        </span>
+                      <div
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-black text-white shadow-md border border-white/20"
+                        style={{ backgroundColor: badgeColor.hex }}
+                      >
+                        {initials}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-[#f5f0ea] truncate">{workspace.name}</p>
                       </div>
                     </button>
                   );
