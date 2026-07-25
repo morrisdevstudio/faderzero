@@ -72,7 +72,7 @@ export function AudioMiniPlayer() {
   const progressValue = duration > 0 ? Math.min(currentTime, duration) : 0;
 
   return (
-    <aside className="fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-[#111316]/96 text-white shadow-[0_-22px_48px_rgba(0,0,0,0.42)] backdrop-blur-xl">
+    <aside className="fixed inset-x-0 bottom-[calc(3.8rem+env(safe-area-inset-bottom))] z-30 border-t border-white/10 bg-[#111316]/96 text-white shadow-[0_-22px_48px_rgba(0,0,0,0.42)] backdrop-blur-xl">
       <div className="mx-auto w-full max-w-md px-3 pb-[calc(0.85rem+env(safe-area-inset-bottom))] pt-3 sm:px-4">
         <div className="flex items-center gap-3">
           {currentTrack.songId ? (

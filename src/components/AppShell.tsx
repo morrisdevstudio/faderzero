@@ -9,15 +9,6 @@ type IconProps = SVGProps<SVGSVGElement>;
 
 const scrollPositions = new Map<string, number>();
 
-function HomeIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-      <polyline points="9 22 9 12 15 12 15 22" />
-    </svg>
-  );
-}
-
 function CalendarIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
@@ -55,10 +46,9 @@ function SetlistIcon(props: IconProps) {
 function ImportsIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M12 15V4" />
-      <path d="m7 9 5-5 5 5" />
-      <path d="M5 20h14" />
-      <path d="M8 17h8" />
+      <path d="M9 18V6l10-2v12" />
+      <circle cx="7" cy="18" r="2.5" />
+      <circle cx="17" cy="16" r="2.5" />
     </svg>
   );
 }
@@ -69,17 +59,6 @@ function PrompterIcon(props: IconProps) {
       <rect x="4" y="5" width="16" height="12" rx="2.5" />
       <path d="M8 21h8" />
       <path d="M12 17v4" />
-    </svg>
-  );
-}
-
-function SyncIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M20 7v5h-5" />
-      <path d="M4 17v-5h5" />
-      <path d="M7.5 8.5A7 7 0 0 1 19 12" />
-      <path d="M16.5 15.5A7 7 0 0 1 5 12" />
     </svg>
   );
 }
@@ -95,55 +74,16 @@ function MetronomeIcon(props: IconProps) {
   );
 }
 
-function AccountIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <circle cx="12" cy="8" r="3.25" />
-      <path d="M5 19a7 7 0 0 1 14 0" />
-    </svg>
-  );
+function getWorkspaceInitials(name?: string): string {
+  if (!name) return 'ME';
+  const trimmed = name.trim();
+  if (trimmed.length <= 2) return trimmed.toUpperCase();
+  const words = trimmed.split(/\s+/);
+  if (words.length >= 2 && words[0] && words[1]) {
+    return (words[0][0] + words[1][0]).toUpperCase();
+  }
+  return trimmed.slice(0, 2).toUpperCase();
 }
-
-function WorkspaceSwitchIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M7.5 7.5A7 7 0 0 1 19 10" />
-      <path d="M19 5v5h-5" />
-      <path d="M16.5 16.5A7 7 0 0 1 5 14" />
-      <path d="M5 19v-5h5" />
-    </svg>
-  );
-}
-
-function MenuIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M4 7h16" />
-      <path d="M4 12h16" />
-      <path d="M4 17h16" />
-    </svg>
-  );
-}
-
-function SettingsIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <circle cx="12" cy="12" r="3" />
-      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-    </svg>
-  );
-}
-
-const navItems = [
-  { to: '/home', label: 'Accueil', Icon: HomeIcon },
-  { to: '/calendar', label: 'Calendrier', Icon: CalendarIcon },
-  { to: '/songs', label: 'Songs', Icon: SongsIcon },
-  { to: '/musiques', label: 'Musiques', Icon: ImportsIcon },
-  { to: '/setlists', label: 'Setlists', Icon: SetlistIcon },
-  { to: '/prompter', label: 'Prompter', Icon: PrompterIcon },
-  { to: '/metronome', label: 'Click', Icon: MetronomeIcon },
-  { to: '/account', label: 'Paramètres', Icon: SettingsIcon },
-] as const;
 
 export function AppShell() {
   const location = useLocation();
@@ -151,12 +91,15 @@ export function AppShell() {
   const workspaces = useAuthStore((state) => state.workspaces);
   const clearFeedback = useAuthStore((state) => state.clearFeedback);
   const setActiveWorkspace = useAuthStore((state) => state.setActiveWorkspace);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isWorkspacePickerOpen, setIsWorkspacePickerOpen] = useState(false);
+  const [isLiveMenuOpen, setIsLiveMenuOpen] = useState(false);
   const isOnline = useOnlineStatus();
   const [headerHeight, setHeaderHeight] = useState(64);
   const [viewportOffsetTop, setViewportOffsetTop] = useState(0);
   const headerRef = useRef<HTMLElement | null>(null);
+
+  const workspaceInitials = getWorkspaceInitials(activeWorkspace?.name);
+  const isLiveActive = location.pathname.startsWith('/prompter') || location.pathname.startsWith('/metronome');
 
   useLayoutEffect(() => {
     function updateHeaderHeight() {
@@ -211,12 +154,26 @@ export function AppShell() {
     };
   }, []);
 
-
+  useEffect(() => {
+    setIsWorkspacePickerOpen(false);
+    setIsLiveMenuOpen(false);
+  }, [location.pathname]);
 
   useEffect(() => {
-    setIsMenuOpen(false);
-    setIsWorkspacePickerOpen(false);
-  }, [location.pathname]);
+    if (!isLiveMenuOpen) return;
+
+    function handleGlobalPointerDown(event: PointerEvent) {
+      const target = event.target as HTMLElement | null;
+      if (!target?.closest('#live-mode-container')) {
+        setIsLiveMenuOpen(false);
+      }
+    }
+
+    window.addEventListener('pointerdown', handleGlobalPointerDown);
+    return () => {
+      window.removeEventListener('pointerdown', handleGlobalPointerDown);
+    };
+  }, [isLiveMenuOpen]);
 
   useLayoutEffect(() => {
     const scrollKey = `${location.pathname}${location.search}`;
@@ -238,30 +195,22 @@ export function AppShell() {
 
   return (
     <div className="min-h-screen bg-[var(--fz-bg)] text-[#f5f0ea]" style={shellStyle}>
+      {/* Top Header */}
       <header
         ref={headerRef}
         className="fixed inset-x-0 z-40 bg-[var(--fz-bg)]/98 backdrop-blur-sm"
         style={{ top: `${viewportOffsetTop}px` }}
       >
         <div className="mx-auto w-full max-w-md px-4 pb-2 pt-3 sm:px-5">
-          <div className="relative flex h-11 items-center">
-            <button
-              type="button"
-              onClick={() => setIsMenuOpen((currentValue) => !currentValue)}
-              aria-label={isMenuOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
-              className="absolute left-0 z-10 flex h-11 w-11 items-center justify-center text-white"
+          <div className="relative flex h-11 items-center justify-between">
+            <NavLink
+              to="/home"
+              className="text-[0.85rem] font-black uppercase tracking-[0.24em] text-white hover:text-orange-400 transition"
             >
-              <MenuIcon className="h-5 w-5" />
-            </button>
-            <div className="pointer-events-none absolute inset-x-0 min-w-0 px-14 text-center">
-              <p className="truncate text-[0.72rem] font-black uppercase tracking-[0.26em] text-[var(--fz-text-muted)]">
-                FaderZero
-              </p>
-              <p className="mt-1 truncate text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-white/55">
-                {activeWorkspace?.name ?? 'Aucun groupe'}
-              </p>
-            </div>
-            <div className="absolute right-0 z-10 flex items-center gap-1">
+              FaderZero
+            </NavLink>
+
+            <div className="flex items-center gap-2">
               {!isOnline ? (
                 <span
                   className="flex items-center gap-1 text-[0.58rem] font-bold uppercase tracking-[0.12em] text-amber-300/90"
@@ -276,66 +225,18 @@ export function AppShell() {
               <button
                 type="button"
                 onClick={() => setIsWorkspacePickerOpen(true)}
-                aria-label="Changer de groupe"
-                className="flex h-11 w-11 items-center justify-center text-white/72 transition hover:text-white"
+                aria-label={`Changer de groupe (${activeWorkspace?.name ?? 'Mon Espace'})`}
+                title={activeWorkspace?.name ?? 'Changer de groupe'}
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-orange-500/40 bg-gradient-to-b from-orange-500/25 to-orange-600/15 text-[0.72rem] font-black uppercase tracking-wider text-orange-200 shadow-[0_4px_12px_rgba(0,0,0,0.25)] transition hover:border-orange-400 hover:scale-105 hover:bg-orange-500/35"
               >
-                <WorkspaceSwitchIcon className="h-5 w-5" />
+                {workspaceInitials}
               </button>
             </div>
           </div>
         </div>
       </header>
-      {isMenuOpen ? (
-        <div
-          className="fixed inset-x-0 bottom-0 z-50 bg-black/48 backdrop-blur-[1px]"
-          style={{ top: `${headerHeight + viewportOffsetTop}px` }}
-          onClick={() => setIsMenuOpen(false)}
-        >
-          <div className="mx-auto w-full max-w-md px-4 pt-3 sm:px-5">
-            <nav
-              className="rounded-[1.4rem] border border-white/10 bg-[rgba(12,13,16,0.96)] p-2 shadow-[0_24px_60px_rgba(0,0,0,0.42)] backdrop-blur-xl"
-              onClick={(event) => event.stopPropagation()}
-            >
-              <div className="flex flex-col gap-2">
-                {navItems.map((item) => (
-                  <NavLink
-                    key={item.to}
-                    to={item.to}
-                    onClick={() => setIsMenuOpen(false)}
-                    className={({ isActive }) =>
-                      [
-                        'flex items-center gap-3 rounded-[1rem] px-3 py-3 transition',
-                        isActive ? 'bg-white text-[#111319]' : 'text-[var(--fz-text-muted)] hover:bg-white/5',
-                      ].join(' ')
-                    }
-                  >
-                    {({ isActive }) => (
-                      <>
-                        <span
-                          className={[
-                            'flex h-9 w-9 items-center justify-center rounded-full transition',
-                            isActive ? 'bg-[#111319] text-white' : 'bg-white/6 text-white/85',
-                          ].join(' ')}
-                        >
-                          <item.Icon className="h-4.5 w-4.5" />
-                        </span>
-                        <span
-                          className={[
-                            'text-[0.72rem] font-black uppercase tracking-[0.16em]',
-                            isActive ? 'text-[#111319]' : 'text-white',
-                          ].join(' ')}
-                        >
-                          {item.label}
-                        </span>
-                      </>
-                    )}
-                  </NavLink>
-                ))}
-              </div>
-            </nav>
-          </div>
-        </div>
-      ) : null}
+
+      {/* Workspace Picker Dialog */}
       {isWorkspacePickerOpen ? (
         <FormDialog
           title="Choisir un groupe"
@@ -369,7 +270,7 @@ export function AppShell() {
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div>
-                          <p className="text-sm font-semibold text-white">{workspace.name}</p>
+                          <p className="text-sm font-semibold text-[#f5f0ea]">{workspace.name}</p>
                           <p className="mt-1 text-[0.68rem] uppercase tracking-[0.14em] text-white/40">
                             {isActive ? 'Groupe actuellement utilise' : 'Activer ce groupe'}
                           </p>
@@ -397,17 +298,164 @@ export function AppShell() {
               onClick={() => setIsWorkspacePickerOpen(false)}
               className="flex w-full items-center justify-center rounded-[1rem] border border-white/10 bg-white/5 px-4 py-3 text-[0.72rem] font-black uppercase tracking-[0.18em] text-white transition hover:bg-white/10"
             >
-              Gerer mes groupes
+              Paramètres
             </NavLink>
           </div>
         </FormDialog>
       ) : null}
-      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-3 pb-28 sm:px-4" style={{ paddingTop: `${headerHeight + 12}px` }}>
+
+      {/* Main Content Area */}
+      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-3 pb-32 sm:px-4" style={{ paddingTop: `${headerHeight + 12}px` }}>
         <main className="flex-1 py-2">
           <Outlet />
         </main>
       </div>
+
+      {/* Audio Player */}
       <AudioMiniPlayer />
+
+      {/* Bottom Navigation Bar */}
+      <nav className="fixed inset-x-0 bottom-0 z-40 bg-[#0c0d10]/96 border-t border-white/10 shadow-[0_-16px_40px_rgba(0,0,0,0.5)] backdrop-blur-xl">
+        <div className="mx-auto flex w-full max-w-md items-center justify-around px-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2">
+          {/* 1. Calendrier */}
+          <NavLink
+            to="/calendar"
+            className={({ isActive }) =>
+              [
+                'flex flex-1 flex-col items-center justify-center gap-1 py-1 text-center transition-colors',
+                isActive ? 'text-orange-400 font-bold' : 'text-white/50 hover:text-white',
+              ].join(' ')
+            }
+          >
+            {({ isActive }) => (
+              <>
+                <CalendarIcon className={['h-5 w-5 transition-transform', isActive ? 'scale-110 text-orange-400' : ''].join(' ')} />
+                <span className="text-[0.6rem] font-bold uppercase tracking-wider">Calendrier</span>
+              </>
+            )}
+          </NavLink>
+
+          {/* 2. Musique */}
+          <NavLink
+            to="/musiques"
+            className={({ isActive }) =>
+              [
+                'flex flex-1 flex-col items-center justify-center gap-1 py-1 text-center transition-colors',
+                isActive ? 'text-orange-400 font-bold' : 'text-white/50 hover:text-white',
+              ].join(' ')
+            }
+          >
+            {({ isActive }) => (
+              <>
+                <ImportsIcon className={['h-5 w-5 transition-transform', isActive ? 'scale-110 text-orange-400' : ''].join(' ')} />
+                <span className="text-[0.6rem] font-bold uppercase tracking-wider">Musique</span>
+              </>
+            )}
+          </NavLink>
+
+          {/* 3. Mode Live (Bouton REC rouge avec Popover Prompteur & Click) */}
+          <div id="live-mode-container" className="relative flex flex-1 flex-col items-center justify-center -mt-4 z-50">
+            {isLiveMenuOpen ? (
+              <>
+                <div
+                  className="fixed inset-0 z-40 bg-black/10"
+                  onClick={() => setIsLiveMenuOpen(false)}
+                  onTouchStart={() => setIsLiveMenuOpen(false)}
+                />
+                <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 bg-transparent border-0 shadow-none p-0 whitespace-nowrap animate-in fade-in slide-in-from-bottom-2">
+                  <NavLink
+                    to="/prompter"
+                    onClick={() => setIsLiveMenuOpen(false)}
+                    className={({ isActive }) =>
+                      [
+                        'flex items-center justify-center gap-2.5 rounded-xl px-4 py-2.5 text-xs font-black uppercase tracking-wider transition-all backdrop-blur-xl',
+                        isActive
+                          ? 'bg-amber-500/20 text-amber-200 border border-amber-500/40 shadow-[0_0_14px_rgba(245,158,11,0.3)]'
+                          : 'bg-[#14161b]/95 text-white/90 border border-white/15 hover:bg-white/15 hover:text-white shadow-[0_10px_30px_rgba(0,0,0,0.6)]',
+                      ].join(' ')
+                    }
+                  >
+                    <PrompterIcon className="h-4 w-4 text-amber-400" />
+                    Prompteur
+                  </NavLink>
+                  <NavLink
+                    to="/metronome"
+                    onClick={() => setIsLiveMenuOpen(false)}
+                    className={({ isActive }) =>
+                      [
+                        'flex items-center justify-center gap-2.5 rounded-xl px-4 py-2.5 text-xs font-black uppercase tracking-wider transition-all backdrop-blur-xl',
+                        isActive
+                          ? 'bg-amber-500/20 text-amber-200 border border-amber-500/40 shadow-[0_0_14px_rgba(245,158,11,0.3)]'
+                          : 'bg-[#14161b]/95 text-white/90 border border-white/15 hover:bg-white/15 hover:text-white shadow-[0_10px_30px_rgba(0,0,0,0.6)]',
+                      ].join(' ')
+                    }
+                  >
+                    <MetronomeIcon className="h-4 w-4 text-amber-400" />
+                    Click
+                  </NavLink>
+                </div>
+              </>
+            ) : null}
+
+            <button
+              type="button"
+              onClick={() => setIsLiveMenuOpen((prev) => !prev)}
+              aria-label="Mode Live (Prompteur & Click)"
+              className="group flex flex-col items-center justify-center gap-1 py-1 text-center transition-colors focus:outline-none z-40"
+            >
+              <div
+                className={[
+                  'flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-b from-red-500 to-red-700 shadow-[0_0_18px_rgba(239,68,68,0.55)] transition-all group-hover:scale-105',
+                  isLiveActive || isLiveMenuOpen
+                    ? 'ring-2 ring-red-400 ring-offset-2 ring-offset-[#0c0d10] shadow-[0_0_24px_rgba(239,68,68,0.85)] scale-105'
+                    : '',
+                ].join(' ')}
+              >
+                <span className="h-3.5 w-3.5 rounded-full bg-white shadow-inner animate-pulse" />
+              </div>
+              <span className={['text-[0.58rem] font-black uppercase tracking-wider', isLiveActive || isLiveMenuOpen ? 'text-red-400' : 'text-white/70'].join(' ')}>
+                Mode Live
+              </span>
+            </button>
+          </div>
+
+          {/* 4. Répertoire */}
+          <NavLink
+            to="/songs"
+            className={({ isActive }) =>
+              [
+                'flex flex-1 flex-col items-center justify-center gap-1 py-1 text-center transition-colors',
+                isActive ? 'text-orange-400 font-bold' : 'text-white/50 hover:text-white',
+              ].join(' ')
+            }
+          >
+            {({ isActive }) => (
+              <>
+                <SongsIcon className={['h-5 w-5 transition-transform', isActive ? 'scale-110 text-orange-400' : ''].join(' ')} />
+                <span className="text-[0.6rem] font-bold uppercase tracking-wider">Répertoire</span>
+              </>
+            )}
+          </NavLink>
+
+          {/* 5. Setlist */}
+          <NavLink
+            to="/setlists"
+            className={({ isActive }) =>
+              [
+                'flex flex-1 flex-col items-center justify-center gap-1 py-1 text-center transition-colors',
+                isActive ? 'text-orange-400 font-bold' : 'text-white/50 hover:text-white',
+              ].join(' ')
+            }
+          >
+            {({ isActive }) => (
+              <>
+                <SetlistIcon className={['h-5 w-5 transition-transform', isActive ? 'scale-110 text-orange-400' : ''].join(' ')} />
+                <span className="text-[0.6rem] font-bold uppercase tracking-wider">Setlist</span>
+              </>
+            )}
+          </NavLink>
+        </div>
+      </nav>
     </div>
   );
 }
