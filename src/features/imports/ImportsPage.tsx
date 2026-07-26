@@ -6,13 +6,21 @@ import { FeatureCard } from '@/components/FeatureCard';
 import { FormDialog } from '@/components/FormDialog';
 import { SortMenu, type SortMode } from '@/components/SortMenu';
 import { songAssetsRepository } from '@/db/repositories/songAssetsRepository';
+import { db } from '@/db/db';
+import type { PendingAudioUploadRecord } from '@/db/schema';
 import { songsRepository } from '@/db/repositories/songsRepository';
 import type { AudioTrack } from '@/features/audio/audioPlayerStore';
 import { useAudioPlayerStore } from '@/features/audio/audioPlayerStore';
 import { buildCompressedFileName } from '@/features/songs/audioCompression';
 import { formatSongDuration } from '@/features/songs/songPresentation';
 import { useAuthStore } from '@/stores/authStore';
-import { uploadSongAsset, type SongAssetUploadProgress } from '@/services/supabase/storage';
+import type { SongAssetUploadProgress } from '@/services/supabase/storage';
+import {
+  linkPendingAudioUpload,
+  removePendingAudioUpload,
+  retryPendingAudioUpload,
+  uploadOrQueueSongAsset,
+} from '@/services/audio/pendingUploads';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useAudioCacheStore } from '@/features/audio/audioCacheStore';
 import type { SVGProps } from 'react';
@@ -25,7 +33,7 @@ interface ImportProgressState {
   fileName: string;
   currentFileIndex: number;
   totalFiles: number;
-  phase: SongAssetUploadProgress['phase'] | 'preparing' | 'done' | 'error';
+  phase: SongAssetUploadProgress['phase'] | 'preparing' | 'queued' | 'done' | 'error';
   compressionProgress: number;
   uploadProgress: number;
   label: string;
@@ -269,6 +277,13 @@ export function ImportsPage() {
   const activeWorkspaceId = activeWorkspace?.id;
   const canWrite = canWriteWorkspace(activeWorkspace?.role);
   const importedTracks = useLiveQuery(() => songAssetsRepository.listImportedTracks(), [activeWorkspaceId]);
+  const pendingAudioUploads = useLiveQuery<PendingAudioUploadRecord[]>(
+    async () =>
+      activeWorkspaceId
+        ? await db.pendingAudioUploads.where('workspaceId').equals(activeWorkspaceId).sortBy('queuedAt')
+        : [],
+    [activeWorkspaceId]
+  );
   const songs = useLiveQuery(() => songsRepository.list(), [activeWorkspaceId]);
   const playQueue = useAudioPlayerStore((state) => state.playQueue);
   const stop = useAudioPlayerStore((state) => state.stop);
@@ -447,7 +462,7 @@ export function ImportsPage() {
   }
 
   function getUnifiedProgress(progress: ImportProgressState) {
-    if (progress.phase === 'done') {
+    if (progress.phase === 'done' || progress.phase === 'queued') {
       return 100;
     }
     if (progress.phase === 'error') {
@@ -466,7 +481,7 @@ export function ImportsPage() {
     if (progress.phase === 'error') {
       return 'error' as const;
     }
-    if (progress.phase === 'done') {
+    if (progress.phase === 'done' || progress.phase === 'queued') {
       return 'done' as const;
     }
     return 'active' as const;
@@ -595,7 +610,10 @@ export function ImportsPage() {
       const workspaceId = useAuthStore.getState().activeWorkspace?.id || 'default-workspace';
       const existingTracks = await songAssetsRepository.listImportedTracks();
       const existingTracksByFilename = new Map(existingTracks.map((track) => [track.filename, track] as const));
-      const reservedFilenames = new Set(existingTracksByFilename.keys());
+      const reservedFilenames = new Set([
+        ...existingTracksByFilename.keys(),
+        ...(pendingAudioUploads ?? []).map((pendingUpload) => pendingUpload.filename),
+      ]);
       let skippedCount = 0;
       const preparedImports: Array<{
         id: string;
@@ -624,6 +642,8 @@ export function ImportsPage() {
           if (decision.action === 'rename') {
             finalFilename = decision.filename;
           }
+        } else if (reservedFilenames.has(finalFilename)) {
+          finalFilename = buildCompressedFileName(buildRenamedFileName(file.name, reservedFilenames));
         }
 
         reservedFilenames.add(finalFilename);
@@ -673,8 +693,9 @@ export function ImportsPage() {
           });
 
           try {
-            const assetId = await uploadSongAsset(workspaceId, undefined, preparedImport.file, {
+            const result = await uploadOrQueueSongAsset(workspaceId, undefined, preparedImport.file, {
               filename: preparedImport.filename,
+              isOnline: () => isOnline,
               onProgress: (progress) => {
                 upsertImportProgress({
                   ...progressBase,
@@ -688,10 +709,10 @@ export function ImportsPage() {
 
             upsertImportProgress({
               ...progressBase,
-              phase: 'done',
+              phase: result.status === 'queued' ? 'queued' : 'done',
               compressionProgress: 100,
               uploadProgress: 100,
-              label: 'Import termine',
+              label: result.status === 'queued' ? 'En attente de connexion' : 'Import termine',
             });
             updateBatchLinkPromptItem(preparedImport.id, (currentItem) => ({
               ...currentItem,
@@ -699,7 +720,12 @@ export function ImportsPage() {
               error: null,
             }));
 
-            return { id: preparedImport.id, filename: preparedImport.filename, assetId, success: true as const };
+            return {
+              id: preparedImport.id,
+              filename: preparedImport.filename,
+              result,
+              success: true as const,
+            };
           } catch (error: any) {
             updateImportProgressItem(preparedImport.id, (currentItem) => ({
               ...currentItem,
@@ -724,9 +750,7 @@ export function ImportsPage() {
 
       const [batchDecision, uploadResults] = await Promise.all([batchDecisionPromise, uploadResultsPromise]);
       const successfulResults = uploadResults.filter((result) => result.success);
-      const successfulResultsById = new Map(
-        successfulResults.map((result) => [result.id, result.assetId] as const)
-      );
+      const successfulResultsById = new Map(successfulResults.map((result) => [result.id, result.result] as const));
 
       if (batchDecision.action === 'confirm') {
         for (const item of batchDecision.items) {
@@ -734,17 +758,25 @@ export function ImportsPage() {
             continue;
           }
 
-          const assetId = successfulResultsById.get(item.id);
-          if (assetId) {
-            await linkAssetToSong(assetId, item.selectedSongId);
+          const uploadResult = successfulResultsById.get(item.id);
+          if (uploadResult?.status === 'uploaded') {
+            await linkAssetToSong(uploadResult.assetId, item.selectedSongId);
+          } else if (uploadResult?.status === 'queued') {
+            const uploadedItem = successfulResults.find((result) => result.id === item.id);
+            await linkPendingAudioUpload(uploadResult.pendingUploadId, item.selectedSongId, {
+              workspaceId,
+              filename: uploadedItem?.filename ?? item.id,
+            });
           }
         }
       }
 
-      const importedCount = successfulResults.length;
-      const failedCount = uploadResults.length - importedCount;
+      const importedCount = successfulResults.filter((result) => result.result.status === 'uploaded').length;
+      const queuedCount = successfulResults.filter((result) => result.result.status === 'queued').length;
+      const failedCount = uploadResults.length - successfulResults.length;
       setImportMessage(
         `${importedCount} piste${importedCount > 1 ? 's' : ''} importee${importedCount > 1 ? 's' : ''}` +
+          (queuedCount > 0 ? `, ${queuedCount} en attente de connexion` : '') +
           (skippedCount > 0 ? `, ${skippedCount} annulee${skippedCount > 1 ? 's' : ''}` : '') +
           (failedCount > 0 ? `, ${failedCount} en erreur` : '') +
           '.'
@@ -850,12 +882,16 @@ export function ImportsPage() {
 
   return (
     <div className="space-y-4">
-      <section
-        className="sticky z-30 -mx-1 -mt-5 border-b border-white/8 bg-[var(--fz-bg)] px-1 pb-3 pt-2"
-        style={{ top: 'calc(var(--fz-header-height, 64px) + var(--fz-viewport-offset-top, 0px))' }}
-      >
-        <div className="flex items-start justify-between gap-3">
-          <h1 className="min-w-0 flex-1 text-[2rem] font-black tracking-tight text-white">Musiques</h1>
+      <section className="space-y-3 -mt-2">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-7 w-7 text-[#ff3a63] shrink-0">
+              <circle cx="12" cy="12" r="9" />
+              <circle cx="12" cy="12" r="2.5" />
+              <path d="M12 12v-5l4-1" />
+            </svg>
+            <h1 className="min-w-0 flex-1 text-[2rem] font-black tracking-tight text-white">Musiques</h1>
+          </div>
           {canWrite ? <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
@@ -916,7 +952,13 @@ export function ImportsPage() {
                     </div>
                     <div className="shrink-0 text-right">
                       <p className="text-[0.62rem] font-black uppercase tracking-[0.14em] text-white/55">
-                        {progress.phase === 'done' ? 'Termine' : progress.phase === 'error' ? 'Erreur' : 'En cours'}
+                        {progress.phase === 'done'
+                          ? 'Termine'
+                          : progress.phase === 'queued'
+                            ? 'En attente'
+                            : progress.phase === 'error'
+                              ? 'Erreur'
+                              : 'En cours'}
                       </p>
                       <p className="mt-1 text-[0.72rem] font-black text-white/82">
                         {Math.round(getUnifiedProgress(progress))}%
@@ -929,6 +971,48 @@ export function ImportsPage() {
                 </div>
               ))}
             </div>
+          </div>
+        ) : null}
+        {pendingAudioUploads && pendingAudioUploads.length > 0 ? (
+          <div className="mt-3 space-y-2 rounded-[1rem] border border-amber-300/15 bg-amber-300/6 p-3.5">
+            <p className="text-[0.68rem] font-black uppercase tracking-[0.16em] text-amber-200/75">
+              Envois audio en attente
+            </p>
+            {pendingAudioUploads.map((pendingUpload) => (
+              <div key={pendingUpload.id} className="flex items-center gap-3 rounded-xl bg-black/20 px-3 py-2.5">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-black text-white">{pendingUpload.filename}</p>
+                  <p className="mt-1 text-[0.65rem] font-black uppercase tracking-[0.12em] text-white/50">
+                    {pendingUpload.status === 'uploading'
+                      ? 'Envoi en cours'
+                      : pendingUpload.status === 'failed'
+                        ? 'Echec - reessayer'
+                        : 'En attente de connexion'}
+                  </p>
+                  {pendingUpload.errorMessage ? (
+                    <p className="mt-1 truncate text-xs text-rose-300">{pendingUpload.errorMessage}</p>
+                  ) : null}
+                </div>
+                {pendingUpload.status === 'failed' ? (
+                  <button
+                    type="button"
+                    onClick={() => void retryPendingAudioUpload(pendingUpload.id)}
+                    className="rounded-lg bg-white/10 px-2.5 py-2 text-[0.62rem] font-black uppercase text-white"
+                  >
+                    Reessayer
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => void removePendingAudioUpload(pendingUpload.id)}
+                  disabled={pendingUpload.status === 'uploading'}
+                  aria-label={`Annuler l'envoi de ${pendingUpload.filename}`}
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-white/6 text-rose-300 disabled:opacity-30"
+                >
+                  <CloseIcon />
+                </button>
+              </div>
+            ))}
           </div>
         ) : null}
       </section>

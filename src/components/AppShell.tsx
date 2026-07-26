@@ -3,8 +3,9 @@ import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type 
 import { FormDialog } from '@/components/FormDialog';
 import { AudioMiniPlayer } from '@/features/audio/AudioMiniPlayer';
 import { useAuthStore } from '@/stores/authStore';
-import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { useForcedOffline, useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useWorkspaceBadgeColors } from '@/services/workspaceColors';
+import { toggleForcedOffline } from '@/services/connectivity';
 
 type IconProps = SVGProps<SVGSVGElement>;
 
@@ -24,9 +25,10 @@ function CalendarIcon(props: IconProps) {
 function SongsIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M9 18V6l10-2v12" />
-      <circle cx="7" cy="18" r="2.5" />
-      <circle cx="17" cy="16" r="2.5" />
+      <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
+      <path d="M6.5 17H20" />
+      <path d="M12 7v5" />
+      <circle cx="10.5" cy="12" r="1.5" />
     </svg>
   );
 }
@@ -47,9 +49,9 @@ function SetlistIcon(props: IconProps) {
 function ImportsIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M9 18V6l10-2v12" />
-      <circle cx="7" cy="18" r="2.5" />
-      <circle cx="17" cy="16" r="2.5" />
+      <circle cx="12" cy="12" r="9" />
+      <circle cx="12" cy="12" r="2.5" />
+      <path d="M12 12v-5l4-1" />
     </svg>
   );
 }
@@ -76,11 +78,51 @@ function MetronomeIcon(props: IconProps) {
 }
 
 function FaderHeaderLogo() {
+  const longPressTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
+  const ignoreNextClickRef = useRef(false);
+
+  function clearLongPress() {
+    if (longPressTimeoutRef.current !== null) {
+      clearTimeout(longPressTimeoutRef.current);
+      longPressTimeoutRef.current = null;
+    }
+    pointerStartRef.current = null;
+  }
+
+  function handlePointerDown(event: React.PointerEvent<HTMLAnchorElement>) {
+    pointerStartRef.current = { x: event.clientX, y: event.clientY };
+    longPressTimeoutRef.current = setTimeout(() => {
+      longPressTimeoutRef.current = null;
+      pointerStartRef.current = null;
+      ignoreNextClickRef.current = true;
+      toggleForcedOffline();
+    }, 700);
+  }
+
+  function handlePointerMove(event: React.PointerEvent<HTMLAnchorElement>) {
+    const pointerStart = pointerStartRef.current;
+    if (!pointerStart) return;
+    if (Math.hypot(event.clientX - pointerStart.x, event.clientY - pointerStart.y) > 10) {
+      clearLongPress();
+    }
+  }
+
   return (
     <NavLink
       to="/home"
       className="flex items-center gap-2 transition hover:opacity-90"
       aria-label="FaderZero Accueil"
+      onPointerDown={handlePointerDown}
+      onPointerUp={clearLongPress}
+      onPointerCancel={clearLongPress}
+      onPointerLeave={clearLongPress}
+      onPointerMove={handlePointerMove}
+      onClick={(event) => {
+        if (!ignoreNextClickRef.current) return;
+        ignoreNextClickRef.current = false;
+        event.preventDefault();
+      }}
     >
       <div className="flex h-[34px] items-center">
         <svg viewBox="0 0 20 80" className="h-full w-[9px] fill-white">
@@ -121,6 +163,7 @@ export function AppShell() {
   const [isWorkspacePickerOpen, setIsWorkspacePickerOpen] = useState(false);
   const [isLiveMenuOpen, setIsLiveMenuOpen] = useState(false);
   const isOnline = useOnlineStatus();
+  const isForcedOffline = useForcedOffline();
   const { getBadgeColor } = useWorkspaceBadgeColors();
   const [headerHeight, setHeaderHeight] = useState(64);
   const [viewportOffsetTop, setViewportOffsetTop] = useState(0);
@@ -231,32 +274,39 @@ export function AppShell() {
         style={{ top: `${viewportOffsetTop}px` }}
       >
         <div className="mx-auto w-full max-w-md px-4 pb-2 pt-3 sm:px-5">
-          <div className="relative flex h-11 items-center justify-between">
-            <FaderHeaderLogo />
+          <div className="relative flex h-11 items-center justify-between gap-2.5">
+            <div className="flex items-center shrink-0">
+              <FaderHeaderLogo />
+            </div>
 
-            <div className="flex items-center gap-2">
-              {!isOnline ? (
-                <span
-                  className="flex items-center gap-1 text-[0.58rem] font-bold uppercase tracking-[0.12em] text-amber-300/90"
-                  aria-live="polite"
-                >
-                  <span className="h-1.5 w-1.5 rounded-full bg-amber-300" aria-hidden="true" />
-                  Hors ligne
+            <button
+              type="button"
+              onClick={() => setIsWorkspacePickerOpen(true)}
+              aria-label={`Changer de groupe (${activeWorkspace?.name ?? 'Mon Espace'})`}
+              title={activeWorkspace?.name ?? 'Changer de groupe'}
+              className="group flex min-w-0 flex-1 items-center justify-end gap-2 rounded-full py-1 pl-2 pr-0.5 transition hover:bg-white/5 active:scale-95 focus:outline-none"
+            >
+              <div className="flex min-w-0 flex-1 flex-col items-end justify-center leading-none">
+                <span className="w-full text-right text-[0.82rem] font-black uppercase tracking-wider text-[#f5f0ea] truncate">
+                  {activeWorkspace?.name ?? 'Mon Espace'}
                 </span>
-              ) : (
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden="true" title="En ligne" />
-              )}
-              <button
-                type="button"
-                onClick={() => setIsWorkspacePickerOpen(true)}
-                aria-label={`Changer de groupe (${activeWorkspace?.name ?? 'Mon Espace'})`}
-                title={activeWorkspace?.name ?? 'Changer de groupe'}
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/20 text-[0.75rem] font-black uppercase tracking-wider text-white shadow-[0_4px_12px_rgba(0,0,0,0.25)] transition hover:scale-105 hover:border-white/40"
+                {!isOnline && (
+                  <span
+                    className="mt-1 flex w-full items-center justify-center text-center text-[0.58rem] font-bold uppercase tracking-[0.14em] text-amber-300"
+                    aria-live="polite"
+                  >
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse mr-1 shrink-0" aria-hidden="true" />
+                    {isForcedOffline ? 'Hors ligne · test' : 'Hors ligne'}
+                  </span>
+                )}
+              </div>
+              <span
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/20 text-[0.75rem] font-black uppercase tracking-wider text-white shadow-[0_4px_12px_rgba(0,0,0,0.25)] transition group-hover:scale-105 group-hover:border-white/40"
                 style={{ backgroundColor: activeBadgeColor.hex }}
               >
                 {workspaceInitials}
-              </button>
-            </div>
+              </span>
+            </button>
           </div>
         </div>
       </header>

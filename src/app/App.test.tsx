@@ -16,6 +16,7 @@ const testWorkspace = {
 
 vi.mock('@/hooks/useOnlineStatus', () => ({
   useOnlineStatus: () => true,
+  useForcedOffline: () => false,
 }));
 
 describe('AppRouter', () => {
@@ -27,7 +28,7 @@ describe('AppRouter', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Repertoire' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: /R[eé]pertoire/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Nouvelle chanson' })).toBeInTheDocument();
   });
 
@@ -40,7 +41,7 @@ describe('AppRouter', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Repertoire' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: /R[eé]pertoire/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Nouvelle chanson' })).not.toBeInTheDocument();
   });
 

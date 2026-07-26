@@ -36,6 +36,7 @@ import { TrashModal } from '@/features/trash/TrashModal';
 import { AudioQuotaBanner } from '@/features/audio/AudioQuotaBanner';
 import { SyncTab } from '@/features/sync/SyncTab';
 import { useWorkspaceBadgeColors, WORKSPACE_COLOR_OPTIONS } from '@/services/workspaceColors';
+import { isAppOnline } from '@/services/connectivity';
 
 const INVITE_ROLE_LABELS: Record<WorkspaceRole, string> = {
   admin: 'Administrateur',
@@ -313,6 +314,7 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
   const [localProfileError, setLocalProfileError] = useState<string | null>(null);
   const [profileFeedback, setProfileFeedback] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarLoadError, setAvatarLoadError] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
   // Group Management & Trash
@@ -531,7 +533,7 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
     setLocalWorkspaceError(null);
     clearFeedback();
     try {
-      if (navigator.onLine) {
+      if (isAppOnline()) {
         const isAvailable = await checkWorkspaceNameAvailable(normalizedName);
         if (!isAvailable) {
           setLocalWorkspaceError('Un groupe portant ce nom existe déjà.');
@@ -548,7 +550,7 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
   async function handleUpdateGroupName(workspaceId: string, name: string) {
     setGroupActionError(null);
     try {
-      if (navigator.onLine) {
+      if (isAppOnline()) {
         const isAvailable = await checkWorkspaceNameAvailable(name, workspaceId);
         if (!isAvailable) {
           setGroupNameDuplicateWarning('Ce nom de groupe est déjà utilisé.');
@@ -743,7 +745,13 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
           {/* Account Profile Section */}
           <section className="space-y-3">
             <div>
-              <h1 className="text-[1.45rem] font-black uppercase tracking-[0.18em] text-white">Espace personnel</h1>
+              <div className="flex items-center gap-2.5">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-[#ff3a63] shrink-0">
+                  <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+                <h1 className="text-[1.45rem] font-black uppercase tracking-[0.18em] text-white">Espace personnel</h1>
+              </div>
               <p className="mt-1 text-sm leading-relaxed text-[var(--fz-text-muted)]">
                 Gère ton accès, choisis ton groupe actif et crée de nouveaux espaces de travail.
               </p>
@@ -763,7 +771,16 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
                     className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/15 text-lg font-black text-white shadow-[0_10px_24px_rgba(0,0,0,0.24)] transition hover:border-orange-400/70 focus:outline-none focus:ring-2 focus:ring-orange-400/60 disabled:opacity-45"
                     style={{ backgroundColor: `hsl(${generatedAvatar?.hue ?? 24} 72% 42%)` }}
                   >
-                    {avatarUrl ? <img src={avatarUrl} alt="" className="h-full w-full object-cover" /> : generatedAvatar?.initials ?? '…'}
+                    {avatarUrl && !avatarLoadError ? (
+                      <img
+                        src={avatarUrl}
+                        alt=""
+                        className="h-full w-full object-cover"
+                        onError={() => setAvatarLoadError(true)}
+                      />
+                    ) : (
+                      generatedAvatar?.initials ?? '…'
+                    )}
                     <span className="absolute inset-x-0 bottom-0 bg-black/65 py-0.5 text-[0.5rem] uppercase tracking-wide">Photo</span>
                   </button>
                   <input

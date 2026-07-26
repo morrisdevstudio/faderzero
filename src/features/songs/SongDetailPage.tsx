@@ -11,8 +11,13 @@ import { SongFormFields, type SongFormValues } from '@/features/songs/SongFormFi
 import { formatSongDuration } from '@/features/songs/songPresentation';
 import { useAuthStore } from '@/stores/authStore';
 import { songAssetsRepository } from '@/db/repositories/songAssetsRepository';
+import { db } from '@/db/db';
 import { buildCompressedFileName } from '@/features/songs/audioCompression';
-import { uploadSongAsset } from '@/services/supabase/storage';
+import {
+  removePendingAudioUpload,
+  retryPendingAudioUpload,
+  uploadOrQueueSongAsset,
+} from '@/services/audio/pendingUploads';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useAudioCacheStore } from '@/features/audio/audioCacheStore';
 import { canWriteWorkspace } from '@/services/supabase/workspace';
@@ -227,6 +232,7 @@ export function SongDetailPage() {
   const [isUploadingAudio, setIsUploadingAudio] = useState(false);
   const [primaryTrackId, setPrimaryTrackId] = useState(() => readStoredPrimaryTrackId(songId));
   const [error, setError] = useState<string | null>(null);
+  const [audioNotice, setAudioNotice] = useState<string | null>(null);
   const autosaveTimeoutRef = useRef<number | null>(null);
   const audioInputRef = useRef<HTMLInputElement | null>(null);
   const duplicateResolverRef = useRef<((decision: DuplicateDecision) => void) | null>(null);
@@ -235,6 +241,15 @@ export function SongDetailPage() {
   const { cachedAssetIds, checkCacheStatus } = useAudioCacheStore();
 
   const assets = useLiveQuery(() => songAssetsRepository.listBySongId(songId), [songId, activeWorkspaceId]);
+  const pendingAudioUploads = useLiveQuery(
+    () =>
+      db.pendingAudioUploads
+        .where('songId')
+        .equals(songId)
+        .filter((item) => item.workspaceId === activeWorkspaceId)
+        .sortBy('queuedAt'),
+    [songId, activeWorkspaceId]
+  );
   const unlinkedAssets = useLiveQuery(() => songAssetsRepository.listUnlinkedTracks(), [activeWorkspaceId]);
   const playQueue = useAudioPlayerStore((state) => state.playQueue);
   const stop = useAudioPlayerStore((state) => state.stop);
@@ -287,12 +302,16 @@ export function SongDetailPage() {
 
     setIsUploadingAudio(true);
     setError(null);
+    setAudioNotice(null);
 
     try {
       const workspaceId = useAuthStore.getState().activeWorkspace?.id || 'default-workspace';
       const importedTracks = await songAssetsRepository.listImportedTracks();
       const importedTracksByFilename = new Map(importedTracks.map((track) => [track.filename, track] as const));
-      const reservedFilenames = new Set(importedTracksByFilename.keys());
+      const queuedFilenames = new Set(
+        (pendingAudioUploads ?? []).map((pendingUpload) => pendingUpload.filename)
+      );
+      const reservedFilenames = new Set([...importedTracksByFilename.keys(), ...queuedFilenames]);
       let finalFilename = buildCompressedFileName(file.name);
       const duplicate = importedTracksByFilename.get(finalFilename);
 
@@ -307,9 +326,32 @@ export function SongDetailPage() {
         if (decision.action === 'rename') {
           finalFilename = decision.filename;
         }
+      } else if (queuedFilenames.has(finalFilename)) {
+        const decision = await askDuplicateDecision(file, reservedFilenames);
+        if (decision.action === 'cancel') {
+          return;
+        }
+        if (decision.action === 'replace') {
+          const queuedDuplicate = pendingAudioUploads?.find(
+            (pendingUpload) => pendingUpload.filename === finalFilename
+          );
+          if (queuedDuplicate) {
+            await removePendingAudioUpload(queuedDuplicate.id);
+          }
+        }
+        if (decision.action === 'rename') {
+          finalFilename = decision.filename;
+        }
       }
 
-      await uploadSongAsset(workspaceId, songId, file, { filename: finalFilename });
+      const result = await uploadOrQueueSongAsset(workspaceId, songId, file, {
+        filename: finalFilename,
+      });
+      setAudioNotice(
+        result.status === 'queued'
+          ? 'Audio conserve sur cet appareil. Envoi automatique au retour de la connexion.'
+          : 'Audio importe.'
+      );
     } catch (err: any) {
       setError(err.message || "Impossible d'importer ce fichier audio.");
     } finally {
@@ -617,6 +659,7 @@ export function SongDetailPage() {
 
       <section className="space-y-4 pt-1">
         {error ? <p className="text-sm font-semibold text-rose-400">{error}</p> : null}
+        {audioNotice ? <p className="text-sm font-semibold text-amber-300">{audioNotice}</p> : null}
 
         <section>
           {canWrite && isEditMode ? (
@@ -769,6 +812,52 @@ export function SongDetailPage() {
             ) : (
               <p className="rounded-xl border border-white/8 bg-white/5 p-3 text-sm text-white/50">Aucune piste associée.</p>
             )}
+
+            {pendingAudioUploads && pendingAudioUploads.length > 0 ? (
+              <div className="space-y-2 border-t border-white/8 pt-4">
+                <p className="text-[0.68rem] font-black uppercase tracking-[0.16em] text-white/45">
+                  Envois en attente
+                </p>
+                {pendingAudioUploads.map((pendingUpload) => (
+                  <div
+                    key={pendingUpload.id}
+                    className="flex items-center gap-3 rounded-xl border border-amber-300/15 bg-amber-300/6 px-3 py-2.5"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-white">{pendingUpload.filename}</p>
+                      <p className="mt-1 text-[0.65rem] font-black uppercase tracking-[0.12em] text-amber-200/75">
+                        {pendingUpload.status === 'uploading'
+                          ? 'Envoi en cours'
+                          : pendingUpload.status === 'failed'
+                            ? 'Echec - reessayer'
+                            : 'En attente de connexion'}
+                      </p>
+                      {pendingUpload.errorMessage ? (
+                        <p className="mt-1 truncate text-xs text-rose-300">{pendingUpload.errorMessage}</p>
+                      ) : null}
+                    </div>
+                    {pendingUpload.status === 'failed' ? (
+                      <button
+                        type="button"
+                        onClick={() => void retryPendingAudioUpload(pendingUpload.id)}
+                        className="rounded-lg bg-white/10 px-2.5 py-2 text-[0.62rem] font-black uppercase text-white"
+                      >
+                        Reessayer
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={() => void removePendingAudioUpload(pendingUpload.id)}
+                      disabled={pendingUpload.status === 'uploading'}
+                      aria-label={`Annuler l'envoi de ${pendingUpload.filename}`}
+                      className="flex h-8 w-8 items-center justify-center rounded-full bg-white/6 text-rose-300 disabled:opacity-30"
+                    >
+                      <TrashIcon className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : null}
 
             {canWrite ? <div className="grid gap-2 border-t border-white/8 pt-4">
               <button

@@ -15,7 +15,14 @@ export function PrompterLibraryPage() {
   return (
     <div className="space-y-8">
       <header>
-        <h1 className="text-[2rem] font-black tracking-tight text-white">Prompteur</h1>
+        <div className="flex items-center gap-3">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-7 w-7 text-[#ff547b] shrink-0">
+            <rect x="4" y="5" width="16" height="12" rx="2.5" />
+            <path d="M8 21h8" />
+            <path d="M12 17v4" />
+          </svg>
+          <h1 className="text-[2rem] font-black tracking-tight text-white">Prompteur</h1>
+        </div>
         <p className="mt-1 text-sm text-[var(--fz-text-muted)]">Choisissez une setlist ou une chanson pour commencer.</p>
       </header>
 

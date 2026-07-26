@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { getSongAssetPlaybackUrl } from '@/services/supabase/storage';
 import { useAuthStore } from '@/stores/authStore';
 import { getCachedAudioUrl } from '@/features/audio/audioCacheStore';
+import { isAppOnline } from '@/services/connectivity';
 
 export interface AudioTrack {
   assetId: string;
@@ -106,7 +107,7 @@ async function playTrackAtIndex(
       audio.src = cachedUrl;
       activeObjectURL = cachedUrl;
     } else {
-      if (!navigator.onLine) {
+      if (!isAppOnline()) {
         set({ status: 'error', error: 'Hors ligne et morceau non disponible en cache.' });
         return;
       }

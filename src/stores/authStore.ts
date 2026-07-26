@@ -36,6 +36,7 @@ import {
   requestAccountDeletion as apiRequestAccountDeletion,
 } from '@/services/supabase/accountDeletion';
 import { reportClientCompatibility } from '@/services/supabase/compatibilityObservation';
+import { isAppOnline } from '@/services/connectivity';
 
 interface AuthState {
   session: Session | null;
@@ -115,7 +116,7 @@ async function getWorkspacesWithTimeout(): Promise<Workspace[]> {
 
 async function loadWorkspaces(userId: string): Promise<LoadedWorkspaces> {
   const cachedWorkspaces = getCachedWorkspaces(userId);
-  if (!navigator.onLine) {
+  if (!isAppOnline()) {
     return { workspaces: cachedWorkspaces, verifiedByServer: false };
   }
 
@@ -149,7 +150,7 @@ async function prepareUserLocalData(userId: string, loaded: LoadedWorkspaces) {
     await migrateLegacyAudioCache(userId, getActiveDatabase());
     preparedAudioCacheFingerprints.set(userId, fingerprint);
   }
-  if (loaded.verifiedByServer && navigator.onLine) {
+  if (loaded.verifiedByServer && isAppOnline()) {
     try {
       await reportClientCompatibility(migrationReport);
     } catch (error) {
@@ -334,7 +335,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   signOut: async () => {
     set({ loading: true, error: null, infoMessage: null });
     try {
-      if (!navigator.onLine) {
+      if (!isAppOnline()) {
         const pendingMutations = await getActiveDatabase().syncQueue
           .filter((item) => item.status !== 'conflict')
           .count();
@@ -460,7 +461,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       try {
         newWorkspace = await apiCreateWorkspace(name);
       } catch (err: any) {
-        if (!navigator.onLine || err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) {
+        if (!isAppOnline() || err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) {
           newWorkspace = {
             id: `ws-${Date.now()}`,
             name: name.trim(),

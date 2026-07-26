@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useEffect, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FeatureCard } from '@/components/FeatureCard';
 import { FormDialog } from '@/components/FormDialog';
@@ -24,15 +24,12 @@ export function SongsPage() {
   const activeWorkspaceId = activeWorkspace?.id;
   const canWrite = canWriteWorkspace(activeWorkspace?.role);
   const [searchQuery, setSearchQuery] = useState('');
-  const [isSearchFocused, setIsSearchFocused] = useState(false);
-  const [isVirtualKeyboardOpen, setIsVirtualKeyboardOpen] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newSongTitle, setNewSongTitle] = useState('');
   const [creationError, setCreationError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>('title-asc');
   const songs = useLiveQuery(() => songsRepository.list({ query: searchQuery }), [searchQuery, activeWorkspaceId]);
-  const shouldReleaseStickyHeader = isSearchFocused && isVirtualKeyboardOpen;
   const sortedSongs = songs
     ? [...songs].sort((left, right) => {
         if (sortMode === 'title-asc' || sortMode === 'title-desc') {
@@ -44,38 +41,6 @@ export function SongsPage() {
         return sortMode === 'updated-asc' ? comparison : -comparison;
       })
     : undefined;
-
-  useEffect(() => {
-    const viewport = window.visualViewport;
-    if (!viewport) {
-      return;
-    }
-    const activeViewport = viewport;
-
-    function updateKeyboardState() {
-      const activeElement = document.activeElement;
-      const isEditableElement =
-        activeElement instanceof HTMLInputElement ||
-        activeElement instanceof HTMLTextAreaElement ||
-        (activeElement instanceof HTMLElement && activeElement.isContentEditable);
-
-      const keyboardHeight = window.innerHeight - activeViewport.height;
-      setIsVirtualKeyboardOpen(isEditableElement && keyboardHeight > 150);
-    }
-
-    updateKeyboardState();
-    activeViewport.addEventListener('resize', updateKeyboardState);
-    activeViewport.addEventListener('scroll', updateKeyboardState);
-    window.addEventListener('focusin', updateKeyboardState);
-    window.addEventListener('focusout', updateKeyboardState);
-
-    return () => {
-      activeViewport.removeEventListener('resize', updateKeyboardState);
-      activeViewport.removeEventListener('scroll', updateKeyboardState);
-      window.removeEventListener('focusin', updateKeyboardState);
-      window.removeEventListener('focusout', updateKeyboardState);
-    };
-  }, []);
 
   async function handleCreateSong(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -106,21 +71,17 @@ export function SongsPage() {
 
   return (
     <div className="space-y-4">
-      <section
-        className={[
-          'space-y-3 -mt-5 bg-[var(--fz-bg)] px-1 pb-3 pt-2',
-          shouldReleaseStickyHeader ? 'relative z-20' : 'sticky z-30 -mx-1 border-b border-white/8',
-        ].join(' ')}
-        style={
-          shouldReleaseStickyHeader
-            ? undefined
-            : {
-                top: 'calc(var(--fz-header-height, 64px) + var(--fz-viewport-offset-top, 0px))',
-              }
-        }
-      >
-        <div className="flex items-start justify-between gap-3">
-          <h1 className="min-w-0 flex-1 text-[2rem] font-black tracking-tight text-white">Repertoire</h1>
+      <section className="space-y-3 -mt-2">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-7 w-7 text-[#ff3a63] shrink-0">
+              <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
+              <path d="M6.5 17H20" />
+              <path d="M12 7v5" />
+              <circle cx="10.5" cy="12" r="1.5" />
+            </svg>
+            <h1 className="min-w-0 flex-1 text-[2rem] font-black tracking-tight text-white">Répertoire</h1>
+          </div>
           {canWrite ? <button
             type="button"
             onClick={() => {
@@ -140,8 +101,6 @@ export function SongsPage() {
             <input
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
-              onFocus={() => setIsSearchFocused(true)}
-              onBlur={() => setIsSearchFocused(false)}
               placeholder="Rechercher une chanson..."
               className="fz-input min-w-0 flex-1 text-sm"
             />

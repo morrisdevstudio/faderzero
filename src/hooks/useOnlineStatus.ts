@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { isAppOnline, isForcedOffline, subscribeToConnectivity } from '@/services/connectivity';
 
 const STORAGE_KEY = 'fz-last-online-status';
 
@@ -8,17 +9,19 @@ export function useOnlineStatus() {
       const lastStatus = localStorage.getItem(STORAGE_KEY);
       if (lastStatus === 'offline') return false;
     }
-    return navigator.onLine;
+    return isAppOnline();
   });
 
   useEffect(() => {
     let active = true;
 
     async function checkConnectivity(isInitial = false) {
-      if (!navigator.onLine) {
+      if (!isAppOnline()) {
         if (active) {
           setIsOnline(false);
-          localStorage.setItem(STORAGE_KEY, 'offline');
+          if (!isForcedOffline()) {
+            localStorage.setItem(STORAGE_KEY, 'offline');
+          }
         }
         return;
       }
@@ -42,7 +45,7 @@ export function useOnlineStatus() {
           setIsOnline(nextStatus);
           localStorage.setItem(STORAGE_KEY, nextStatus ? 'online' : 'offline');
         }
-      } catch (err) {
+      } catch {
         if (active) {
           setIsOnline(false);
           localStorage.setItem(STORAGE_KEY, 'offline');
@@ -63,6 +66,9 @@ export function useOnlineStatus() {
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
+    const unsubscribe = subscribeToConnectivity(() => {
+      void checkConnectivity();
+    });
 
     // Initial check with true parameter to trigger short timeout
     void checkConnectivity(true);
@@ -76,9 +82,18 @@ export function useOnlineStatus() {
       active = false;
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      unsubscribe();
       clearInterval(intervalId);
     };
   }, []);
 
   return isOnline;
+}
+
+export function useForcedOffline() {
+  const [forcedOffline, setForcedOffline] = useState(isForcedOffline);
+
+  useEffect(() => subscribeToConnectivity(() => setForcedOffline(isForcedOffline())), []);
+
+  return forcedOffline;
 }

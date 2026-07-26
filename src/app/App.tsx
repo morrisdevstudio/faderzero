@@ -11,6 +11,8 @@ import { subscribeToWorkspaceChanges } from '@/services/supabase/realtime';
 import { db } from '@/db/db';
 import { canWriteWorkspace } from '@/services/supabase/workspace';
 import { clearPendingInviteToken, readPendingInviteToken } from '@/services/supabase/inviteContext';
+import { processPendingAudioUploads } from '@/services/audio/pendingUploads';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 
 import { SplashScreen } from '@/components/SplashScreen';
 
@@ -18,6 +20,7 @@ function SyncBootstrap() {
   const activeWorkspace = useAuthStore((state) => state.activeWorkspace);
   const refreshWorkspaceAccess = useAuthStore((state) => state.refreshWorkspaceAccess);
   const canWrite = canWriteWorkspace(activeWorkspace?.role);
+  const isOnline = useOnlineStatus();
   const syncInFlightRef = useRef(false);
   const [isForcingSync, setIsForcingSync] = useState(false);
 
@@ -57,7 +60,7 @@ function SyncBootstrap() {
     let isDisposed = false;
 
     async function runSyncCycle() {
-      if (syncInFlightRef.current || isDisposed || !navigator.onLine) {
+      if (syncInFlightRef.current || isDisposed || !isOnline) {
         return;
       }
 
@@ -68,6 +71,7 @@ function SyncBootstrap() {
         const verifiedWorkspace = verifiedWorkspaces.find(({ id }) => id === workspaceId);
         if (!verifiedWorkspace) return;
         if (canWriteWorkspace(verifiedWorkspace.role)) {
+          await processPendingAudioUploads(workspaceId);
           await pushPendingMutations(workspaceId);
         }
         await pullRemoteChanges(workspaceId);
@@ -80,9 +84,11 @@ function SyncBootstrap() {
 
     void runSyncCycle();
 
-    const subscription = subscribeToWorkspaceChanges(workspaceId, () => {
-      void runSyncCycle();
-    });
+    const subscription = isOnline
+      ? subscribeToWorkspaceChanges(workspaceId, () => {
+          void runSyncCycle();
+        })
+      : null;
 
     function handleOnline() {
       void runSyncCycle();
@@ -96,14 +102,14 @@ function SyncBootstrap() {
 
     return () => {
       isDisposed = true;
-      subscription.unsubscribe();
+      subscription?.unsubscribe();
       window.removeEventListener('online', handleOnline);
       window.clearInterval(intervalId);
     };
-  }, [activeWorkspace, canWrite, refreshWorkspaceAccess]);
+  }, [activeWorkspace, canWrite, isOnline, refreshWorkspaceAccess]);
 
   useEffect(() => {
-    if (!activeWorkspace || !canWrite || !pendingMutationCount || pendingMutationCount <= 0 || !navigator.onLine) {
+    if (!activeWorkspace || !canWrite || !pendingMutationCount || pendingMutationCount <= 0 || !isOnline) {
       return;
     }
 
@@ -119,6 +125,7 @@ function SyncBootstrap() {
         const verifiedWorkspace = verifiedWorkspaces.find(({ id }) => id === activeWorkspace.id);
         if (!verifiedWorkspace) return;
         if (canWriteWorkspace(verifiedWorkspace.role)) {
+          await processPendingAudioUploads(activeWorkspace.id);
           await pushPendingMutations(activeWorkspace.id);
         }
         await pullRemoteChanges(activeWorkspace.id);
@@ -128,10 +135,10 @@ function SyncBootstrap() {
         syncInFlightRef.current = false;
       }
     })();
-  }, [activeWorkspace, canWrite, pendingMutationCount, refreshWorkspaceAccess]);
+  }, [activeWorkspace, canWrite, isOnline, pendingMutationCount, refreshWorkspaceAccess]);
 
   async function handleForceSync() {
-    if (!activeWorkspace || !canWrite || syncInFlightRef.current || isForcingSync) {
+    if (!activeWorkspace || !canWrite || !isOnline || syncInFlightRef.current || isForcingSync) {
       return;
     }
 
@@ -142,6 +149,7 @@ function SyncBootstrap() {
       const verifiedWorkspaces = await refreshWorkspaceAccess();
       const verifiedWorkspace = verifiedWorkspaces.find(({ id }) => id === activeWorkspace.id);
       if (!verifiedWorkspace || !canWriteWorkspace(verifiedWorkspace.role)) return;
+      await processPendingAudioUploads(activeWorkspace.id);
       await pushPendingMutations(activeWorkspace.id, { includeFailed: true });
       await pullRemoteChanges(activeWorkspace.id);
     } catch (error) {
@@ -168,7 +176,7 @@ function SyncBootstrap() {
         <button
           type="button"
           onClick={() => void handleForceSync()}
-          disabled={isForcingSync}
+          disabled={isForcingSync || !isOnline}
           className="rounded-xl border border-rose-300/30 bg-rose-400/15 px-3 py-2 text-[0.7rem] font-black uppercase tracking-[0.14em] text-rose-50 transition hover:bg-rose-400/25 disabled:opacity-60"
         >
           {isForcingSync ? 'Retry...' : 'Forcer la synchro'}

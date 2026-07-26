@@ -68,6 +68,22 @@ export interface SongAssetRecord {
   syncStatus?: 'synced' | 'pending' | 'conflict';
 }
 
+export interface PendingAudioUploadRecord {
+  id: string;
+  workspaceId: string;
+  songId?: string;
+  filename: string;
+  originalFilename: string;
+  mimeType: string;
+  sizeBytes: number;
+  fileBlob: Blob;
+  status: 'pending' | 'uploading' | 'failed';
+  queuedAt: number;
+  updatedAt: number;
+  lastTriedAt?: number;
+  errorMessage?: string;
+}
+
 
 export type EventType = 'rehearsal' | 'concert' | 'meeting' | 'other';
 
@@ -158,6 +174,7 @@ export interface DatabaseSchema {
   setlists: SetlistRecord;
   setlistSongs: SetlistSongRecord;
   songAssets: SongAssetRecord;
+  pendingAudioUploads: PendingAudioUploadRecord;
   syncQueue: SyncQueueItem;
   syncConflicts: SyncConflictRecord;
   syncState: SyncStateRecord;

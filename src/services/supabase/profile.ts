@@ -147,10 +147,23 @@ export async function updateCurrentProfileDisplayName(value: string): Promise<Pr
 export async function getProfileAvatarUrl(avatarPath: string | null): Promise<string | null> {
   assertSupabaseConfig();
   if (!avatarPath) return null;
+  if (avatarPath.startsWith('http://') || avatarPath.startsWith('https://') || avatarPath.startsWith('data:')) {
+    return avatarPath;
+  }
 
-  const { data, error } = await supabase.storage.from(AVATAR_BUCKET).createSignedUrl(avatarPath, 3600);
-  if (error) throw error;
-  return data.signedUrl;
+  const { data: publicData } = supabase.storage.from(AVATAR_BUCKET).getPublicUrl(avatarPath);
+  if (publicData?.publicUrl) {
+    return publicData.publicUrl;
+  }
+
+  try {
+    const { data, error } = await supabase.storage.from(AVATAR_BUCKET).createSignedUrl(avatarPath, 3600);
+    if (!error && data?.signedUrl) {
+      return data.signedUrl;
+    }
+  } catch {}
+
+  return null;
 }
 
 export async function uploadCurrentProfileAvatar(file: File): Promise<Profile> {
@@ -163,7 +176,7 @@ export async function uploadCurrentProfileAvatar(file: File): Promise<Profile> {
   const { error: uploadError } = await avatarStorage.upload(avatarPath, avatarBlob, {
     cacheControl: '3600',
     contentType: 'image/webp',
-    upsert: false,
+    upsert: true,
   });
   if (uploadError) throw uploadError;
 

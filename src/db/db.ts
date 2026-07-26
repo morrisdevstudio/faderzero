@@ -5,6 +5,7 @@ import type {
   SetlistSongRecord,
   SongRecord,
   SongAssetRecord,
+  PendingAudioUploadRecord,
   SyncQueueItem,
   SyncConflictRecord,
   SyncStateRecord,
@@ -16,7 +17,7 @@ import { createId } from '@/lib/createId';
 import { now } from '@/lib/now';
 
 export const FADERZERO_DB_NAME = 'faderzero-pwa';
-export const FADERZERO_LOCAL_SCHEMA_VERSION = 10;
+export const FADERZERO_LOCAL_SCHEMA_VERSION = 11;
 
 const version1Stores = {
   songs: 'id, title, updatedAt',
@@ -62,7 +63,10 @@ const version7Stores = {
   syncQueue: '++id, status, queuedAt, entityType, entityId, workspaceId',
   syncConflicts: 'id, workspaceId, entityId, detectedAt',
   syncState: 'id, workspaceId, tableName',
-} satisfies Record<Exclude<keyof DatabaseSchema, 'localMigrationJournal' | 'recoveryItems' | 'events'>, string>;
+} satisfies Record<
+  Exclude<keyof DatabaseSchema, 'localMigrationJournal' | 'recoveryItems' | 'events' | 'pendingAudioUploads'>,
+  string
+>;
 
 const version8Stores = version7Stores;
 
@@ -70,11 +74,16 @@ const version9Stores = {
   ...version8Stores,
   localMigrationJournal: 'id, userId, status, updatedAt',
   recoveryItems: 'id, status, entityType, sourceWorkspaceId',
-} satisfies Record<Exclude<keyof DatabaseSchema, 'events'>, string>;
+} satisfies Record<Exclude<keyof DatabaseSchema, 'events' | 'pendingAudioUploads'>, string>;
 
 const version10Stores = {
   ...version9Stores,
   events: 'id, workspaceId, startAt, eventType, updatedAt, deletedAt, syncStatus',
+} satisfies Record<Exclude<keyof DatabaseSchema, 'pendingAudioUploads'>, string>;
+
+const version11Stores = {
+  ...version10Stores,
+  pendingAudioUploads: 'id, workspaceId, songId, status, queuedAt',
 } satisfies Record<keyof DatabaseSchema, string>;
 
 export class FaderZeroDatabase extends Dexie {
@@ -82,6 +91,7 @@ export class FaderZeroDatabase extends Dexie {
   setlists!: EntityTable<SetlistRecord, 'id'>;
   setlistSongs!: EntityTable<SetlistSongRecord, 'id'>;
   songAssets!: EntityTable<SongAssetRecord, 'id'>;
+  pendingAudioUploads!: EntityTable<PendingAudioUploadRecord, 'id'>;
   syncQueue!: EntityTable<SyncQueueItem, 'id'>;
   syncConflicts!: EntityTable<SyncConflictRecord, 'id'>;
   syncState!: EntityTable<SyncStateRecord, 'id'>;
@@ -227,6 +237,7 @@ export class FaderZeroDatabase extends Dexie {
 
     this.version(9).stores(version9Stores);
     this.version(10).stores(version10Stores);
+    this.version(11).stores(version11Stores);
   }
 }
 

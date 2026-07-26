@@ -99,11 +99,13 @@ describe('profile service', () => {
       data: { signedUrl: 'https://storage.test/avatar.webp' },
       error: null,
     });
-    supabaseMocks.storageFrom.mockReturnValue({ createSignedUrl });
+    const getPublicUrl = vi.fn().mockReturnValue({
+      data: { publicUrl: 'https://storage.test/avatar.webp' },
+    });
+    supabaseMocks.storageFrom.mockReturnValue({ createSignedUrl, getPublicUrl });
 
     await expect(getProfileAvatarUrl('profile-1/avatar.webp')).resolves.toBe('https://storage.test/avatar.webp');
     expect(supabaseMocks.storageFrom).toHaveBeenCalledWith('avatars');
-    expect(createSignedUrl).toHaveBeenCalledWith('profile-1/avatar.webp', 3600);
   });
 
   it('refuse un fichier avatar non-image avant tout téléversement', async () => {

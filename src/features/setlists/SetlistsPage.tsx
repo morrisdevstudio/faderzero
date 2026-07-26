@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FeatureCard } from '@/components/FeatureCard';
 import { FormDialog } from '@/components/FormDialog';
@@ -23,8 +23,6 @@ export function SetlistsPage() {
   const activeWorkspaceId = activeWorkspace?.id;
   const canWrite = canWriteWorkspace(activeWorkspace?.role);
   const [searchQuery, setSearchQuery] = useState('');
-  const [isSearchFocused, setIsSearchFocused] = useState(false);
-  const [isVirtualKeyboardOpen, setIsVirtualKeyboardOpen] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [name, setName] = useState('');
   const [notes, setNotes] = useState('');
@@ -32,39 +30,6 @@ export function SetlistsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>('title-asc');
   const setlists = useLiveQuery(() => setlistsRepository.listSummaries(), [activeWorkspaceId]);
-  const shouldReleaseStickyHeader = isSearchFocused && isVirtualKeyboardOpen;
-
-  useEffect(() => {
-    const viewport = window.visualViewport;
-    if (!viewport) {
-      return;
-    }
-    const activeViewport = viewport;
-
-    function updateKeyboardState() {
-      const activeElement = document.activeElement;
-      const isEditableElement =
-        activeElement instanceof HTMLInputElement ||
-        activeElement instanceof HTMLTextAreaElement ||
-        (activeElement instanceof HTMLElement && activeElement.isContentEditable);
-
-      const keyboardHeight = window.innerHeight - activeViewport.height;
-      setIsVirtualKeyboardOpen(isEditableElement && keyboardHeight > 150);
-    }
-
-    updateKeyboardState();
-    activeViewport.addEventListener('resize', updateKeyboardState);
-    activeViewport.addEventListener('scroll', updateKeyboardState);
-    window.addEventListener('focusin', updateKeyboardState);
-    window.addEventListener('focusout', updateKeyboardState);
-
-    return () => {
-      activeViewport.removeEventListener('resize', updateKeyboardState);
-      activeViewport.removeEventListener('scroll', updateKeyboardState);
-      window.removeEventListener('focusin', updateKeyboardState);
-      window.removeEventListener('focusout', updateKeyboardState);
-    };
-  }, []);
 
   const filteredSetlists = useMemo(() => {
     if (!setlists) {
@@ -124,21 +89,17 @@ export function SetlistsPage() {
 
   return (
     <div className="space-y-4">
-      <section
-        className={[
-          'space-y-3 -mt-5 bg-[var(--fz-bg)] px-1 pb-3 pt-2',
-          shouldReleaseStickyHeader ? 'relative z-20' : 'sticky z-30 -mx-1 border-b border-white/8',
-        ].join(' ')}
-        style={
-          shouldReleaseStickyHeader
-            ? undefined
-            : {
-                top: 'calc(var(--fz-header-height, 64px) + var(--fz-viewport-offset-top, 0px))',
-              }
-        }
-      >
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
+      <section className="space-y-3 -mt-2">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="h-7 w-7 text-[#ff3a63] shrink-0">
+              <path d="M9 7h10" />
+              <path d="M9 12h10" />
+              <path d="M9 17h10" />
+              <path d="M4 7h.01" />
+              <path d="M4 12h.01" />
+              <path d="M4 17h.01" />
+            </svg>
             <h1 className="min-w-0 text-[2rem] font-black tracking-tight text-white">Setlists</h1>
           </div>
 
@@ -162,8 +123,6 @@ export function SetlistsPage() {
             <input
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
-              onFocus={() => setIsSearchFocused(true)}
-              onBlur={() => setIsSearchFocused(false)}
               placeholder="Rechercher une setlist..."
               className="fz-input min-w-0 flex-1 text-sm"
             />
