@@ -18,6 +18,7 @@ interface SongFormFieldsProps {
   values: SongFormValues;
   onChange: (nextValues: SongFormValues) => void;
   disabled?: boolean;
+  showLyrics?: boolean;
 }
 
 type ActivePicker = 'status' | 'key' | 'bpm' | 'duration' | null;
@@ -31,7 +32,7 @@ function formatDurationLabel(minutes: string, seconds: string) {
   return `${minutes.padStart(2, '0')}:${seconds.padStart(2, '0')}`;
 }
 
-export function SongFormFields({ values, onChange, disabled = false }: SongFormFieldsProps) {
+export function SongFormFields({ values, onChange, disabled = false, showLyrics = true }: SongFormFieldsProps) {
   const [activePicker, setActivePicker] = useState<ActivePicker>(null);
   const [isLyricsFocused, setIsLyricsFocused] = useState(false);
   const notesTextareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -176,7 +177,7 @@ export function SongFormFields({ values, onChange, disabled = false }: SongFormF
           />
         </label>
 
-        <label className="block">
+        {showLyrics ? <label className="block">
           <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-[var(--fz-text-muted)]">Paroles</span>
           {isLyricsFocused ? (
             <div
@@ -228,7 +229,7 @@ export function SongFormFields({ values, onChange, disabled = false }: SongFormF
             disabled={disabled}
             className="fz-input min-h-52 resize-none overflow-hidden text-sm leading-7"
           />
-        </label>
+        </label> : null}
 
       </div>
 

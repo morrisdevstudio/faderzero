@@ -746,7 +746,7 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
           <section className="space-y-3">
             <div>
               <div className="flex items-center gap-2.5">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-[#ff3a63] shrink-0">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-white shrink-0">
                   <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
                   <circle cx="12" cy="7" r="4" />
                 </svg>
@@ -1012,7 +1012,13 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
         <div className="space-y-4">
           <section className="space-y-3">
             <div>
-              <h1 className="text-xl font-black uppercase tracking-[0.16em] text-white">Mes groupes</h1>
+              <div className="flex items-center gap-2.5">
+                <GroupTabIcon className="h-6 w-6 text-white shrink-0" />
+                <h1 className="text-[1.45rem] font-black uppercase tracking-[0.18em] text-white">Mes groupes</h1>
+              </div>
+              <p className="mt-1 text-sm leading-relaxed text-[var(--fz-text-muted)]">
+                Basculez entre vos espaces et administrez les membres.
+              </p>
             </div>
             <div>
               {groupActionError && (

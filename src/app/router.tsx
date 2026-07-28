@@ -10,6 +10,7 @@ const PrompterPage = lazy(async () => ({ default: (await import('@/features/prom
 const SetlistDetailPage = lazy(async () => ({ default: (await import('@/features/setlists/SetlistDetailPage')).SetlistDetailPage }));
 const SetlistsPage = lazy(async () => ({ default: (await import('@/features/setlists/SetlistsPage')).SetlistsPage }));
 const SongDetailPage = lazy(async () => ({ default: (await import('@/features/songs/SongDetailPage')).SongDetailPage }));
+const SongWriterPage = lazy(async () => ({ default: (await import('@/features/songs/SongWriterPage')).SongWriterPage }));
 const SongsPage = lazy(async () => ({ default: (await import('@/features/songs/SongsPage')).SongsPage }));
 const SyncPage = lazy(async () => ({ default: (await import('@/features/sync/SyncPage')).SyncPage }));
 const HomePage = lazy(async () => ({ default: (await import('@/features/home/HomePage')).HomePage }));
@@ -24,6 +25,7 @@ export function AppRouter() {
     <Suspense fallback={<RouteFallback />}>
       <Routes>
       <Route path="/prompter/play" element={<PrompterPage />} />
+      <Route path="/songs/:songId/write" element={<SongWriterPage />} />
       <Route element={<AppShell />}>
         <Route index element={<HomePage />} />
         <Route path="/home" element={<HomePage />} />

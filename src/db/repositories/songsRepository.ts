@@ -5,6 +5,12 @@ import { createId } from '@/lib/createId';
 import { now } from '@/lib/now';
 import { useAuthStore } from '@/stores/authStore';
 import { enqueueMutation } from '@/db/syncQueueHelper';
+import {
+  createEmptySongDocument,
+  normalizeSongDocument,
+  SONG_DOCUMENT_VERSION,
+  songDocumentToText,
+} from '@/db/songDocument';
 
 export class SongsRepository {
   private readonly database: FaderZeroDatabase;
@@ -47,11 +53,20 @@ export class SongsRepository {
     const timestamp = now();
     const workspaceId = this.getActiveWorkspaceId();
     
+    const lyricsDocument = input.lyricsDocument
+      ? normalizeSongDocument(input.lyricsDocument)
+      : input.lyrics
+        ? normalizeSongDocument(undefined, input.lyrics)
+        : createEmptySongDocument();
+    const lyrics = songDocumentToText(lyricsDocument);
+
     const song: SongRecord = {
       id: createId(),
       workspaceId,
       title: input.title.trim(),
-      lyrics: input.lyrics ?? '',
+      lyrics,
+      lyricsDocument,
+      lyricsDocumentVersion: SONG_DOCUMENT_VERSION,
       status: input.status ?? 'Idee',
       durationSeconds: input.durationSeconds ?? 0,
       createdAt: timestamp,
@@ -87,6 +102,8 @@ export class SongsRepository {
         {
           title: song.title,
           lyrics: song.lyrics,
+          lyricsDocument: song.lyricsDocument,
+          lyricsDocumentVersion: song.lyricsDocumentVersion,
           status: song.status,
           durationSeconds: song.durationSeconds,
           artist: song.artist,
@@ -123,6 +140,18 @@ export class SongsRepository {
     }
     if (updates.lyrics !== undefined) {
       nextSong.lyrics = updates.lyrics;
+      nextSong.lyricsDocument = normalizeSongDocument(undefined, updates.lyrics);
+      nextSong.lyricsDocumentVersion = SONG_DOCUMENT_VERSION;
+      payload.lyrics = nextSong.lyrics;
+      payload.lyricsDocument = nextSong.lyricsDocument;
+      payload.lyricsDocumentVersion = nextSong.lyricsDocumentVersion;
+    }
+    if (updates.lyricsDocument !== undefined) {
+      nextSong.lyricsDocument = normalizeSongDocument(updates.lyricsDocument, nextSong.lyrics);
+      nextSong.lyricsDocumentVersion = SONG_DOCUMENT_VERSION;
+      nextSong.lyrics = songDocumentToText(nextSong.lyricsDocument);
+      payload.lyricsDocument = nextSong.lyricsDocument;
+      payload.lyricsDocumentVersion = nextSong.lyricsDocumentVersion;
       payload.lyrics = nextSong.lyrics;
     }
     if (updates.bpm !== undefined) {

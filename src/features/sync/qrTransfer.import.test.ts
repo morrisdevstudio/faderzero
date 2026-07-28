@@ -59,7 +59,9 @@ describe('qrTransfer import', () => {
         bpm: 120,
         status: 'Pret',
         durationSeconds: 245,
+        lyricsDocumentVersion: 1,
       });
+      expect(importedSong?.lyricsDocument?.content[0]?.attrs.sectionType).toBe('free');
       expect(importedSetlist?.id).not.toBe('set-1');
       expect(importedSetlist).toMatchObject({ name: 'Set A' });
       expect(importedSetlistSong?.id).not.toBe('entry-1');

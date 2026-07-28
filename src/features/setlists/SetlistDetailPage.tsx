@@ -484,7 +484,7 @@ export function SetlistDetailPage() {
             <BackIcon className="h-5 w-5" />
           </Link>
 
-          <div className="min-w-0 px-1 text-center">
+          <div className="min-w-0 px-1 text-left">
             <h1 className="truncate text-[1.05rem] font-black text-white">{currentSetlist.name}</h1>
             <p className="mt-0.5 truncate text-[0.78rem] text-[var(--fz-text-muted)]">
               {songCount} morceau{songCount > 1 ? 'x' : ''} · {formatSetDuration(totalDurationSeconds)}

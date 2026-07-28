@@ -80,16 +80,16 @@ export function HomePage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <section className="rounded-[1.6rem] border border-white/10 bg-white/[0.045] p-5 shadow-[0_24px_48px_rgba(0,0,0,0.18)]">
-        <p className="text-[0.66rem] font-black uppercase tracking-[0.22em] text-[var(--fz-accent)]">
-          Tableau de bord
-        </p>
-        <h1 className="mt-1 text-2xl font-black uppercase tracking-[0.16em] text-white">
-          Mon Espace
-        </h1>
-        <p className="mt-1 text-xs text-white/50">
-          Synthèse globale de vos activités artistiques, événements et groupes.
-        </p>
+      <section className="space-y-3 -mt-2">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-7 w-7 text-white shrink-0">
+              <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+              <polyline points="9 22 9 12 15 12 15 22" />
+            </svg>
+            <h1 className="min-w-0 flex-1 text-[2rem] font-black tracking-tight text-white">Mon Espace</h1>
+          </div>
+        </div>
       </section>
 
       {/* 1. Prochains événements */}

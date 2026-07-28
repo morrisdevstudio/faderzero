@@ -3,6 +3,12 @@ import { db, type FaderZeroDatabase } from '@/db/db';
 import type { SetlistRecord, SetlistSongRecord, SongRecord, SongStatus } from '@/db/schema';
 import { createId } from '@/lib/createId';
 import { now } from '@/lib/now';
+import {
+  isSongDocument,
+  normalizeSongDocument,
+  SONG_DOCUMENT_VERSION,
+  type SongDocumentV1,
+} from '@/db/songDocument';
 
 export const SYNC_PROTOCOL = 'faderzero-sync';
 export const SYNC_PROTOCOL_VERSION = 1;
@@ -25,6 +31,8 @@ export interface SyncSongPayload {
   title: string;
   artist?: string;
   lyrics: string;
+  lyricsDocument?: SongDocumentV1;
+  lyricsDocumentVersion?: 1;
   key?: string;
   bpm?: number;
   status?: SongStatus;
@@ -163,11 +171,17 @@ function assertIdentifier(value: unknown, label: string): asserts value is strin
 function validateSongPayload(value: unknown, index: number): asserts value is SyncSongPayload {
   const label = `payload.songs[${index}]`;
   assertRecord(value, label);
-  assertExactKeys(value, ['id', 'title', 'artist', 'lyrics', 'key', 'bpm', 'status', 'durationSeconds', 'notes', 'createdAt', 'updatedAt'], label);
+  assertExactKeys(value, ['id', 'title', 'artist', 'lyrics', 'lyricsDocument', 'lyricsDocumentVersion', 'key', 'bpm', 'status', 'durationSeconds', 'notes', 'createdAt', 'updatedAt'], label);
   assertIdentifier(value.id, `${label}.id`);
   assertString(value.title, `${label}.title`, MAX_SHORT_TEXT_LENGTH);
   assertOptionalString(value.artist, `${label}.artist`, MAX_SHORT_TEXT_LENGTH);
   assertString(value.lyrics, `${label}.lyrics`, MAX_LONG_TEXT_LENGTH, true);
+  if (value.lyricsDocument !== undefined && !isSongDocument(value.lyricsDocument)) {
+    throw new Error(`${label}.lyricsDocument is invalid.`);
+  }
+  if (value.lyricsDocumentVersion !== undefined && value.lyricsDocumentVersion !== SONG_DOCUMENT_VERSION) {
+    throw new Error(`${label}.lyricsDocumentVersion is invalid.`);
+  }
   assertOptionalString(value.key, `${label}.key`, 32);
   if (value.bpm !== undefined) assertFiniteNumber(value.bpm, `${label}.bpm`, 1, 400);
   if (value.status !== undefined && (typeof value.status !== 'string' || !SONG_STATUSES.has(value.status as SongStatus))) {
@@ -270,6 +284,8 @@ function toSyncSong(song: SongRecord): SyncSongPayload {
     id: song.id,
     title: song.title,
     lyrics: song.lyrics,
+    lyricsDocument: normalizeSongDocument(song.lyricsDocument, song.lyrics),
+    lyricsDocumentVersion: SONG_DOCUMENT_VERSION,
     createdAt: song.createdAt,
     updatedAt: song.updatedAt,
     ...(song.artist ? { artist: song.artist } : {}),
@@ -525,6 +541,8 @@ export async function applySyncImport(
         ...song,
         id,
         workspaceId: 'default-workspace',
+        lyricsDocument: normalizeSongDocument(song.lyricsDocument, song.lyrics),
+        lyricsDocumentVersion: SONG_DOCUMENT_VERSION,
         status: song.status ?? 'Idee',
         durationSeconds: song.durationSeconds ?? 0,
       };

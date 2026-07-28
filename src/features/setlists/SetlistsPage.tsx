@@ -92,7 +92,7 @@ export function SetlistsPage() {
       <section className="space-y-3 -mt-2">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0 flex-1">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="h-7 w-7 text-[#ff3a63] shrink-0">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="h-7 w-7 text-white shrink-0">
               <path d="M9 7h10" />
               <path d="M9 12h10" />
               <path d="M9 17h10" />

@@ -102,6 +102,42 @@ describe('qrTransfer', () => {
     expect(exportPayload.payloadHash).toHaveLength(64);
   });
 
+  it('includes the structured lyrics document while preserving the text fallback', async () => {
+    const exportPayload = await buildSyncExportPayload({
+      songs: [{
+        id: 'song-structured',
+        title: 'Structured',
+        lyrics: '[Refrain]\nEncore',
+        lyricsDocument: {
+          type: 'doc',
+          content: [{
+            type: 'songSection',
+            attrs: { id: 'section-1', sectionType: 'chorus', label: 'Refrain' },
+            content: [{
+              type: 'paragraph',
+              attrs: { id: 'paragraph-1' },
+              content: [{ type: 'text', text: 'Encore' }],
+            }],
+          }],
+        },
+        lyricsDocumentVersion: 1,
+        createdAt: 1,
+        updatedAt: 1,
+      }],
+      setlists: [],
+      setlistSongs: [],
+    });
+
+    expect(exportPayload.payload.songs[0]).toMatchObject({
+      lyrics: '[Refrain]\nEncore',
+      lyricsDocumentVersion: 1,
+      lyricsDocument: {
+        type: 'doc',
+        content: [{ attrs: { sectionType: 'chorus' } }],
+      },
+    });
+  });
+
   it('rejects QR fragments with unexpected fields or invalid boundaries', () => {
     const fragment = {
       protocol: SYNC_PROTOCOL,

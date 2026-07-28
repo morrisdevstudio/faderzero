@@ -15,9 +15,10 @@ import type {
 } from '@/db/schema';
 import { createId } from '@/lib/createId';
 import { now } from '@/lib/now';
+import { normalizeSongDocument, SONG_DOCUMENT_VERSION } from '@/db/songDocument';
 
 export const FADERZERO_DB_NAME = 'faderzero-pwa';
-export const FADERZERO_LOCAL_SCHEMA_VERSION = 11;
+export const FADERZERO_LOCAL_SCHEMA_VERSION = 12;
 
 const version1Stores = {
   songs: 'id, title, updatedAt',
@@ -85,6 +86,8 @@ const version11Stores = {
   ...version10Stores,
   pendingAudioUploads: 'id, workspaceId, songId, status, queuedAt',
 } satisfies Record<keyof DatabaseSchema, string>;
+
+const version12Stores = version11Stores;
 
 export class FaderZeroDatabase extends Dexie {
   songs!: EntityTable<SongRecord, 'id'>;
@@ -238,6 +241,17 @@ export class FaderZeroDatabase extends Dexie {
     this.version(9).stores(version9Stores);
     this.version(10).stores(version10Stores);
     this.version(11).stores(version11Stores);
+    this.version(12)
+      .stores(version12Stores)
+      .upgrade(async (transaction) => {
+        await transaction
+          .table<SongRecord, string>('songs')
+          .toCollection()
+          .modify((song) => {
+            song.lyricsDocument = normalizeSongDocument(song.lyricsDocument, song.lyrics);
+            song.lyricsDocumentVersion = SONG_DOCUMENT_VERSION;
+          });
+      });
   }
 }
 

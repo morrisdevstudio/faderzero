@@ -52,6 +52,16 @@ function PencilIcon(props: IconProps) {
   );
 }
 
+function MetadataIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M4 7h10M18 7h2M4 17h2M10 17h10" />
+      <circle cx="16" cy="7" r="2" />
+      <circle cx="8" cy="17" r="2" />
+    </svg>
+  );
+}
+
 function CheckIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
@@ -455,7 +465,6 @@ export function SongDetailPage() {
         try {
           const payload = {
             title: trimmedTitle,
-            lyrics: formValues.lyrics,
             key: formValues.key,
             status: formValues.status,
             durationSeconds: parsedMinutes * 60 + parsedSeconds,
@@ -584,7 +593,7 @@ export function SongDetailPage() {
         className="sticky z-30 -mx-1 -mt-5 border-b border-white/8 bg-[var(--fz-bg)] px-1 pb-3 pt-2"
         style={{ top: 'calc(var(--fz-header-height, 64px) + var(--fz-viewport-offset-top, 0px))' }}
       >
-        <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
+        <div className="grid grid-cols-[2.75rem_minmax(0,1fr)_auto] items-center gap-3">
           <Link
             to="/songs"
             aria-label="Retour"
@@ -593,7 +602,7 @@ export function SongDetailPage() {
             <BackIcon className="h-5 w-5" />
           </Link>
 
-          <h1 className="truncate text-center text-[1rem] font-black text-white">{currentSong.title || 'Sans titre'}</h1>
+          <h1 className="truncate text-left text-[1rem] font-black text-white">{currentSong.title || 'Sans titre'}</h1>
 
           <div className="flex items-center justify-end gap-2 justify-self-end">
 
@@ -609,6 +618,20 @@ export function SongDetailPage() {
                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
                   <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                 </svg>
+              </button>
+            ) : null}
+            {canWrite && !isEditMode ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setError(null);
+                  setIsEditMode(true);
+                }}
+                aria-label="Modifier les informations du morceau"
+                title="Modifier les informations"
+                className="flex h-11 w-11 items-center justify-center text-white/70 transition-colors hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60"
+              >
+                <MetadataIcon className="h-4.5 w-4.5" />
               </button>
             ) : null}
             {!isEditMode ? (
@@ -639,11 +662,10 @@ export function SongDetailPage() {
                   handleCloseEdit();
                   return;
                 }
-
-                setError(null);
-                setIsEditMode(true);
+                navigate(`/songs/${currentSong.id}/write`);
               }}
-              aria-label={isEditMode ? 'Annuler la modification' : 'Modifier'}
+              aria-label={isEditMode ? 'Terminer la modification' : 'Écrire les paroles'}
+              title={isEditMode ? 'Terminer' : 'Écrire les paroles'}
               className={[
                 'flex h-11 w-11 items-center justify-center transition-colors focus-visible:outline-2 focus-visible:outline-offset-2',
                 isEditMode
@@ -664,7 +686,7 @@ export function SongDetailPage() {
         <section>
           {canWrite && isEditMode ? (
             <div className="space-y-3">
-              <SongFormFields values={formValues} onChange={setFormValues} />
+              <SongFormFields values={formValues} onChange={setFormValues} showLyrics={false} />
             </div>
           ) : (
             <div className="space-y-4">

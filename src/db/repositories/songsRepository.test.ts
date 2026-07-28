@@ -19,6 +19,8 @@ describe('SongsRepository', () => {
     });
     expect(firstSong.status).toBe('Idee');
     expect(firstSong.durationSeconds).toBe(0);
+    expect(firstSong.lyricsDocumentVersion).toBe(1);
+    expect(firstSong.lyricsDocument?.content[0]?.attrs.sectionType).toBe('free');
     await setlistSongsRepository.create({
       setlistId: 'set-1',
       songId: firstSong.id,
@@ -43,6 +45,28 @@ describe('SongsRepository', () => {
     expect(updatedSong.status).toBe('Pret');
     expect(updatedSong.durationSeconds).toBe(215);
     expect(updatedSong.updatedAt).toBeGreaterThanOrEqual(updatedSong.createdAt);
+
+    const legacyTextSong = await repository.update(secondSong.id, {
+      lyrics: 'Texte libre mis à jour',
+    });
+    expect(legacyTextSong.lyricsDocument?.content[0]?.attrs.sectionType).toBe('free');
+    expect(legacyTextSong.lyricsDocumentVersion).toBe(1);
+
+    const structuredSong = await repository.update(secondSong.id, {
+      lyricsDocument: {
+        type: 'doc',
+        content: [{
+          type: 'songSection',
+          attrs: { id: 'section-1', sectionType: 'chorus', label: 'Refrain' },
+          content: [{
+            type: 'paragraph',
+            attrs: { id: 'paragraph-1' },
+            content: [{ type: 'text', text: 'Tout recommence' }],
+          }],
+        }],
+      },
+    });
+    expect(structuredSong.lyrics).toBe('[Refrain]\nTout recommence');
 
     await repository.softDelete(firstSong.id);
 
@@ -72,6 +96,8 @@ describe('SongsRepository', () => {
       bpm: 124,
       status: 'Pret',
       durationSeconds: 215,
+      lyrics: '[Refrain]\nTout recommence',
+      lyricsDocumentVersion: 1,
     });
 
     await destroyTestDatabase(database);

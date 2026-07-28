@@ -5,6 +5,7 @@ import type {
   SongAssetRecord,
   EventRecord,
 } from '@/db/schema';
+import { normalizeSongDocument, SONG_DOCUMENT_VERSION } from '@/db/songDocument';
 
 export interface DbSong {
   id: string;
@@ -12,6 +13,8 @@ export interface DbSong {
   title: string;
   artist: string | null;
   lyrics: string;
+  lyrics_document?: unknown;
+  lyrics_document_version?: number;
   key: string | null;
   bpm: number | null;
   status: string;
@@ -111,6 +114,8 @@ export function toLocalSong(dbSong: DbSong): SongRecord {
     workspaceId: dbSong.workspace_id,
     title: dbSong.title,
     lyrics: dbSong.lyrics,
+    lyricsDocument: normalizeSongDocument(dbSong.lyrics_document, dbSong.lyrics),
+    lyricsDocumentVersion: SONG_DOCUMENT_VERSION,
     status: dbSong.status as any,
     durationSeconds: dbSong.duration_seconds,
     createdAt: mapTimestampToMs(dbSong.created_at)!,
@@ -134,12 +139,15 @@ export function toLocalSong(dbSong: DbSong): SongRecord {
 }
 
 export function toDbSong(song: SongRecord): Omit<DbSong, 'server_version' | 'last_modified_by'> {
+  const lyricsDocument = normalizeSongDocument(song.lyricsDocument, song.lyrics);
   return {
     id: song.id,
     workspace_id: song.workspaceId,
     title: song.title,
     artist: song.artist || null,
     lyrics: song.lyrics,
+    lyrics_document: lyricsDocument,
+    lyrics_document_version: SONG_DOCUMENT_VERSION,
     key: song.key || null,
     bpm: song.bpm ?? null,
     status: song.status,

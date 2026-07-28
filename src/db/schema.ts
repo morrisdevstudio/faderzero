@@ -1,3 +1,5 @@
+import type { SongDocumentV1 } from '@/db/songDocument';
+
 export type SongStatus = 'Idee' | 'En cours' | 'Pret';
 export type SetlistDisplayMode = 'all' | 'none' | 'per-song';
 
@@ -7,6 +9,8 @@ export interface SongRecord {
   title: string;
   artist?: string;
   lyrics: string;
+  lyricsDocument?: SongDocumentV1;
+  lyricsDocumentVersion?: 1;
   key?: string;
   bpm?: number;
   status: SongStatus;
@@ -186,6 +190,7 @@ export interface CreateSongInput {
   title: string;
   artist?: string;
   lyrics?: string;
+  lyricsDocument?: SongDocumentV1;
   key?: string;
   bpm?: number;
   status?: SongStatus;
@@ -197,6 +202,7 @@ export interface UpdateSongInput {
   title?: string;
   artist?: string;
   lyrics?: string;
+  lyricsDocument?: SongDocumentV1;
   key?: string;
   bpm?: number;
   status?: SongStatus;

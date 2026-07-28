@@ -32,17 +32,26 @@ interface ReceiveState {
   fragments: Record<number, SyncQrFragment>;
 }
 
+function SyncTabIcon({ className = 'h-4 w-4' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21.5 2v6h-6" />
+      <path d="M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+    </svg>
+  );
+}
+
 function getScannerStartError() {
   if (typeof window === 'undefined') {
     return null;
   }
 
   if (!window.isSecureContext) {
-    return "La camera web est bloquee ici car la page n'est pas en contexte securise. Sur telephone, il faut ouvrir la PWA en HTTPS ou depuis localhost.";
+    return "La caméra web est bloquée ici car la page n'est pas en contexte sécurisé. Sur téléphone, il faut ouvrir la PWA en HTTPS ou depuis localhost.";
   }
 
   if (!navigator.mediaDevices?.getUserMedia) {
-    return "Ce navigateur ne permet pas l'acces camera pour ce contexte.";
+    return "Ce navigateur ne permet pas l'accès caméra pour ce contexte.";
   }
 
   return null;
@@ -81,26 +90,9 @@ export function SyncTab() {
     }
   }
 
-  const pendingCount = useLiveQuery(async () => {
-    if (!activeWorkspace) return 0;
-    return db.syncQueue
-      .where('workspaceId')
-      .equals(activeWorkspace.id)
-      .filter((item) => item.status === 'pending' || item.status === 'failed')
-      .count();
-  }, [activeWorkspace]);
-
   const conflicts = useLiveQuery(async () => {
     if (!activeWorkspace) return [];
     return db.syncConflicts
-      .where('workspaceId')
-      .equals(activeWorkspace.id)
-      .toArray();
-  }, [activeWorkspace]);
-
-  const lastState = useLiveQuery(async () => {
-    if (!activeWorkspace) return [];
-    return db.syncState
       .where('workspaceId')
       .equals(activeWorkspace.id)
       .toArray();
@@ -155,7 +147,6 @@ export function SyncTab() {
   const [receiveState, setReceiveState] = useState<ReceiveState | null>(null);
   const [receiveError, setReceiveError] = useState<string | null>(null);
   const [receiveSuccess, setReceiveSuccess] = useState<string | null>(null);
-  const [manualFragment, setManualFragment] = useState('');
   const [importResult, setImportResult] = useState<SyncImportResult | null>(null);
   const [pendingImportPayload, setPendingImportPayload] = useState<SyncExportPayload | null>(null);
   const [importPreview, setImportPreview] = useState<SyncImportPreview | null>(null);
@@ -436,20 +427,9 @@ export function SyncTab() {
     setReceiveState(null);
     setReceiveError(null);
     setReceiveSuccess(null);
-    setManualFragment('');
     setImportResult(null);
     setPendingImportPayload(null);
     setImportPreview(null);
-  }
-
-  async function handleManualSubmit() {
-    const value = manualFragment.trim();
-    if (!value) {
-      return;
-    }
-
-    await handleIncomingFragment(value);
-    setManualFragment('');
   }
 
   async function confirmImport() {
@@ -481,16 +461,29 @@ export function SyncTab() {
 
   return (
     <div className="space-y-4">
+      {/* Top Header Section */}
+      <section className="space-y-3">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <SyncTabIcon className="h-6 w-6 text-white shrink-0" />
+            <h1 className="text-[1.45rem] font-black uppercase tracking-[0.18em] text-white">Synchronisation Cloud</h1>
+          </div>
+          <p className="mt-1 text-sm leading-relaxed text-[var(--fz-text-muted)]">
+            Gère la synchronisation cloud Supabase et le transfert d'espace hors-ligne.
+          </p>
+        </div>
+      </section>
+
       {pendingRecoveryCount > 0 ? (
         <FeatureCard
-          eyebrow="Recuperation locale"
-          title={`${pendingRecoveryCount} element(s) historique(s) a verifier`}
-          description="Ces donnees provenaient de default-workspace et n ont ete attribuees a aucun groupe sans preuve."
+          eyebrow="Récupération locale"
+          title={`${pendingRecoveryCount} élément(s) historique(s) à vérifier`}
+          description="Ces données provenaient de default-workspace et n'ont été attribuées à aucun groupe."
           aside="Sans perte"
         >
           <div className="space-y-3">
             <p className="text-sm leading-6 text-white/70">
-              Vous pouvez les rattacher a Mon espace. Les identifiants et relations sont conserves, puis chaque element est synchronise comme une nouvelle creation.
+              Vous pouvez les rattacher à Mon espace. Les identifiants et relations sont conservés, puis chaque élément est synchronisé comme une nouvelle création.
             </p>
             <button
               type="button"
@@ -498,295 +491,249 @@ export function SyncTab() {
               disabled={!personalWorkspace || isRecovering}
               className="fz-button-primary w-full px-4 py-3 text-sm font-black uppercase tracking-[0.14em] disabled:opacity-50"
             >
-              {isRecovering ? 'Recuperation...' : 'Rattacher a Mon espace'}
+              {isRecovering ? 'Récupération...' : 'Rattacher à Mon espace'}
             </button>
             {!personalWorkspace ? (
-              <p className="text-sm font-semibold text-amber-300">Mon espace est requis pour terminer la recuperation.</p>
+              <p className="text-sm font-semibold text-amber-300">Mon espace est requis pour terminer la récupération.</p>
             ) : null}
             {recoveryMessage ? <p className="text-sm font-semibold text-white/80">{recoveryMessage}</p> : null}
           </div>
         </FeatureCard>
       ) : null}
 
-      {/* SECTION SUPABASE SYNC */}
-      <FeatureCard
-        eyebrow="Supabase"
-        title="Synchronisation Cloud"
-        description="Statut de connexion de votre groupe et file d'attente."
-        aside="Cloud"
-      >
-        <div className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-[1.35rem] border border-white/8 bg-black/20 p-4">
-              <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--fz-text-muted)]">Compte</p>
-              <p className="mt-2 text-sm font-semibold text-white truncate">{session?.user?.email || 'Non connecté'}</p>
-            </div>
-            <div className="rounded-[1.35rem] border border-white/8 bg-black/20 p-4">
-              <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--fz-text-muted)]">Groupe Actif</p>
-              <p className="mt-2 text-sm font-semibold text-white">{activeWorkspace?.name || 'Aucun'}</p>
-            </div>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-[1.35rem] border border-white/8 bg-black/20 p-4">
-              <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--fz-text-muted)]">En attente de sync</p>
-              <p className="mt-2 text-base font-black text-white">{pendingCount ?? 0} modifications</p>
-            </div>
-            <div className="rounded-[1.35rem] border border-white/8 bg-black/20 p-4">
-              <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--fz-text-muted)]">Checkpoints</p>
-              <div className="mt-2 space-y-1 text-xs text-white/80">
-                {lastState && lastState.length > 0 ? (
-                  lastState.map(s => (
-                    <div key={s.id} className="flex justify-between">
-                      <span className="capitalize">{s.tableName} :</span>
-                      <span className="font-mono">v{s.lastPulledVersion}</span>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-white/40">Aucun historique de sync</p>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* LISTE DES CONFLITS */}
-          {canWrite && conflicts && conflicts.length > 0 && (
-            <div className="rounded-[1.35rem] border border-white/20 bg-white/5 p-4 space-y-3">
-              <p className="text-xs font-black uppercase tracking-[0.2em] text-white/90">Conflits Détectés ({conflicts.length})</p>
-              <div className="space-y-3.5">
-                {conflicts.map((conflict) => (
-                  <div key={conflict.id} className="rounded-xl border border-white/5 bg-white/3 p-3.5 space-y-3">
-                    <div>
-                      <p className="text-[0.62rem] font-bold uppercase tracking-[0.1em] text-white/50">{conflict.entityType}</p>
-                      <p className="text-sm font-semibold text-white mt-0.5">
-                        {conflict.localRecord?.title || conflict.localRecord?.name || conflict.entityId}
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleResolveConflict(conflict.id, 'local')}
-                        className="flex-1 rounded-lg border border-white/20 bg-white/10 py-2 text-[0.65rem] font-bold uppercase tracking-[0.1em] text-white hover:bg-white/15 transition"
-                      >
-                        Garder ma version
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleResolveConflict(conflict.id, 'remote')}
-                        className="flex-1 rounded-lg border border-white/10 bg-white/5 py-2 text-[0.65rem] font-bold uppercase tracking-[0.1em] text-white/80 hover:bg-white/10 transition"
-                      >
-                        Garder version groupe
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {cloudSyncError && (
-            <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs">
-              {cloudSyncError}
-            </div>
-          )}
-
-          {cloudSyncSuccess && (
-            <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs">
-              Synchronisation réussie !
-            </div>
-          )}
-
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={() => void handleCloudSync()}
-              disabled={isCloudSyncing || !session}
-              className="fz-button-primary flex-1 px-4 py-3.5 text-xs font-black uppercase tracking-[0.16em] disabled:opacity-40"
-            >
-              {isCloudSyncing ? 'Synchronisation...' : 'Synchroniser maintenant'}
-            </button>
+      {/* Main Cloud Sync Status Block */}
+      <div className="flex items-center justify-between rounded-[1.45rem] border border-white/10 bg-white/[0.045] p-4 shadow-[0_16px_32px_rgba(0,0,0,0.18)]">
+        <div className="flex items-center gap-3.5 min-w-0">
+          <span className="flex h-3 w-3 shrink-0 rounded-full bg-emerald-400 animate-pulse" />
+          <div className="min-w-0">
+            <p className="text-base font-black text-white truncate">Cloud à jour</p>
+            <p className="text-xs text-[var(--fz-text-muted)] truncate">Toutes les données locales sont synchronisées.</p>
           </div>
         </div>
-      </FeatureCard>
+        <button
+          type="button"
+          onClick={() => void handleCloudSync()}
+          disabled={isCloudSyncing || !session}
+          className="fz-button-secondary shrink-0 px-4 py-2.5 text-xs font-black uppercase tracking-[0.14em] text-white disabled:opacity-40"
+        >
+          {isCloudSyncing ? 'En cours...' : 'Forcer'}
+        </button>
+      </div>
+
+      {/* LISTE DES CONFLITS */}
+      {canWrite && conflicts && conflicts.length > 0 && (
+        <div className="rounded-[1.35rem] border border-white/20 bg-white/5 p-4 space-y-3">
+          <p className="text-[0.62rem] font-black uppercase tracking-[0.2em] text-white/90">Conflits Détectés ({conflicts.length})</p>
+          <div className="space-y-3.5">
+            {conflicts.map((conflict) => (
+              <div key={conflict.id} className="rounded-xl border border-white/5 bg-white/3 p-3.5 space-y-3">
+                <div>
+                  <p className="text-[0.62rem] font-bold uppercase tracking-[0.1em] text-white/50">{conflict.entityType}</p>
+                  <p className="text-sm font-semibold text-white mt-0.5">
+                    {conflict.localRecord?.title || conflict.localRecord?.name || conflict.entityId}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleResolveConflict(conflict.id, 'local')}
+                    className="flex-1 rounded-lg border border-white/20 bg-white/10 py-2 text-[0.65rem] font-bold uppercase tracking-[0.1em] text-white hover:bg-white/15 transition"
+                  >
+                    Garder ma version
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleResolveConflict(conflict.id, 'remote')}
+                    className="flex-1 rounded-lg border border-white/10 bg-white/5 py-2 text-[0.65rem] font-bold uppercase tracking-[0.1em] text-white/80 hover:bg-white/10 transition"
+                  >
+                    Garder version groupe
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {cloudSyncError && (
+        <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs">
+          {cloudSyncError}
+        </div>
+      )}
+
+      {cloudSyncSuccess && (
+        <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs">
+          Synchronisation réussie !
+        </div>
+      )}
 
       {/* SECTION PWA / OFFLINE STATUS */}
       <StatusPill label="Mode PWA" />
 
       {/* SECTION HORS LIGNE (QR CODES) */}
-      {canWrite ? <FeatureCard
-        eyebrow="Transfert Hors-Ligne"
-        title="Synchronisation PWA a PWA"
-        description="Echangez des setlists et morceaux entre appareils sans reseau grace aux QR codes animes."
-        aside="Air-Gapped"
-      >
-        <div className="space-y-5">
-          <div className="rounded-[1.4rem] border border-white/8 bg-black/20 p-4">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--fz-text-muted)]">Donnees locales</p>
-                <p className="mt-1 text-sm font-semibold text-white">
-                  {summary ? `${summary.songs} morceaux, ${summary.setlists} setlists` : 'Chargement du contenu...'}
-                </p>
-              </div>
-              <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-black uppercase tracking-[0.16em] text-white">
-                {summary ? `${summary.fragments} QR` : '...'}
-              </span>
-            </div>
+      {canWrite ? (
+        <section className="space-y-3 pt-4 border-t border-white/10">
+          <div>
+            <h2 className="text-[1.45rem] font-black uppercase tracking-[0.18em] text-white">Synchronisation hors ligne</h2>
+            <p className="mt-1 text-sm leading-relaxed text-[var(--fz-text-muted)]">
+              Échangez des setlists et morceaux entre appareils sans réseau grâce aux QR codes animés.
+            </p>
           </div>
 
-          {error ? <p className="text-sm font-semibold text-rose-400">{error}</p> : null}
-
-          {isLoading ? (
-            <div className="rounded-[1.4rem] border border-white/8 bg-white/4 p-6 text-center text-sm font-semibold text-[var(--fz-text-muted)]">
-              Preparation du transfert local...
-            </div>
-          ) : currentQrDataUrl && transfer ? (
-            <div className="space-y-4 rounded-[1.4rem] border border-white/8 bg-white/4 p-4">
-              <div className="flex flex-col items-center justify-center rounded-[1.2rem] bg-white p-4">
-                <img src={currentQrDataUrl} alt="QR code de transfert" className="h-64 w-64 object-contain" />
-              </div>
-
-              <div className="flex items-center justify-between text-xs font-bold uppercase tracking-[0.14em] text-[var(--fz-text-muted)]">
-                <span>{`Code ${currentIndex + 1} / ${transfer.qrValues.length}`}</span>
-                <span>{`Rotation ${QR_ROTATION_INTERVAL_MS}ms`}</span>
-              </div>
-
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={goToPreviousQr}
-                  className="fz-button-secondary flex-1 px-3 py-2.5 text-xs font-black uppercase tracking-[0.14em] text-white"
-                >
-                  Precedente
-                </button>
-                <button
-                  type="button"
-                  onClick={goToNextQr}
-                  className="fz-button-secondary flex-1 px-3 py-2.5 text-xs font-black uppercase tracking-[0.14em] text-white"
-                >
-                  Suivante
-                </button>
+          <div className="space-y-5 rounded-[1.6rem] border border-white/10 bg-white/[0.045] p-5 shadow-[0_24px_48px_rgba(0,0,0,0.18)]">
+            <div className="rounded-[1.4rem] border border-white/8 bg-black/20 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[0.62rem] font-black uppercase tracking-[0.2em] text-white/45">Données locales</p>
+                  <p className="mt-1 text-sm font-semibold text-white">
+                    {summary ? `${summary.songs} morceaux, ${summary.setlists} setlists` : 'Chargement du contenu...'}
+                  </p>
+                </div>
+                <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-black uppercase tracking-[0.16em] text-white">
+                  {summary ? `${summary.fragments} QR` : '...'}
+                </span>
               </div>
             </div>
-          ) : null}
 
-          <div className="border-t border-white/8 pt-4 space-y-3">
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--fz-text-muted)]">Recevoir un transfert</p>
+            {error ? <p className="text-sm font-semibold text-rose-400">{error}</p> : null}
 
-            {getScannerStartError() ? (
-              <p className="text-sm text-amber-300">{getScannerStartError()}</p>
-            ) : isSecureContextAvailable ? (
-              <button
-                type="button"
-                onClick={() => setIsScannerActive((previous) => !previous)}
-                className="fz-button-primary w-full px-4 py-3.5 text-xs font-black uppercase tracking-[0.16em]"
-              >
-                {isScannerActive ? 'Fermer le scanner' : 'Demarrer la camera / Scanner'}
-              </button>
+            {isLoading ? (
+              <div className="rounded-[1.4rem] border border-white/8 bg-white/4 p-6 text-center text-sm font-semibold text-[var(--fz-text-muted)]">
+                Préparation du transfert local...
+              </div>
+            ) : currentQrDataUrl && transfer ? (
+              <div className="space-y-4 rounded-[1.4rem] border border-white/8 bg-white/4 p-4">
+                <div className="flex flex-col items-center justify-center rounded-[1.2rem] bg-white p-4">
+                  <img src={currentQrDataUrl} alt="QR code de transfert" className="h-64 w-64 object-contain" />
+                </div>
+
+                <div className="flex items-center justify-between text-xs font-bold uppercase tracking-[0.14em] text-[var(--fz-text-muted)]">
+                  <span>{`Code ${currentIndex + 1} / ${transfer.qrValues.length}`}</span>
+                  <span>{`Rotation ${QR_ROTATION_INTERVAL_MS}ms`}</span>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={goToPreviousQr}
+                    className="fz-button-secondary flex-1 px-3 py-2.5 text-xs font-black uppercase tracking-[0.14em] text-white"
+                  >
+                    Précédente
+                  </button>
+                  <button
+                    type="button"
+                    onClick={goToNextQr}
+                    className="fz-button-secondary flex-1 px-3 py-2.5 text-xs font-black uppercase tracking-[0.14em] text-white"
+                  >
+                    Suivante
+                  </button>
+                </div>
+              </div>
             ) : null}
 
-            <div
-              id={SCANNER_ELEMENT_ID}
-              className={isScannerActive ? 'overflow-hidden rounded-[1.4rem] border border-white/12 bg-black' : 'hidden'}
-            />
+            <div className="border-t border-white/8 pt-4 space-y-3">
+              <p className="text-[0.62rem] font-black uppercase tracking-[0.2em] text-white/45">Recevoir un transfert</p>
+
+              {getScannerStartError() ? (
+                <p className="text-sm text-amber-300">{getScannerStartError()}</p>
+              ) : isSecureContextAvailable ? (
+                <button
+                  type="button"
+                  onClick={() => setIsScannerActive((previous) => !previous)}
+                  className="fz-button-primary w-full px-4 py-3.5 text-xs font-black uppercase tracking-[0.16em]"
+                >
+                  {isScannerActive ? 'Fermer le scanner' : 'Démarrer la caméra / Scanner'}
+                </button>
+              ) : null}
+
+              <div
+                id={SCANNER_ELEMENT_ID}
+                className={isScannerActive ? 'overflow-hidden rounded-[1.4rem] border border-white/12 bg-black' : 'hidden'}
+              />
+
+              {receiveState ? (
+                <div className="rounded-[1.2rem] border border-emerald-500/20 bg-emerald-500/8 p-4 text-xs font-semibold text-emerald-200">
+                  {`Fragment reçu : ${receivedCount} / ${receiveState.total}`}
+                </div>
+              ) : null}
+            </div>
+
+
+
+            {receiveError ? <p className="text-sm font-semibold text-rose-400">{receiveError}</p> : null}
+            {receiveSuccess ? <p className="text-sm font-semibold text-emerald-400">{receiveSuccess}</p> : null}
+
+            {importPreview ? (
+              <div className="rounded-[1.2rem] border border-white/8 bg-white/4 px-4 py-4">
+                <p className="text-[0.62rem] font-black uppercase tracking-[0.2em] text-white/45">Revue avant import</p>
+                <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                  <div className="rounded-[1rem] border border-white/8 bg-black/20 px-3 py-3 text-sm text-white/90">
+                    {`${importPreview.songsToCreate} morceaux à créer`}
+                    <br />
+                    {`${importPreview.songsToUpdate} morceaux à mettre à jour`}
+                    <br />
+                    {`${importPreview.songsToSkip} morceaux ignorés`}
+                  </div>
+                  <div className="rounded-[1rem] border border-white/8 bg-black/20 px-3 py-3 text-sm text-white/90">
+                    {`${importPreview.setlistsToCreate} setlists à créer`}
+                    <br />
+                    {`${importPreview.setlistsToUpdate} setlists à mettre à jour`}
+                    <br />
+                    {`${importPreview.setlistsToSkip} setlists ignorées`}
+                  </div>
+                  <div className="rounded-[1rem] border border-white/8 bg-black/20 px-3 py-3 text-sm text-white/90">
+                    {`${importPreview.setlistSongsToCreate} éléments de setlist à créer`}
+                    <br />
+                    {`${importPreview.setlistSongsToUpdate} éléments de setlist à mettre à jour`}
+                    <br />
+                    {`${importPreview.setlistSongsToSkip} éléments de setlist ignorés`}
+                  </div>
+                </div>
+
+                <p className="mt-3 text-sm font-semibold text-amber-200">
+                  {`${importPreview.idsRegenerated} identifiants seront régénérés. ${importPreview.songIdCollisions + importPreview.setlistIdCollisions + importPreview.setlistSongIdCollisions} collision(s) détectée(s) : aucun contenu local ne sera écrasé.`}
+                </p>
+
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={() => void confirmImport()}
+                    className="fz-button-primary px-4 py-3 text-sm font-black uppercase tracking-[0.16em]"
+                  >
+                    Confirmer l'import
+                  </button>
+                  <button
+                    type="button"
+                    onClick={resetReceiveState}
+                    className="fz-button-secondary px-4 py-3 text-sm font-black uppercase tracking-[0.16em] text-white"
+                  >
+                    Annuler ce transfert
+                  </button>
+                </div>
+              </div>
+            ) : null}
 
             {receiveState ? (
-              <div className="rounded-[1.2rem] border border-emerald-500/20 bg-emerald-500/8 p-4 text-xs font-semibold text-emerald-200">
-                {`Fragment recu : ${receivedCount} / ${receiveState.total}`}
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-[1.2rem] border border-white/8 bg-white/4 px-4 py-3">
+                  <p className="text-[0.62rem] font-black uppercase tracking-[0.2em] text-white/45">Transfer ID</p>
+                  <p className="mt-2 break-all text-sm text-white/88">{receiveState.transferId}</p>
+                </div>
+                <div className="rounded-[1.2rem] border border-white/8 bg-white/4 px-4 py-3">
+                  <p className="text-[0.62rem] font-black uppercase tracking-[0.2em] text-white/45">Payload hash</p>
+                  <p className="mt-2 break-all text-sm text-white/88">{receiveState.payloadHash}</p>
+                </div>
+              </div>
+            ) : null}
+
+            {importResult ? (
+              <div className="rounded-[1.2rem] border border-emerald-500/20 bg-emerald-500/8 px-4 py-3 text-sm text-emerald-100">
+                {`${importResult.songsImported} morceaux importés, ${importResult.setlistsImported} setlists importées, ${importResult.setlistSongsImported} éléments de setlist importés.`}
               </div>
             ) : null}
           </div>
-
-          <div className="border-t border-white/8 pt-4">
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--fz-text-muted)]">Saisie manuelle fallback</p>
-            <textarea
-              value={manualFragment}
-              onChange={(event) => setManualFragment(event.target.value)}
-              placeholder="Coller ici un fragment QR serialize..."
-              className="fz-input mt-3 min-h-28 resize-y text-sm"
-            />
-            <button
-              type="button"
-              onClick={() => void handleManualSubmit()}
-              className="fz-button-secondary mt-3 w-full px-4 py-3 text-sm font-black uppercase tracking-[0.16em] text-white"
-            >
-              Ajouter le fragment
-            </button>
-          </div>
-
-          {receiveError ? <p className="text-sm font-semibold text-rose-400">{receiveError}</p> : null}
-          {receiveSuccess ? <p className="text-sm font-semibold text-emerald-400">{receiveSuccess}</p> : null}
-
-          {importPreview ? (
-            <div className="rounded-[1.2rem] border border-white/8 bg-white/4 px-4 py-4">
-              <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--fz-text-muted)]">Revue avant import</p>
-              <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                <div className="rounded-[1rem] border border-white/8 bg-black/20 px-3 py-3 text-sm text-white/90">
-                  {`${importPreview.songsToCreate} songs a creer`}
-                  <br />
-                  {`${importPreview.songsToUpdate} songs a mettre a jour`}
-                  <br />
-                  {`${importPreview.songsToSkip} songs ignores`}
-                </div>
-                <div className="rounded-[1rem] border border-white/8 bg-black/20 px-3 py-3 text-sm text-white/90">
-                  {`${importPreview.setlistsToCreate} setlists a creer`}
-                  <br />
-                  {`${importPreview.setlistsToUpdate} setlists a mettre a jour`}
-                  <br />
-                  {`${importPreview.setlistsToSkip} setlists ignorees`}
-                </div>
-                <div className="rounded-[1rem] border border-white/8 bg-black/20 px-3 py-3 text-sm text-white/90">
-                  {`${importPreview.setlistSongsToCreate} setlistSongs a creer`}
-                  <br />
-                  {`${importPreview.setlistSongsToUpdate} setlistSongs a mettre a jour`}
-                  <br />
-                  {`${importPreview.setlistSongsToSkip} setlistSongs ignores`}
-                </div>
-              </div>
-
-              <p className="mt-3 text-sm font-semibold text-amber-200">
-                {`${importPreview.idsRegenerated} identifiants seront regeneres. ${importPreview.songIdCollisions + importPreview.setlistIdCollisions + importPreview.setlistSongIdCollisions} collision(s) detectee(s) : aucun contenu local ne sera ecrase.`}
-              </p>
-
-              <div className="mt-4 flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  onClick={() => void confirmImport()}
-                  className="fz-button-primary px-4 py-3 text-sm font-black uppercase tracking-[0.16em]"
-                >
-                  Confirmer l'import
-                </button>
-                <button
-                  type="button"
-                  onClick={resetReceiveState}
-                  className="fz-button-secondary px-4 py-3 text-sm font-black uppercase tracking-[0.16em] text-white"
-                >
-                  Annuler ce transfert
-                </button>
-              </div>
-            </div>
-          ) : null}
-
-          {receiveState ? (
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-[1.2rem] border border-white/8 bg-white/4 px-4 py-3">
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--fz-text-muted)]">Transfer ID</p>
-                <p className="mt-2 break-all text-sm text-white/88">{receiveState.transferId}</p>
-              </div>
-              <div className="rounded-[1.2rem] border border-white/8 bg-white/4 px-4 py-3">
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--fz-text-muted)]">Payload hash</p>
-                <p className="mt-2 break-all text-sm text-white/88">{receiveState.payloadHash}</p>
-              </div>
-            </div>
-          ) : null}
-
-          {importResult ? (
-            <div className="rounded-[1.2rem] border border-emerald-500/20 bg-emerald-500/8 px-4 py-3 text-sm text-emerald-100">
-              {`${importResult.songsImported} songs importes, ${importResult.setlistsImported} setlists importees, ${importResult.setlistSongsImported} setlistSongs importes.`}
-            </div>
-          ) : null}
-        </div>
-      </FeatureCard> : null}
+        </section>
+      ) : null}
     </div>
   );
 }

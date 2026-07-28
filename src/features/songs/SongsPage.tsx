@@ -18,6 +18,14 @@ function PlusIcon() {
   );
 }
 
+function QuickIdeaIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="m13 2-8 12h7l-1 8 8-12h-7l1-8Z" />
+    </svg>
+  );
+}
+
 export function SongsPage() {
   const navigate = useNavigate();
   const activeWorkspace = useAuthStore((state) => state.activeWorkspace);
@@ -69,12 +77,26 @@ export function SongsPage() {
     }
   }
 
+  async function handleCreateQuickIdea() {
+    if (!canWrite || isSaving) return;
+    setIsSaving(true);
+    setCreationError(null);
+
+    try {
+      const createdSong = await songsRepository.create({ title: '' });
+      navigate(`/songs/${createdSong.id}/write`);
+    } catch {
+      setCreationError("Impossible de créer l'idée.");
+      setIsSaving(false);
+    }
+  }
+
   return (
     <div className="space-y-4">
       <section className="space-y-3 -mt-2">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0 flex-1">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-7 w-7 text-[#ff3a63] shrink-0">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-7 w-7 text-white shrink-0">
               <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
               <path d="M6.5 17H20" />
               <path d="M12 7v5" />
@@ -82,18 +104,33 @@ export function SongsPage() {
             </svg>
             <h1 className="min-w-0 flex-1 text-[2rem] font-black tracking-tight text-white">Répertoire</h1>
           </div>
-          {canWrite ? <button
-            type="button"
-            onClick={() => {
-              setIsCreateOpen(true);
-              setNewSongTitle('');
-              setCreationError(null);
-            }}
-            aria-label="Nouvelle chanson"
-            className="fz-button-primary h-11 w-11 shrink-0 p-0"
-          >
-            <PlusIcon />
-          </button> : null}
+          {canWrite ? (
+            <div className="flex shrink-0 items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => void handleCreateQuickIdea()}
+                disabled={isSaving}
+                aria-label="Nouvelle idée"
+                title="Nouvelle idée"
+                className="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-[#090a0c] transition active:opacity-75 disabled:opacity-55"
+              >
+                <QuickIdeaIcon />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsCreateOpen(true);
+                  setNewSongTitle('');
+                  setCreationError(null);
+                }}
+                aria-label="Nouvelle chanson avec un titre"
+                title="Nouvelle chanson avec un titre"
+                className="fz-button-secondary h-11 w-11 shrink-0 p-0 text-white"
+              >
+                <PlusIcon />
+              </button>
+            </div>
+          ) : null}
         </div>
 
         {songs && (songs.length > 0 || searchQuery.trim()) ? (
@@ -130,19 +167,31 @@ export function SongsPage() {
           <FeatureCard
             eyebrow="Vide"
             title="Votre repertoire est vide"
-            description={canWrite ? "Cree une premiere chanson pour lancer le repertoire web sans casser l'app Expo." : 'Aucune chanson disponible dans ce groupe.'}
+            description={canWrite ? 'Crée une première chanson ou saisis directement une idée.' : 'Aucune chanson disponible dans ce groupe.'}
           >
-            {canWrite ? <button
-              type="button"
-              onClick={() => {
-                setIsCreateOpen(true);
-                setNewSongTitle('');
-                setCreationError(null);
-              }}
-              className="fz-button-primary w-full px-4 py-4 text-sm font-black uppercase tracking-[0.16em]"
-            >
-              Creer ma premiere chanson
-            </button> : null}
+            {canWrite ? (
+              <div className="fz-actions-row">
+                <button
+                  type="button"
+                  onClick={() => void handleCreateQuickIdea()}
+                  disabled={isSaving}
+                  className="fz-button-primary px-4 py-4 text-sm font-black"
+                >
+                  Saisir une idée
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsCreateOpen(true);
+                    setNewSongTitle('');
+                    setCreationError(null);
+                  }}
+                  className="fz-button-secondary px-4 py-4 text-sm font-black"
+                >
+                  Créer avec un titre
+                </button>
+              </div>
+            ) : null}
           </FeatureCard>
         ) : (
           sortedSongs?.map((song) => (

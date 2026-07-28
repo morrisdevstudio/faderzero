@@ -885,7 +885,7 @@ export function ImportsPage() {
       <section className="space-y-3 -mt-2">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0 flex-1">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-7 w-7 text-[#ff3a63] shrink-0">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-7 w-7 text-white shrink-0">
               <circle cx="12" cy="12" r="9" />
               <circle cx="12" cy="12" r="2.5" />
               <path d="M12 12v-5l4-1" />

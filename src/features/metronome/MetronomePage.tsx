@@ -270,7 +270,7 @@ export function MetronomePage() {
       <section className="space-y-3 -mt-2">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-7 w-7 text-[#ff547b] shrink-0">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-7 w-7 text-white shrink-0">
               <path d="M7 20h10" />
               <path d="M8.5 20 11 5h2l2.5 15" />
               <path d="M10 11h4" />
