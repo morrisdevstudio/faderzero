@@ -34,6 +34,7 @@ function CheckIcon(props: IconProps) {
 
 function useKeyboardInset() {
   const [inset, setInset] = useState(0);
+  const [offsetTop, setOffsetTop] = useState(0);
 
   useEffect(() => {
     const viewport = window.visualViewport;
@@ -46,6 +47,7 @@ function useKeyboardInset() {
         return;
       }
       setInset(Math.max(0, Math.round(window.innerHeight - viewport.height - viewport.offsetTop)));
+      setOffsetTop(Math.max(0, Math.round(viewport.offsetTop)));
     }
 
     updateInset();
@@ -57,7 +59,7 @@ function useKeyboardInset() {
     };
   }, []);
 
-  return inset;
+  return { inset, offsetTop };
 }
 
 function requestPersistentStorage() {
@@ -80,7 +82,7 @@ export function SongWriterPage() {
   const canWrite = canWriteWorkspace(activeWorkspace?.role);
   const isOnline = useOnlineStatus();
   const song = useLiveQuery(() => songsRepository.getById(songId), [songId, activeWorkspaceId]);
-  const keyboardInset = useKeyboardInset();
+  const { inset: keyboardInset, offsetTop: viewportOffsetTop } = useKeyboardInset();
   const [title, setTitle] = useState('');
   const [localSaveState, setLocalSaveState] = useState<LocalSaveState>('idle');
   const initializedSongIdRef = useRef('');
@@ -232,6 +234,7 @@ export function SongWriterPage() {
         : 'neutral';
   const pageStyle = {
     '--fz-writer-keyboard-inset': `${keyboardInset}px`,
+    '--fz-writer-viewport-offset-top': `${viewportOffsetTop}px`,
   } as CSSProperties;
 
   return (

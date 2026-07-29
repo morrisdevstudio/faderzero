@@ -175,7 +175,7 @@
 .fz-song-editor__toolbar {
   position: fixed;
   z-index: 60;
-  top: var(--fz-writer-header-height);
+  top: calc(var(--fz-writer-header-height) + var(--fz-writer-viewport-offset-top, 0px));
   left: 0;
   right: 0;
   display: grid;
