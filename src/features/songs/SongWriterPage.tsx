@@ -256,7 +256,6 @@ export function SongWriterPage() {
         <SongEditor
           initialDocument={normalizeSongDocument(song.lyricsDocument, song.lyrics)}
           onChange={handleDocumentChange}
-          toolbarBottom={keyboardInset}
         />
       </main>
     </div>

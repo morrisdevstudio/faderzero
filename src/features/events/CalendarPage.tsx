@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { StatusPill } from '@/components/StatusPill';
 import { eventsRepository } from '@/db/repositories/eventsRepository';
 import type { EventRecord } from '@/db/schema';
@@ -106,6 +107,8 @@ export function CalendarPage() {
   const [creationDate, setCreationDate] = useState<Date | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeBottomSheetEvent, setActiveBottomSheetEvent] = useState<EventRecord | null>(null);
+  const [eventToDelete, setEventToDelete] = useState<EventRecord | null>(null);
+  const [isDeletingEvent, setIsDeletingEvent] = useState(false);
 
   const loadEvents = async () => {
     setLoading(true);
@@ -542,35 +545,46 @@ export function CalendarPage() {
 
                     <div role="menu" className="space-y-2">
                       {/* Perso Option */}
-                      <button
-                        type="button"
-                        role="menuitemcheckbox"
-                        aria-checked={isPersonalEnabled}
-                        onClick={togglePersonalFilter}
-                        className="min-h-12 w-full rounded-xl border border-white/8 bg-white/5 px-4 py-3 text-left text-sm font-black uppercase leading-5 tracking-[0.12em] text-white hover:bg-white/10 transition flex items-center justify-between select-none cursor-pointer"
-                      >
-                        <span className="flex items-center gap-3 truncate">
-                          {personalAvatarUrl ? (
-                            <img
-                              src={personalAvatarUrl}
-                              alt="Perso"
-                              className="w-6.5 h-6.5 rounded-full object-cover border border-white/10 shrink-0"
-                            />
-                          ) : (
-                            <span className="w-6.5 h-6.5 rounded-full bg-[#9D00FF]/20 border border-[#9D00FF]/40 text-[#9D00FF] text-[10px] font-bold flex items-center justify-center shrink-0">
-                              {personalInitial}
+                      {(() => {
+                        const personalColor = getWorkspaceColor(personalWorkspaceId, true);
+                        return (
+                          <button
+                            type="button"
+                            role="menuitemcheckbox"
+                            aria-checked={isPersonalEnabled}
+                            onClick={togglePersonalFilter}
+                            className="min-h-12 w-full rounded-xl border border-white/8 bg-white/5 px-4 py-3 text-left text-sm font-black uppercase leading-5 tracking-[0.12em] text-white hover:bg-white/10 transition flex items-center justify-between select-none cursor-pointer"
+                          >
+                            <span className="flex items-center gap-3 truncate">
+                              {personalAvatarUrl ? (
+                                <img
+                                  src={personalAvatarUrl}
+                                  alt="Perso"
+                                  className="w-6.5 h-6.5 rounded-full object-cover border border-white/10 shrink-0"
+                                />
+                              ) : (
+                                <span
+                                  style={{
+                                    backgroundColor: personalColor,
+                                    color: '#ffffff',
+                                  }}
+                                  className="w-6.5 h-6.5 rounded-full text-[10px] font-bold text-white flex items-center justify-center shrink-0 border border-white/20 shadow-xs"
+                                >
+                                  {personalInitial}
+                                </span>
+                              )}
+                              <span className="truncate">Événements Personnels</span>
                             </span>
-                          )}
-                          <span className="truncate">Événements Personnels</span>
-                        </span>
 
-                        <input
-                          type="checkbox"
-                          checked={isPersonalEnabled}
-                          onChange={() => {}}
-                          className="w-4.5 h-4.5 rounded border-white/20 accent-purple-600 cursor-pointer pointer-events-none"
-                        />
-                      </button>
+                            <input
+                              type="checkbox"
+                              checked={isPersonalEnabled}
+                              onChange={() => {}}
+                              className="w-4.5 h-4.5 rounded border-white/20 accent-purple-600 cursor-pointer pointer-events-none"
+                            />
+                          </button>
+                        );
+                      })()}
 
                       {/* Group Workspace Options */}
                       {groupWorkspaces.map((g) => {
@@ -597,11 +611,10 @@ export function CalendarPage() {
                               ) : (
                                 <span
                                   style={{
-                                    backgroundColor: `${groupColor}25`,
-                                    borderColor: `${groupColor}60`,
-                                    color: groupColor,
+                                    backgroundColor: groupColor,
+                                    color: '#ffffff',
                                   }}
-                                  className="w-6.5 h-6.5 rounded-full text-[10px] font-bold flex items-center justify-center shrink-0 border"
+                                  className="w-6.5 h-6.5 rounded-full text-[10px] font-bold text-white flex items-center justify-center shrink-0 border border-white/20 shadow-xs"
                                 >
                                   {g.name.charAt(0).toUpperCase()}
                                 </span>
@@ -705,10 +718,10 @@ export function CalendarPage() {
           <div
             className={[
               'overflow-hidden',
-              isMonthView ? 'max-h-[300px]' : 'max-h-0 pointer-events-none hidden',
+              isMonthView ? 'max-h-[420px]' : 'max-h-0 pointer-events-none hidden',
             ].join(' ')}
           >
-            <div className="grid grid-cols-7 gap-1 text-sm">
+            <div className="grid grid-cols-7 gap-1 text-sm p-1">
               {calendarDays.map((item, idx) => {
                 const dayEvents = eventsByDayString.get(item.date.toDateString()) || [];
                 const isSelected = selectedDate.toDateString() === item.date.toDateString();
@@ -765,10 +778,10 @@ export function CalendarPage() {
           <div
             className={[
               'overflow-hidden',
-              !isMonthView ? 'max-h-[90px]' : 'max-h-0 pointer-events-none hidden',
+              !isMonthView ? 'max-h-[110px]' : 'max-h-0 pointer-events-none hidden',
             ].join(' ')}
           >
-            <div className="grid grid-cols-7 gap-1 text-sm">
+            <div className="grid grid-cols-7 gap-1 text-sm p-1">
               {activeWeekDays.map((item, idx) => {
                 const dayEvents = eventsByDayString.get(item.date.toDateString()) || [];
                 const isSelected = selectedDate.toDateString() === item.date.toDateString();
@@ -910,7 +923,7 @@ export function CalendarPage() {
                         <div className="flex shrink-0 items-start pt-0.5">
                           <StatusPill
                             label={spaceBadgeText}
-                            style={{ backgroundColor: `${color}15`, borderColor: `${color}40`, color }}
+                            style={{ backgroundColor: color, color: '#ffffff', borderColor: `${color}80` }}
                           />
                         </div>
                       </div>
@@ -1116,12 +1129,10 @@ export function CalendarPage() {
             <div className="flex items-center justify-between border-t border-white/10 pt-4 mt-4">
               <button
                 type="button"
-                onClick={async () => {
-                  if (!activeBottomSheetEvent) return;
-                  const targetId = activeBottomSheetEvent.id;
-                  setActiveBottomSheetEvent(null);
-                  await eventsRepository.softDelete(targetId);
-                  loadEvents();
+                onClick={() => {
+                  if (activeBottomSheetEvent) {
+                    setEventToDelete(activeBottomSheetEvent);
+                  }
                 }}
                 className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-xs font-bold text-red-400 hover:bg-red-500/20"
               >
@@ -1161,6 +1172,28 @@ export function CalendarPage() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSaved={loadEvents}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmDialog
+        isOpen={Boolean(eventToDelete)}
+        title="Supprimer l’événement"
+        description="L’événement sera retiré de votre calendrier. Cette action demande une confirmation explicite."
+        confirmLabel="Supprimer"
+        isBusy={isDeletingEvent}
+        onConfirm={async () => {
+          if (!eventToDelete) return;
+          setIsDeletingEvent(true);
+          try {
+            await eventsRepository.softDelete(eventToDelete.id);
+            setEventToDelete(null);
+            setActiveBottomSheetEvent(null);
+            await loadEvents();
+          } finally {
+            setIsDeletingEvent(false);
+          }
+        }}
+        onCancel={() => setEventToDelete(null)}
       />
     </div>
   );

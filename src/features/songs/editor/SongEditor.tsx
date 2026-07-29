@@ -94,11 +94,10 @@ function SectionIcon(props: IconProps) {
 interface SongEditorProps {
   initialDocument: SongDocumentV1;
   onChange: (document: SongDocumentV1) => void;
-  toolbarBottom: number;
   autoFocus?: boolean;
 }
 
-export function SongEditor({ initialDocument, onChange, toolbarBottom, autoFocus = true }: SongEditorProps) {
+export function SongEditor({ initialDocument, onChange, autoFocus = true }: SongEditorProps) {
   const [isSectionMenuOpen, setIsSectionMenuOpen] = useState(false);
   const editor = useEditor({
     extensions: [
@@ -161,14 +160,7 @@ export function SongEditor({ initialDocument, onChange, toolbarBottom, autoFocus
       return;
     }
 
-    const { $from } = editor.state.selection;
-    let sectionDepth = $from.depth;
-    while (sectionDepth > 0 && $from.node(sectionDepth).type.name !== 'songSection') {
-      sectionDepth -= 1;
-    }
-
-    const insertionPosition =
-      sectionDepth > 0 ? $from.after(sectionDepth) : editor.state.doc.content.size;
+    const insertionPosition = editor.state.selection.from;
     const section = createSongSection(sectionType);
     editor
       .chain()
@@ -190,12 +182,7 @@ export function SongEditor({ initialDocument, onChange, toolbarBottom, autoFocus
       <EditorContent editor={editor} className="fz-song-editor" />
 
       {isSectionMenuOpen ? (
-        <div
-          className="fz-song-editor__section-menu"
-          style={{ bottom: `${toolbarBottom + 66}px` }}
-          role="dialog"
-          aria-label="Ajouter une section"
-        >
+        <div className="fz-song-editor__section-menu" role="dialog" aria-label="Ajouter une section">
           <p>Ajouter une section</p>
           <div>
             {sectionChoices.map((sectionType) => (
@@ -212,7 +199,7 @@ export function SongEditor({ initialDocument, onChange, toolbarBottom, autoFocus
         </div>
       ) : null}
 
-      <div className="fz-song-editor__toolbar" style={{ bottom: `${toolbarBottom}px` }} aria-label="Outils d’écriture">
+      <div className="fz-song-editor__toolbar" aria-label="Outils d’écriture">
         <button
           type="button"
           disabled={!toolbarState?.canUndo}

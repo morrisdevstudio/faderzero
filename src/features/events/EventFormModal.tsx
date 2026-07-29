@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { eventsRepository } from '@/db/repositories/eventsRepository';
 import type { EventRecord, EventType } from '@/db/schema';
 import { useAuthStore } from '@/stores/authStore';
@@ -66,11 +67,13 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
 
     setError(null);
+    setIsConfirmDeleteOpen(false);
     if (event) {
       setTitle(event.title);
       setEventType(event.eventType);
@@ -375,7 +378,7 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
             {event ? (
               <button
                 type="button"
-                onClick={handleDelete}
+                onClick={() => setIsConfirmDeleteOpen(true)}
                 disabled={loading}
                 className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-xs font-bold text-red-400 hover:bg-red-500/20"
               >
@@ -405,6 +408,19 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
           </div>
         </form>
       </div>
+
+      <ConfirmDialog
+        isOpen={isConfirmDeleteOpen}
+        title="Supprimer l’événement"
+        description="L’événement sera retiré de votre calendrier. Cette action demande une confirmation explicite."
+        confirmLabel="Supprimer"
+        isBusy={loading}
+        onConfirm={async () => {
+          setIsConfirmDeleteOpen(false);
+          await handleDelete();
+        }}
+        onCancel={() => setIsConfirmDeleteOpen(false)}
+      />
     </div>
   );
 };

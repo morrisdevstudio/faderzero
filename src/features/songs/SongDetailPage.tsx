@@ -8,7 +8,8 @@ import { songsRepository } from '@/db/repositories/songsRepository';
 import type { AudioTrack } from '@/features/audio/audioPlayerStore';
 import { useAudioPlayerStore } from '@/features/audio/audioPlayerStore';
 import { SongFormFields, type SongFormValues } from '@/features/songs/SongFormFields';
-import { formatSongDuration } from '@/features/songs/songPresentation';
+import { bpmOptions, formatSongDuration, songStatusOptions } from '@/features/songs/songPresentation';
+import { PickerDialog, WheelColumn } from '@/components/PickerDialog';
 import { useAuthStore } from '@/stores/authStore';
 import { songAssetsRepository } from '@/db/repositories/songAssetsRepository';
 import { db } from '@/db/db';
@@ -19,9 +20,11 @@ import {
   uploadOrQueueSongAsset,
 } from '@/services/audio/pendingUploads';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { useLongPress } from '@/hooks/useLongPress';
 import { useAudioCacheStore } from '@/features/audio/audioCacheStore';
 import { canWriteWorkspace } from '@/services/supabase/workspace';
 import { CopySongModal } from '@/features/songs/CopySongModal';
+import type { SongStatus } from '@/db/schema';
 
 type IconProps = SVGProps<SVGSVGElement>;
 
@@ -52,15 +55,7 @@ function PencilIcon(props: IconProps) {
   );
 }
 
-function MetadataIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M4 7h10M18 7h2M4 17h2M10 17h10" />
-      <circle cx="16" cy="7" r="2" />
-      <circle cx="8" cy="17" r="2" />
-    </svg>
-  );
-}
+
 
 function CheckIcon(props: IconProps) {
   return (
@@ -92,6 +87,10 @@ const initialFormValues: SongFormValues = {
   durationSeconds: '00',
   notes: '',
 };
+
+const keyOptions = ['', 'C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'] as const;
+const durationMinuteOptions = Array.from({ length: 100 }, (_, index) => String(index).padStart(2, '0'));
+const durationSecondOptions = Array.from({ length: 60 }, (_, index) => String(index).padStart(2, '0'));
 
 type DuplicateDecision =
   | { action: 'replace' }
@@ -249,6 +248,107 @@ export function SongDetailPage() {
 
   const isOnline = useOnlineStatus();
   const { cachedAssetIds, checkCacheStatus } = useAudioCacheStore();
+
+  type QuickEditField = 'title' | 'status' | 'key' | 'bpm' | 'duration' | 'notes' | null;
+  const [quickEditField, setQuickEditField] = useState<QuickEditField>(null);
+  const [quickValue, setQuickValue] = useState<string>('');
+  const [quickDuration, setQuickDuration] = useState<{ minutes: string; seconds: string }>({ minutes: '00', seconds: '00' });
+
+  const titleLongPress = useLongPress({
+    onLongPress: () => {
+      if (canWrite && song) {
+        setQuickValue(song.title || '');
+        setQuickEditField('title');
+      }
+    },
+  });
+
+  const statusLongPress = useLongPress({
+    onLongPress: () => {
+      if (canWrite && song) {
+        setQuickValue(song.status);
+        setQuickEditField('status');
+      }
+    },
+  });
+
+  const keyLongPress = useLongPress({
+    onLongPress: () => {
+      if (canWrite && song) {
+        setQuickValue(song.key || '');
+        setQuickEditField('key');
+      }
+    },
+  });
+
+  const bpmLongPress = useLongPress({
+    onLongPress: () => {
+      if (canWrite && song) {
+        setQuickValue(song.bpm !== undefined ? String(song.bpm) : '');
+        setQuickEditField('bpm');
+      }
+    },
+  });
+
+  const durationLongPress = useLongPress({
+    onLongPress: () => {
+      if (canWrite && song) {
+        const dur = toDurationFields(song.durationSeconds);
+        setQuickDuration({ minutes: dur.durationMinutes, seconds: dur.durationSeconds });
+        setQuickEditField('duration');
+      }
+    },
+  });
+
+  const notesLongPress = useLongPress({
+    onLongPress: () => {
+      if (canWrite && song) {
+        setQuickValue(song.notes || '');
+        setQuickEditField('notes');
+      }
+    },
+  });
+
+  const lyricsLongPress = useLongPress({
+    onLongPress: () => {
+      if (canWrite && song) {
+        navigate(`/songs/${song.id}/write`);
+      }
+    },
+  });
+
+  async function handleSaveQuickField() {
+    if (!canWrite || !song) return;
+
+    try {
+      if (quickEditField === 'title') {
+        const trimmed = quickValue.trim();
+        if (!trimmed) return;
+        await songsRepository.update(song.id, { title: trimmed });
+      } else if (quickEditField === 'status') {
+        await songsRepository.update(song.id, { status: quickValue as SongStatus });
+      } else if (quickEditField === 'key') {
+        await songsRepository.update(song.id, { key: quickValue.trim() });
+      } else if (quickEditField === 'bpm') {
+        const parsed = quickValue.trim() ? Number(quickValue) : undefined;
+        if (parsed !== undefined && !Number.isNaN(parsed)) {
+          await songsRepository.update(song.id, { bpm: parsed });
+        }
+      } else if (quickEditField === 'duration') {
+        const mins = Math.max(0, Number(quickDuration.minutes) || 0);
+        const secs = Math.min(59, Math.max(0, Number(quickDuration.seconds) || 0));
+        await songsRepository.update(song.id, { durationSeconds: mins * 60 + secs });
+      } else if (quickEditField === 'notes') {
+        await songsRepository.update(song.id, { notes: quickValue });
+      } else if (quickEditField === 'lyrics') {
+        await songsRepository.update(song.id, { lyrics: quickValue });
+      }
+    } catch (err: any) {
+      setError(err.message || 'Erreur lors de la mise a jour.');
+    } finally {
+      setQuickEditField(null);
+    }
+  }
 
   const assets = useLiveQuery(() => songAssetsRepository.listBySongId(songId), [songId, activeWorkspaceId]);
   const pendingAudioUploads = useLiveQuery(
@@ -602,7 +702,16 @@ export function SongDetailPage() {
             <BackIcon className="h-5 w-5" />
           </Link>
 
-          <h1 className="truncate text-left text-[1rem] font-black text-white">{currentSong.title || 'Sans titre'}</h1>
+          <h1
+            className={[
+              'truncate text-left text-[1rem] font-black text-white',
+              canWrite ? 'cursor-pointer select-none transition hover:text-white/90 active:opacity-75' : '',
+            ].join(' ')}
+            title={canWrite ? 'Appui long pour modifier le titre' : undefined}
+            {...(canWrite ? titleLongPress : {})}
+          >
+            {currentSong.title || 'Sans titre'}
+          </h1>
 
           <div className="flex items-center justify-end gap-2 justify-self-end">
 
@@ -620,20 +729,7 @@ export function SongDetailPage() {
                 </svg>
               </button>
             ) : null}
-            {canWrite && !isEditMode ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setError(null);
-                  setIsEditMode(true);
-                }}
-                aria-label="Modifier les informations du morceau"
-                title="Modifier les informations"
-                className="flex h-11 w-11 items-center justify-center text-white/70 transition-colors hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60"
-              >
-                <MetadataIcon className="h-4.5 w-4.5" />
-              </button>
-            ) : null}
+
             {!isEditMode ? (
               <Link
                 to={`/prompter/play?songId=${encodeURIComponent(currentSong.id)}`}
@@ -723,7 +819,14 @@ export function SongDetailPage() {
                 className="hidden"
               />
               <div className="grid grid-cols-4 rounded-[1rem] bg-[var(--fz-bg-elevated)] px-1 py-3">
-                <div className="flex min-w-0 flex-col items-center gap-1.5 px-1 text-center">
+                <div
+                  className={[
+                    'flex min-w-0 flex-col items-center gap-1.5 px-1 text-center',
+                    canWrite ? 'cursor-pointer select-none transition hover:bg-white/5 active:opacity-75' : '',
+                  ].join(' ')}
+                  title={canWrite ? "Appui long pour modifier l'état" : undefined}
+                  {...(canWrite ? statusLongPress : {})}
+                >
                   <p className="text-[0.58rem] font-medium uppercase leading-tight text-[var(--fz-text-muted)]">État</p>
                   <p
                     className={[
@@ -738,15 +841,36 @@ export function SongDetailPage() {
                     {currentSong.status}
                   </p>
                 </div>
-                <div className="flex min-w-0 flex-col items-center gap-1.5 border-l border-white/10 px-1 text-center">
+                <div
+                  className={[
+                    'flex min-w-0 flex-col items-center gap-1.5 border-l border-white/10 px-1 text-center',
+                    canWrite ? 'cursor-pointer select-none transition hover:bg-white/5 active:opacity-75' : '',
+                  ].join(' ')}
+                  title={canWrite ? 'Appui long pour modifier la tonalité' : undefined}
+                  {...(canWrite ? keyLongPress : {})}
+                >
                   <p className="text-[0.58rem] font-medium uppercase leading-tight text-[var(--fz-text-muted)]">Tone</p>
                   <p className="whitespace-nowrap text-[0.9rem] font-black leading-tight text-white">{currentSong.key || '--'}</p>
                 </div>
-                <div className="flex min-w-0 flex-col items-center gap-1.5 border-l border-white/10 px-1 text-center">
+                <div
+                  className={[
+                    'flex min-w-0 flex-col items-center gap-1.5 border-l border-white/10 px-1 text-center',
+                    canWrite ? 'cursor-pointer select-none transition hover:bg-white/5 active:opacity-75' : '',
+                  ].join(' ')}
+                  title={canWrite ? 'Appui long pour modifier le tempo' : undefined}
+                  {...(canWrite ? bpmLongPress : {})}
+                >
                   <p className="text-[0.58rem] font-medium uppercase leading-tight text-[var(--fz-text-muted)]">Tempo</p>
                   <p className="whitespace-nowrap text-[0.9rem] font-black leading-tight text-white">{currentSong.bpm || '--'}</p>
                 </div>
-                <div className="flex min-w-0 flex-col items-center gap-1.5 border-l border-white/10 px-1 text-center">
+                <div
+                  className={[
+                    'flex min-w-0 flex-col items-center gap-1.5 border-l border-white/10 px-1 text-center',
+                    canWrite ? 'cursor-pointer select-none transition hover:bg-white/5 active:opacity-75' : '',
+                  ].join(' ')}
+                  title={canWrite ? 'Appui long pour modifier la durée' : undefined}
+                  {...(canWrite ? durationLongPress : {})}
+                >
                   <p className="text-[0.58rem] font-medium uppercase leading-tight text-[var(--fz-text-muted)]">Durée</p>
                   <p className="whitespace-nowrap text-[0.9rem] font-black leading-tight text-white">{formatSongDuration(currentSong.durationSeconds)}</p>
                 </div>
@@ -755,7 +879,14 @@ export function SongDetailPage() {
               {currentSong.notes ? (
                 <section className="space-y-2">
                   <p className="px-2 text-[0.68rem] font-black uppercase tracking-[0.18em] text-[var(--fz-text-muted)]">Notes</p>
-                  <div className="rounded-[1rem] bg-[var(--fz-bg-elevated)] p-3.5">
+                  <div
+                    className={[
+                      'rounded-[1rem] bg-[var(--fz-bg-elevated)] p-3.5',
+                      canWrite ? 'cursor-pointer select-none transition hover:bg-[var(--fz-bg-elevated)]/90 active:scale-[0.99]' : '',
+                    ].join(' ')}
+                    title={canWrite ? 'Appui long pour modifier les notes' : undefined}
+                    {...(canWrite ? notesLongPress : {})}
+                  >
                     <p className="whitespace-pre-line text-[0.9rem] leading-7 text-white/78">{currentSong.notes}</p>
                   </div>
                 </section>
@@ -763,7 +894,16 @@ export function SongDetailPage() {
 
               <section className="space-y-2">
                 <p className="px-2 text-[0.68rem] font-black uppercase tracking-[0.18em] text-[var(--fz-text-muted)]">Paroles</p>
-                <div className="rounded-[1rem] bg-[var(--fz-bg-elevated)] p-3.5">
+                <div
+                  className={[
+                    'rounded-[1rem] bg-[var(--fz-bg-elevated)] p-3.5',
+                    canWrite
+                      ? 'cursor-pointer select-none transition hover:bg-[var(--fz-bg-elevated)]/90 active:scale-[0.99]'
+                      : '',
+                  ].join(' ')}
+                  title={canWrite ? "Appui long pour ouvrir l'éditeur de paroles" : undefined}
+                  {...(canWrite ? lyricsLongPress : {})}
+                >
                   <p className="whitespace-pre-line text-[0.95rem] leading-7 text-white/88">
                     {currentSong.lyrics || 'Aucune parole pour le moment.'}
                   </p>
@@ -1037,6 +1177,206 @@ export function SongDetailPage() {
               </button>
             </div>
           </div>
+        </FormDialog>
+      ) : null}
+
+      {quickEditField === 'title' ? (
+        <FormDialog
+          title="Modifier le titre"
+          onClose={() => setQuickEditField(null)}
+        >
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              void handleSaveQuickField();
+            }}
+            className="space-y-4"
+          >
+            <input
+              type="text"
+              value={quickValue}
+              onChange={(e) => setQuickValue(e.target.value)}
+              placeholder="Titre du morceau"
+              className="fz-input text-base"
+              autoFocus
+            />
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setQuickEditField(null)}
+                className="fz-button-secondary px-4 py-2.5 text-xs font-black uppercase tracking-[0.14em] text-white"
+              >
+                Annuler
+              </button>
+              <button
+                type="submit"
+                className="fz-button-primary px-5 py-2.5 text-xs font-black uppercase tracking-[0.14em]"
+              >
+                Enregistrer
+              </button>
+            </div>
+          </form>
+        </FormDialog>
+      ) : null}
+
+      {quickEditField === 'status' ? (
+        <PickerDialog title="Statut de création" onClose={() => setQuickEditField(null)}>
+          <div className="grid grid-cols-3 gap-3">
+            {songStatusOptions.map((statusOption) => {
+              const isSelected = currentSong.status === statusOption.value;
+              return (
+                <button
+                  key={statusOption.value}
+                  type="button"
+                  data-picker-selected={isSelected ? 'true' : 'false'}
+                  onClick={() => {
+                    void (async () => {
+                      await songsRepository.update(currentSong.id, { status: statusOption.value });
+                      setQuickEditField(null);
+                    })();
+                  }}
+                  className={[
+                    'rounded-2xl px-4 py-4 text-sm font-black transition',
+                    isSelected
+                      ? 'bg-indigo-500 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.14)]'
+                      : 'bg-white/6 text-white/78 hover:bg-white/10',
+                  ].join(' ')}
+                >
+                  {statusOption.label}
+                </button>
+              );
+            })}
+          </div>
+        </PickerDialog>
+      ) : null}
+
+      {quickEditField === 'key' ? (
+        <PickerDialog title="Sélectionner la Tonalité" onClose={() => setQuickEditField(null)}>
+          <div className="grid grid-cols-4 gap-3">
+            {keyOptions.map((keyOption) => {
+              const displayValue = keyOption || '--';
+              const isSelected = (currentSong.key || '') === keyOption;
+
+              return (
+                <button
+                  key={displayValue}
+                  type="button"
+                  data-picker-selected={isSelected ? 'true' : 'false'}
+                  onClick={() => {
+                    void (async () => {
+                      await songsRepository.update(currentSong.id, { key: keyOption });
+                      setQuickEditField(null);
+                    })();
+                  }}
+                  className={[
+                    'rounded-2xl px-4 py-4 text-sm font-black transition',
+                    isSelected
+                      ? 'bg-emerald-500 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.12)]'
+                      : 'bg-white/6 text-white/78 hover:bg-white/10',
+                  ].join(' ')}
+                >
+                  {displayValue}
+                </button>
+              );
+            })}
+          </div>
+        </PickerDialog>
+      ) : null}
+
+      {quickEditField === 'bpm' ? (
+        <PickerDialog title="Sélectionner le tempo" closeLabel="Fermer" onClose={() => setQuickEditField(null)}>
+          <WheelColumn
+            options={bpmOptions}
+            selectedValue={currentSong.bpm !== undefined ? String(currentSong.bpm) : ''}
+            onSelect={(val) => {
+              const parsed = val ? Number(val) : undefined;
+              if (parsed !== undefined && !Number.isNaN(parsed)) {
+                void songsRepository.update(currentSong.id, { bpm: parsed });
+              }
+            }}
+            suffix="BPM"
+          />
+        </PickerDialog>
+      ) : null}
+
+      {quickEditField === 'duration' ? (
+        <PickerDialog title="Sélectionner la durée" closeLabel="Fermer" onClose={() => setQuickEditField(null)}>
+          <div className="overflow-hidden rounded-2xl border border-white/8 bg-black/35 p-2">
+            <div className="relative grid grid-cols-2 overflow-hidden rounded-xl">
+              <div aria-hidden="true" className="pointer-events-none absolute inset-x-2 top-1/2 z-0 h-14 -translate-y-1/2 rounded-xl bg-white/8 ring-1 ring-inset ring-white/18" />
+              <div aria-hidden="true" className="pointer-events-none absolute bottom-4 left-1/2 top-4 z-20 w-px bg-white/8" />
+              <WheelColumn
+                options={durationMinuteOptions}
+                selectedValue={quickDuration.minutes}
+                onSelect={(val) => {
+                  setQuickDuration((prev) => {
+                    const next = { ...prev, minutes: val };
+                    const mins = Math.max(0, Number(val) || 0);
+                    const secs = Math.min(59, Math.max(0, Number(prev.seconds) || 0));
+                    void songsRepository.update(currentSong.id, { durationSeconds: mins * 60 + secs });
+                    return next;
+                  });
+                }}
+                suffix="min"
+                framed={false}
+              />
+              <WheelColumn
+                options={durationSecondOptions}
+                selectedValue={quickDuration.seconds}
+                onSelect={(val) => {
+                  setQuickDuration((prev) => {
+                    const next = { ...prev, seconds: val };
+                    const mins = Math.max(0, Number(prev.minutes) || 0);
+                    const secs = Math.min(59, Math.max(0, Number(val) || 0));
+                    void songsRepository.update(currentSong.id, { durationSeconds: mins * 60 + secs });
+                    return next;
+                  });
+                }}
+                suffix="sec"
+                framed={false}
+              />
+            </div>
+          </div>
+        </PickerDialog>
+      ) : null}
+
+      {quickEditField === 'notes' ? (
+        <FormDialog
+          title="Modifier les notes"
+          placement="bottom"
+          onClose={() => setQuickEditField(null)}
+        >
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              void handleSaveQuickField();
+            }}
+            className="space-y-4"
+          >
+            <textarea
+              rows={4}
+              value={quickValue}
+              onChange={(e) => setQuickValue(e.target.value)}
+              placeholder="Repere scene, structure, remarques..."
+              className="fz-input min-h-24 resize-none overflow-hidden text-sm leading-6"
+              autoFocus
+            />
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setQuickEditField(null)}
+                className="fz-button-secondary px-4 py-2.5 text-xs font-black uppercase tracking-[0.14em] text-white"
+              >
+                Annuler
+              </button>
+              <button
+                type="submit"
+                className="fz-button-primary px-5 py-2.5 text-xs font-black uppercase tracking-[0.14em]"
+              >
+                Enregistrer
+              </button>
+            </div>
+          </form>
         </FormDialog>
       ) : null}
     </div>
