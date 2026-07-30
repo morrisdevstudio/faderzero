@@ -76,4 +76,44 @@ describe('AppShell logo', () => {
 
     expect(screen.queryByText('Hors ligne · test')).not.toBeInTheDocument();
   });
+
+  it('offers the voice recorder from the central quick actions button', () => {
+    render(
+      <MemoryRouter initialEntries={['/songs']}>
+        <Routes>
+          <Route element={<AppShell />}>
+            <Route path="/songs" element={<LocationLabel />} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Actions rapides/ }));
+
+    expect(screen.getByRole('button', { name: 'Enregistrer' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Écrire' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Prompteur' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Click' })).toBeInTheDocument();
+  });
+
+  it('hides recording for read-only guests', () => {
+    useAuthStore.setState({
+      activeWorkspace: { ...workspace, role: 'guest' },
+      workspaces: [{ ...workspace, role: 'guest' }],
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/songs']}>
+        <Routes>
+          <Route element={<AppShell />}>
+            <Route path="/songs" element={<LocationLabel />} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Actions rapides/ }));
+
+    expect(screen.queryByRole('button', { name: 'Enregistrer' })).not.toBeInTheDocument();
+  });
 });

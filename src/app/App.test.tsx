@@ -29,8 +29,7 @@ describe('AppRouter', () => {
     );
 
     expect(await screen.findByRole('heading', { level: 1, name: /R[eé]pertoire/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Nouvelle idée' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Nouvelle chanson avec un titre' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Nouvelle chanson' })).toBeInTheDocument();
   });
 
   it('keeps the songs page read-only for a guest', async () => {

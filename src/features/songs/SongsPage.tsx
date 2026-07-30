@@ -18,13 +18,7 @@ function PlusIcon() {
   );
 }
 
-function QuickIdeaIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="m13 2-8 12h7l-1 8 8-12h-7l1-8Z" />
-    </svg>
-  );
-}
+
 
 export function SongsPage() {
   const navigate = useNavigate();
@@ -77,19 +71,12 @@ export function SongsPage() {
     }
   }
 
-  async function handleCreateQuickIdea() {
+  function handleCreateQuickIdea() {
     if (!canWrite || isSaving) return;
-    setIsSaving(true);
-    setCreationError(null);
-
-    try {
-      const createdSong = await songsRepository.create({ title: '' });
-      navigate(`/songs/${createdSong.id}/write`);
-    } catch {
-      setCreationError("Impossible de créer l'idée.");
-      setIsSaving(false);
-    }
+    navigate('/songs/new/write');
   }
+
+
 
   return (
     <div className="space-y-4">
@@ -105,31 +92,19 @@ export function SongsPage() {
             <h1 className="min-w-0 flex-1 text-[2rem] font-black tracking-tight text-white">Répertoire</h1>
           </div>
           {canWrite ? (
-            <div className="flex shrink-0 items-center gap-1.5">
-              <button
-                type="button"
-                onClick={() => void handleCreateQuickIdea()}
-                disabled={isSaving}
-                aria-label="Nouvelle idée"
-                title="Nouvelle idée"
-                className="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-[#090a0c] transition active:opacity-75 disabled:opacity-55"
-              >
-                <QuickIdeaIcon />
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsCreateOpen(true);
-                  setNewSongTitle('');
-                  setCreationError(null);
-                }}
-                aria-label="Nouvelle chanson avec un titre"
-                title="Nouvelle chanson avec un titre"
-                className="fz-button-secondary h-11 w-11 shrink-0 p-0 text-white"
-              >
-                <PlusIcon />
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setIsCreateOpen(true);
+                setNewSongTitle('');
+                setCreationError(null);
+              }}
+              aria-label="Nouvelle chanson"
+              title="Nouvelle chanson"
+              className="fz-button-primary h-11 w-11 shrink-0 p-0"
+            >
+              <PlusIcon />
+            </button>
           ) : null}
         </div>
 

@@ -1,11 +1,13 @@
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type SVGProps } from 'react';
 import { FormDialog } from '@/components/FormDialog';
 import { AudioMiniPlayer } from '@/features/audio/AudioMiniPlayer';
+import { QuickVoiceRecorder } from '@/features/recorder/QuickVoiceRecorder';
 import { useAuthStore } from '@/stores/authStore';
 import { useForcedOffline, useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useWorkspaceBadgeColors } from '@/services/workspaceColors';
 import { toggleForcedOffline } from '@/services/connectivity';
+import { canWriteWorkspace } from '@/services/supabase/workspace';
 
 type IconProps = SVGProps<SVGSVGElement>;
 
@@ -73,6 +75,24 @@ function MetronomeIcon(props: IconProps) {
       <path d="M8.5 20 11 5h2l2.5 15" />
       <path d="M10 11h4" />
       <path d="M14.5 7.5 18 5" />
+    </svg>
+  );
+}
+
+function WriteIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+    </svg>
+  );
+}
+
+function RecordIdeaIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <rect x="9" y="3" width="6" height="12" rx="3" />
+      <path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7" />
     </svg>
   );
 }
@@ -156,12 +176,15 @@ function getWorkspaceInitials(name?: string): string {
 
 export function AppShell() {
   const location = useLocation();
+  const navigate = useNavigate();
   const activeWorkspace = useAuthStore((state) => state.activeWorkspace);
   const workspaces = useAuthStore((state) => state.workspaces);
   const clearFeedback = useAuthStore((state) => state.clearFeedback);
   const setActiveWorkspace = useAuthStore((state) => state.setActiveWorkspace);
   const [isWorkspacePickerOpen, setIsWorkspacePickerOpen] = useState(false);
   const [isLiveMenuOpen, setIsLiveMenuOpen] = useState(false);
+  const [isVoiceRecorderOpen, setIsVoiceRecorderOpen] = useState(false);
+  const [voiceRecorderMessage, setVoiceRecorderMessage] = useState<string | null>(null);
   const isOnline = useOnlineStatus();
   const isForcedOffline = useForcedOffline();
   const { getBadgeColor } = useWorkspaceBadgeColors();
@@ -171,7 +194,17 @@ export function AppShell() {
 
   const workspaceInitials = getWorkspaceInitials(activeWorkspace?.name);
   const activeBadgeColor = getBadgeColor(activeWorkspace?.id, activeWorkspace?.type);
-  const isLiveActive = location.pathname.startsWith('/prompter') || location.pathname.startsWith('/metronome');
+  const isLiveActive =
+    isVoiceRecorderOpen ||
+    location.pathname.startsWith('/prompter') ||
+    location.pathname.startsWith('/metronome');
+  const canWrite = canWriteWorkspace(activeWorkspace?.role);
+
+  useEffect(() => {
+    if (!voiceRecorderMessage) return;
+    const timeoutId = window.setTimeout(() => setVoiceRecorderMessage(null), 4500);
+    return () => window.clearTimeout(timeoutId);
+  }, [voiceRecorderMessage]);
 
   useLayoutEffect(() => {
     function updateHeaderHeight() {
@@ -435,6 +468,31 @@ export function AppShell() {
                   onTouchStart={() => setIsLiveMenuOpen(false)}
                 />
                 <div className="absolute bottom-22 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-3 bg-transparent border-0 shadow-none p-0 whitespace-nowrap animate-in fade-in slide-in-from-bottom-3">
+                  {canWrite ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsLiveMenuOpen(false);
+                        setVoiceRecorderMessage(null);
+                        setIsVoiceRecorderOpen(true);
+                      }}
+                      className="flex min-w-[180px] items-center justify-center gap-3 rounded-2xl px-6 py-4 text-sm font-black uppercase tracking-[0.14em] transition-all backdrop-blur-2xl active:scale-95 bg-[#14161b]/98 text-white border border-white/20 hover:bg-white/18 hover:border-white/35 shadow-[0_14px_36px_rgba(0,0,0,0.7)]"
+                    >
+                      <RecordIdeaIcon className="h-5 w-5 text-[#ff547b]" />
+                      Enregistrer
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsLiveMenuOpen(false);
+                      navigate('/songs/new/write');
+                    }}
+                    className="flex min-w-[180px] items-center justify-center gap-3 rounded-2xl px-6 py-4 text-sm font-black uppercase tracking-[0.14em] transition-all backdrop-blur-2xl active:scale-95 bg-[#14161b]/98 text-white border border-white/20 hover:bg-white/18 hover:border-white/35 shadow-[0_14px_36px_rgba(0,0,0,0.7)]"
+                  >
+                    <WriteIcon className="h-5 w-5 text-[#ff547b]" />
+                    Écrire
+                  </button>
                   <NavLink
                     to="/prompter"
                     onClick={() => setIsLiveMenuOpen(false)}
@@ -472,7 +530,7 @@ export function AppShell() {
             <button
               type="button"
               onClick={() => setIsLiveMenuOpen((prev) => !prev)}
-              aria-label="Mode Live (Prompteur & Click)"
+              aria-label="Actions rapides (Enregistrer, Écrire, Prompteur et Click)"
               className="group flex flex-col items-center justify-center gap-1 py-1 text-center transition-colors focus:outline-none z-40"
             >
               <div
@@ -485,9 +543,6 @@ export function AppShell() {
               >
                 <span className="h-3.5 w-3.5 rounded-full bg-white shadow-inner animate-pulse" />
               </div>
-              <span className={['text-[0.58rem] font-black uppercase tracking-wider', isLiveActive || isLiveMenuOpen ? 'text-red-400 font-black' : 'text-white/70'].join(' ')}>
-                Mode Live
-              </span>
             </button>
           </div>
 
@@ -530,6 +585,28 @@ export function AppShell() {
           </NavLink>
         </div>
       </nav>
+
+      {isVoiceRecorderOpen ? (
+        <QuickVoiceRecorder
+          onClose={() => setIsVoiceRecorderOpen(false)}
+          onComplete={({ message, songId }) => {
+            setIsVoiceRecorderOpen(false);
+            setVoiceRecorderMessage(message);
+            if (songId) {
+              navigate(`/songs/${songId}`);
+            }
+          }}
+        />
+      ) : null}
+
+      {voiceRecorderMessage ? (
+        <div
+          className="fixed inset-x-4 bottom-[calc(5.8rem+env(safe-area-inset-bottom))] z-[55] mx-auto max-w-sm rounded-2xl border border-emerald-300/25 bg-[#14221c]/95 px-4 py-3 text-center text-sm font-bold text-emerald-100 shadow-2xl backdrop-blur-xl"
+          role="status"
+        >
+          {voiceRecorderMessage}
+        </div>
+      ) : null}
     </div>
   );
 }

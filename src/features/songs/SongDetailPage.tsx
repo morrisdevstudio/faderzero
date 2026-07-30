@@ -25,6 +25,7 @@ import { useAudioCacheStore } from '@/features/audio/audioCacheStore';
 import { canWriteWorkspace } from '@/services/supabase/workspace';
 import { CopySongModal } from '@/features/songs/CopySongModal';
 import type { SongStatus } from '@/db/schema';
+import { QuickVoiceRecorder } from '@/features/recorder/QuickVoiceRecorder';
 
 type IconProps = SVGProps<SVGSVGElement>;
 
@@ -45,17 +46,6 @@ function PrompterIcon(props: IconProps) {
     </svg>
   );
 }
-
-function PencilIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="m4 20 4.5-1 9-9a2.1 2.1 0 0 0-3-3l-9 9L4 20Z" />
-      <path d="M13.5 6.5 17.5 10.5" />
-    </svg>
-  );
-}
-
-
 
 function CheckIcon(props: IconProps) {
   return (
@@ -150,6 +140,15 @@ function LinkAudioIcon(props: IconProps) {
   );
 }
 
+function RecordAudioIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
+      <rect x="9" y="3" width="6" height="12" rx="3" />
+      <path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7" />
+    </svg>
+  );
+}
+
 function PrimaryAudioIcon({ active, ...props }: IconProps & { active: boolean }) {
   return (
     <svg viewBox="0 0 24 24" fill={active ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
@@ -236,6 +235,7 @@ export function SongDetailPage() {
   const [isCopyModalOpen, setIsCopyModalOpen] = useState(false);
   const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false);
   const [isAudioActionsOpen, setIsAudioActionsOpen] = useState(false);
+  const [isVoiceRecorderOpen, setIsVoiceRecorderOpen] = useState(false);
   const [duplicatePrompt, setDuplicatePrompt] = useState<DuplicatePromptState | null>(null);
   const [selectedAssetToLinkId, setSelectedAssetToLinkId] = useState('');
   const [isUploadingAudio, setIsUploadingAudio] = useState(false);
@@ -714,6 +714,18 @@ export function SongDetailPage() {
           </h1>
 
           <div className="flex items-center justify-end gap-2 justify-self-end">
+            {canWrite ? (
+              <button
+                type="button"
+                onClick={() => setIsDeleteDialogOpen(true)}
+                disabled={isSaving}
+                aria-label="Supprimer la chanson"
+                title="Supprimer la chanson"
+                className="flex h-11 w-11 items-center justify-center text-rose-400 transition-colors hover:text-rose-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-400/70 disabled:opacity-60"
+              >
+                <TrashIcon className="h-4.5 w-4.5" />
+              </button>
+            ) : null}
 
             {canWrite && !isEditMode ? (
               <button
@@ -739,38 +751,18 @@ export function SongDetailPage() {
                 <PrompterIcon className="h-5 w-5" />
               </Link>
             ) : null}
+
             {canWrite && isEditMode ? (
               <button
                 type="button"
-                onClick={() => setIsDeleteDialogOpen(true)}
-                disabled={isSaving}
-                aria-label="Supprimer"
-                className="flex h-11 w-11 items-center justify-center text-rose-300 transition-colors hover:text-rose-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-300/70 disabled:opacity-60"
+                onClick={() => handleCloseEdit()}
+                aria-label="Terminer la modification"
+                title="Terminer"
+                className="flex h-11 w-11 items-center justify-center text-white hover:text-white/75 focus-visible:outline-white/60 transition-colors"
               >
-                <TrashIcon className="h-4.5 w-4.5" />
+                <CheckIcon className="h-4.5 w-4.5" />
               </button>
             ) : null}
-
-            {canWrite ? <button
-              type="button"
-              onClick={() => {
-                if (isEditMode) {
-                  handleCloseEdit();
-                  return;
-                }
-                navigate(`/songs/${currentSong.id}/write`);
-              }}
-              aria-label={isEditMode ? 'Terminer la modification' : 'Écrire les paroles'}
-              title={isEditMode ? 'Terminer' : 'Écrire les paroles'}
-              className={[
-                'flex h-11 w-11 items-center justify-center transition-colors focus-visible:outline-2 focus-visible:outline-offset-2',
-                isEditMode
-                  ? 'text-white hover:text-white/75 focus-visible:outline-white/60'
-                  : 'text-indigo-300 hover:text-indigo-200 focus-visible:outline-indigo-300/70',
-              ].join(' ')}
-            >
-              {isEditMode ? <CheckIcon className="h-4.5 w-4.5" /> : <PencilIcon className="h-4.5 w-4.5" />}
-            </button> : null}
           </div>
         </div>
       </section>
@@ -1024,14 +1016,27 @@ export function SongDetailPage() {
             {canWrite ? <div className="grid gap-2 border-t border-white/8 pt-4">
               <button
                 type="button"
+                onClick={() => {
+                  setIsAudioActionsOpen(false);
+                  setAudioNotice(null);
+                  setError(null);
+                  setIsVoiceRecorderOpen(true);
+                }}
+                className="fz-button-primary flex items-center justify-center gap-2 px-4 py-3 text-sm font-black uppercase leading-5 tracking-[0.12em] disabled:opacity-60"
+              >
+                <RecordAudioIcon className="h-5 w-5 shrink-0" />
+                <span>Enregistrer un audio</span>
+              </button>
+              <button
+                type="button"
                 disabled={isUploadingAudio}
                 onClick={() => {
                   setIsAudioActionsOpen(false);
                   audioInputRef.current?.click();
                 }}
-                className="fz-button-primary flex items-center justify-center gap-2 px-4 py-3 text-sm font-black uppercase leading-5 tracking-[0.12em] disabled:opacity-60"
+                className="fz-button-secondary flex items-center justify-center gap-2 px-4 py-3 text-sm font-black uppercase leading-5 tracking-[0.12em] text-white disabled:opacity-60"
               >
-                <UploadAudioIcon className="h-5 w-5 shrink-0" />
+                <UploadAudioIcon className="h-5 w-5 shrink-0 text-white/75" />
                 <span>{isUploadingAudio ? 'Import en cours...' : 'Importer un audio'}</span>
               </button>
               <button
@@ -1049,6 +1054,19 @@ export function SongDetailPage() {
             </div> : null}
           </div>
         </FormDialog>
+      ) : null}
+
+      {isVoiceRecorderOpen ? (
+        <QuickVoiceRecorder
+          directSongId={currentSong.id}
+          directSongTitle={currentSong.title}
+          onClose={() => setIsVoiceRecorderOpen(false)}
+          onComplete={({ message }) => {
+            setIsVoiceRecorderOpen(false);
+            setAudioNotice(message);
+            setError(null);
+          }}
+        />
       ) : null}
 
       <ConfirmDialog

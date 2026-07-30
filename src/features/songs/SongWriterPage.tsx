@@ -1,10 +1,13 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type SVGProps } from 'react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type FormEvent, type SVGProps } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { FormDialog } from '@/components/FormDialog';
 import { songsRepository } from '@/db/repositories/songsRepository';
 import {
+  createEmptySongDocument,
   deriveSongTitle,
   normalizeSongDocument,
+  songDocumentToText,
   type SongDocumentV1,
 } from '@/db/songDocument';
 import { SongEditor } from '@/features/songs/editor/SongEditor';
@@ -76,17 +79,26 @@ function requestPersistentStorage() {
 
 export function SongWriterPage() {
   const { songId = '' } = useParams();
+  const isDraft = songId === 'new';
   const navigate = useNavigate();
   const activeWorkspace = useAuthStore((state) => state.activeWorkspace);
   const activeWorkspaceId = activeWorkspace?.id;
   const canWrite = canWriteWorkspace(activeWorkspace?.role);
   const isOnline = useOnlineStatus();
-  const song = useLiveQuery(() => songsRepository.getById(songId), [songId, activeWorkspaceId]);
+  const song = useLiveQuery(
+    () => isDraft ? undefined : songsRepository.getById(songId),
+    [songId, activeWorkspaceId, isDraft],
+  );
   const { inset: keyboardInset, offsetTop: viewportOffsetTop } = useKeyboardInset();
   const [title, setTitle] = useState('');
   const [localSaveState, setLocalSaveState] = useState<LocalSaveState>('idle');
+  const [isDraftSaveOpen, setIsDraftSaveOpen] = useState(false);
+  const [draftTitle, setDraftTitle] = useState('');
+  const [draftSaveError, setDraftSaveError] = useState<string | null>(null);
+  const [isCreatingDraft, setIsCreatingDraft] = useState(false);
   const initializedSongIdRef = useRef('');
-  const documentRef = useRef<SongDocumentV1 | null>(null);
+  const draftDocumentRef = useRef(createEmptySongDocument());
+  const documentRef = useRef<SongDocumentV1 | null>(isDraft ? draftDocumentRef.current : null);
   const titleRef = useRef('');
   const changeVersionRef = useRef(0);
   const savedVersionRef = useRef(0);
@@ -94,7 +106,7 @@ export function SongWriterPage() {
   const saveChainRef = useRef<Promise<void>>(Promise.resolve());
 
   useEffect(() => {
-    if (!song || initializedSongIdRef.current === song.id) {
+    if (isDraft || !song || initializedSongIdRef.current === song.id) {
       return;
     }
 
@@ -102,7 +114,7 @@ export function SongWriterPage() {
     documentRef.current = normalizeSongDocument(song.lyricsDocument, song.lyrics);
     titleRef.current = song.title;
     setTitle(song.title);
-  }, [song]);
+  }, [isDraft, song]);
 
   const performSave = useCallback(async () => {
     if (!song || !documentRef.current || changeVersionRef.current <= savedVersionRef.current) {
@@ -175,13 +187,31 @@ export function SongWriterPage() {
   }, [flush]);
 
   async function handleBack() {
+    if (isDraft) {
+      const draftDocument = documentRef.current ?? draftDocumentRef.current;
+      if (!songDocumentToText(draftDocument).trim()) {
+        navigate('/songs');
+        return;
+      }
+
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
+      setDraftTitle('');
+      setDraftSaveError(null);
+      setIsDraftSaveOpen(true);
+      return;
+    }
+
     await flush();
     navigate(`/songs/${songId}`);
   }
 
   function handleDocumentChange(nextDocument: SongDocumentV1) {
     documentRef.current = nextDocument;
-    scheduleSave();
+    if (!isDraft) {
+      scheduleSave();
+    }
   }
 
   function handleTitleChange(nextTitle: string) {
@@ -190,11 +220,33 @@ export function SongWriterPage() {
     scheduleSave();
   }
 
-  if (song === undefined) {
+  async function handleCreateDraft(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const trimmedTitle = draftTitle.trim();
+    if (!trimmedTitle) {
+      setDraftSaveError('Le titre est obligatoire.');
+      return;
+    }
+
+    setIsCreatingDraft(true);
+    setDraftSaveError(null);
+    try {
+      const createdSong = await songsRepository.create({
+        title: trimmedTitle,
+        lyricsDocument: documentRef.current ?? draftDocumentRef.current,
+      });
+      navigate(`/songs/${createdSong.id}`);
+    } catch {
+      setDraftSaveError("Impossible d'enregistrer la chanson.");
+      setIsCreatingDraft(false);
+    }
+  }
+
+  if (!isDraft && song === undefined) {
     return <div className="fz-writer-state">Ouverture du morceau…</div>;
   }
 
-  if (!song || song.deletedAt !== undefined) {
+  if (!isDraft && (!song || song.deletedAt !== undefined)) {
     return (
       <div className="fz-writer-state">
         <p>Ce morceau n’est plus disponible.</p>
@@ -207,48 +259,56 @@ export function SongWriterPage() {
     return (
       <div className="fz-writer-state">
         <p>Tu peux consulter ce morceau, mais pas modifier ses paroles.</p>
-        <button type="button" onClick={() => navigate(`/songs/${song.id}`)}>Retour au morceau</button>
+        <button type="button" onClick={() => navigate(isDraft ? '/songs' : `/songs/${song?.id}`)}>Retour au morceau</button>
       </div>
     );
   }
 
   const saveLabel =
-    localSaveState === 'saving'
+    isDraft
+      ? 'Brouillon'
+      : localSaveState === 'saving'
       ? 'Enregistrement…'
       : localSaveState === 'error'
         ? 'Non enregistré'
-        : !isOnline && (localSaveState === 'saved' || song.syncStatus === 'pending')
+        : !isOnline && (localSaveState === 'saved' || song?.syncStatus === 'pending')
           ? 'Enregistré hors ligne'
-          : song.syncStatus === 'synced' && localSaveState !== 'dirty'
+          : song?.syncStatus === 'synced' && localSaveState !== 'dirty'
             ? 'Synchronisé'
             : localSaveState === 'dirty'
               ? 'Modification…'
-              : song.syncStatus === 'conflict'
+              : song?.syncStatus === 'conflict'
                 ? 'Conflit'
                 : 'Synchronisation…';
   const statusTone =
-    localSaveState === 'error' || song.syncStatus === 'conflict'
+    localSaveState === 'error' || song?.syncStatus === 'conflict'
       ? 'error'
-      : song.syncStatus === 'synced' && localSaveState !== 'dirty' && localSaveState !== 'saving'
+      : song?.syncStatus === 'synced' && localSaveState !== 'dirty' && localSaveState !== 'saving'
         ? 'success'
         : 'neutral';
+  const isKeyboardOpen = keyboardInset > 50;
+
   const pageStyle = {
     '--fz-writer-keyboard-inset': `${keyboardInset}px`,
     '--fz-writer-viewport-offset-top': `${viewportOffsetTop}px`,
   } as CSSProperties;
 
   return (
-    <div className="fz-writer-page" style={pageStyle}>
+    <div className={['fz-writer-page', isKeyboardOpen ? 'is-keyboard-open' : ''].filter(Boolean).join(' ')} style={pageStyle}>
       <header className="fz-writer-header">
         <button type="button" onClick={() => void handleBack()} aria-label="Retour au morceau">
           <BackIcon />
         </button>
-        <input
-          value={title}
-          onChange={(event) => handleTitleChange(event.target.value)}
-          placeholder="Sans titre"
-          aria-label="Titre du morceau"
-        />
+        {isDraft ? (
+          <div className="fz-writer-draft-title">Nouvelle chanson</div>
+        ) : (
+          <input
+            value={title}
+            onChange={(event) => handleTitleChange(event.target.value)}
+            placeholder="Sans titre"
+            aria-label="Titre du morceau"
+          />
+        )}
         <div className={`fz-writer-status is-${statusTone}`} aria-live="polite" title={saveLabel}>
           <CheckIcon />
           <span>{saveLabel}</span>
@@ -257,10 +317,61 @@ export function SongWriterPage() {
 
       <main>
         <SongEditor
-          initialDocument={normalizeSongDocument(song.lyricsDocument, song.lyrics)}
+          initialDocument={
+            isDraft
+              ? draftDocumentRef.current
+              : normalizeSongDocument(song?.lyricsDocument, song?.lyrics)
+          }
           onChange={handleDocumentChange}
         />
       </main>
+
+      {isDraft && isDraftSaveOpen ? (
+        <FormDialog
+          title="Enregistrer la chanson ?"
+          closeLabel="Continuer à écrire"
+          onClose={() => setIsDraftSaveOpen(false)}
+        >
+          <form className="space-y-4" onSubmit={(event) => void handleCreateDraft(event)}>
+            <label className="block">
+              <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-[var(--fz-text-muted)]">
+                Titre
+              </span>
+              <input
+                value={draftTitle}
+                onChange={(event) => {
+                  setDraftTitle(event.target.value);
+                  setDraftSaveError(null);
+                }}
+                placeholder="Titre de la chanson"
+                autoFocus
+                disabled={isCreatingDraft}
+                className="fz-input text-sm"
+              />
+            </label>
+
+            {draftSaveError ? <p className="text-sm font-semibold text-rose-400">{draftSaveError}</p> : null}
+
+            <div className="flex flex-col gap-2.5">
+              <button
+                type="submit"
+                disabled={isCreatingDraft}
+                className="fz-button-primary w-full px-4 py-3 text-sm font-black disabled:opacity-60"
+              >
+                {isCreatingDraft ? 'Enregistrement…' : 'Enregistrer'}
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/songs')}
+                disabled={isCreatingDraft}
+                className="fz-button-secondary w-full px-4 py-3 text-sm font-black text-white disabled:opacity-60"
+              >
+                Quitter sans enregistrer
+              </button>
+            </div>
+          </form>
+        </FormDialog>
+      ) : null}
     </div>
   );
 }

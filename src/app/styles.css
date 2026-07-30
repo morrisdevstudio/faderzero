@@ -212,6 +212,73 @@ body::before {
   flex-basis: 7.5rem;
 }
 
+.fz-audio-scrubber {
+  width: 100%;
+  height: 2.75rem;
+  margin: 0;
+  appearance: none;
+  cursor: pointer;
+  outline: none;
+  background:
+    linear-gradient(
+      to right,
+      var(--fz-accent) 0,
+      var(--fz-accent) var(--fz-audio-progress, 0%),
+      rgba(255, 255, 255, 0.16) var(--fz-audio-progress, 0%),
+      rgba(255, 255, 255, 0.16) 100%
+    )
+    center / 100% 0.22rem no-repeat;
+}
+
+.fz-audio-scrubber::-webkit-slider-thumb {
+  width: 1rem;
+  height: 1rem;
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.45);
+  transition: transform 150ms ease-out;
+}
+
+.fz-audio-scrubber::-moz-range-track {
+  height: 0.22rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+}
+
+.fz-audio-scrubber::-moz-range-thumb {
+  width: 1rem;
+  height: 1rem;
+  border: 0;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.45);
+  transition: transform 150ms ease-out;
+}
+
+.fz-audio-scrubber:hover::-webkit-slider-thumb,
+.fz-audio-scrubber:active::-webkit-slider-thumb {
+  transform: scale(1.12);
+}
+
+.fz-audio-scrubber:hover::-moz-range-thumb,
+.fz-audio-scrubber:active::-moz-range-thumb {
+  transform: scale(1.12);
+}
+
+.fz-audio-scrubber:focus-visible {
+  filter: drop-shadow(0 0 3px rgba(255, 122, 150, 0.9));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fz-audio-scrubber::-webkit-slider-thumb,
+  .fz-audio-scrubber::-moz-range-thumb {
+    transition: none;
+  }
+}
+
 @keyframes fz-shake {
   0%, 100% { transform: translateX(0); }
   25% { transform: translateX(-4px); }

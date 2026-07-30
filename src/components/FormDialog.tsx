@@ -1,4 +1,4 @@
-import type { PropsWithChildren } from 'react';
+import { useId, type PropsWithChildren } from 'react';
 import { createPortal } from 'react-dom';
 
 interface FormDialogProps extends PropsWithChildren {
@@ -10,6 +10,7 @@ interface FormDialogProps extends PropsWithChildren {
 
 export function FormDialog({ title, closeLabel = 'Fermer', onClose, placement = 'center', children }: FormDialogProps) {
   const isBottomSheet = placement === 'bottom';
+  const titleId = useId();
 
   return createPortal(
     (
@@ -28,6 +29,7 @@ export function FormDialog({ title, closeLabel = 'Fermer', onClose, placement = 
         <div
           role="dialog"
           aria-modal="true"
+          aria-labelledby={titleId}
           className={[
             'fz-card max-h-[calc(100dvh-2.5rem)] overflow-y-auto p-5',
             isBottomSheet ? 'rounded-[1.6rem]' : 'rounded-[1.9rem]',
@@ -35,7 +37,7 @@ export function FormDialog({ title, closeLabel = 'Fermer', onClose, placement = 
         >
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-[1.35rem] font-black text-white">{title}</h2>
+              <h2 id={titleId} className="text-[1.35rem] font-black text-white">{title}</h2>
             </div>
             <button
               type="button"

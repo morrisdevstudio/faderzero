@@ -1,4 +1,5 @@
 .fz-writer-page {
+  position: relative;
   --fz-writer-header-height: calc(env(safe-area-inset-top) + 4.25rem);
   --fz-writer-toolbar-height: 3.75rem;
   min-height: 100dvh;
@@ -7,17 +8,26 @@
 }
 
 .fz-writer-header {
-  position: sticky;
-  z-index: 50;
+  position: fixed;
+  z-index: 60;
   top: 0;
+  left: 0;
+  right: 0;
+  height: var(--fz-writer-header-height);
   display: grid;
   grid-template-columns: 3rem minmax(0, 1fr) auto;
-  min-height: 4.25rem;
   align-items: center;
   gap: 0.4rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   background: #090a0c;
   padding: env(safe-area-inset-top) 0.55rem 0;
+}
+
+.fz-writer-page.is-keyboard-open .fz-writer-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
 }
 
 .fz-writer-header > button {
@@ -42,7 +52,8 @@
   outline-offset: 2px;
 }
 
-.fz-writer-header input {
+.fz-writer-header input,
+.fz-writer-draft-title {
   min-width: 0;
   border: 0;
   background: transparent;
@@ -52,6 +63,10 @@
   text-align: center;
   text-overflow: ellipsis;
   outline: none;
+}
+
+.fz-writer-draft-title {
+  cursor: default;
 }
 
 .fz-writer-header input::placeholder {
@@ -126,7 +141,7 @@
 
 .fz-song-editor__content {
   min-height: calc(100dvh - 5.5rem);
-  padding: calc(var(--fz-writer-toolbar-height) + 1.5rem) 1.125rem calc(var(--fz-writer-keyboard-inset, 0px) + 2rem);
+  padding: calc(var(--fz-writer-header-height) + var(--fz-writer-toolbar-height) + 1.25rem) 1.125rem calc(var(--fz-writer-keyboard-inset, 0px) + 2rem);
   color: #f5f0ea;
   font-family: "Trebuchet MS", "Segoe UI", sans-serif;
   font-size: 1.125rem;
@@ -185,6 +200,13 @@
   background: #090a0c;
   padding-inline: max(0.35rem, env(safe-area-inset-left));
   box-shadow: 0 12px 24px rgba(0, 0, 0, 0.5);
+}
+
+.fz-writer-page.is-keyboard-open .fz-song-editor__toolbar {
+  position: absolute;
+  top: var(--fz-writer-header-height);
+  left: 0;
+  right: 0;
 }
 
 .fz-song-editor__toolbar button {
