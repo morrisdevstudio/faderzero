@@ -10,7 +10,7 @@
 .fz-writer-header {
   position: fixed;
   z-index: 60;
-  top: 0;
+  top: var(--fz-writer-viewport-offset-top, 0px);
   left: 0;
   right: 0;
   height: var(--fz-writer-header-height);
@@ -21,13 +21,6 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   background: #090a0c;
   padding: env(safe-area-inset-top) 0.55rem 0;
-}
-
-.fz-writer-page.is-keyboard-open .fz-writer-header {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
 }
 
 .fz-writer-header > button {
@@ -202,13 +195,6 @@
   box-shadow: 0 12px 24px rgba(0, 0, 0, 0.5);
 }
 
-.fz-writer-page.is-keyboard-open .fz-song-editor__toolbar {
-  position: absolute;
-  top: var(--fz-writer-header-height);
-  left: 0;
-  right: 0;
-}
-
 .fz-song-editor__toolbar button {
   position: relative;
   display: flex;
@@ -272,7 +258,7 @@
 .fz-song-editor__section-menu {
   position: fixed;
   z-index: 70;
-  top: calc(var(--fz-writer-header-height) + var(--fz-writer-toolbar-height) + 0.5rem);
+  top: calc(var(--fz-writer-viewport-offset-top, 0px) + var(--fz-writer-header-height) + var(--fz-writer-toolbar-height) + 0.5rem);
   right: 0.75rem;
   left: 0.75rem;
   max-width: 28rem;

@@ -5,6 +5,9 @@ export const MAX_AUDIO_FILE_SIZE_BYTES = 50 * 1024 * 1024;
 const DEFAULT_MP3_MIME_TYPE = 'audio/mpeg';
 const MP3_BITRATE_KBPS = 192;
 const MP3_FRAME_SAMPLE_COUNT = 1152;
+const PEAK_NORMALIZATION_TARGET_DBFS = -1;
+const PEAK_NORMALIZATION_MAX_GAIN_DB = 12;
+const PEAK_NORMALIZATION_SILENCE_THRESHOLD = 0.001;
 
 export interface AudioCompressionProgress {
   phase: 'compression';
@@ -13,6 +16,10 @@ export interface AudioCompressionProgress {
 }
 
 export type AudioCompressionProgressHandler = (progress: AudioCompressionProgress) => void;
+
+export interface AudioCompressionOptions {
+  normalizePeak?: boolean;
+}
 
 export function isMp3File(file: File) {
   return file.type === DEFAULT_MP3_MIME_TYPE || file.name.toLowerCase().endsWith('.mp3');
@@ -28,16 +35,45 @@ export function estimateTargetBitrateKbps(_durationSeconds: number) {
   return MP3_BITRATE_KBPS;
 }
 
+export function calculatePeakNormalizationGain(
+  channels: readonly Float32Array[],
+  targetDbfs = PEAK_NORMALIZATION_TARGET_DBFS,
+  maxGainDb = PEAK_NORMALIZATION_MAX_GAIN_DB
+) {
+  let peak = 0;
+  for (const channel of channels) {
+    for (const sample of channel) {
+      peak = Math.max(peak, Math.abs(sample));
+    }
+  }
+
+  if (peak < PEAK_NORMALIZATION_SILENCE_THRESHOLD) {
+    return 1;
+  }
+
+  const targetPeak = 10 ** (targetDbfs / 20);
+  const maxGain = 10 ** (maxGainDb / 20);
+  return Math.min(targetPeak / peak, maxGain);
+}
+
 export async function compressAudioForUpload(
   file: File,
-  onProgress?: AudioCompressionProgressHandler
+  onProgress?: AudioCompressionProgressHandler,
+  options: AudioCompressionOptions = {}
 ): Promise<File> {
   onProgress?.({ phase: 'compression', progress: 0, label: 'Preparation du fichier audio' });
   onProgress?.({ phase: 'compression', progress: 8, label: 'Decodage audio' });
   const audioBuffer = await decodeAudioFile(file);
   const channels = Math.min(audioBuffer.numberOfChannels, 2);
-  onProgress?.({ phase: 'compression', progress: 18, label: 'Initialisation MP3' });
-  const encodedBlob = await encodeAudioBufferToMp3(audioBuffer, channels, (progress) => {
+  const channelData = Array.from({ length: channels }, (_, index) => audioBuffer.getChannelData(index));
+  const normalizationGain = options.normalizePeak
+    ? calculatePeakNormalizationGain(channelData)
+    : 1;
+  if (options.normalizePeak) {
+    onProgress?.({ phase: 'compression', progress: 16, label: 'Normalisation du niveau audio' });
+  }
+  onProgress?.({ phase: 'compression', progress: 20, label: 'Initialisation MP3' });
+  const encodedBlob = await encodeAudioBufferToMp3(audioBuffer, channels, normalizationGain, (progress) => {
     onProgress?.({ phase: 'compression', progress: Math.min(96, Math.round(20 + progress * 74)), label: 'Compression MP3 192 kbps' });
   });
 
@@ -67,10 +103,11 @@ async function decodeAudioFile(file: File) {
 function encodeAudioBufferToMp3(
   audioBuffer: AudioBuffer,
   channels: number,
+  gain: number,
   onProgress?: (progress: number) => void
 ) {
-  const left = float32ToInt16(audioBuffer.getChannelData(0));
-  const right = channels === 2 ? float32ToInt16(audioBuffer.getChannelData(1)) : left;
+  const left = float32ToInt16(audioBuffer.getChannelData(0), gain);
+  const right = channels === 2 ? float32ToInt16(audioBuffer.getChannelData(1), gain) : left;
   return typeof Worker === 'undefined'
     ? encodeOnCurrentThread(left, right, channels, audioBuffer.sampleRate, onProgress)
     : encodeInWorker(left, right, channels, audioBuffer.sampleRate, onProgress);
@@ -115,10 +152,10 @@ function encodeInWorker(left: Int16Array, right: Int16Array, channels: number, s
   });
 }
 
-function float32ToInt16(channelData: Float32Array) {
+function float32ToInt16(channelData: Float32Array, gain: number) {
   const output = new Int16Array(channelData.length);
   for (let index = 0; index < channelData.length; index += 1) {
-    const sample = Math.max(-1, Math.min(1, channelData[index] ?? 0));
+    const sample = Math.max(-1, Math.min(1, (channelData[index] ?? 0) * gain));
     output[index] = sample < 0 ? sample * 0x8000 : sample * 0x7fff;
   }
   return output;

@@ -86,6 +86,7 @@ export interface PendingAudioUploadRecord {
   updatedAt: number;
   lastTriedAt?: number;
   errorMessage?: string;
+  normalizePeak?: boolean;
 }
 
 

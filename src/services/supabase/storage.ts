@@ -19,6 +19,7 @@ export type SongAssetUploadProgress =
 export interface UploadSongAssetOptions {
   onProgress?: (progress: SongAssetUploadProgress) => void;
   filename?: string;
+  normalizePeak?: boolean;
 }
 
 export async function uploadSongAsset(
@@ -28,7 +29,9 @@ export async function uploadSongAsset(
   options: UploadSongAssetOptions = {}
 ): Promise<string> {
   const durationSeconds = await getAudioDurationSeconds(file);
-  const uploadFile = await compressAudioForUpload(file, options.onProgress);
+  const uploadFile = await compressAudioForUpload(file, options.onProgress, {
+    normalizePeak: options.normalizePeak ?? false,
+  });
   const filename = buildCompressedFileName(options.filename ?? file.name);
   const assetId = createId();
   const storagePath = songId

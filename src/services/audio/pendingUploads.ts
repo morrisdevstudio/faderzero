@@ -19,6 +19,7 @@ interface QueueAudioUploadInput {
   songId?: string;
   file: File;
   filename: string;
+  normalizePeak?: boolean;
 }
 
 interface ProcessPendingUploadsOptions {
@@ -28,6 +29,7 @@ interface ProcessPendingUploadsOptions {
 
 interface UploadOrQueueOptions {
   filename: string;
+  normalizePeak?: boolean;
   onProgress?: (progress: SongAssetUploadProgress) => void;
   database?: FaderZeroDatabase;
   upload?: typeof uploadSongAsset;
@@ -67,6 +69,9 @@ export async function queueAudioUpload(
   if (input.songId !== undefined) {
     record.songId = input.songId;
   }
+  if (input.normalizePeak === true) {
+    record.normalizePeak = true;
+  }
 
   try {
     await database.pendingAudioUploads.add(record);
@@ -95,6 +100,7 @@ export async function uploadOrQueueSongAsset(
     try {
       const assetId = await upload(workspaceId, songId, file, {
         filename: options.filename,
+        normalizePeak: options.normalizePeak ?? false,
         ...(options.onProgress ? { onProgress: options.onProgress } : {}),
       });
       return { status: 'uploaded', assetId };
@@ -111,6 +117,7 @@ export async function uploadOrQueueSongAsset(
       ...(songId !== undefined ? { songId } : {}),
       file,
       filename: options.filename,
+      normalizePeak: options.normalizePeak ?? false,
     },
     database
   );
@@ -181,7 +188,10 @@ async function processPendingAudioUploadsInternal(
 
     try {
       const file = new File([item.fileBlob], item.originalFilename, { type: item.mimeType });
-      await upload(item.workspaceId, item.songId, file, { filename: item.filename });
+      await upload(item.workspaceId, item.songId, file, {
+        filename: item.filename,
+        normalizePeak: item.normalizePeak ?? false,
+      });
       await database.pendingAudioUploads.delete(item.id);
     } catch (error) {
       const online = isAppOnline();

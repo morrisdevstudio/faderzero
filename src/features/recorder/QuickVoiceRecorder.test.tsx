@@ -110,7 +110,10 @@ describe('QuickVoiceRecorder direct song mode', () => {
       'workspace-1',
       undefined,
       expect.any(File),
-      expect.objectContaining({ filename: expect.stringMatching(/\.mp3$/) })
+      expect.objectContaining({
+        filename: expect.stringMatching(/\.mp3$/),
+        normalizePeak: true,
+      })
     );
     expect(linkRecording).toHaveBeenCalledWith(
       { status: 'uploaded', assetId: 'asset-1' },

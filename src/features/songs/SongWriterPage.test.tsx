@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { vi } from 'vitest';
 import type { SongDocumentV1 } from '@/db/songDocument';
@@ -64,6 +64,36 @@ describe('SongWriterPage draft flow', () => {
     repositoryMocks.create.mockReset().mockResolvedValue({ id: 'draft-song' });
     repositoryMocks.getById.mockReset();
     useAuthStore.setState({ activeWorkspace: workspace });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('suit le viewport visuel lorsque le clavier déplace la zone visible', async () => {
+    const viewport = Object.assign(new EventTarget(), {
+      height: 600,
+      offsetTop: 120,
+    }) as VisualViewport & { height: number; offsetTop: number };
+    vi.stubGlobal('visualViewport', viewport);
+    vi.stubGlobal('innerHeight', 900);
+
+    const { container } = renderDraftWriter();
+    const writerPage = container.querySelector<HTMLElement>('.fz-writer-page');
+
+    await waitFor(() => {
+      expect(writerPage?.style.getPropertyValue('--fz-writer-viewport-offset-top')).toBe('120px');
+      expect(writerPage?.style.getPropertyValue('--fz-writer-keyboard-inset')).toBe('180px');
+    });
+
+    viewport.height = 700;
+    viewport.offsetTop = 40;
+    act(() => viewport.dispatchEvent(new Event('scroll')));
+
+    await waitFor(() => {
+      expect(writerPage?.style.getPropertyValue('--fz-writer-viewport-offset-top')).toBe('40px');
+      expect(writerPage?.style.getPropertyValue('--fz-writer-keyboard-inset')).toBe('160px');
+    });
   });
 
   it("quitte immédiatement sans créer de chanson quand l'éditeur est vide", async () => {

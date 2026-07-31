@@ -286,15 +286,13 @@ export function SongWriterPage() {
       : song?.syncStatus === 'synced' && localSaveState !== 'dirty' && localSaveState !== 'saving'
         ? 'success'
         : 'neutral';
-  const isKeyboardOpen = keyboardInset > 50;
-
   const pageStyle = {
     '--fz-writer-keyboard-inset': `${keyboardInset}px`,
     '--fz-writer-viewport-offset-top': `${viewportOffsetTop}px`,
   } as CSSProperties;
 
   return (
-    <div className={['fz-writer-page', isKeyboardOpen ? 'is-keyboard-open' : ''].filter(Boolean).join(' ')} style={pageStyle}>
+    <div className="fz-writer-page" style={pageStyle}>
       <header className="fz-writer-header">
         <button type="button" onClick={() => void handleBack()} aria-label="Retour au morceau">
           <BackIcon />

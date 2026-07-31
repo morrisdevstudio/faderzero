@@ -242,6 +242,7 @@ export function QuickVoiceRecorder({
         );
         uploadResult = await uploadOrQueueSongAsset(activeWorkspaceId, undefined, sourceFile, {
           filename,
+          normalizePeak: true,
           onProgress: (nextProgress) => setProgress(formatProgress(nextProgress)),
         });
         stagedUploadRef.current = uploadResult;

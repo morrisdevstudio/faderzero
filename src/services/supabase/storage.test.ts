@@ -63,6 +63,27 @@ describe('uploadSongAsset quota reservation', () => {
     expect(mocks.rpc.mock.invocationCallOrder[1]).toBeLessThan(
       mocks.createAsset.mock.invocationCallOrder[0] ?? Number.POSITIVE_INFINITY
     );
+    expect(mocks.compressAudioForUpload).toHaveBeenCalledWith(
+      expect.any(File),
+      undefined,
+      { normalizePeak: false }
+    );
+  });
+
+  it('forwards peak normalization to MP3 conversion', async () => {
+    mocks.rpc
+      .mockResolvedValueOnce({ data: 'reservation-1', error: null })
+      .mockResolvedValueOnce({ data: null, error: null });
+
+    await uploadSongAsset('workspace-1', undefined, new File(['source'], 'voice.webm'), {
+      normalizePeak: true,
+    });
+
+    expect(mocks.compressAudioForUpload).toHaveBeenCalledWith(
+      expect.any(File),
+      undefined,
+      { normalizePeak: true }
+    );
   });
 
   it('releases the reservation when the R2 upload fails', async () => {

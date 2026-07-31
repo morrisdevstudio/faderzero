@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   MAX_AUDIO_FILE_SIZE_BYTES,
   buildCompressedFileName,
+  calculatePeakNormalizationGain,
   compressAudioForUpload,
   estimateTargetBitrateKbps,
   isMp3File,
@@ -32,6 +33,25 @@ describe('audioCompression helpers', () => {
 
   it('keeps the Worker-compatible 50 Mo ceiling constant', () => {
     expect(MAX_AUDIO_FILE_SIZE_BYTES).toBe(50 * 1024 * 1024);
+  });
+
+  it('normalizes peaks to -1 dBFS without boosting more than 12 dB', () => {
+    expect(calculatePeakNormalizationGain([new Float32Array([1, -0.25])])).toBeCloseTo(
+      10 ** (-1 / 20)
+    );
+    expect(calculatePeakNormalizationGain([new Float32Array([0.1, -0.05])])).toBeCloseTo(
+      10 ** (12 / 20)
+    );
+  });
+
+  it('does not amplify near-silence and scans every channel', () => {
+    expect(calculatePeakNormalizationGain([new Float32Array([0.0005])])).toBe(1);
+    expect(
+      calculatePeakNormalizationGain([
+        new Float32Array([0.1]),
+        new Float32Array([-0.5]),
+      ])
+    ).toBeCloseTo(10 ** (-1 / 20) / 0.5);
   });
 
   it('encodes decoded audio to an mp3 file under the upload ceiling', async () => {
