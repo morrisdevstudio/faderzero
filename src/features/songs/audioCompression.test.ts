@@ -86,6 +86,48 @@ describe('audioCompression helpers', () => {
     expect(progressEvents.at(-1)).toBe(100);
   });
 
+  it('transfers a mono audio buffer only once to the MP3 worker', async () => {
+    let transferredBuffers: Transferable[] = [];
+
+    class FakeAudioContext {
+      async decodeAudioData() {
+        return {
+          duration: 1,
+          numberOfChannels: 1,
+          sampleRate: 44100,
+          getChannelData: () => new Float32Array(44100),
+        };
+      }
+
+      async close() {}
+    }
+
+    class FakeWorker {
+      onmessage: ((event: MessageEvent) => void) | null = null;
+      onerror: ((event: ErrorEvent) => void) | null = null;
+
+      postMessage(_message: unknown, transfer: Transferable[]) {
+        transferredBuffers = transfer;
+        queueMicrotask(() => {
+          this.onmessage?.(
+            new MessageEvent('message', { data: { type: 'complete', chunks: [] } })
+          );
+        });
+      }
+
+      terminate() {}
+    }
+
+    vi.stubGlobal('AudioContext', FakeAudioContext);
+    vi.stubGlobal('Worker', FakeWorker);
+
+    await compressAudioForUpload(
+      new File([new Uint8Array([1, 2, 3])], 'mono.webm', { type: 'audio/webm' })
+    );
+
+    expect(transferredBuffers).toHaveLength(1);
+  });
+
   it('re-encodes MP3 inputs so every upload uses the uniform bitrate', async () => {
     const decodeAudioData = vi.fn(async () => ({
       duration: 1,

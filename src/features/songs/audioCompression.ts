@@ -148,7 +148,13 @@ function encodeInWorker(left: Int16Array, right: Int16Array, channels: number, s
       reject(new Error(event.data.message ?? 'Encodage MP3 impossible.'));
     };
     worker.onerror = () => { worker.terminate(); reject(new Error('Encodage MP3 impossible.')); };
-    worker.postMessage({ type: 'encode', channels, sampleRate, bitrateKbps: MP3_BITRATE_KBPS, leftBuffer: left.buffer, rightBuffer: right.buffer }, [left.buffer, right.buffer]);
+    const transferableBuffers = channels === 2
+      ? [left.buffer, right.buffer]
+      : [left.buffer];
+    worker.postMessage(
+      { type: 'encode', channels, sampleRate, bitrateKbps: MP3_BITRATE_KBPS, leftBuffer: left.buffer, rightBuffer: right.buffer },
+      transferableBuffers
+    );
   });
 }
 
