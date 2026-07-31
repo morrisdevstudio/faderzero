@@ -45,20 +45,27 @@ function useKeyboardInset() {
       return;
     }
 
-    function updateInset() {
+    function updateOffsetTop() {
       if (!viewport) {
         return;
       }
-      setInset(Math.max(0, Math.round(window.innerHeight - viewport.height - viewport.offsetTop)));
       setOffsetTop(Math.max(0, Math.round(viewport.offsetTop)));
     }
 
-    updateInset();
-    viewport.addEventListener('resize', updateInset);
-    viewport.addEventListener('scroll', updateInset);
+    function updateViewportSize() {
+      if (!viewport) {
+        return;
+      }
+      setInset(Math.max(0, Math.round(window.innerHeight - viewport.height)));
+      updateOffsetTop();
+    }
+
+    updateViewportSize();
+    viewport.addEventListener('resize', updateViewportSize);
+    viewport.addEventListener('scroll', updateOffsetTop);
     return () => {
-      viewport.removeEventListener('resize', updateInset);
-      viewport.removeEventListener('scroll', updateInset);
+      viewport.removeEventListener('resize', updateViewportSize);
+      viewport.removeEventListener('scroll', updateOffsetTop);
     };
   }, []);
 

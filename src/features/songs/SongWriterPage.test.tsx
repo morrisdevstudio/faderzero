@@ -83,7 +83,7 @@ describe('SongWriterPage draft flow', () => {
 
     await waitFor(() => {
       expect(writerPage?.style.getPropertyValue('--fz-writer-viewport-offset-top')).toBe('120px');
-      expect(writerPage?.style.getPropertyValue('--fz-writer-keyboard-inset')).toBe('180px');
+      expect(writerPage?.style.getPropertyValue('--fz-writer-keyboard-inset')).toBe('300px');
     });
 
     viewport.height = 700;
@@ -92,7 +92,13 @@ describe('SongWriterPage draft flow', () => {
 
     await waitFor(() => {
       expect(writerPage?.style.getPropertyValue('--fz-writer-viewport-offset-top')).toBe('40px');
-      expect(writerPage?.style.getPropertyValue('--fz-writer-keyboard-inset')).toBe('160px');
+      expect(writerPage?.style.getPropertyValue('--fz-writer-keyboard-inset')).toBe('300px');
+    });
+
+    act(() => viewport.dispatchEvent(new Event('resize')));
+
+    await waitFor(() => {
+      expect(writerPage?.style.getPropertyValue('--fz-writer-keyboard-inset')).toBe('200px');
     });
   });
 
