@@ -113,6 +113,7 @@ describe('QuickVoiceRecorder direct song mode', () => {
       expect.objectContaining({
         filename: expect.stringMatching(/\.mp3$/),
         normalizePeak: true,
+        durationSeconds: 6,
       })
     );
     expect(linkRecording).toHaveBeenCalledWith(

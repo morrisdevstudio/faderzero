@@ -20,6 +20,7 @@ export interface UploadSongAssetOptions {
   onProgress?: (progress: SongAssetUploadProgress) => void;
   filename?: string;
   normalizePeak?: boolean;
+  durationSeconds?: number;
 }
 
 export async function uploadSongAsset(
@@ -28,7 +29,7 @@ export async function uploadSongAsset(
   file: File,
   options: UploadSongAssetOptions = {}
 ): Promise<string> {
-  const durationSeconds = await getAudioDurationSeconds(file);
+  const durationSeconds = options.durationSeconds ?? await getAudioDurationSeconds(file);
   const uploadFile = await compressAudioForUpload(file, options.onProgress, {
     normalizePeak: options.normalizePeak ?? false,
   });

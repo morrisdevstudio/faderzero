@@ -86,6 +86,25 @@ describe('uploadSongAsset quota reservation', () => {
     );
   });
 
+  it('uses a known recorder duration when WebM metadata is unavailable', async () => {
+    mocks.rpc
+      .mockResolvedValueOnce({ data: 'reservation-1', error: null })
+      .mockResolvedValueOnce({ data: null, error: null });
+
+    await uploadSongAsset('workspace-1', undefined, new File(['source'], 'voice.webm'), {
+      durationSeconds: 6,
+    });
+
+    expect(mocks.rpc).toHaveBeenNthCalledWith(1, 'reserve_audio_upload', {
+      p_workspace_id: 'workspace-1',
+      p_requested_bytes: 10,
+      p_requested_seconds: 6,
+    });
+    expect(mocks.createAsset).toHaveBeenCalledWith(
+      expect.objectContaining({ durationSeconds: 6 })
+    );
+  });
+
   it('releases the reservation when the R2 upload fails', async () => {
     mocks.rpc
       .mockResolvedValueOnce({ data: 'reservation-1', error: null })

@@ -243,6 +243,7 @@ export function QuickVoiceRecorder({
         uploadResult = await uploadOrQueueSongAsset(activeWorkspaceId, undefined, sourceFile, {
           filename,
           normalizePeak: true,
+          durationSeconds: Math.max(1, Math.ceil(capturedRecording.durationMs / 1000)),
           onProgress: (nextProgress) => setProgress(formatProgress(nextProgress)),
         });
         stagedUploadRef.current = uploadResult;
@@ -286,8 +287,9 @@ export function QuickVoiceRecorder({
         ...(effectiveDestination.type === 'newSong' ? { songId } : {}),
       });
     } catch (error) {
+      const errorDetails = getSaveErrorMessage(error);
       setErrorMessage(
-        `${error instanceof Error ? error.message : "Impossible de sauvegarder l'enregistrement."}` +
+        `${errorDetails}` +
         (stagedUploadRef.current ? " L'audio reste conservé comme piste orpheline." : '')
       );
       setRecorderState(directSongId ? 'review' : 'choosingDestination');
@@ -590,4 +592,17 @@ export function QuickVoiceRecorder({
       />
     </>
   );
+}
+
+function getSaveErrorMessage(error: unknown) {
+  if (error instanceof Error) return error.message;
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'message' in error &&
+    typeof error.message === 'string'
+  ) {
+    return error.message;
+  }
+  return "Impossible de sauvegarder l'enregistrement.";
 }

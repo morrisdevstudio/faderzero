@@ -16,6 +16,7 @@ describe('pending audio uploads', () => {
     const result = await uploadOrQueueSongAsset('workspace-1', 'song-1', file, {
       filename: 'take.mp3',
       normalizePeak: true,
+      durationSeconds: 6,
       database,
       isOnline: () => false,
       upload: vi.fn(),
@@ -32,6 +33,7 @@ describe('pending audio uploads', () => {
       sizeBytes: 12,
       status: 'pending',
       normalizePeak: true,
+      durationSeconds: 6,
     });
     expect(queued[0]!.fileBlob).toBeDefined();
 
@@ -75,6 +77,7 @@ describe('pending audio uploads', () => {
         file: new File(['second'], 'second.wav', { type: 'audio/wav' }),
         filename: 'second.mp3',
         normalizePeak: true,
+        durationSeconds: 9,
       },
       database
     );
@@ -89,6 +92,7 @@ describe('pending audio uploads', () => {
     expect(upload).toHaveBeenCalledTimes(2);
     expect(upload.mock.calls.map((call) => call[3]?.filename)).toEqual(['first.mp3', 'second.mp3']);
     expect(upload.mock.calls.map((call) => call[3]?.normalizePeak)).toEqual([false, true]);
+    expect(upload.mock.calls.map((call) => call[3]?.durationSeconds)).toEqual([undefined, 9]);
     expect(await database.pendingAudioUploads.count()).toBe(0);
 
     await destroyTestDatabase(database);
