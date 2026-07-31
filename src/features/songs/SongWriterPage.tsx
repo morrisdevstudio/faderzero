@@ -37,7 +37,6 @@ function CheckIcon(props: IconProps) {
 
 function useKeyboardInset() {
   const [inset, setInset] = useState(0);
-  const [offsetTop, setOffsetTop] = useState(0);
 
   useEffect(() => {
     const viewport = window.visualViewport;
@@ -45,31 +44,21 @@ function useKeyboardInset() {
       return;
     }
 
-    function updateOffsetTop() {
-      if (!viewport) {
-        return;
-      }
-      setOffsetTop(Math.max(0, Math.round(viewport.offsetTop)));
-    }
-
     function updateViewportSize() {
       if (!viewport) {
         return;
       }
       setInset(Math.max(0, Math.round(window.innerHeight - viewport.height)));
-      updateOffsetTop();
     }
 
     updateViewportSize();
     viewport.addEventListener('resize', updateViewportSize);
-    viewport.addEventListener('scroll', updateOffsetTop);
     return () => {
       viewport.removeEventListener('resize', updateViewportSize);
-      viewport.removeEventListener('scroll', updateOffsetTop);
     };
   }, []);
 
-  return { inset, offsetTop };
+  return inset;
 }
 
 function requestPersistentStorage() {
@@ -96,7 +85,7 @@ export function SongWriterPage() {
     () => isDraft ? undefined : songsRepository.getById(songId),
     [songId, activeWorkspaceId, isDraft],
   );
-  const { inset: keyboardInset, offsetTop: viewportOffsetTop } = useKeyboardInset();
+  const keyboardInset = useKeyboardInset();
   const [title, setTitle] = useState('');
   const [localSaveState, setLocalSaveState] = useState<LocalSaveState>('idle');
   const [isDraftSaveOpen, setIsDraftSaveOpen] = useState(false);
@@ -295,7 +284,6 @@ export function SongWriterPage() {
         : 'neutral';
   const pageStyle = {
     '--fz-writer-keyboard-inset': `${keyboardInset}px`,
-    '--fz-writer-viewport-offset-top': `${viewportOffsetTop}px`,
   } as CSSProperties;
 
   return (

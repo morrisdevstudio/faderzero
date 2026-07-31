@@ -70,11 +70,12 @@ describe('SongWriterPage draft flow', () => {
     vi.unstubAllGlobals();
   });
 
-  it('suit le viewport visuel lorsque le clavier déplace la zone visible', async () => {
+  it('ignore le scroll visuel et recalcule uniquement la hauteur du clavier', async () => {
     const viewport = Object.assign(new EventTarget(), {
       height: 600,
       offsetTop: 120,
     }) as VisualViewport & { height: number; offsetTop: number };
+    const addEventListenerSpy = vi.spyOn(viewport, 'addEventListener');
     vi.stubGlobal('visualViewport', viewport);
     vi.stubGlobal('innerHeight', 900);
 
@@ -82,16 +83,17 @@ describe('SongWriterPage draft flow', () => {
     const writerPage = container.querySelector<HTMLElement>('.fz-writer-page');
 
     await waitFor(() => {
-      expect(writerPage?.style.getPropertyValue('--fz-writer-viewport-offset-top')).toBe('120px');
       expect(writerPage?.style.getPropertyValue('--fz-writer-keyboard-inset')).toBe('300px');
     });
+    expect(writerPage?.style.getPropertyValue('--fz-writer-viewport-offset-top')).toBe('');
+    expect(addEventListenerSpy).toHaveBeenCalledWith('resize', expect.any(Function));
+    expect(addEventListenerSpy).not.toHaveBeenCalledWith('scroll', expect.any(Function));
 
     viewport.height = 700;
     viewport.offsetTop = 40;
     act(() => viewport.dispatchEvent(new Event('scroll')));
 
     await waitFor(() => {
-      expect(writerPage?.style.getPropertyValue('--fz-writer-viewport-offset-top')).toBe('40px');
       expect(writerPage?.style.getPropertyValue('--fz-writer-keyboard-inset')).toBe('300px');
     });
 

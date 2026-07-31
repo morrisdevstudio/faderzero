@@ -10,7 +10,7 @@
 .fz-writer-header {
   position: fixed;
   z-index: 60;
-  top: var(--fz-writer-viewport-offset-top, 0px);
+  top: 0;
   left: 0;
   right: 0;
   height: var(--fz-writer-header-height);
@@ -183,7 +183,7 @@
 .fz-song-editor__toolbar {
   position: fixed;
   z-index: 60;
-  top: calc(var(--fz-writer-header-height) + var(--fz-writer-viewport-offset-top, 0px));
+  top: var(--fz-writer-header-height);
   left: 0;
   right: 0;
   display: grid;
@@ -258,7 +258,7 @@
 .fz-song-editor__section-menu {
   position: fixed;
   z-index: 70;
-  top: calc(var(--fz-writer-viewport-offset-top, 0px) + var(--fz-writer-header-height) + var(--fz-writer-toolbar-height) + 0.5rem);
+  top: calc(var(--fz-writer-header-height) + var(--fz-writer-toolbar-height) + 0.5rem);
   right: 0.75rem;
   left: 0.75rem;
   max-width: 28rem;
