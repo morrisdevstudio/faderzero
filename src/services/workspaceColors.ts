@@ -77,8 +77,10 @@ export const WORKSPACE_COLOR_OPTIONS: WorkspaceColorOption[] = [
 ];
 
 const LOCAL_STORAGE_COLORS_KEY = 'faderzero_workspace_badge_colors';
+const LOCAL_STORAGE_TEXTS_KEY = 'faderzero_workspace_badge_texts';
 
 type ColorMap = Record<string, string>;
+type TextMap = Record<string, string>;
 
 const listeners = new Set<() => void>();
 
@@ -92,8 +94,51 @@ function getColorMap(): ColorMap {
   }
 }
 
+function getTextMap(): TextMap {
+  try {
+    const raw = localStorage.getItem(LOCAL_STORAGE_TEXTS_KEY);
+    if (!raw) return {};
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
 function notifyListeners() {
   listeners.forEach((listener) => listener());
+}
+
+export function getWorkspaceInitials(name?: string): string {
+  if (!name) return 'ME';
+  const trimmed = name.trim();
+  if (trimmed.length <= 2) return trimmed.toUpperCase();
+  const words = trimmed.split(/\s+/);
+  const [firstWord = '', secondWord = ''] = words;
+  if (firstWord && secondWord) {
+    return (firstWord.charAt(0) + secondWord.charAt(0)).toUpperCase();
+  }
+  return trimmed.slice(0, 2).toUpperCase();
+}
+
+export function getWorkspaceBadgeText(workspaceId?: string | null, workspaceName?: string): string {
+  if (!workspaceId) {
+    return getWorkspaceInitials(workspaceName);
+  }
+  const textMap = getTextMap();
+  const savedText = textMap[workspaceId];
+  if (savedText !== undefined && savedText.trim() !== '') {
+    return savedText.trim().slice(0, 3);
+  }
+  return getWorkspaceInitials(workspaceName);
+}
+
+export function setWorkspaceBadgeText(workspaceId: string, text: string): void {
+  const textMap = getTextMap();
+  textMap[workspaceId] = text.slice(0, 3);
+  try {
+    localStorage.setItem(LOCAL_STORAGE_TEXTS_KEY, JSON.stringify(textMap));
+  } catch {}
+  notifyListeners();
 }
 
 export function getWorkspaceColorOption(workspaceId?: string | null, workspaceType?: string): WorkspaceColorOption {
@@ -134,6 +179,8 @@ export function setWorkspaceBadgeColor(workspaceId: string, colorId: string): vo
 export function useWorkspaceBadgeColors(): {
   getBadgeColor: (workspaceId?: string | null, workspaceType?: string) => WorkspaceColorOption;
   setBadgeColor: (workspaceId: string, colorId: string) => void;
+  getBadgeText: (workspaceId?: string | null, workspaceName?: string) => string;
+  setBadgeText: (workspaceId: string, text: string) => void;
 } {
   const [, setTick] = useState(0);
 
@@ -148,5 +195,7 @@ export function useWorkspaceBadgeColors(): {
   return {
     getBadgeColor: getWorkspaceColorOption,
     setBadgeColor: setWorkspaceBadgeColor,
+    getBadgeText: getWorkspaceBadgeText,
+    setBadgeText: setWorkspaceBadgeText,
   };
 }

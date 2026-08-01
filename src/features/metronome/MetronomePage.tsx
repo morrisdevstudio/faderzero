@@ -11,6 +11,15 @@ import { useAuthStore } from '@/stores/authStore';
 
 const TAP_MEMORY = 5;
 
+type MetronomeSubdivision = 1 | 2 | 3 | 4;
+
+const subdivisionOptions: Array<{ value: MetronomeSubdivision; symbol: string; label: string }> = [
+  { value: 1, symbol: '♩', label: 'Noire' },
+  { value: 2, symbol: '♫', label: 'Croches' },
+  { value: 3, symbol: '3', label: 'Triolets' },
+  { value: 4, symbol: '♬', label: 'Doubles' },
+];
+
 type IconProps = SVGProps<SVGSVGElement>;
 
 function SetlistIcon(props: IconProps) {
@@ -61,6 +70,51 @@ function CloseIcon(props: IconProps) {
   );
 }
 
+function SubdivisionSelector({
+  value,
+  onChange,
+  compact = false,
+}: {
+  value: MetronomeSubdivision;
+  onChange: (value: MetronomeSubdivision) => void;
+  compact?: boolean;
+}) {
+  return (
+    <div>
+      <p className="mb-2 text-[0.65rem] font-black uppercase tracking-[0.18em] text-[var(--fz-text-muted)]">
+        Subdivision
+      </p>
+      <div className="grid grid-cols-4 gap-2" role="group" aria-label="Subdivision du temps">
+        {subdivisionOptions.map((option) => {
+          const isSelected = option.value === value;
+
+          return (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => onChange(option.value)}
+              aria-pressed={isSelected}
+              aria-label={option.label}
+              className={[
+                'flex flex-col items-center justify-center rounded-xl border font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70',
+                compact ? 'min-h-12 px-1 py-1.5' : 'min-h-16 px-2 py-2',
+                isSelected
+                  ? 'border-cyan-300/55 bg-cyan-300/15 text-cyan-200 shadow-[0_0_18px_rgba(103,232,249,0.12)]'
+                  : 'border-white/8 bg-white/5 text-white/55 hover:border-white/20 hover:text-white',
+              ].join(' ')}
+            >
+              <span className={compact ? 'text-lg leading-none' : 'text-2xl leading-none'} aria-hidden="true">
+                {option.symbol}
+              </span>
+              {!compact ? <span className="mt-1 text-[0.58rem] uppercase tracking-wide">{option.label}</span> : null}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export function MetronomePage() {
   const activeWorkspaceId = useAuthStore((state) => state.activeWorkspace?.id);
   const engineRef = useRef<MetronomeEngine | null>(null);
@@ -70,8 +124,10 @@ export function MetronomePage() {
 
   const [bpm, setBpm] = useState(120);
   const [beatsPerBar, setBeatsPerBar] = useState(4);
+  const [subdivision, setSubdivision] = useState<MetronomeSubdivision>(1);
   const [isRunning, setIsRunning] = useState(false);
   const [activeBeat, setActiveBeat] = useState(0);
+  const [activeSubdivision, setActiveSubdivision] = useState(0);
   const [audioError, setAudioError] = useState<string | null>(null);
   const [isTempoPickerOpen, setIsTempoPickerOpen] = useState(false);
 
@@ -126,8 +182,9 @@ export function MetronomePage() {
       return;
     }
 
-    engine.setBeatListener(({ beatInBar }) => {
+    engine.setBeatListener(({ beatInBar, subdivisionInBeat }) => {
       setActiveBeat(beatInBar);
+      setActiveSubdivision(subdivisionInBeat);
     });
 
     return () => {
@@ -145,7 +202,13 @@ export function MetronomePage() {
     setActiveBeat((current) => current % beatsPerBar);
   }, [beatsPerBar]);
 
+  useEffect(() => {
+    engineRef.current?.updateConfig({ subdivision });
+    setActiveSubdivision(0);
+  }, [subdivision]);
+
   const beatSlots = useMemo(() => Array.from({ length: beatsPerBar }, (_, index) => index), [beatsPerBar]);
+  const subdivisionSlots = useMemo(() => Array.from({ length: subdivision }, (_, index) => index), [subdivision]);
 
   function updateBpm(nextBpm: number) {
     setBpm(clampBpm(nextBpm));
@@ -166,9 +229,10 @@ export function MetronomePage() {
         engine.stop();
         setIsRunning(false);
         setActiveBeat(0);
+        setActiveSubdivision(0);
       } else {
         setAudioError(null);
-        await engine.start({ bpm, beatsPerBar });
+        await engine.start({ bpm, beatsPerBar, subdivision });
         setIsRunning(true);
       }
     } catch {
@@ -188,7 +252,7 @@ export function MetronomePage() {
       if (engine) {
         try {
           setAudioError(null);
-          await engine.start({ bpm: nextBpm, beatsPerBar });
+          await engine.start({ bpm: nextBpm, beatsPerBar, subdivision });
           setIsRunning(true);
         } catch {
           setAudioError("Impossible de démarrer l'audio sur cet appareil.");
@@ -313,24 +377,44 @@ export function MetronomePage() {
         <div className="mt-5 grid gap-2" style={{ gridTemplateColumns: `repeat(${beatsPerBar}, minmax(0, 1fr))` }}>
           {beatSlots.map((slot) => {
             const isAccent = slot === 0;
-            const isActive = slot === activeBeat && isRunning;
 
             return (
               <div
                 key={slot}
-                className={[
-                  'h-14 rounded-xl border transition',
-                  isActive && isAccent
-                    ? 'border-[rgba(255,58,99,0.35)] bg-[rgba(255,58,99,0.9)] shadow-[0_0_24px_rgba(255,58,99,0.55)]'
-                    : isActive
-                      ? 'border-[rgba(255,198,92,0.28)] bg-[rgba(255,198,92,0.88)] shadow-[0_0_18px_rgba(255,198,92,0.35)]'
-                      : isAccent
-                        ? 'border-white/10 bg-white/10'
-                        : 'border-white/6 bg-white/6',
-                ].join(' ')}
-              />
+                className="grid h-14 gap-1"
+                style={{ gridTemplateColumns: `repeat(${subdivision}, minmax(0, 1fr))` }}
+              >
+                {subdivisionSlots.map((subdivisionSlot) => {
+                  const isMainBeat = subdivisionSlot === 0;
+                  const isActive = slot === activeBeat && subdivisionSlot === activeSubdivision && isRunning;
+
+                  return (
+                    <div
+                      key={subdivisionSlot}
+                      className={[
+                        'rounded-lg border transition',
+                        isActive && isAccent && isMainBeat
+                          ? 'border-[rgba(255,58,99,0.35)] bg-[rgba(255,58,99,0.9)] shadow-[0_0_24px_rgba(255,58,99,0.55)]'
+                          : isActive && isMainBeat
+                            ? 'border-[rgba(255,198,92,0.28)] bg-[rgba(255,198,92,0.88)] shadow-[0_0_18px_rgba(255,198,92,0.35)]'
+                            : isActive
+                              ? 'border-cyan-300/45 bg-cyan-300/85 shadow-[0_0_16px_rgba(103,232,249,0.35)]'
+                              : isAccent && isMainBeat
+                                ? 'border-white/10 bg-white/10'
+                                : isMainBeat
+                                  ? 'border-white/6 bg-white/6'
+                                  : 'border-cyan-300/10 bg-cyan-300/5',
+                      ].join(' ')}
+                    />
+                  );
+                })}
+              </div>
             );
           })}
+        </div>
+
+        <div className="mt-4">
+          <SubdivisionSelector value={subdivision} onChange={setSubdivision} />
         </div>
 
         <div className="mt-5 grid grid-cols-3 gap-3">
@@ -511,24 +595,44 @@ export function MetronomePage() {
                 <div className="mt-5 grid gap-2" style={{ gridTemplateColumns: `repeat(${beatsPerBar}, minmax(0, 1fr))` }}>
                   {beatSlots.map((slot) => {
                     const isAccent = slot === 0;
-                    const isActive = slot === activeBeat && isRunning;
 
                     return (
                       <div
                         key={slot}
-                        className={[
-                          'h-7 rounded-xl border transition',
-                          isActive && isAccent
-                            ? 'border-[rgba(255,58,99,0.35)] bg-[rgba(255,58,99,0.9)] shadow-[0_0_24px_rgba(255,58,99,0.55)]'
-                            : isActive
-                              ? 'border-[rgba(255,198,92,0.28)] bg-[rgba(255,198,92,0.88)] shadow-[0_0_18px_rgba(255,198,92,0.35)]'
-                              : isAccent
-                                ? 'border-white/10 bg-white/10'
-                                : 'border-white/6 bg-white/6',
-                        ].join(' ')}
-                      />
+                        className="grid h-7 gap-1"
+                        style={{ gridTemplateColumns: `repeat(${subdivision}, minmax(0, 1fr))` }}
+                      >
+                        {subdivisionSlots.map((subdivisionSlot) => {
+                          const isMainBeat = subdivisionSlot === 0;
+                          const isActive = slot === activeBeat && subdivisionSlot === activeSubdivision && isRunning;
+
+                          return (
+                            <div
+                              key={subdivisionSlot}
+                              className={[
+                                'rounded-md border transition',
+                                isActive && isAccent && isMainBeat
+                                  ? 'border-[rgba(255,58,99,0.35)] bg-[rgba(255,58,99,0.9)] shadow-[0_0_24px_rgba(255,58,99,0.55)]'
+                                  : isActive && isMainBeat
+                                    ? 'border-[rgba(255,198,92,0.28)] bg-[rgba(255,198,92,0.88)] shadow-[0_0_18px_rgba(255,198,92,0.35)]'
+                                    : isActive
+                                      ? 'border-cyan-300/45 bg-cyan-300/85 shadow-[0_0_16px_rgba(103,232,249,0.35)]'
+                                      : isAccent && isMainBeat
+                                        ? 'border-white/10 bg-white/10'
+                                        : isMainBeat
+                                          ? 'border-white/6 bg-white/6'
+                                          : 'border-cyan-300/10 bg-cyan-300/5',
+                              ].join(' ')}
+                            />
+                          );
+                        })}
+                      </div>
                     );
                   })}
+                </div>
+
+                <div className="mt-3">
+                  <SubdivisionSelector value={subdivision} onChange={setSubdivision} compact />
                 </div>
 
                 {audioError ? <p className="mt-3 text-sm font-semibold text-rose-400 text-center">{audioError}</p> : null}
@@ -665,6 +769,4 @@ export function MetronomePage() {
     </div>
   );
 }
-
-
 

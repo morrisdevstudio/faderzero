@@ -2,6 +2,8 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import {
   getWorkspaceColorOption,
   setWorkspaceBadgeColor,
+  getWorkspaceBadgeText,
+  setWorkspaceBadgeText,
   WORKSPACE_COLOR_OPTIONS,
 } from './workspaceColors';
 
@@ -47,5 +49,20 @@ describe('workspaceColors service', () => {
       const updatedColor = getWorkspaceColorOption(personalId, 'personal');
       expect(updatedColor.id).toBe(customColor.id);
     }
+  });
+
+  it('defaults badge text to workspace initials if custom text is empty', () => {
+    const text = getWorkspaceBadgeText('ws-1', 'Mon Groupe Test');
+    expect(text).toBe('MG');
+  });
+
+  it('saves and limits custom badge text to max 3 characters', () => {
+    const wsId = 'ws-custom';
+    setWorkspaceBadgeText(wsId, 'FAD');
+    expect(getWorkspaceBadgeText(wsId, 'Mon Groupe')).toBe('FAD');
+
+    // Truncates strings over 3 characters
+    setWorkspaceBadgeText(wsId, 'ROCK');
+    expect(getWorkspaceBadgeText(wsId, 'Mon Groupe')).toBe('ROC');
   });
 });

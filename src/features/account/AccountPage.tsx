@@ -298,7 +298,7 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
     clearFeedback,
   } = useAuthStore();
 
-  const { getBadgeColor, setBadgeColor } = useWorkspaceBadgeColors();
+  const { getBadgeColor, setBadgeColor, getBadgeText, setBadgeText } = useWorkspaceBadgeColors();
 
   const cachedAssetIds = useAudioCacheStore((state) => state.cachedAssetIds);
   const checkCacheStatus = useAudioCacheStore((state) => state.checkCacheStatus);
@@ -1055,7 +1055,7 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
                             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-black text-white shadow-md border border-white/20"
                             style={{ backgroundColor: badgeColor.hex }}
                           >
-                            {getWorkspaceInitials(ws.name)}
+                            {getBadgeText(ws.id, ws.name)}
                           </div>
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">
@@ -1129,6 +1129,21 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
                                 );
                               })}
                             </div>
+                          </div>
+
+                          {/* Pastille Badge Text Input */}
+                          <div className="space-y-1.5 pt-1">
+                            <label className="block text-[0.62rem] font-black uppercase tracking-[0.18em] text-white/50">
+                              Texte du badge (3 lettres max)
+                            </label>
+                            <input
+                              type="text"
+                              maxLength={3}
+                              value={getBadgeText(ws.id, ws.name)}
+                              onChange={(e) => setBadgeText(ws.id, e.target.value.toUpperCase().slice(0, 3))}
+                              placeholder={getWorkspaceInitials(ws.name)}
+                              className="w-full max-w-[140px] rounded-lg border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-black uppercase tracking-wider text-white placeholder-white/30 focus:border-amber-400/60 focus:outline-none focus:ring-1 focus:ring-amber-400/60 transition"
+                            />
                           </div>
 
                           {/* Group Administration */}

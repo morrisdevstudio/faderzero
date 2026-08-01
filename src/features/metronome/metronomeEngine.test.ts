@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   clampBeatsPerBar,
   clampBpm,
+  clampSubdivision,
   MetronomeEngine,
   type AudioContextLike,
   type AudioParamLike,
@@ -75,6 +76,8 @@ describe('metronomeEngine', () => {
     expect(clampBpm(121.2)).toBe(121);
     expect(clampBeatsPerBar(0)).toBe(1);
     expect(clampBeatsPerBar(15)).toBe(12);
+    expect(clampSubdivision(0)).toBe(1);
+    expect(clampSubdivision(8)).toBe(4);
   });
 
   it('schedules accented and regular beats against audio time', async () => {
@@ -141,6 +144,72 @@ describe('metronomeEngine', () => {
     runNextSchedulerTick(scheduledCallbacks);
 
     expect(audioContext.oscillators[2]?.starts[0]).toBe(1.55);
+  });
+
+  it('schedules subdivisions with a distinct third click sound', async () => {
+    const audioContext = new FakeAudioContext();
+    const scheduledCallbacks: Array<{ callback: () => void; delayMs: number }> = [];
+    const beatEvents: Array<{ beat: number; subdivision: number }> = [];
+
+    const engine = new MetronomeEngine({
+      createAudioContext: () => audioContext,
+      lookaheadMs: 25,
+      scheduleAheadTime: 0.15,
+      setTimer: vi.fn((callback: () => void, delayMs: number) => {
+        scheduledCallbacks.push({ callback, delayMs });
+        return scheduledCallbacks.length as ReturnType<typeof window.setTimeout>;
+      }),
+      clearTimer: vi.fn(),
+    });
+
+    engine.setBeatListener((event) => {
+      beatEvents.push({ beat: event.beatInBar, subdivision: event.subdivisionInBeat });
+    });
+
+    await engine.start({ bpm: 120, beatsPerBar: 4, subdivision: 2 });
+
+    audioContext.currentTime = 0.2;
+    runNextSchedulerTick(scheduledCallbacks);
+
+    expect(audioContext.oscillators).toHaveLength(2);
+    expect(audioContext.oscillators[1]?.starts[0]).toBe(0.3);
+    expect(audioContext.oscillators[1]?.frequency.events[0]).toMatchObject({ value: 880, time: 0.3 });
+
+    runDueBeatCallbacks(scheduledCallbacks);
+
+    expect(beatEvents).toEqual([
+      { beat: 0, subdivision: 0 },
+      { beat: 0, subdivision: 1 },
+    ]);
+  });
+
+  it('uses ternary intervals and applies subdivision updates while running', async () => {
+    const audioContext = new FakeAudioContext();
+    const scheduledCallbacks: Array<{ callback: () => void; delayMs: number }> = [];
+
+    const engine = new MetronomeEngine({
+      createAudioContext: () => audioContext,
+      lookaheadMs: 25,
+      scheduleAheadTime: 0.15,
+      setTimer: vi.fn((callback: () => void, delayMs: number) => {
+        scheduledCallbacks.push({ callback, delayMs });
+        return scheduledCallbacks.length as ReturnType<typeof window.setTimeout>;
+      }),
+      clearTimer: vi.fn(),
+    });
+
+    await engine.start({ bpm: 60, beatsPerBar: 4, subdivision: 3 });
+
+    audioContext.currentTime = 0.3;
+    runNextSchedulerTick(scheduledCallbacks);
+    expect(audioContext.oscillators[1]?.starts[0]).toBeCloseTo(0.05 + 1 / 3);
+
+    engine.updateConfig({ subdivision: 4 });
+    expect(engine.snapshot.subdivision).toBe(4);
+
+    audioContext.currentTime = 0.6;
+    runNextSchedulerTick(scheduledCallbacks);
+    expect(audioContext.oscillators[2]?.starts[0]).toBeCloseTo(0.05 + 2 / 3);
   });
 
   it('stops pending callbacks when the engine is stopped', async () => {

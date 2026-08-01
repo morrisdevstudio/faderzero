@@ -187,12 +187,12 @@ export function AppShell() {
   const [voiceRecorderMessage, setVoiceRecorderMessage] = useState<string | null>(null);
   const isOnline = useOnlineStatus();
   const isForcedOffline = useForcedOffline();
-  const { getBadgeColor } = useWorkspaceBadgeColors();
+  const { getBadgeColor, getBadgeText } = useWorkspaceBadgeColors();
   const [headerHeight, setHeaderHeight] = useState(64);
   const [viewportOffsetTop, setViewportOffsetTop] = useState(0);
   const headerRef = useRef<HTMLElement | null>(null);
 
-  const workspaceInitials = getWorkspaceInitials(activeWorkspace?.name);
+  const workspaceInitials = getBadgeText(activeWorkspace?.id, activeWorkspace?.name);
   const activeBadgeColor = getBadgeColor(activeWorkspace?.id, activeWorkspace?.type);
   const isLiveActive =
     isVoiceRecorderOpen ||
@@ -359,7 +359,7 @@ export function AppShell() {
               {workspaces.length > 0 ? (
                 workspaces.map((workspace) => {
                   const isActive = workspace.id === activeWorkspace?.id;
-                  const initials = getWorkspaceInitials(workspace.name);
+                  const initials = getBadgeText(workspace.id, workspace.name);
                   const badgeColor = getBadgeColor(workspace.id, workspace.type);
 
                   return (

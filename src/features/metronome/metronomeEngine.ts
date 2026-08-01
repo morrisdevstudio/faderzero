@@ -38,6 +38,7 @@ type TimerId = ReturnType<typeof window.setTimeout>;
 export interface MetronomeEngineConfig {
   bpm: number;
   beatsPerBar: number;
+  subdivision: number;
 }
 
 export interface MetronomeEngineOptions {
@@ -50,6 +51,7 @@ export interface MetronomeEngineOptions {
 
 export interface ScheduledBeatEvent {
   beatInBar: number;
+  subdivisionInBeat: number;
   scheduledTime: number;
 }
 
@@ -59,6 +61,10 @@ export function clampBpm(value: number) {
 
 export function clampBeatsPerBar(value: number) {
   return Math.min(12, Math.max(1, Math.round(value)));
+}
+
+export function clampSubdivision(value: number) {
+  return Math.min(4, Math.max(1, Math.round(value)));
 }
 
 export class MetronomeEngine {
@@ -74,7 +80,9 @@ export class MetronomeEngine {
   private isRunning = false;
   private bpm = 120;
   private beatsPerBar = 4;
+  private subdivision = 1;
   private nextBeatIndex = 0;
+  private nextSubdivisionIndex = 0;
   private nextNoteTime = 0;
   private scheduleGeneration = 0;
   private beatListener: ((event: ScheduledBeatEvent) => void) | null = null;
@@ -95,6 +103,7 @@ export class MetronomeEngine {
     return {
       bpm: this.bpm,
       beatsPerBar: this.beatsPerBar,
+      subdivision: this.subdivision,
     };
   }
 
@@ -117,6 +126,7 @@ export class MetronomeEngine {
     this.isRunning = true;
     this.scheduleGeneration += 1;
     this.nextBeatIndex = 0;
+    this.nextSubdivisionIndex = 0;
     this.nextNoteTime = audioContext.currentTime + START_DELAY_SECONDS;
     this.schedulerTick();
   }
@@ -124,6 +134,7 @@ export class MetronomeEngine {
   stop() {
     this.isRunning = false;
     this.nextBeatIndex = 0;
+    this.nextSubdivisionIndex = 0;
     this.nextNoteTime = 0;
     this.scheduleGeneration += 1;
 
@@ -152,6 +163,18 @@ export class MetronomeEngine {
       this.beatsPerBar = clampBeatsPerBar(config.beatsPerBar);
       this.nextBeatIndex %= this.beatsPerBar;
     }
+
+    if (config.subdivision !== undefined) {
+      const nextSubdivision = clampSubdivision(config.subdivision);
+      const wrapsCurrentBeat = this.nextSubdivisionIndex > 0 && this.nextSubdivisionIndex % nextSubdivision === 0;
+
+      this.subdivision = nextSubdivision;
+      this.nextSubdivisionIndex %= this.subdivision;
+
+      if (wrapsCurrentBeat) {
+        this.nextBeatIndex = (this.nextBeatIndex + 1) % this.beatsPerBar;
+      }
+    }
   }
 
   private getSecondsPerBeat() {
@@ -175,28 +198,34 @@ export class MetronomeEngine {
 
     while (this.nextNoteTime < audioContext.currentTime + this.scheduleAheadTime) {
       const beatInBar = this.nextBeatIndex;
-      this.scheduleBeat(beatInBar, this.nextNoteTime, this.scheduleGeneration);
-      this.advanceBeat();
+      const subdivisionInBeat = this.nextSubdivisionIndex;
+      this.scheduleBeat(beatInBar, subdivisionInBeat, this.nextNoteTime, this.scheduleGeneration);
+      this.advanceSubdivision();
     }
 
     this.timerId = this.setTimer(this.schedulerTick, this.lookaheadMs);
   };
 
-  private advanceBeat() {
-    this.nextNoteTime += this.getSecondsPerBeat();
-    this.nextBeatIndex = (this.nextBeatIndex + 1) % this.beatsPerBar;
+  private advanceSubdivision() {
+    this.nextNoteTime += this.getSecondsPerBeat() / this.subdivision;
+    this.nextSubdivisionIndex = (this.nextSubdivisionIndex + 1) % this.subdivision;
+
+    if (this.nextSubdivisionIndex === 0) {
+      this.nextBeatIndex = (this.nextBeatIndex + 1) % this.beatsPerBar;
+    }
   }
 
-  private scheduleBeat(beatInBar: number, scheduledTime: number, generation: number) {
+  private scheduleBeat(beatInBar: number, subdivisionInBeat: number, scheduledTime: number, generation: number) {
     const audioContext = this.getAudioContext();
-    const isAccent = beatInBar === 0;
+    const isMainBeat = subdivisionInBeat === 0;
+    const isAccent = beatInBar === 0 && isMainBeat;
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
 
     oscillator.type = 'square';
-    oscillator.frequency.setValueAtTime(isAccent ? 1760 : 1320, scheduledTime);
+    oscillator.frequency.setValueAtTime(isAccent ? 1760 : isMainBeat ? 1320 : 880, scheduledTime);
     gainNode.gain.setValueAtTime(0.0001, scheduledTime);
-    gainNode.gain.exponentialRampToValueAtTime(isAccent ? 0.9 : 0.55, scheduledTime + 0.002);
+    gainNode.gain.exponentialRampToValueAtTime(isAccent ? 0.9 : isMainBeat ? 0.55 : 0.38, scheduledTime + 0.002);
     gainNode.gain.exponentialRampToValueAtTime(0.0001, scheduledTime + CLICK_DURATION_SECONDS);
 
     oscillator.connect(gainNode);
@@ -218,6 +247,7 @@ export class MetronomeEngine {
 
       this.beatListener?.({
         beatInBar,
+        subdivisionInBeat,
         scheduledTime,
       });
     }, delayMs);
