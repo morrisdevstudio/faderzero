@@ -3,7 +3,7 @@ import { EditorContent, useEditor, useEditorState } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import UniqueID from '@tiptap/extension-unique-id';
-import { useEffect, useState, type SVGProps } from 'react';
+import { useEffect, useState, type CSSProperties, type SVGProps } from 'react';
 import {
   createSongSection,
   getDefaultSectionLabel,
@@ -17,6 +17,15 @@ import './songEditor.css';
 type IconProps = SVGProps<SVGSVGElement>;
 
 const sectionChoices = songSectionTypes.filter((type) => type !== 'free') as Exclude<SongSectionType, 'free'>[];
+const sectionLabelColorStorageKey = 'fz-song-editor-section-label-color';
+const defaultSectionLabelColor = '#a8afba';
+const sectionLabelColors = [
+  { value: '#a8afba', label: 'Gris bleuté' },
+  { value: '#f5f0ea', label: 'Blanc cassé' },
+  { value: '#fb7185', label: 'Rose' },
+  { value: '#fbbf24', label: 'Ambre' },
+  { value: '#4ade80', label: 'Vert' },
+] as const;
 
 const SongDocument = Node.create({
   name: 'doc',
@@ -91,6 +100,15 @@ function SectionIcon(props: IconProps) {
   );
 }
 
+function SettingsIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.4 2.4-.06-.06A1.7 1.7 0 0 0 15.46 19a1.7 1.7 0 0 0-1.03 1.54v.09H11v-.09A1.7 1.7 0 0 0 9.54 19a1.7 1.7 0 0 0-1.88.34l-.06.06-2.4-2.4.06-.06A1.7 1.7 0 0 0 5.6 15a1.7 1.7 0 0 0-1.54-1.03H4v-3.4h.06A1.7 1.7 0 0 0 5.6 9.54a1.7 1.7 0 0 0-.34-1.88L5.2 7.6l2.4-2.4.06.06A1.7 1.7 0 0 0 9.54 5a1.7 1.7 0 0 0 1.03-1.54V3.4h3.4v.06A1.7 1.7 0 0 0 15.46 5a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.4 2.4-.06.06A1.7 1.7 0 0 0 19.4 9.54a1.7 1.7 0 0 0 1.54 1.03H21v3.4h-.06A1.7 1.7 0 0 0 19.4 15Z" />
+    </svg>
+  );
+}
+
 interface SongEditorProps {
   initialDocument: SongDocumentV1;
   onChange: (document: SongDocumentV1) => void;
@@ -99,6 +117,14 @@ interface SongEditorProps {
 
 export function SongEditor({ initialDocument, onChange, autoFocus = true }: SongEditorProps) {
   const [isSectionMenuOpen, setIsSectionMenuOpen] = useState(false);
+  const [isSettingsMenuOpen, setIsSettingsMenuOpen] = useState(false);
+  const [sectionLabelColor, setSectionLabelColor] = useState(() => {
+    try {
+      return localStorage.getItem(sectionLabelColorStorageKey) || defaultSectionLabelColor;
+    } catch {
+      return defaultSectionLabelColor;
+    }
+  });
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ document: false }),
@@ -172,14 +198,22 @@ export function SongEditor({ initialDocument, onChange, autoFocus = true }: Song
     setIsSectionMenuOpen(false);
   }
 
-  function hideKeyboard() {
-    editor?.commands.blur();
-    setIsSectionMenuOpen(false);
+  function setSectionLabelColorPreference(color: string) {
+    setSectionLabelColor(color);
+    try {
+      localStorage.setItem(sectionLabelColorStorageKey, color);
+    } catch {
+      // This optional preference remains available for the current session.
+    }
   }
 
   return (
     <>
-      <EditorContent editor={editor} className="fz-song-editor" />
+      <EditorContent
+        editor={editor}
+        className="fz-song-editor"
+        style={{ '--fz-song-editor-section-label-color': sectionLabelColor } as CSSProperties}
+      />
 
       {isSectionMenuOpen ? (
         <div className="fz-song-editor__section-menu" role="dialog" aria-label="Ajouter une section">
@@ -195,6 +229,28 @@ export function SongEditor({ initialDocument, onChange, autoFocus = true }: Song
                 {getDefaultSectionLabel(sectionType) || 'Personnalisée'}
               </button>
             ))}
+          </div>
+        </div>
+      ) : null}
+
+      {isSettingsMenuOpen ? (
+        <div className="fz-song-editor__settings-menu" role="dialog" aria-label="Réglages de l'éditeur">
+          <p>Réglages</p>
+          <p className="fz-song-editor__settings-label">Couleur des titres de sections</p>
+          <div className="fz-song-editor__color-controls">
+            <div aria-label="Couleurs suggérées" role="group">
+              {sectionLabelColors.map(({ value, label }) => (
+                <button
+                  key={value}
+                  type="button"
+                  className={sectionLabelColor === value ? 'is-selected' : ''}
+                  style={{ '--fz-song-editor-swatch-color': value } as CSSProperties}
+                  onClick={() => setSectionLabelColorPreference(value)}
+                  aria-label={label}
+                  aria-pressed={sectionLabelColor === value}
+                />
+              ))}
+            </div>
           </div>
         </div>
       ) : null}
@@ -228,15 +284,28 @@ export function SongEditor({ initialDocument, onChange, autoFocus = true }: Song
           type="button"
           className={isSectionMenuOpen ? 'is-active' : ''}
           onPointerDown={(event) => event.preventDefault()}
-          onClick={() => setIsSectionMenuOpen((value) => !value)}
+          onClick={() => {
+            setIsSectionMenuOpen((value) => !value);
+            setIsSettingsMenuOpen(false);
+          }}
           aria-expanded={isSectionMenuOpen}
           aria-label="Ajouter une section"
         >
           <SectionIcon />
           <span>Section</span>
         </button>
-        <button type="button" onPointerDown={(event) => event.preventDefault()} onClick={hideKeyboard} aria-label="Masquer le clavier">
-          <ChevronIcon direction="down" />
+        <button
+          type="button"
+          className={isSettingsMenuOpen ? 'is-active' : ''}
+          onPointerDown={(event) => event.preventDefault()}
+          onClick={() => {
+            setIsSettingsMenuOpen((value) => !value);
+            setIsSectionMenuOpen(false);
+          }}
+          aria-expanded={isSettingsMenuOpen}
+          aria-label="Réglages de l'éditeur"
+        >
+          <SettingsIcon />
         </button>
       </div>
     </>

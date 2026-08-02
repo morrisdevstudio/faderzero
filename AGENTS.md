@@ -10,6 +10,7 @@ Migration progressive de FaderZero vers une PWA mobile-first et offline-first, s
 
 ## Routage des tâches
 
+- **Annonce obligatoire** : avant toute analyse, commande ou modification, afficher exactement une ligne `Routage : <Lite|Standard|Strict|APEX|Antigravity> — <justification brève>`.
 - **Lite** : traiter directement la documentation, le CSS, un petit composant, un test ciblé ou une correction isolée. Ne pas lancer APEX ni de sous-agent.
 - **Standard** : traiter directement une fonctionnalité ou un bug cohérent touchant plusieurs fichiers. Utiliser au maximum un `pwa_explorer` en lecture seule uniquement si l'exploration isolée apporte une valeur réelle, puis exécuter `verify:fast`.
 - **Strict** : produire un plan détaillé pour Service Worker, IndexedDB, synchronisation, authentification, sécurité, migration ou release. Si nécessaire, utiliser un seul `pwa_explorer`, attendre son résultat, implémenter, puis utiliser `pwa_reviewer` pour relire le diff et exécuter `verify:full`.

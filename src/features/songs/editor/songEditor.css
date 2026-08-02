@@ -159,7 +159,7 @@
   content: attr(data-section-label);
   display: block;
   margin-bottom: 0.55rem;
-  color: #a8afba;
+  color: var(--fz-song-editor-section-label-color, #a8afba);
   font-size: 0.9rem;
   font-weight: 800;
   line-height: 1.2;
@@ -267,6 +267,66 @@
   border-radius: 0.9rem;
   background: #171a20;
   padding: 0.85rem;
+}
+
+.fz-song-editor__settings-menu {
+  position: fixed;
+  z-index: 70;
+  top: calc(var(--fz-writer-header-height) + var(--fz-writer-toolbar-height) + 0.5rem);
+  right: 0.75rem;
+  left: 0.75rem;
+  max-width: 28rem;
+  margin-inline: auto;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 0.9rem;
+  background: #171a20;
+  padding: 0.85rem;
+}
+
+.fz-song-editor__settings-menu > p {
+  display: block;
+  margin: 0 0 0.7rem;
+  color: #a8afba;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.fz-song-editor__settings-label {
+  display: block;
+  margin-bottom: 0.55rem;
+  color: #f5f0ea;
+}
+
+.fz-song-editor__color-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.fz-song-editor__color-controls > div {
+  display: flex;
+  flex: 1;
+  justify-content: space-between;
+  gap: 0.4rem;
+}
+
+.fz-song-editor__color-controls button {
+  width: 2.1rem;
+  min-height: 2.1rem;
+  flex: 0 1 2.4rem;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: var(--fz-song-editor-swatch-color);
+}
+
+.fz-song-editor__color-controls button.is-selected {
+  border-color: #f5f0ea;
+  box-shadow: 0 0 0 2px #090a0c, 0 0 0 3px #f5f0ea;
+}
+
+.fz-song-editor__color-controls button:focus-visible {
+  outline: 2px solid #f5f0ea;
+  outline-offset: 2px;
 }
 
 .fz-song-editor__section-menu p {
