@@ -288,3 +288,40 @@ body::before {
 .animate-fz-shake {
   animation: fz-shake 0.2s ease-in-out 2;
 }
+
+@keyframes fz-calendar-month-next {
+  from {
+    opacity: 0.72;
+    transform: translateX(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fz-calendar-month-previous {
+  from {
+    opacity: 0.72;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.fz-calendar-month-transition-next {
+  animation: fz-calendar-month-next 180ms cubic-bezier(0.25, 1, 0.5, 1) both;
+}
+
+.fz-calendar-month-transition-previous {
+  animation: fz-calendar-month-previous 180ms cubic-bezier(0.25, 1, 0.5, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fz-calendar-month-transition-next,
+  .fz-calendar-month-transition-previous {
+    animation: none;
+  }
+}

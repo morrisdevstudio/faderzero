@@ -28,8 +28,8 @@ describe('AppRouter', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByRole('heading', { level: 1, name: /R[eé]pertoire/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Nouvelle chanson' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Morceaux' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Créer un morceau' })).toBeInTheDocument();
   });
 
   it('keeps the songs page read-only for a guest', async () => {
@@ -41,8 +41,19 @@ describe('AppRouter', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByRole('heading', { level: 1, name: /R[eé]pertoire/i })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Nouvelle chanson' })).not.toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Morceaux' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Créer un morceau' })).not.toBeInTheDocument();
+  });
+
+  it.each(['/musiques', '/imports'])('redirects %s to the unified songs page', async (legacyPath) => {
+    useAuthStore.setState({ activeWorkspace: testWorkspace });
+    render(
+      <MemoryRouter initialEntries={[legacyPath]}>
+        <AppRouter />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Morceaux' })).toBeInTheDocument();
   });
 
   it('renders setlists before songs on the prompter library page', async () => {

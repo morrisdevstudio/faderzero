@@ -1,4 +1,5 @@
 import { SetlistSongsRepository } from '@/db/repositories/setlistSongsRepository';
+import { SongAssetsRepository } from '@/db/repositories/songAssetsRepository';
 import { SongsRepository } from '@/db/repositories/songsRepository';
 import { destroyTestDatabase, createTestDatabase } from '@/test/dbTestUtils';
 
@@ -99,6 +100,36 @@ describe('SongsRepository', () => {
       lyrics: '[Refrain]\nTout recommence',
       lyricsDocumentVersion: 1,
     });
+
+    await destroyTestDatabase(database);
+  });
+
+  it('returns audio and setlist counts in one library summary', async () => {
+    const database = await createTestDatabase('songs-library-summary');
+    const repository = new SongsRepository(database);
+    const assetsRepository = new SongAssetsRepository(database);
+    const setlistSongsRepository = new SetlistSongsRepository(database);
+    const song = await repository.create({ title: 'Library song', lyrics: 'Couplet' });
+
+    await assetsRepository.create({
+      songId: song.id,
+      storagePath: 'workspaces/default-workspace/songs/library-song/main.mp3',
+      filename: 'main.mp3',
+      mimeType: 'audio/mpeg',
+      sizeBytes: 1024,
+    });
+    await assetsRepository.create({
+      songId: song.id,
+      storagePath: 'workspaces/default-workspace/songs/library-song/alt.mp3',
+      filename: 'alt.mp3',
+      mimeType: 'audio/mpeg',
+      sizeBytes: 1024,
+    });
+    await setlistSongsRepository.create({ setlistId: 'set-a', songId: song.id, position: 0 });
+    await setlistSongsRepository.create({ setlistId: 'set-b', songId: song.id, position: 0 });
+
+    const summary = (await repository.listLibrarySummaries()).find((entry) => entry.song.id === song.id);
+    expect(summary).toMatchObject({ audioCount: 2, setlistCount: 2 });
 
     await destroyTestDatabase(database);
   });

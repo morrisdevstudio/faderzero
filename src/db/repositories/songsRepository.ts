@@ -12,6 +12,12 @@ import {
   songDocumentToText,
 } from '@/db/songDocument';
 
+export interface SongLibrarySummary {
+  song: SongRecord;
+  audioCount: number;
+  setlistCount: number;
+}
+
 export class SongsRepository {
   private readonly database: FaderZeroDatabase;
 
@@ -38,6 +44,39 @@ export class SongsRepository {
         return song.title.toLocaleLowerCase().includes(query);
       })
       .sort((left, right) => left.title.localeCompare(right.title, 'fr', { sensitivity: 'base' }));
+  }
+
+  async listLibrarySummaries(): Promise<SongLibrarySummary[]> {
+    const workspaceId = this.getActiveWorkspaceId();
+    const [songs, assets, setlistSongs] = await Promise.all([
+      this.database.songs.where('workspaceId').equals(workspaceId).toArray(),
+      this.database.songAssets.where('workspaceId').equals(workspaceId).toArray(),
+      this.database.setlistSongs.where('workspaceId').equals(workspaceId).toArray(),
+    ]);
+    const audioCounts = new Map<string, number>();
+    const setlistIdsBySong = new Map<string, Set<string>>();
+
+    for (const asset of assets) {
+      if (asset.deletedAt === undefined && asset.songId) {
+        audioCounts.set(asset.songId, (audioCounts.get(asset.songId) ?? 0) + 1);
+      }
+    }
+
+    for (const entry of setlistSongs) {
+      if (entry.deletedAt === undefined) {
+        const setlistIds = setlistIdsBySong.get(entry.songId) ?? new Set<string>();
+        setlistIds.add(entry.setlistId);
+        setlistIdsBySong.set(entry.songId, setlistIds);
+      }
+    }
+
+    return songs
+      .filter((song) => song.deletedAt === undefined)
+      .map((song) => ({
+        song,
+        audioCount: audioCounts.get(song.id) ?? 0,
+        setlistCount: setlistIdsBySong.get(song.id)?.size ?? 0,
+      }));
   }
 
   async getById(id: string) {

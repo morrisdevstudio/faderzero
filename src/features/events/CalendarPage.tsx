@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { StatusPill } from '@/components/StatusPill';
@@ -90,6 +90,7 @@ function LocationIcon() {
 
 
 const WEEKDAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+type MonthTransitionDirection = 'previous' | 'next';
 
 export function CalendarPage() {
   const { workspaces, session } = useAuthStore();
@@ -109,6 +110,8 @@ export function CalendarPage() {
   const [activeBottomSheetEvent, setActiveBottomSheetEvent] = useState<EventRecord | null>(null);
   const [eventToDelete, setEventToDelete] = useState<EventRecord | null>(null);
   const [isDeletingEvent, setIsDeletingEvent] = useState(false);
+  const [monthTransitionDirection, setMonthTransitionDirection] = useState<MonthTransitionDirection | null>(null);
+  const calendarTouchStart = useRef<{ x: number; y: number } | null>(null);
 
   const loadEvents = async () => {
     setLoading(true);
@@ -208,6 +211,10 @@ export function CalendarPage() {
   // Month grid calculations
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
+  const monthTransitionKey = `${year}-${month}`;
+  const monthTransitionClass = monthTransitionDirection
+    ? `fz-calendar-month-transition-${monthTransitionDirection}`
+    : '';
 
   const monthName = useMemo(() => {
     const str = currentDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
@@ -295,25 +302,54 @@ export function CalendarPage() {
     return map;
   }, [filteredEvents]);
 
+  const navigateToMonth = (date: Date) => {
+    const currentMonth = new Date(year, month, 1).getTime();
+    const targetMonth = new Date(date.getFullYear(), date.getMonth(), 1).getTime();
+
+    if (targetMonth !== currentMonth) {
+      setMonthTransitionDirection(targetMonth > currentMonth ? 'next' : 'previous');
+    }
+    setCurrentDate(date);
+  };
+
   const handlePrevMonth = () => {
-    const prev = new Date(year, month - 1, 1);
-    setCurrentDate(prev);
+    navigateToMonth(new Date(year, month - 1, 1));
   };
 
   const handleNextMonth = () => {
-    const next = new Date(year, month + 1, 1);
-    setCurrentDate(next);
+    navigateToMonth(new Date(year, month + 1, 1));
+  };
+
+  const handleCalendarTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
+    const touch = event.touches[0];
+    if (!touch) return;
+    calendarTouchStart.current = { x: touch.clientX, y: touch.clientY };
+  };
+
+  const handleCalendarTouchEnd = (event: React.TouchEvent<HTMLDivElement>) => {
+    const start = calendarTouchStart.current;
+    const touch = event.changedTouches[0];
+    calendarTouchStart.current = null;
+    if (!start || !touch) return;
+
+    const deltaX = touch.clientX - start.x;
+    const deltaY = touch.clientY - start.y;
+    const swipeThreshold = 48;
+    if (Math.abs(deltaX) < swipeThreshold || Math.abs(deltaX) <= Math.abs(deltaY)) return;
+
+    if (deltaX < 0) handleNextMonth();
+    else handlePrevMonth();
   };
 
   const handleTodayMonth = () => {
     const now = new Date();
-    setCurrentDate(now);
+    navigateToMonth(now);
     setSelectedDate(now);
   };
 
   const handleSelectDate = (date: Date) => {
     setSelectedDate(date);
-    setCurrentDate(date);
+    navigateToMonth(date);
   };
 
   const handleEditEvent = (event: EventRecord, e?: React.MouseEvent) => {
@@ -641,7 +677,13 @@ export function CalendarPage() {
       </section>
 
       {/* ACCORDION CALENDAR CARD */}
-      <div className="bg-[#13151F] border border-[#222636] rounded-2xl p-4 shadow-xl">
+      <div
+        data-testid="calendar-card"
+        onTouchStart={handleCalendarTouchStart}
+        onTouchEnd={handleCalendarTouchEnd}
+        onTouchCancel={() => { calendarTouchStart.current = null; }}
+        className="bg-[#13151F] border border-[#222636] rounded-2xl p-4 shadow-xl touch-pan-y"
+      >
           {/* Calendar Header with selected info & toggle */}
           <div className="flex items-center justify-between gap-2 mb-3 pb-2 border-b border-white/8">
             {/* Left: Today button & selected date badge */}
@@ -674,7 +716,10 @@ export function CalendarPage() {
                     </button>
                   )}
                 </div>
-                <h2 className="text-base font-black text-white tracking-tight truncate text-center flex-1 px-1">
+                <h2
+                  key={`month-title-${monthTransitionKey}`}
+                  className={`text-base font-black text-white tracking-tight truncate text-center flex-1 px-1 ${monthTransitionClass}`}
+                >
                   {monthName}
                 </h2>
                 <div className="w-8 shrink-0 flex justify-center">
@@ -721,7 +766,12 @@ export function CalendarPage() {
               isMonthView ? 'max-h-[420px]' : 'max-h-0 pointer-events-none hidden',
             ].join(' ')}
           >
-            <div className="grid grid-cols-7 gap-1 text-sm p-1">
+            <div
+              key={`month-grid-${monthTransitionKey}`}
+              data-testid="calendar-month-grid"
+              data-transition-direction={monthTransitionDirection ?? undefined}
+              className={`grid grid-cols-7 gap-1 text-sm p-1 ${monthTransitionClass}`}
+            >
               {calendarDays.map((item, idx) => {
                 const dayEvents = eventsByDayString.get(item.date.toDateString()) || [];
                 const isSelected = selectedDate.toDateString() === item.date.toDateString();
@@ -750,9 +800,10 @@ export function CalendarPage() {
                       </span>
                     )}
 
-                    {/* Dots representing workspace colors */}
-                    {dayEvents.length > 0 && (
-                      <div className="flex gap-1 mt-0.5 max-w-full overflow-hidden shrink-0">
+                    {/* Reserve the dot row so every day number remains vertically aligned. */}
+                    <div className="flex h-1.5 gap-1 mt-0.5 max-w-full overflow-hidden shrink-0" aria-hidden="true">
+                      {dayEvents.length > 0 && (
+                        <>
                         {dayEvents.slice(0, 3).map((evt) => {
                           const wsInfo = workspaceMap.get(evt.workspaceId);
                           const isPersonal = wsInfo?.type === 'personal' || evt.workspaceId === 'personal' || evt.workspaceId === 'default-workspace';
@@ -766,8 +817,9 @@ export function CalendarPage() {
                             />
                           );
                         })}
-                      </div>
-                    )}
+                        </>
+                      )}
+                    </div>
                   </button>
                 );
               })}
@@ -809,9 +861,10 @@ export function CalendarPage() {
                       </span>
                     )}
 
-                    {/* Dots representing workspace colors */}
-                    {dayEvents.length > 0 && (
-                      <div className="flex gap-1 mt-0.5 max-w-full overflow-hidden shrink-0">
+                    {/* Reserve the dot row so every day number remains vertically aligned. */}
+                    <div className="flex h-1.5 gap-1 mt-0.5 max-w-full overflow-hidden shrink-0" aria-hidden="true">
+                      {dayEvents.length > 0 && (
+                        <>
                         {dayEvents.slice(0, 3).map((evt) => {
                           const wsInfo = workspaceMap.get(evt.workspaceId);
                           const isPersonal = wsInfo?.type === 'personal' || evt.workspaceId === 'personal' || evt.workspaceId === 'default-workspace';
@@ -825,8 +878,9 @@ export function CalendarPage() {
                             />
                           );
                         })}
-                      </div>
-                    )}
+                        </>
+                      )}
+                    </div>
                   </button>
                 );
               })}

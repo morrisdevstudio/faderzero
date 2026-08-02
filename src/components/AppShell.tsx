@@ -48,16 +48,6 @@ function SetlistIcon(props: IconProps) {
   );
 }
 
-function ImportsIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <circle cx="12" cy="12" r="9" />
-      <circle cx="12" cy="12" r="2.5" />
-      <path d="M12 12v-5l4-1" />
-    </svg>
-  );
-}
-
 function PrompterIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
@@ -427,25 +417,6 @@ export function AppShell() {
             )}
           </NavLink>
 
-          {/* 2. Musique */}
-          <NavLink
-            to="/musiques"
-            className={({ isActive }) =>
-              [
-                'flex flex-1 flex-col items-center justify-center gap-1 py-1 text-center transition-colors',
-                isActive ? 'text-white font-bold' : 'text-white/40 hover:text-white/70',
-              ].join(' ')
-            }
-          >
-            {({ isActive }) => (
-              <>
-                <ImportsIcon className={['h-5 w-5 transition-colors', isActive ? 'text-white' : 'text-white/40'].join(' ')} />
-                <span className="text-[0.6rem] uppercase tracking-wider">Musique</span>
-                <span className={['h-1 w-1 rounded-full transition-all', isActive ? 'bg-[#ff3a63] opacity-100 scale-100' : 'bg-transparent opacity-0 scale-50'].join(' ')} />
-              </>
-            )}
-          </NavLink>
-
           {/* 3. Mode Live (Bouton REC rouge avec Popover Prompteur & Click) */}
           <div id="live-mode-container" className="relative flex flex-1 flex-col items-center justify-center -mt-4 z-50">
             {isLiveMenuOpen ? (
@@ -534,7 +505,7 @@ export function AppShell() {
             </button>
           </div>
 
-          {/* 4. Répertoire */}
+          {/* 3. Morceaux */}
           <NavLink
             to="/songs"
             className={({ isActive }) =>
@@ -547,7 +518,7 @@ export function AppShell() {
             {({ isActive }) => (
               <>
                 <SongsIcon className={['h-5 w-5 transition-colors', isActive ? 'text-white' : 'text-white/40'].join(' ')} />
-                <span className="text-[0.6rem] uppercase tracking-wider">Répertoire</span>
+                <span className="text-[0.6rem] uppercase tracking-wider">Morceaux</span>
                 <span className={['h-1 w-1 rounded-full transition-all', isActive ? 'bg-[#ff3a63] opacity-100 scale-100' : 'bg-transparent opacity-0 scale-50'].join(' ')} />
               </>
             )}

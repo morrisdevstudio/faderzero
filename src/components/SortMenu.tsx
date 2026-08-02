@@ -2,10 +2,18 @@ import { useEffect, useState } from 'react';
 
 export type SortMode = 'title-asc' | 'title-desc' | 'updated-desc' | 'updated-asc';
 
+export interface MenuFilter {
+  label: string;
+  value: string;
+  options: Array<{ value: string; label: string }>;
+  onChange: (value: string) => void;
+}
+
 interface SortMenuProps {
   value: SortMode;
   onChange: (value: SortMode) => void;
   label?: string;
+  filter?: MenuFilter;
 }
 
 const options: Array<{ value: SortMode; label: string }> = [
@@ -26,7 +34,7 @@ function SortIcon() {
   );
 }
 
-export function SortMenu({ value, onChange, label = 'Trier' }: SortMenuProps) {
+export function SortMenu({ value, onChange, label = 'Trier', filter }: SortMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const selectedOption = options.find((option) => option.value === value) ?? options[0]!;
 
@@ -73,7 +81,7 @@ export function SortMenu({ value, onChange, label = 'Trier' }: SortMenuProps) {
             role="dialog"
             aria-modal="true"
             aria-labelledby="sort-menu-title"
-            className="fz-card w-full max-w-md rounded-[1.6rem] p-5"
+            className="fz-card w-full max-w-md rounded-[1.25rem] p-5"
           >
             <div className="mb-4 flex items-center justify-between gap-4">
               <div>
@@ -88,27 +96,50 @@ export function SortMenu({ value, onChange, label = 'Trier' }: SortMenuProps) {
                 &times;
               </button>
             </div>
-            <div role="menu" className="space-y-2">
-              {options.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  role="menuitemradio"
-                  aria-checked={value === option.value}
-                  onClick={() => {
-                    onChange(option.value);
-                    setIsOpen(false);
-                  }}
-                  className={[
-                    'min-h-12 w-full rounded-xl border px-4 py-3 text-left text-sm font-black uppercase leading-5 tracking-[0.12em] transition',
-                    value === option.value
-                      ? 'border-white/20 bg-white text-[#111319]'
-                      : 'border-white/8 bg-white/5 text-white hover:bg-white/10',
-                  ].join(' ')}
-                >
-                  {option.label}
-                </button>
-              ))}
+            <div className="space-y-5">
+              <div>
+                <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-[var(--fz-text-muted)]">Tri</p>
+                <div role="menu" className="divide-y divide-white/8 border-y border-white/8">
+                  {options.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      role="menuitemradio"
+                      aria-checked={value === option.value}
+                      onClick={() => {
+                        onChange(option.value);
+                        setIsOpen(false);
+                      }}
+                      className="flex min-h-12 w-full items-center justify-between px-1 py-3 text-left text-sm font-black text-white transition hover:bg-white/5"
+                    >
+                      <span>{option.label}</span>
+                      {value === option.value ? <span className="text-[var(--fz-accent-strong)]" aria-hidden="true">✓</span> : null}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {filter ? (
+                <div>
+                  <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-[var(--fz-text-muted)]">{filter.label}</p>
+                  <div className="divide-y divide-white/8 border-y border-white/8">
+                    {filter.options.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        aria-pressed={filter.value === option.value}
+                        onClick={() => {
+                          filter.onChange(option.value);
+                          setIsOpen(false);
+                        }}
+                        className="flex min-h-12 w-full items-center justify-between px-1 py-3 text-left text-sm font-black text-white transition hover:bg-white/5"
+                      >
+                        <span>{option.label}</span>
+                        {filter.value === option.value ? <span className="text-[var(--fz-accent-strong)]" aria-hidden="true">✓</span> : null}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
             </div>
           </div>
         </div>

@@ -41,4 +41,23 @@ describe('CalendarPage scroll collapse', () => {
 
     expect(screen.getByRole('button', { name: 'Déplier le calendrier' })).toBeInTheDocument();
   });
+
+  it('changes month when the calendar is swiped horizontally', () => {
+    render(<CalendarPage />);
+
+    const calendar = screen.getByTestId('calendar-card');
+    const initialMonth = screen.getByRole('heading', { level: 2 }).textContent;
+
+    fireEvent.touchStart(calendar, { touches: [{ clientX: 240, clientY: 100 }] });
+    fireEvent.touchEnd(calendar, { changedTouches: [{ clientX: 120, clientY: 105 }] });
+
+    expect(screen.getByRole('heading', { level: 2 })).not.toHaveTextContent(initialMonth ?? '');
+    expect(screen.getByTestId('calendar-month-grid')).toHaveAttribute('data-transition-direction', 'next');
+
+    fireEvent.touchStart(calendar, { touches: [{ clientX: 120, clientY: 100 }] });
+    fireEvent.touchEnd(calendar, { changedTouches: [{ clientX: 240, clientY: 105 }] });
+
+    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent(initialMonth ?? '');
+    expect(screen.getByTestId('calendar-month-grid')).toHaveAttribute('data-transition-direction', 'previous');
+  });
 });

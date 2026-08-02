@@ -1,10 +1,11 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useEffect, useRef, useState, type ChangeEvent } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { FeatureCard } from '@/components/FeatureCard';
 import { FormDialog } from '@/components/FormDialog';
 import { SortMenu, type SortMode } from '@/components/SortMenu';
+import { StatusPill } from '@/components/StatusPill';
 import { songAssetsRepository } from '@/db/repositories/songAssetsRepository';
 import { db } from '@/db/db';
 import type { PendingAudioUploadRecord } from '@/db/schema';
@@ -12,7 +13,7 @@ import { songsRepository } from '@/db/repositories/songsRepository';
 import type { AudioTrack } from '@/features/audio/audioPlayerStore';
 import { useAudioPlayerStore } from '@/features/audio/audioPlayerStore';
 import { buildCompressedFileName } from '@/features/songs/audioCompression';
-import { formatSongDuration } from '@/features/songs/songPresentation';
+import { formatSongDuration, getSongStatusTone } from '@/features/songs/songPresentation';
 import { useAuthStore } from '@/stores/authStore';
 import type { SongAssetUploadProgress } from '@/services/supabase/storage';
 import {
@@ -23,8 +24,10 @@ import {
 } from '@/services/audio/pendingUploads';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useAudioCacheStore } from '@/features/audio/audioCacheStore';
+import { useLongPress } from '@/hooks/useLongPress';
 import type { SVGProps } from 'react';
 import { canWriteWorkspace } from '@/services/supabase/workspace';
+import type { SongStatus } from '@/db/schema';
 
 type IconProps = SVGProps<SVGSVGElement>;
 
@@ -47,6 +50,11 @@ interface TrackMenuState {
   isPrimary: boolean;
   isCached: boolean;
   isOnline: boolean;
+}
+
+interface AudioPickerState {
+  songTitle: string;
+  assets: ImportedTrack[];
 }
 
 type DuplicateDecision =
@@ -272,7 +280,47 @@ function buildTrackSubtitle(asset: ImportedTrack) {
   return parts.join(' - ');
 }
 
+function SongPlayButton({
+  songTitle,
+  assets,
+  isPlaying,
+  canPlay,
+  onPlay,
+  onChooseAudio,
+}: {
+  songTitle: string;
+  assets: ImportedTrack[];
+  isPlaying: boolean;
+  canPlay: boolean;
+  onPlay: () => void;
+  onChooseAudio: () => void;
+}) {
+  const longPress = useLongPress({
+    onClick: onPlay,
+    onLongPress: () => {
+      if (assets.length > 1) onChooseAudio();
+    },
+  });
+
+  return (
+    <button
+      type="button"
+      {...longPress}
+      disabled={!canPlay}
+      aria-label={isPlaying ? `Arrêter ${songTitle}` : `Lire ${songTitle}`}
+      title={assets.length > 1 ? 'Appui long pour choisir un audio' : undefined}
+      className={[
+        'flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition disabled:cursor-not-allowed disabled:opacity-35',
+        isPlaying ? 'bg-[var(--fz-accent)] text-white' : 'bg-white text-[#111316] hover:bg-white/88',
+      ].join(' ')}
+    >
+      {isPlaying ? <StopIcon /> : <PlayIcon />}
+    </button>
+  );
+}
+
 export function ImportsPage() {
+  const navigate = useNavigate();
   const activeWorkspace = useAuthStore((state) => state.activeWorkspace);
   const activeWorkspaceId = activeWorkspace?.id;
   const canWrite = canWriteWorkspace(activeWorkspace?.role);
@@ -285,6 +333,7 @@ export function ImportsPage() {
     [activeWorkspaceId]
   );
   const songs = useLiveQuery(() => songsRepository.list(), [activeWorkspaceId]);
+  const songSummaries = useLiveQuery(() => songsRepository.listLibrarySummaries(), [activeWorkspaceId]);
   const playQueue = useAudioPlayerStore((state) => state.playQueue);
   const stop = useAudioPlayerStore((state) => state.stop);
   const currentIndex = useAudioPlayerStore((state) => state.currentIndex);
@@ -296,7 +345,12 @@ export function ImportsPage() {
   const [shakingAssetId, setShakingAssetId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortMode, setSortMode] = useState<SortMode>('updated-desc');
+  const [statusFilter, setStatusFilter] = useState<SongStatus | 'all'>('all');
   const [isImporting, setIsImporting] = useState(false);
+  const [isCreateSongOpen, setIsCreateSongOpen] = useState(false);
+  const [newSongTitle, setNewSongTitle] = useState('');
+  const [isCreatingSong, setIsCreatingSong] = useState(false);
+  const [createSongError, setCreateSongError] = useState<string | null>(null);
   const [importMessage, setImportMessage] = useState<string | null>(null);
   const [importProgressItems, setImportProgressItems] = useState<ImportProgressState[]>([]);
   const [isImportProgressDismissed, setIsImportProgressDismissed] = useState(false);
@@ -306,6 +360,7 @@ export function ImportsPage() {
   const [deletePrompt, setDeletePrompt] = useState<DeletePromptState | null>(null);
   const [isDeletingAsset, setIsDeletingAsset] = useState(false);
   const [openTrackMenu, setOpenTrackMenu] = useState<TrackMenuState | null>(null);
+  const [audioPicker, setAudioPicker] = useState<AudioPickerState | null>(null);
   const [expandedSongIds, setExpandedSongIds] = useState<Record<string, boolean>>({});
   const [primaryTracks, setPrimaryTracks] = useState<Record<string, string>>(() => {
     const initial: Record<string, string> = {};
@@ -328,15 +383,18 @@ export function ImportsPage() {
   }, [checkCacheStatus]);
 
   useEffect(() => {
-    if (!openTrackMenu) return;
+    if (!openTrackMenu && !audioPicker) return;
 
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') setOpenTrackMenu(null);
+      if (event.key === 'Escape') {
+        setOpenTrackMenu(null);
+        setAudioPicker(null);
+      }
     }
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [openTrackMenu]);
+  }, [audioPicker, openTrackMenu]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const duplicateResolverRef = useRef<((decision: DuplicateDecision) => void) | null>(null);
   const singleLinkResolverRef = useRef<((decision: SingleLinkDecision) => void) | null>(null);
@@ -353,27 +411,29 @@ export function ImportsPage() {
       value?.toLocaleLowerCase('fr-FR').includes(normalizedSearchQuery),
     );
   });
+  const visibleSongSummaries = songSummaries?.filter((summary) => {
+    if (statusFilter !== 'all' && summary.song.status !== statusFilter) return false;
+    if (!normalizedSearchQuery) return true;
+
+    return summary.song.title.toLocaleLowerCase('fr-FR').includes(normalizedSearchQuery)
+      || filteredImportedTracks?.some((asset) => asset.songId === summary.song.id) === true;
+  }).sort((left, right) => {
+    if (sortMode === 'title-asc' || sortMode === 'title-desc') {
+      const comparison = left.song.title.localeCompare(right.song.title, 'fr', { sensitivity: 'base' });
+      return sortMode === 'title-asc' ? comparison : -comparison;
+    }
+
+    const comparison = left.song.updatedAt - right.song.updatedAt;
+    return sortMode === 'updated-asc' ? comparison : -comparison;
+  });
   const playableTracks = (() => {
     if (!filteredImportedTracks) return [];
+    if (statusFilter !== 'all') return [];
 
-    const groupsMap = new Map<string, { songId?: string; songTitle?: string; assets: ImportedTrack[]; latestUpdatedAt: number }>();
     const unassociatedAssets: ImportedTrack[] = [];
 
     for (const asset of filteredImportedTracks) {
-      if (asset.songId && asset.song) {
-        const existing = groupsMap.get(asset.songId);
-        if (existing) {
-          existing.assets.push(asset);
-          existing.latestUpdatedAt = Math.max(existing.latestUpdatedAt, asset.updatedAt, asset.song.updatedAt);
-        } else {
-          groupsMap.set(asset.songId, {
-            songId: asset.songId,
-            songTitle: asset.song.title,
-            assets: [asset],
-            latestUpdatedAt: Math.max(asset.updatedAt, asset.song.updatedAt),
-          });
-        }
-      } else {
+      if (!asset.songId || !asset.song) {
         unassociatedAssets.push(asset);
       }
     }
@@ -388,19 +448,7 @@ export function ImportsPage() {
       return sortMode === 'updated-asc' ? comparison : -comparison;
     });
 
-    const sortedSongGroups = Array.from(groupsMap.values())
-      .map((group) => ({ ...group, assets: sortAssets(group.assets) }))
-      .sort((left, right) => {
-        if (sortMode === 'title-asc' || sortMode === 'title-desc') {
-          const comparison = (left.songTitle ?? '').localeCompare(right.songTitle ?? '', 'fr', { sensitivity: 'base' });
-          return sortMode === 'title-asc' ? comparison : -comparison;
-        }
-
-        const comparison = left.latestUpdatedAt - right.latestUpdatedAt;
-        return sortMode === 'updated-asc' ? comparison : -comparison;
-      });
-
-    const groups: Array<{ songId?: string; songTitle?: string; assets: ImportedTrack[] }> = [...sortedSongGroups];
+    const groups: Array<{ songId?: string; songTitle?: string; assets: ImportedTrack[] }> = [];
     if (unassociatedAssets.length > 0) {
       groups.push({
         songTitle: 'Sans association',
@@ -412,12 +460,7 @@ export function ImportsPage() {
   })();
 
   const groupedTracks = playableTracks; // Alias for clarity in rendering
-  const flatPlayableTracks = groupedTracks.flatMap((g) => {
-    if (!g.songId) return g.assets;
-    const mainAsset = (g.assets.find((a) => a.id === primaryTracks[g.songId!]) || g.assets[0])!;
-    const otherAssets = g.assets.filter((a) => a.id !== mainAsset.id);
-    return [mainAsset, ...otherAssets];
-  }).map(toTrack);
+  const flatPlayableTracks = (filteredImportedTracks ?? []).map(toTrack);
   const currentTrack = currentIndex >= 0 ? queue[currentIndex] : undefined;
   const isProgressPanelVisible = importProgressItems.length > 0 && !isImportProgressDismissed;
 
@@ -880,6 +923,30 @@ export function ImportsPage() {
     void downloadAsset(activeWorkspaceId || 'default-workspace', assetId);
   }
 
+  async function handleCreateSong(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!canWrite || isCreatingSong) return;
+
+    const title = newSongTitle.trim();
+    if (!title) {
+      setCreateSongError('Le titre est obligatoire.');
+      return;
+    }
+
+    setIsCreatingSong(true);
+    setCreateSongError(null);
+    try {
+      const song = await songsRepository.create({ title });
+      setIsCreateSongOpen(false);
+      setNewSongTitle('');
+      navigate(`/songs/${song.id}`);
+    } catch {
+      setCreateSongError('Impossible de créer le morceau.');
+    } finally {
+      setIsCreatingSong(false);
+    }
+  }
+
   return (
     <div className="space-y-4">
       <section className="space-y-3 -mt-2">
@@ -890,16 +957,28 @@ export function ImportsPage() {
               <circle cx="12" cy="12" r="2.5" />
               <path d="M12 12v-5l4-1" />
             </svg>
-            <h1 className="min-w-0 flex-1 text-[2rem] font-black tracking-tight text-white">Musiques</h1>
+            <h1 className="min-w-0 flex-1 text-[2rem] font-black tracking-tight text-white">Morceaux</h1>
           </div>
           {canWrite ? <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={isImporting}
             aria-label={isImporting ? 'Import en cours' : 'Importer des pistes'}
-            className="fz-button-primary inline-flex h-11 w-11 shrink-0 items-center justify-center p-0 disabled:opacity-60"
+            className="fz-button-secondary inline-flex h-11 w-11 shrink-0 items-center justify-center p-0 text-white/70 hover:text-white disabled:opacity-60"
           >
             <UploadIcon />
+          </button> : null}
+          {canWrite ? <button
+            type="button"
+            onClick={() => {
+              setNewSongTitle('');
+              setCreateSongError(null);
+              setIsCreateSongOpen(true);
+            }}
+            aria-label="Créer un morceau"
+            className="fz-button-primary inline-flex h-11 w-11 shrink-0 items-center justify-center p-0 text-xl font-light"
+          >
+            <span aria-hidden="true">+</span>
           </button> : null}
           {canWrite ? <input
             ref={fileInputRef}
@@ -914,11 +993,26 @@ export function ImportsPage() {
           <input
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
-            placeholder="Rechercher un fichier ou une chanson..."
-            aria-label="Rechercher dans les musiques"
+            placeholder="Rechercher un morceau ou un audio..."
+            aria-label="Rechercher dans les morceaux"
             className="fz-input min-w-0 flex-1 text-sm"
           />
-          <SortMenu value={sortMode} onChange={setSortMode} label="Trier les musiques" />
+          <SortMenu
+            value={sortMode}
+            onChange={setSortMode}
+            label="Trier les morceaux"
+            filter={{
+              label: 'Statut',
+              value: statusFilter,
+              onChange: (value) => setStatusFilter(value as SongStatus | 'all'),
+              options: [
+                { value: 'all', label: 'Tous les statuts' },
+                { value: 'Idee', label: 'Idée' },
+                { value: 'En cours', label: 'En cours' },
+                { value: 'Pret', label: 'Prêt' },
+              ],
+            }}
+          />
         </div>
         {importMessage ? <p className="mt-3 text-sm font-semibold text-orange-300">{importMessage}</p> : null}
         {isProgressPanelVisible ? (
@@ -1017,10 +1111,60 @@ export function ImportsPage() {
         ) : null}
       </section>
 
-      <section className="space-y-3">
+      <section className="border-y border-white/10">
+        {songSummaries === undefined ? (
+          <FeatureCard eyebrow="Chargement" title="Lecture des morceaux" description="Ouverture de la base locale..." />
+        ) : visibleSongSummaries?.map((summary) => {
+          const assets = importedTracks?.filter((asset) => asset.songId === summary.song.id) ?? [];
+          const primaryAsset = assets.find((asset) => asset.id === primaryTracks[summary.song.id]) ?? assets[0];
+          const isPlaying = primaryAsset?.id === currentTrack?.assetId && status === 'playing';
+          const canPlay = primaryAsset && (isOnline || cachedAssetIds.has(primaryAsset.id));
+
+          return (
+            <article key={summary.song.id} className="flex items-center gap-3 border-b border-white/10 px-1 py-5 last:border-b-0">
+              <Link to={`/songs/${summary.song.id}`} className="block min-w-0 flex-1">
+                <h2 className="truncate text-[1.3rem] font-black tracking-tight text-white">{summary.song.title || 'Sans titre'}</h2>
+                <p className="mt-1 truncate text-[0.86rem] font-medium text-[var(--fz-text-muted)]">
+                  {summary.song.bpm ? `${summary.song.bpm} BPM` : 'BPM --'}
+                  {' · '}
+                  {summary.song.key || 'Ton --'}
+                  {' · '}
+                  {formatSongDuration(summary.song.durationSeconds)}
+                </p>
+                <div className="mt-1 flex items-center gap-2 overflow-hidden text-[0.84rem] font-medium text-white/65">
+                  <StatusPill
+                    label={summary.song.status}
+                    tone={getSongStatusTone(summary.song.status)}
+                    className="shrink-0"
+                  />
+                  <span className="truncate">
+                    {summary.song.lyrics.trim() ? '✓ Paroles' : '! Paroles manquantes'}
+                    {' · '}
+                    {summary.audioCount} audio{summary.audioCount > 1 ? 's' : ''}
+                    {' · '}
+                    {summary.setlistCount} setlist{summary.setlistCount > 1 ? 's' : ''}
+                  </span>
+                </div>
+              </Link>
+              {primaryAsset ? (
+                <SongPlayButton
+                  songTitle={summary.song.title}
+                  assets={assets}
+                  isPlaying={isPlaying}
+                  canPlay={Boolean(canPlay)}
+                  onPlay={() => handlePlay(primaryAsset.id, cachedAssetIds.has(primaryAsset.id))}
+                  onChooseAudio={() => setAudioPicker({ songTitle: summary.song.title, assets })}
+                />
+              ) : null}
+            </article>
+          );
+        })}
+      </section>
+
+      <section className="space-y-5">
         {importedTracks === undefined ? (
-          <FeatureCard eyebrow="Chargement" title="Lecture des musiques" description="Ouverture de la bibliotheque audio locale..." />
-        ) : importedTracks.length === 0 ? (
+          <FeatureCard eyebrow="Chargement" title="Lecture des audios non classés" description="Ouverture de la bibliotheque audio locale..." />
+        ) : importedTracks.length === 0 && songSummaries?.length === 0 ? (
           <FeatureCard
             eyebrow="Audio"
             title="Aucune piste importee"
@@ -1036,7 +1180,7 @@ export function ImportsPage() {
               Importer des pistes
             </button> : null}
           </FeatureCard>
-        ) : filteredImportedTracks?.length === 0 ? (
+        ) : visibleSongSummaries?.length === 0 && (statusFilter !== 'all' || filteredImportedTracks?.length === 0) ? (
           <FeatureCard
             eyebrow="Recherche"
             title="Aucune musique trouvee"
@@ -1074,8 +1218,8 @@ export function ImportsPage() {
                         ? 'border-b border-white/8 px-1 py-4 last:border-b-0'
                         : 'rounded-[1.2rem] border px-4 py-3.5 transition-all duration-200',
                       isGrouped
-                        ? isCurrent ? 'bg-orange-500/10' : ''
-                        : isCurrent ? 'border-orange-400/35 bg-orange-500/10' : 'border-white/8 bg-white/5',
+                        ? isCurrent ? 'bg-[color:var(--fz-accent)]/10' : ''
+                        : isCurrent ? 'border-[color:var(--fz-accent)]/35 bg-[color:var(--fz-accent)]/10' : 'border-white/8 bg-white/5',
                       isGrayedOut ? 'opacity-40 grayscale' : '',
                     ].join(' ')}
                   >
@@ -1087,7 +1231,7 @@ export function ImportsPage() {
                         className={[
                           'flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-all duration-200',
                           isPlaying
-                            ? 'bg-orange-500 text-white'
+                            ? 'bg-[var(--fz-accent)] text-white'
                             : 'bg-white text-[#111316] hover:bg-white/88',
                           shakingAssetId === asset.id
                             ? 'animate-fz-shake border-2 border-rose-500 bg-rose-500/20 text-rose-300'
@@ -1104,7 +1248,7 @@ export function ImportsPage() {
                         <h2 className="flex items-center gap-1.5 truncate text-[1.02rem] font-black tracking-tight text-white">
                           <span className="truncate">{asset.filename}</span>
                           {isPrimary && (
-                            <span className="shrink-0 inline-flex items-center rounded-full bg-orange-500/15 px-1.5 py-0.5 text-[0.52rem] font-black uppercase tracking-[0.08em] text-orange-400 border border-orange-500/12">
+                            <span className="shrink-0 inline-flex items-center rounded-full border border-[color:var(--fz-accent)]/20 bg-[color:var(--fz-accent)]/15 px-1.5 py-0.5 text-[0.52rem] font-black uppercase tracking-[0.08em] text-[var(--fz-accent-strong)]">
                               Principal
                             </span>
                           )}
@@ -1162,19 +1306,13 @@ export function ImportsPage() {
               };
 
               return (
-                <div key={group.songId} className="overflow-hidden rounded-[1.35rem] border border-white/8 bg-white/5">
-                  <div className="flex items-center justify-between border-b border-white/8 px-4 py-3">
-                    <h3 className="text-xs font-black uppercase tracking-[0.2em] text-[var(--fz-text-muted)]">
+                <div key={group.songId} className="border-y border-white/8">
+                  <div className="px-1 pb-2 pt-5">
+                    <h3 className="truncate text-[1.16rem] font-black tracking-tight text-white">
                       {group.songTitle}
                     </h3>
-                    <Link
-                      to={`/songs/${group.songId}`}
-                      className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[var(--fz-accent)] hover:underline"
-                    >
-                      Voir la chanson
-                    </Link>
                   </div>
-                  <div className="px-3">
+                  <div className="px-1">
                     {renderAsset(mainAsset, isMainPrimary, true)}
 
                     {otherAssets.length > 0 && (
@@ -1192,25 +1330,31 @@ export function ImportsPage() {
                           onClick={() => setExpandedSongIds((prev) => ({ ...prev, [group.songId!]: !prev[group.songId!] }))}
                           aria-expanded={isExpanded}
                           aria-label={isExpanded ? 'Masquer les pistes supplémentaires' : `Afficher les ${otherAssets.length} pistes supplémentaires`}
-                          className="-mx-3 flex w-[calc(100%+1.5rem)] items-center justify-center border-t border-white/6 px-3 py-3 text-white/60 transition hover:bg-white/5 hover:text-white"
+                          className="flex w-full items-center justify-center border-t border-white/6 px-3 py-3 text-white/60 transition hover:bg-white/5 hover:text-white"
                         >
                           <ChevronIcon isOpen={isExpanded} />
                         </button>
                       </>
                     )}
                   </div>
+                  <Link
+                    to={`/songs/${group.songId}`}
+                    className="ml-auto flex w-fit items-center gap-1 px-1 py-3 text-sm font-bold text-[var(--fz-accent)] transition hover:text-[var(--fz-accent-strong)] hover:underline"
+                  >
+                    Voir la chanson <span aria-hidden="true">→</span>
+                  </Link>
                 </div>
               );
             } else {
               // Unassociated group: show all
               return (
-                <div key="unassociated" className="space-y-2">
-                  <div className="flex items-center justify-between px-1 pt-2">
+                <div key="unassociated" className="border-y border-white/8">
+                  <div className="flex items-center justify-between px-1 pb-2 pt-5">
                     <h3 className="text-xs font-black uppercase tracking-[0.2em] text-[var(--fz-text-muted)]">
                       {group.songTitle || 'Sans association'}
                     </h3>
                   </div>
-                  <div className="space-y-2">
+                  <div className="px-1">
                     {group.assets.map((asset) => {
                       const isCurrent = currentTrack?.assetId === asset.id;
                       const isPlaying = isCurrent && status === 'playing';
@@ -1219,8 +1363,8 @@ export function ImportsPage() {
                         <article
                           key={asset.id}
                           className={[
-                            'rounded-[1.2rem] border px-4 py-3.5 transition-all duration-200',
-                            isCurrent ? 'border-orange-400/35 bg-orange-500/10' : 'border-white/8 bg-white/5',
+                            'border-b border-white/8 px-1 py-4 last:border-b-0 transition-colors duration-200',
+                            isCurrent ? 'bg-[color:var(--fz-accent)]/10' : '',
                             !isOnline && !cachedAssetIds.has(asset.id) ? 'opacity-40 grayscale' : '',
                           ].join(' ')}
                         >
@@ -1232,7 +1376,7 @@ export function ImportsPage() {
                               className={[
                                 'flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-all duration-200',
                                 isPlaying
-                                  ? 'bg-orange-500 text-white'
+                                  ? 'bg-[var(--fz-accent)] text-white'
                                   : 'bg-white text-[#111316] hover:bg-white/88',
                                 shakingAssetId === asset.id
                                   ? 'animate-fz-shake border-2 border-rose-500 bg-rose-500/20 text-rose-300'
@@ -1299,6 +1443,69 @@ export function ImportsPage() {
           })
         )}
       </section>
+
+      {audioPicker ? (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 px-4 pb-4 pt-16 sm:items-center"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) setAudioPicker(null);
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="audio-picker-title"
+            className="fz-card w-full max-w-md rounded-[1.25rem] p-5"
+          >
+            <div className="mb-4 flex items-center justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--fz-text-muted)]">Choisir un audio</p>
+                <h2 id="audio-picker-title" className="truncate text-lg font-black text-white">{audioPicker.songTitle}</h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAudioPicker(null)}
+                aria-label="Fermer"
+                className="fz-dialog-close"
+              >
+                &times;
+              </button>
+            </div>
+            <div className="divide-y divide-white/8 border-y border-white/8">
+              {audioPicker.assets.map((asset) => {
+                const isCached = cachedAssetIds.has(asset.id);
+                const isAvailable = isOnline || isCached;
+                const isPlaying = currentTrack?.assetId === asset.id && status === 'playing';
+
+                return (
+                  <button
+                    key={asset.id}
+                    type="button"
+                    disabled={!isAvailable}
+                    onClick={() => {
+                      handlePlay(asset.id, isCached);
+                      setAudioPicker(null);
+                    }}
+                    className="flex w-full items-center gap-3 px-1 py-4 text-left transition hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <span className={[
+                      'flex h-9 w-9 shrink-0 items-center justify-center rounded-full',
+                      isPlaying ? 'bg-[var(--fz-accent)] text-white' : 'bg-white text-[#111316]',
+                    ].join(' ')}>
+                      {isPlaying ? <StopIcon /> : <PlayIcon />}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-black text-white">{asset.filename}</span>
+                      <span className="mt-1 block text-xs font-medium text-[var(--fz-text-muted)]">{buildTrackSubtitle(asset)}</span>
+                    </span>
+                    {!isAvailable ? <span className="text-xs font-semibold text-white/45">Hors ligne</span> : null}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        </div>
+      ) : null}
 
       {openTrackMenu ? (
         <div
@@ -1401,6 +1608,47 @@ export function ImportsPage() {
         </div>
       ) : null}
 
+      {isCreateSongOpen ? (
+        <FormDialog title="Nouveau morceau" onClose={() => !isCreatingSong && setIsCreateSongOpen(false)}>
+          <form className="space-y-4" onSubmit={handleCreateSong}>
+            <label className="block">
+              <span className="mb-2 block text-xs font-black uppercase tracking-[0.18em] text-[var(--fz-text-muted)]">
+                Titre
+              </span>
+              <input
+                value={newSongTitle}
+                onChange={(event) => {
+                  setNewSongTitle(event.target.value);
+                  setCreateSongError(null);
+                }}
+                placeholder="Titre du morceau"
+                autoFocus
+                disabled={isCreatingSong}
+                className="fz-input text-sm"
+              />
+            </label>
+            {createSongError ? <p className="text-sm font-semibold text-rose-400">{createSongError}</p> : null}
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setIsCreateSongOpen(false)}
+                disabled={isCreatingSong}
+                className="fz-button-secondary flex-1 px-4 py-3 text-sm font-black disabled:opacity-60"
+              >
+                Annuler
+              </button>
+              <button
+                type="submit"
+                disabled={isCreatingSong}
+                className="fz-button-primary flex-1 px-4 py-3 text-sm font-black disabled:opacity-60"
+              >
+                {isCreatingSong ? 'Création...' : 'Créer'}
+              </button>
+            </div>
+          </form>
+        </FormDialog>
+      ) : null}
+
       {duplicatePrompt ? (
         <FormDialog
           title="Piste deja importee"
@@ -1409,7 +1657,7 @@ export function ImportsPage() {
         >
           <div className="space-y-4">
             <p className="text-sm leading-6 text-[var(--fz-text-muted)]">
-              Le fichier <span className="font-black text-white">{duplicatePrompt.existingFilename}</span> existe deja dans les musiques
+              Le fichier <span className="font-black text-white">{duplicatePrompt.existingFilename}</span> existe deja dans les morceaux
               avec la chanson <span className="font-black text-white">{duplicatePrompt.existingTitle}</span>.
             </p>
 
@@ -1467,7 +1715,7 @@ export function ImportsPage() {
         >
           <div className="space-y-4">
             <p className="text-sm leading-6 text-[var(--fz-text-muted)]">
-              Voulez-vous lier <span className="font-black text-white">{singleLinkPrompt.filename}</span> a une chanson du repertoire ?
+              Voulez-vous lier <span className="font-black text-white">{singleLinkPrompt.filename}</span> a un morceau ?
             </p>
 
             {songs && songs.length > 0 ? (
@@ -1491,7 +1739,7 @@ export function ImportsPage() {
               </label>
             ) : (
               <p className="rounded-[1rem] border border-white/8 bg-white/5 p-3 text-sm text-white/60">
-                Aucune chanson disponible dans le repertoire.
+                Aucun morceau disponible.
               </p>
             )}
 
@@ -1575,7 +1823,7 @@ export function ImportsPage() {
               </div>
             ) : (
               <p className="rounded-[1rem] border border-white/8 bg-white/5 p-3 text-sm text-white/60">
-                Aucune chanson disponible dans le repertoire. Les uploads continuent, puis les pistes resteront dans Musiques.
+                Aucun morceau disponible. Les uploads continuent, puis les pistes resteront dans les audios non classés.
               </p>
             )}
 
@@ -1604,7 +1852,7 @@ export function ImportsPage() {
         title="Voulez-vous supprimer ce fichier audio ?"
         description={
           deletePrompt
-            ? `Le fichier ${deletePrompt.filename} sera retire des musiques sur cet appareil apres confirmation.`
+            ? `Le fichier ${deletePrompt.filename} sera retire des audios non classés sur cet appareil apres confirmation.`
             : ''
         }
         confirmLabel="Supprimer"

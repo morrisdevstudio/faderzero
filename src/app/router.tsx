@@ -11,7 +11,6 @@ const SetlistDetailPage = lazy(async () => ({ default: (await import('@/features
 const SetlistsPage = lazy(async () => ({ default: (await import('@/features/setlists/SetlistsPage')).SetlistsPage }));
 const SongDetailPage = lazy(async () => ({ default: (await import('@/features/songs/SongDetailPage')).SongDetailPage }));
 const SongWriterPage = lazy(async () => ({ default: (await import('@/features/songs/SongWriterPage')).SongWriterPage }));
-const SongsPage = lazy(async () => ({ default: (await import('@/features/songs/SongsPage')).SongsPage }));
 const SyncPage = lazy(async () => ({ default: (await import('@/features/sync/SyncPage')).SyncPage }));
 const HomePage = lazy(async () => ({ default: (await import('@/features/home/HomePage')).HomePage }));
 const CalendarPage = lazy(async () => ({ default: (await import('@/features/events/CalendarPage')).CalendarPage }));
@@ -30,10 +29,10 @@ export function AppRouter() {
         <Route index element={<HomePage />} />
         <Route path="/home" element={<HomePage />} />
         <Route path="/calendar" element={<CalendarPage />} />
-        <Route path="/songs" element={<SongsPage />} />
+        <Route path="/songs" element={<ImportsPage />} />
         <Route path="/songs/:songId" element={<SongDetailPage />} />
-        <Route path="/imports" element={<Navigate to="/musiques" replace />} />
-        <Route path="/musiques" element={<ImportsPage />} />
+        <Route path="/imports" element={<Navigate to="/songs" replace />} />
+        <Route path="/musiques" element={<Navigate to="/songs" replace />} />
         <Route path="/setlists" element={<SetlistsPage />} />
         <Route path="/setlists/:setlistId" element={<SetlistDetailPage />} />
         <Route path="/prompter" element={<PrompterLibraryPage />} />
