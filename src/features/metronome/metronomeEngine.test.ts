@@ -77,7 +77,7 @@ describe('metronomeEngine', () => {
     expect(clampBeatsPerBar(0)).toBe(1);
     expect(clampBeatsPerBar(15)).toBe(12);
     expect(clampSubdivision(0)).toBe(1);
-    expect(clampSubdivision(8)).toBe(4);
+    expect(clampSubdivision(8)).toBe(6);
   });
 
   it('schedules accented and regular beats against audio time', async () => {

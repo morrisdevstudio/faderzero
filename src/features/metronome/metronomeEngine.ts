@@ -64,7 +64,7 @@ export function clampBeatsPerBar(value: number) {
 }
 
 export function clampSubdivision(value: number) {
-  return Math.min(4, Math.max(1, Math.round(value)));
+  return Math.min(6, Math.max(1, Math.round(value)));
 }
 
 export class MetronomeEngine {

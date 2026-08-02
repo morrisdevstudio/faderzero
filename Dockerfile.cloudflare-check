@@ -1,0 +1,38 @@
+FROM ubuntu:22.04
+
+ARG NODE_VERSION=22.16.0
+ARG NPM_VERSION=10.9.2
+ARG TARGETARCH
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    CI=true \
+    CF_PAGES=1 \
+    CF_PAGES_BRANCH=local-pre-push \
+    CF_PAGES_COMMIT_SHA=local-check \
+    CF_PAGES_URL=https://local-check.invalid
+
+RUN test "$TARGETARCH" = "amd64" \
+    && apt-get update \
+    && apt-get install --yes --no-install-recommends ca-certificates curl xz-utils \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /tmp/node-install
+RUN curl --fail --silent --show-error --location \
+      "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.xz" \
+      --output node.tar.xz \
+    && curl --fail --silent --show-error --location \
+      "https://nodejs.org/dist/v${NODE_VERSION}/SHASUMS256.txt" \
+      --output SHASUMS256.txt \
+    && grep " node-v${NODE_VERSION}-linux-x64.tar.xz$" SHASUMS256.txt \
+      | sed "s#node-v${NODE_VERSION}-linux-x64.tar.xz#node.tar.xz#" \
+      | sha256sum --check --strict - \
+    && tar --extract --xz --file node.tar.xz --directory /usr/local --strip-components=1 \
+    && test "$(node --version)" = "v${NODE_VERSION}" \
+    && test "$(npm --version)" = "${NPM_VERSION}" \
+    && rm -rf /tmp/node-install
+
+WORKDIR /workspace
+COPY . .
+RUN npm clean-install --progress=false
+
+CMD ["npm", "run", "check:cloudflare:inside"]

@@ -1,0 +1,11 @@
+#!/bin/sh
+
+echo "[pre-push] Vérification Cloudflare Pages obligatoire..."
+npm run check:cloudflare
+status=$?
+
+if [ "$status" -ne 0 ]; then
+  echo "[pre-push] Push bloqué : corrigez les erreurs ou démarrez Docker Desktop."
+fi
+
+exit "$status"

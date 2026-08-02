@@ -1,0 +1,14 @@
+.git
+.codex
+.claude
+.agents
+.cert
+.wrangler
+node_modules
+dist
+dist-ssr
+logs
+*.log
+.env
+.env.*
+!.env.deploy.example

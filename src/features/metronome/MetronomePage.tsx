@@ -11,13 +11,15 @@ import { useAuthStore } from '@/stores/authStore';
 
 const TAP_MEMORY = 5;
 
-type MetronomeSubdivision = 1 | 2 | 3 | 4;
+type MetronomeSubdivision = 1 | 2 | 3 | 4 | 5 | 6;
 
 const subdivisionOptions: Array<{ value: MetronomeSubdivision; symbol: string; label: string }> = [
   { value: 1, symbol: '♩', label: 'Noire' },
   { value: 2, symbol: '♫', label: 'Croches' },
   { value: 3, symbol: '3', label: 'Triolets' },
   { value: 4, symbol: '♬', label: 'Doubles' },
+  { value: 5, symbol: '5', label: 'Quintolets' },
+  { value: 6, symbol: '6', label: 'Sextolets' },
 ];
 
 type IconProps = SVGProps<SVGSVGElement>;
@@ -70,6 +72,103 @@ function CloseIcon(props: IconProps) {
   );
 }
 
+function SubdivisionIcon({ value, className = 'h-7 w-7' }: { value: MetronomeSubdivision; className?: string }) {
+  switch (value) {
+    case 1:
+      // Quarter Note (Noire)
+      return (
+        <svg viewBox="0 0 36 36" fill="currentColor" className={className} aria-hidden="true">
+          <ellipse cx="14" cy="24" rx="4.5" ry="3" transform="rotate(-20 14 24)" fill="currentColor" />
+          <line x1="18" y1="23.5" x2="18" y2="8" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+        </svg>
+      );
+    case 2:
+      // Eighth Notes (Croches)
+      return (
+        <svg viewBox="0 0 36 36" fill="currentColor" className={className} aria-hidden="true">
+          <ellipse cx="10" cy="24" rx="3.8" ry="2.6" transform="rotate(-20 10 24)" fill="currentColor" />
+          <ellipse cx="23" cy="24" rx="3.8" ry="2.6" transform="rotate(-20 23 24)" fill="currentColor" />
+          <line x1="13.2" y1="23.5" x2="13.2" y2="10" stroke="currentColor" strokeWidth="2" />
+          <line x1="26.2" y1="23.5" x2="26.2" y2="10" stroke="currentColor" strokeWidth="2" />
+          <line x1="12" y1="10" x2="27.4" y2="10" stroke="currentColor" strokeWidth="3.2" strokeLinecap="square" />
+        </svg>
+      );
+    case 3:
+      // Triolet (3 notes + arc + "3")
+      return (
+        <svg viewBox="0 0 36 36" fill="currentColor" className={className} aria-hidden="true">
+          <ellipse cx="7" cy="25" rx="3.2" ry="2.2" transform="rotate(-20 7 25)" fill="currentColor" />
+          <ellipse cx="17" cy="25" rx="3.2" ry="2.2" transform="rotate(-20 17 25)" fill="currentColor" />
+          <ellipse cx="27" cy="25" rx="3.2" ry="2.2" transform="rotate(-20 27 25)" fill="currentColor" />
+          <line x1="9.7" y1="24.5" x2="9.7" y2="14" stroke="currentColor" strokeWidth="1.8" />
+          <line x1="19.7" y1="24.5" x2="19.7" y2="14" stroke="currentColor" strokeWidth="1.8" />
+          <line x1="29.7" y1="24.5" x2="29.7" y2="14" stroke="currentColor" strokeWidth="1.8" />
+          <line x1="8.7" y1="13.5" x2="30.7" y2="13.5" stroke="currentColor" strokeWidth="2.6" strokeLinecap="square" />
+          <path d="M 6.5 11 Q 19.7 5.5 32.9 11" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+          <text x="19.7" y="6" textAnchor="middle" fontSize="6.5" fontWeight="900" fill="currentColor" style={{ fontFamily: 'sans-serif' }}>3</text>
+        </svg>
+      );
+    case 4:
+      // Sixteenth Notes (Doubles croches)
+      return (
+        <svg viewBox="0 0 36 36" fill="currentColor" className={className} aria-hidden="true">
+          <ellipse cx="6" cy="25" rx="2.8" ry="2" transform="rotate(-20 6 25)" fill="currentColor" />
+          <ellipse cx="13.5" cy="25" rx="2.8" ry="2" transform="rotate(-20 13.5 25)" fill="currentColor" />
+          <ellipse cx="21" cy="25" rx="2.8" ry="2" transform="rotate(-20 21 25)" fill="currentColor" />
+          <ellipse cx="28.5" cy="25" rx="2.8" ry="2" transform="rotate(-20 28.5 25)" fill="currentColor" />
+          <line x1="8.3" y1="24.5" x2="8.3" y2="12" stroke="currentColor" strokeWidth="1.6" />
+          <line x1="15.8" y1="24.5" x2="15.8" y2="12" stroke="currentColor" strokeWidth="1.6" />
+          <line x1="23.3" y1="24.5" x2="23.3" y2="12" stroke="currentColor" strokeWidth="1.6" />
+          <line x1="30.8" y1="24.5" x2="30.8" y2="12" stroke="currentColor" strokeWidth="1.6" />
+          <line x1="7.3" y1="11.5" x2="31.8" y2="11.5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="square" />
+          <line x1="7.3" y1="15.5" x2="31.8" y2="15.5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="square" />
+        </svg>
+      );
+    case 5:
+      // Quintolet (5 notes + arc + "5")
+      return (
+        <svg viewBox="0 0 36 36" fill="currentColor" className={className} aria-hidden="true">
+          <ellipse cx="5" cy="26" rx="2.4" ry="1.7" transform="rotate(-20 5 26)" fill="currentColor" />
+          <ellipse cx="11" cy="26" rx="2.4" ry="1.7" transform="rotate(-20 11 26)" fill="currentColor" />
+          <ellipse cx="17" cy="26" rx="2.4" ry="1.7" transform="rotate(-20 17 26)" fill="currentColor" />
+          <ellipse cx="23" cy="26" rx="2.4" ry="1.7" transform="rotate(-20 23 26)" fill="currentColor" />
+          <ellipse cx="29" cy="26" rx="2.4" ry="1.7" transform="rotate(-20 29 26)" fill="currentColor" />
+          <line x1="7" y1="25.5" x2="7" y2="14" stroke="currentColor" strokeWidth="1.4" />
+          <line x1="13" y1="25.5" x2="13" y2="14" stroke="currentColor" strokeWidth="1.4" />
+          <line x1="19" y1="25.5" x2="19" y2="14" stroke="currentColor" strokeWidth="1.4" />
+          <line x1="25" y1="25.5" x2="25" y2="14" stroke="currentColor" strokeWidth="1.4" />
+          <line x1="31" y1="25.5" x2="31" y2="14" stroke="currentColor" strokeWidth="1.4" />
+          <line x1="6" y1="13.5" x2="32" y2="13.5" stroke="currentColor" strokeWidth="2" strokeLinecap="square" />
+          <line x1="6" y1="17" x2="32" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="square" />
+          <path d="M 5 11.5 Q 19 6 33 11.5" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+          <text x="19" y="6.5" textAnchor="middle" fontSize="6.2" fontWeight="900" fill="currentColor" style={{ fontFamily: 'sans-serif' }}>5</text>
+        </svg>
+      );
+    case 6:
+      // Sextolet (6 notes + arc + "6")
+      return (
+        <svg viewBox="0 0 36 36" fill="currentColor" className={className} aria-hidden="true">
+          <ellipse cx="4.5" cy="26" rx="2.1" ry="1.5" transform="rotate(-20 4.5 26)" fill="currentColor" />
+          <ellipse cx="9.8" cy="26" rx="2.1" ry="1.5" transform="rotate(-20 9.8 26)" fill="currentColor" />
+          <ellipse cx="15.1" cy="26" rx="2.1" ry="1.5" transform="rotate(-20 15.1 26)" fill="currentColor" />
+          <ellipse cx="20.4" cy="26" rx="2.1" ry="1.5" transform="rotate(-20 20.4 26)" fill="currentColor" />
+          <ellipse cx="25.7" cy="26" rx="2.1" ry="1.5" transform="rotate(-20 25.7 26)" fill="currentColor" />
+          <ellipse cx="31" cy="26" rx="2.1" ry="1.5" transform="rotate(-20 31 26)" fill="currentColor" />
+          <line x1="6.3" y1="25.5" x2="6.3" y2="14" stroke="currentColor" strokeWidth="1.3" />
+          <line x1="11.6" y1="25.5" x2="11.6" y2="14" stroke="currentColor" strokeWidth="1.3" />
+          <line x1="16.9" y1="25.5" x2="16.9" y2="14" stroke="currentColor" strokeWidth="1.3" />
+          <line x1="22.2" y1="25.5" x2="22.2" y2="14" stroke="currentColor" strokeWidth="1.3" />
+          <line x1="27.5" y1="25.5" x2="27.5" y2="14" stroke="currentColor" strokeWidth="1.3" />
+          <line x1="32.8" y1="25.5" x2="32.8" y2="14" stroke="currentColor" strokeWidth="1.3" />
+          <line x1="5.3" y1="13.5" x2="33.8" y2="13.5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="square" />
+          <line x1="5.3" y1="17" x2="33.8" y2="17" stroke="currentColor" strokeWidth="1.9" strokeLinecap="square" />
+          <path d="M 4.5 11.5 Q 19.05 6 33.6 11.5" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+          <text x="19.05" y="6.5" textAnchor="middle" fontSize="6.2" fontWeight="900" fill="currentColor" style={{ fontFamily: 'sans-serif' }}>6</text>
+        </svg>
+      );
+  }
+}
+
 function SubdivisionSelector({
   value,
   onChange,
@@ -84,7 +183,7 @@ function SubdivisionSelector({
       <p className="mb-2 text-[0.65rem] font-black uppercase tracking-[0.18em] text-[var(--fz-text-muted)]">
         Subdivision
       </p>
-      <div className="grid grid-cols-4 gap-2" role="group" aria-label="Subdivision du temps">
+      <div className="grid grid-cols-3 gap-2 sm:grid-cols-6" role="group" aria-label="Subdivision du temps">
         {subdivisionOptions.map((option) => {
           const isSelected = option.value === value;
 
@@ -103,9 +202,7 @@ function SubdivisionSelector({
                   : 'border-white/8 bg-white/5 text-white/55 hover:border-white/20 hover:text-white',
               ].join(' ')}
             >
-              <span className={compact ? 'text-lg leading-none' : 'text-2xl leading-none'} aria-hidden="true">
-                {option.symbol}
-              </span>
+              <SubdivisionIcon value={option.value} className={compact ? 'h-6 w-6' : 'h-8 w-8'} />
               {!compact ? <span className="mt-1 text-[0.58rem] uppercase tracking-wide">{option.label}</span> : null}
             </button>
           );
@@ -130,6 +227,8 @@ export function MetronomePage() {
   const [activeSubdivision, setActiveSubdivision] = useState(0);
   const [audioError, setAudioError] = useState<string | null>(null);
   const [isTempoPickerOpen, setIsTempoPickerOpen] = useState(false);
+  const [isTimeSignaturePickerOpen, setIsTimeSignaturePickerOpen] = useState(false);
+  const [isSubdivisionPickerOpen, setIsSubdivisionPickerOpen] = useState(false);
 
   const [isSetlistModalOpen, setIsSetlistModalOpen] = useState(false);
   const [selectedSetlistId, setSelectedSetlistId] = useState<string | null>(null);
@@ -355,22 +454,36 @@ export function MetronomePage() {
       </section>
 
       <section aria-label="Contrôles du métronome" className="rounded-[1.5rem] border border-white/8 bg-black/20 p-4">
-        <div className="flex items-end justify-between gap-4">
+        <div className="flex items-center justify-between gap-4 py-1">
           <button
             type="button"
             onClick={() => {
               setEditingBpmSongId(null);
               setIsTempoPickerOpen(true);
             }}
-            className="group -m-1.5 flex flex-col items-start rounded-2xl p-1.5 text-left transition hover:bg-white/6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+            className="group flex items-baseline gap-2 rounded-2xl p-1.5 text-left transition hover:bg-white/6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
             title="Cliquer pour changer le tempo"
           >
-            <p className="text-xs font-black uppercase tracking-[0.22em] text-[var(--fz-text-muted)] transition-colors group-hover:text-white/80">Tempo</p>
-            <div className="mt-2 text-5xl font-black tracking-tight text-white transition-transform origin-left group-hover:scale-105">{bpm}</div>
+            <span className="text-4xl font-black tracking-tight text-white transition-transform origin-left group-hover:scale-105">{bpm}</span>
+            <span className="text-base font-black uppercase tracking-wider text-[var(--fz-text-muted)] group-hover:text-white/80">BPM</span>
           </button>
-          <div className="text-right">
-            <p className="text-xs font-black uppercase tracking-[0.22em] text-[var(--fz-text-muted)]">Mesure</p>
-            <div className="mt-2 text-4xl font-black text-white">{beatsPerBar}/4</div>
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={() => setIsTimeSignaturePickerOpen(true)}
+              className="group rounded-2xl p-1.5 text-right transition hover:bg-white/6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+              title="Cliquer pour changer la signature rythmique"
+            >
+              <span className="text-4xl font-black text-white transition-transform origin-right group-hover:scale-105">{beatsPerBar}/4</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsSubdivisionPickerOpen(true)}
+              className="group rounded-2xl p-1.5 text-right transition hover:bg-white/6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 flex items-center justify-center"
+              title="Cliquer pour changer la subdivision"
+            >
+              <SubdivisionIcon value={subdivision} className="h-11 w-11 text-white transition-transform origin-right group-hover:scale-105" />
+            </button>
           </div>
         </div>
 
@@ -413,10 +526,6 @@ export function MetronomePage() {
           })}
         </div>
 
-        <div className="mt-4">
-          <SubdivisionSelector value={subdivision} onChange={setSubdivision} />
-        </div>
-
         <div className="mt-5 grid grid-cols-3 gap-3">
           <button
             type="button"
@@ -438,26 +547,6 @@ export function MetronomePage() {
             className="fz-button-secondary px-4 py-4 text-lg font-black text-white"
           >
             +
-          </button>
-        </div>
-
-        <div className="mt-3 grid grid-cols-3 gap-3">
-          <button
-            type="button"
-            onClick={() => updateBeatsPerBarValue(beatsPerBar - 1)}
-            className="rounded-[1.1rem] border border-white/10 bg-white/5 px-3 py-3 text-sm font-black uppercase tracking-[0.14em] text-white"
-          >
-            - Beat
-          </button>
-          <div className="flex items-center justify-center rounded-[1.1rem] border border-white/8 bg-black/25 px-3 py-3 text-sm font-black uppercase tracking-[0.16em] text-white">
-            {beatsPerBar}/4
-          </div>
-          <button
-            type="button"
-            onClick={() => updateBeatsPerBarValue(beatsPerBar + 1)}
-            className="rounded-[1.1rem] border border-white/10 bg-white/5 px-3 py-3 text-sm font-black uppercase tracking-[0.14em] text-white"
-          >
-            + Beat
           </button>
         </div>
 
@@ -559,11 +648,11 @@ export function MetronomePage() {
                       setEditingBpmSongId(null);
                       setIsTempoPickerOpen(true);
                     }}
-                    className="group flex flex-col items-start justify-center rounded-xl p-1 text-left transition hover:bg-white/5 justify-self-start"
+                    className="group flex items-baseline gap-1.5 rounded-xl p-1 text-left transition hover:bg-white/5 justify-self-start"
                     title="Changer le tempo"
                   >
-                    <span className="block text-xs font-black uppercase tracking-[0.22em] text-[var(--fz-text-muted)]">TEMPO</span>
-                    <span className="block mt-1.5 text-5xl font-black tracking-tight text-white leading-none">{bpm}</span>
+                    <span className="text-4xl font-black tracking-tight text-white leading-none">{bpm}</span>
+                    <span className="text-xs font-black uppercase tracking-wider text-[var(--fz-text-muted)] group-hover:text-white/80">BPM</span>
                   </button>
 
                   <div className="flex items-center justify-center justify-self-center">
@@ -571,7 +660,7 @@ export function MetronomePage() {
                       type="button"
                       onClick={handleTogglePlayback}
                       className={[
-                        'flex h-16 w-16 items-center justify-center rounded-full transition transform active:scale-95 shadow-lg shrink-0',
+                        'flex h-14 w-14 items-center justify-center rounded-full transition transform active:scale-95 shadow-lg shrink-0',
                         isRunning
                           ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40 hover:bg-rose-500/30'
                           : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500/30',
@@ -579,16 +668,31 @@ export function MetronomePage() {
                       title={isRunning ? 'Stopper le métronome' : 'Lancer le métronome'}
                     >
                       {isRunning ? (
-                        <PauseIcon className="h-7 w-7" />
+                        <PauseIcon className="h-6 w-6" />
                       ) : (
-                        <PlayIcon className="h-7 w-7 ml-0.5" />
+                        <PlayIcon className="h-6 w-6 ml-0.5" />
                       )}
                     </button>
                   </div>
 
-                  <div className="flex flex-col items-end justify-center text-right justify-self-end">
-                    <span className="block text-xs font-black uppercase tracking-[0.22em] text-[var(--fz-text-muted)]">MESURE</span>
-                    <div className="block mt-1.5 text-4xl font-black text-white leading-none">{beatsPerBar}/4</div>
+                  <div className="flex items-center gap-4 justify-self-end text-right">
+                    <button
+                      type="button"
+                      onClick={() => setIsTimeSignaturePickerOpen(true)}
+                      className="group rounded-xl p-1 text-right transition hover:bg-white/5"
+                      title="Changer la signature rythmique"
+                    >
+                      <span className="text-4xl font-black text-white leading-none">{beatsPerBar}/4</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsSubdivisionPickerOpen(true)}
+                      className="group rounded-xl p-1 text-right transition hover:bg-white/5 flex items-center justify-center"
+                      title="Changer la subdivision"
+                    >
+                      <SubdivisionIcon value={subdivision} className="h-10 w-10 text-white" />
+                    </button>
                   </div>
                 </div>
 
@@ -629,10 +733,6 @@ export function MetronomePage() {
                       </div>
                     );
                   })}
-                </div>
-
-                <div className="mt-3">
-                  <SubdivisionSelector value={subdivision} onChange={setSubdivision} compact />
                 </div>
 
                 {audioError ? <p className="mt-3 text-sm font-semibold text-rose-400 text-center">{audioError}</p> : null}
@@ -764,6 +864,36 @@ export function MetronomePage() {
             }}
             suffix="BPM"
           />
+        </PickerDialog>
+      ) : null}
+
+      {isTimeSignaturePickerOpen ? (
+        <PickerDialog
+          title="Signature rythmique"
+          description="Nombre de temps par mesure"
+          closeLabel="Fermer"
+          onClose={() => setIsTimeSignaturePickerOpen(false)}
+        >
+          <WheelColumn
+            options={['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12']}
+            selectedValue={String(beatsPerBar)}
+            onSelect={(value) => {
+              if (value) {
+                updateBeatsPerBarValue(Number(value));
+              }
+            }}
+            suffix="Temps"
+          />
+        </PickerDialog>
+      ) : null}
+
+      {isSubdivisionPickerOpen ? (
+        <PickerDialog
+          title="Subdivision des temps"
+          closeLabel="Fermer"
+          onClose={() => setIsSubdivisionPickerOpen(false)}
+        >
+          <SubdivisionSelector value={subdivision} onChange={setSubdivision} />
         </PickerDialog>
       ) : null}
     </div>
