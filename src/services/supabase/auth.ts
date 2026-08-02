@@ -144,10 +144,7 @@ export async function getSession() {
     if (session) return session;
   } catch (err) {}
 
-  try {
-    const stored = localStorage.getItem('faderzero_demo_session');
-    if (stored) return JSON.parse(stored);
-  } catch {}
+  localStorage.removeItem('faderzero_demo_session');
 
   return null;
 }

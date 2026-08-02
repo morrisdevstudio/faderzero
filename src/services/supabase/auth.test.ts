@@ -18,6 +18,7 @@ vi.mock('@/services/supabase/client', () => ({
 import {
   changePassword,
   completePasswordRecovery,
+  getSession,
   requestEmailChange,
   requestPasswordReset,
   resendSignupConfirmation,
@@ -110,5 +111,14 @@ describe('service Auth', () => {
     expect(authMocks.resetPasswordForEmail).toHaveBeenCalledWith('compte@example.test', {
       redirectTo: `${window.location.origin}/account?reset-password=1`,
     });
+  });
+
+  it('ignores and removes any legacy local demo session', async () => {
+    authMocks.getSession.mockResolvedValue({ data: { session: null }, error: null });
+    localStorage.setItem('faderzero_demo_session', JSON.stringify({ user: { id: 'demo-user' } }));
+
+    await expect(getSession()).resolves.toBeNull();
+
+    expect(localStorage.getItem('faderzero_demo_session')).toBeNull();
   });
 });
