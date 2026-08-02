@@ -90,7 +90,7 @@ function SubdivisionIcon({ value, className = 'h-7 w-7' }: { value: MetronomeSub
           <ellipse cx="23" cy="24" rx="3.8" ry="2.6" transform="rotate(-20 23 24)" fill="currentColor" />
           <line x1="13.2" y1="23.5" x2="13.2" y2="10" stroke="currentColor" strokeWidth="2" />
           <line x1="26.2" y1="23.5" x2="26.2" y2="10" stroke="currentColor" strokeWidth="2" />
-          <line x1="12" y1="10" x2="27.4" y2="10" stroke="currentColor" strokeWidth="3.2" strokeLinecap="square" />
+          <line x1="13.2" y1="10" x2="26.2" y2="10" stroke="currentColor" strokeWidth="3.2" strokeLinecap="butt" />
         </svg>
       );
     case 3:
@@ -103,7 +103,7 @@ function SubdivisionIcon({ value, className = 'h-7 w-7' }: { value: MetronomeSub
           <line x1="9.7" y1="24.5" x2="9.7" y2="14" stroke="currentColor" strokeWidth="1.8" />
           <line x1="19.7" y1="24.5" x2="19.7" y2="14" stroke="currentColor" strokeWidth="1.8" />
           <line x1="29.7" y1="24.5" x2="29.7" y2="14" stroke="currentColor" strokeWidth="1.8" />
-          <line x1="8.7" y1="13.5" x2="30.7" y2="13.5" stroke="currentColor" strokeWidth="2.6" strokeLinecap="square" />
+          <line x1="9.7" y1="13.5" x2="29.7" y2="13.5" stroke="currentColor" strokeWidth="2.6" strokeLinecap="butt" />
           <path d="M 6.5 11 Q 19.7 5.5 32.9 11" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
           <text x="19.7" y="6" textAnchor="middle" fontSize="6.5" fontWeight="900" fill="currentColor" style={{ fontFamily: 'sans-serif' }}>3</text>
         </svg>
@@ -120,8 +120,8 @@ function SubdivisionIcon({ value, className = 'h-7 w-7' }: { value: MetronomeSub
           <line x1="15.8" y1="24.5" x2="15.8" y2="12" stroke="currentColor" strokeWidth="1.6" />
           <line x1="23.3" y1="24.5" x2="23.3" y2="12" stroke="currentColor" strokeWidth="1.6" />
           <line x1="30.8" y1="24.5" x2="30.8" y2="12" stroke="currentColor" strokeWidth="1.6" />
-          <line x1="7.3" y1="11.5" x2="31.8" y2="11.5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="square" />
-          <line x1="7.3" y1="15.5" x2="31.8" y2="15.5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="square" />
+          <line x1="8.3" y1="11.5" x2="30.8" y2="11.5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="butt" />
+          <line x1="8.3" y1="15.5" x2="30.8" y2="15.5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="butt" />
         </svg>
       );
     case 5:
@@ -138,8 +138,8 @@ function SubdivisionIcon({ value, className = 'h-7 w-7' }: { value: MetronomeSub
           <line x1="19" y1="25.5" x2="19" y2="14" stroke="currentColor" strokeWidth="1.4" />
           <line x1="25" y1="25.5" x2="25" y2="14" stroke="currentColor" strokeWidth="1.4" />
           <line x1="31" y1="25.5" x2="31" y2="14" stroke="currentColor" strokeWidth="1.4" />
-          <line x1="6" y1="13.5" x2="32" y2="13.5" stroke="currentColor" strokeWidth="2" strokeLinecap="square" />
-          <line x1="6" y1="17" x2="32" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="square" />
+          <line x1="7" y1="13.5" x2="31" y2="13.5" stroke="currentColor" strokeWidth="2" strokeLinecap="butt" />
+          <line x1="7" y1="17" x2="31" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="butt" />
           <path d="M 5 11.5 Q 19 6 33 11.5" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
           <text x="19" y="6.5" textAnchor="middle" fontSize="6.2" fontWeight="900" fill="currentColor" style={{ fontFamily: 'sans-serif' }}>5</text>
         </svg>
@@ -160,8 +160,8 @@ function SubdivisionIcon({ value, className = 'h-7 w-7' }: { value: MetronomeSub
           <line x1="22.2" y1="25.5" x2="22.2" y2="14" stroke="currentColor" strokeWidth="1.3" />
           <line x1="27.5" y1="25.5" x2="27.5" y2="14" stroke="currentColor" strokeWidth="1.3" />
           <line x1="32.8" y1="25.5" x2="32.8" y2="14" stroke="currentColor" strokeWidth="1.3" />
-          <line x1="5.3" y1="13.5" x2="33.8" y2="13.5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="square" />
-          <line x1="5.3" y1="17" x2="33.8" y2="17" stroke="currentColor" strokeWidth="1.9" strokeLinecap="square" />
+          <line x1="6.3" y1="13.5" x2="32.8" y2="13.5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="butt" />
+          <line x1="6.3" y1="17" x2="32.8" y2="17" stroke="currentColor" strokeWidth="1.9" strokeLinecap="butt" />
           <path d="M 4.5 11.5 Q 19.05 6 33.6 11.5" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
           <text x="19.05" y="6.5" textAnchor="middle" fontSize="6.2" fontWeight="900" fill="currentColor" style={{ fontFamily: 'sans-serif' }}>6</text>
         </svg>
