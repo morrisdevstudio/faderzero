@@ -68,6 +68,17 @@ describe('LoginPage inscription et récupération', () => {
     expect(authMocks.signUp).not.toHaveBeenCalled();
   });
 
+  it('affiche une erreur quand les identifiants de connexion sont incorrects', async () => {
+    authMocks.signIn.mockRejectedValue(new Error('Identifiant ou mot de passe incorrect.'));
+    render(<LoginPage />);
+
+    fireEvent.change(screen.getByRole('textbox', { name: 'Adresse e-mail' }), { target: { value: 'inconnu@example.test' } });
+    fireEvent.change(screen.getByLabelText('Mot de passe'), { target: { value: 'incorrect' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Se connecter' }));
+
+    expect(await screen.findByText('Identifiant ou mot de passe incorrect.')).toBeInTheDocument();
+  });
+
   it('lance la récupération depuis un message non discriminant', async () => {
     authMocks.requestPasswordReset.mockResolvedValue(undefined);
     render(<LoginPage />);

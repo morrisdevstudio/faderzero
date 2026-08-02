@@ -17,7 +17,7 @@ function normalizeAuthError(error: unknown): Error {
     const message = error.message;
 
     if (message.includes('Invalid login credentials')) {
-      return new Error('E-mail ou mot de passe incorrect.');
+      return new Error('Identifiant ou mot de passe incorrect.');
     }
 
     if (message.includes('Email not confirmed')) {
@@ -37,42 +37,17 @@ function normalizeAuthError(error: unknown): Error {
 }
 
 export async function signInWithPassword(email: string, password: string) {
-  try {
-    assertSupabaseConfig();
-    const authPromise = supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    const timeoutPromise = new Promise<{ data: null; error: Error }>((_, reject) =>
-      setTimeout(() => reject(new Error('NETWORK_TIMEOUT')), 1500)
-    );
-    const { data, error } = (await Promise.race([authPromise, timeoutPromise])) as any;
-    if (error) throw normalizeAuthError(error);
-    return data;
-  } catch (err) {
-    const demoSession = {
-      access_token: 'demo-token',
-      refresh_token: 'demo-refresh',
-      expires_in: 3600,
-      token_type: 'bearer',
-      user: {
-        id: 'demo-user-777',
-        email: email || 'demo@faderzero.test',
-        aud: 'authenticated',
-        role: 'authenticated',
-        created_at: new Date().toISOString(),
-        app_metadata: {},
-        user_metadata: { display_name: 'Testeur Epic 7' },
-      },
-    };
-    try {
-      localStorage.setItem('faderzero_demo_session', JSON.stringify(demoSession));
-    } catch {}
-    return {
-      session: demoSession as any,
-      user: demoSession.user as any,
-    };
-  }
+  assertSupabaseConfig();
+  const authPromise = supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+  const timeoutPromise = new Promise<{ data: null; error: Error }>((_, reject) =>
+    setTimeout(() => reject(new Error('NETWORK_TIMEOUT')), 1500)
+  );
+  const { data, error } = (await Promise.race([authPromise, timeoutPromise])) as any;
+  if (error) throw normalizeAuthError(error);
+  return data;
 }
 
 export async function signUpWithPassword(
