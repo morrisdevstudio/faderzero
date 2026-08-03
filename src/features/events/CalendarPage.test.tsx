@@ -26,10 +26,10 @@ describe('CalendarPage scroll collapse', () => {
   it('collapses on the first downward scroll intent even when scrolling is unavailable', () => {
     render(<CalendarPage />);
 
-    fireEvent.wheel(window, { deltaY: 1 });
+    fireEvent.wheel(window, { deltaY: 48 });
     expect(screen.getByRole('button', { name: 'Déplier le calendrier' })).toBeInTheDocument();
 
-    fireEvent.wheel(window, { deltaY: -1 });
+    fireEvent.wheel(window, { deltaY: -48 });
     expect(screen.getByRole('button', { name: 'Réduire le calendrier' })).toBeInTheDocument();
   });
 
@@ -37,7 +37,7 @@ describe('CalendarPage scroll collapse', () => {
     render(<CalendarPage />);
 
     fireEvent.touchStart(window, { touches: [{ clientY: 200 }] });
-    fireEvent.touchMove(window, { touches: [{ clientY: 187 }] });
+    fireEvent.touchMove(window, { touches: [{ clientY: 148 }] });
 
     expect(screen.getByRole('button', { name: 'Déplier le calendrier' })).toBeInTheDocument();
   });
@@ -49,6 +49,7 @@ describe('CalendarPage scroll collapse', () => {
     const initialMonth = screen.getByRole('heading', { level: 2 }).textContent;
 
     fireEvent.touchStart(calendar, { touches: [{ clientX: 240, clientY: 100 }] });
+    fireEvent.touchMove(calendar, { touches: [{ clientX: 120, clientY: 105 }] });
     fireEvent.touchEnd(calendar, { changedTouches: [{ clientX: 120, clientY: 105 }] });
 
     expect(screen.getByRole('heading', { level: 2 })).not.toHaveTextContent(initialMonth ?? '');
@@ -59,5 +60,13 @@ describe('CalendarPage scroll collapse', () => {
 
     expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent(initialMonth ?? '');
     expect(screen.getByTestId('calendar-month-grid')).toHaveAttribute('data-transition-direction', 'previous');
+  });
+
+  it('keeps the month view open for a small wheel gesture', () => {
+    render(<CalendarPage />);
+
+    fireEvent.wheel(window, { deltaY: 24 });
+
+    expect(screen.getByTestId('calendar-month-grid').parentElement!).toHaveAttribute('data-expanded', 'true');
   });
 });

@@ -443,38 +443,68 @@ export function CalendarPage() {
   }, [eventsByDayString, selectedDate]);
 
   useEffect(() => {
-    const gestureThreshold = 12;
-    let touchStartY: number | null = null;
+    const gestureThreshold = 48;
+    let touchStart: { x: number; y: number } | null = null;
     let lastScrollTop = window.scrollY;
+    let scrollStartTop: number | null = null;
+    let wheelDeltaY = 0;
+
+    const isCalendarCardTarget = (target: EventTarget | null) => (
+      target instanceof Element && target.closest('[data-calendar-card]') !== null
+    );
 
     const handleWheel = (event: WheelEvent) => {
-      if (event.deltaY > 0) setIsMonthView(false);
-      else if (event.deltaY < 0 && window.scrollY <= 0) setIsMonthView(true);
+      if (isCalendarCardTarget(event.target)) return;
+
+      wheelDeltaY = Math.sign(wheelDeltaY) === Math.sign(event.deltaY)
+        ? wheelDeltaY + event.deltaY
+        : event.deltaY;
+      if (Math.abs(wheelDeltaY) < gestureThreshold) return;
+
+      if (wheelDeltaY > 0) setIsMonthView(false);
+      else if (window.scrollY <= 0) setIsMonthView(true);
+      wheelDeltaY = 0;
     };
 
     const handleTouchStart = (event: TouchEvent) => {
-      touchStartY = event.touches[0]?.clientY ?? null;
+      if (isCalendarCardTarget(event.target)) {
+        touchStart = null;
+        return;
+      }
+      const touch = event.touches[0];
+      touchStart = touch ? { x: touch.clientX, y: touch.clientY } : null;
     };
 
     const handleTouchMove = (event: TouchEvent) => {
-      const currentY = event.touches[0]?.clientY;
-      if (touchStartY === null || currentY === undefined) return;
+      const touch = event.touches[0];
+      if (!touchStart || !touch) return;
 
-      const deltaY = touchStartY - currentY;
-      if (Math.abs(deltaY) < gestureThreshold) return;
+      const deltaX = touch.clientX - touchStart.x;
+      const deltaY = touchStart.y - touch.clientY;
+      if (Math.abs(deltaY) < gestureThreshold || Math.abs(deltaY) <= Math.abs(deltaX)) return;
 
       if (deltaY > 0) setIsMonthView(false);
       else if (window.scrollY <= 0) setIsMonthView(true);
-      touchStartY = null;
+      touchStart = null;
     };
 
     const handleTouchEnd = () => {
-      touchStartY = null;
+      touchStart = null;
     };
 
     const handleScroll = () => {
       const currentScrollTop = window.scrollY;
-      if (currentScrollTop > lastScrollTop) setIsMonthView(false);
+      if (currentScrollTop <= lastScrollTop) {
+        scrollStartTop = null;
+        lastScrollTop = currentScrollTop;
+        return;
+      }
+
+      scrollStartTop ??= lastScrollTop;
+      if (currentScrollTop - scrollStartTop >= gestureThreshold) {
+        setIsMonthView(false);
+        scrollStartTop = null;
+      }
       lastScrollTop = currentScrollTop;
     };
 
@@ -678,6 +708,7 @@ export function CalendarPage() {
 
       {/* ACCORDION CALENDAR CARD */}
       <div
+        data-calendar-card
         data-testid="calendar-card"
         onTouchStart={handleCalendarTouchStart}
         onTouchEnd={handleCalendarTouchEnd}
@@ -761,9 +792,10 @@ export function CalendarPage() {
 
           {/* Month grid view */}
           <div
+            data-expanded={isMonthView}
             className={[
-              'overflow-hidden',
-              isMonthView ? 'max-h-[420px]' : 'max-h-0 pointer-events-none hidden',
+              'fz-calendar-view',
+              isMonthView ? 'fz-calendar-view-expanded' : 'pointer-events-none',
             ].join(' ')}
           >
             <div
@@ -828,9 +860,10 @@ export function CalendarPage() {
 
           {/* Week grid view */}
           <div
+            data-expanded={!isMonthView}
             className={[
-              'overflow-hidden',
-              !isMonthView ? 'max-h-[110px]' : 'max-h-0 pointer-events-none hidden',
+              'fz-calendar-view',
+              !isMonthView ? 'fz-calendar-view-expanded' : 'pointer-events-none',
             ].join(' ')}
           >
             <div className="grid grid-cols-7 gap-1 text-sm p-1">
@@ -917,7 +950,7 @@ export function CalendarPage() {
               </div>
 
               {/* Event cards in this day */}
-              <div className="space-y-2">
+              <div className="divide-y divide-white/10">
                 {group.events.map((evt) => {
                   const wsInfo = workspaceMap.get(evt.workspaceId);
                   const isPersonal = wsInfo?.type === 'personal' || evt.workspaceId === 'personal' || evt.workspaceId === 'default-workspace';
@@ -951,11 +984,11 @@ export function CalendarPage() {
                       key={evt.id}
                       onClick={() => setActiveBottomSheetEvent(evt)}
                       style={{ borderLeftColor: color }}
-                      className="fz-card block rounded-[1.2rem] px-4 py-3.5 border-l-4 transition hover:border-[var(--fz-border-strong)] cursor-pointer active:scale-[0.98]"
+                      className="block cursor-pointer border-l-2 px-4 py-5 transition first:pt-1 last:pb-1 hover:bg-white/[0.02] active:scale-[0.98]"
                     >
                       <div className="flex items-start justify-between gap-4">
                         <div className="min-w-0 flex-1">
-                          <h2 className="truncate text-[1.12rem] font-black tracking-tight text-white" title={evt.title}>
+                          <h2 className="truncate text-[1.35rem] font-black tracking-tight text-white" title={evt.title}>
                             {evt.title}
                           </h2>
                           <p className="mt-2 truncate whitespace-nowrap text-[0.82rem] text-[var(--fz-text-muted)] flex items-center gap-1.5">

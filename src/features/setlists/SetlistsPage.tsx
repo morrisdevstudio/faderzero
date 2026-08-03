@@ -131,7 +131,7 @@ export function SetlistsPage() {
         ) : null}
       </section>
 
-      <section className="space-y-3">
+      <section className="divide-y divide-white/10">
         {filteredSetlists === undefined ? (
           <FeatureCard eyebrow="Chargement" title="Lecture des setlists" description="Ouverture de la base locale..." />
         ) : filteredSetlists.length === 0 && !searchQuery.trim() ? (
@@ -164,11 +164,11 @@ export function SetlistsPage() {
             <Link
               key={setlist.id}
               to={`/setlists/${setlist.id}`}
-              className="fz-card block rounded-[1.2rem] px-4 py-3.5 transition hover:border-[var(--fz-border-strong)]"
+              className="block px-1 py-5 transition first:pt-1 last:pb-1 hover:bg-white/[0.02]"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0 flex-1">
-                  <h2 className="truncate text-[1.12rem] font-black tracking-tight text-white">{setlist.name}</h2>
+                  <h2 className="truncate text-[1.35rem] font-black tracking-tight text-white">{setlist.name}</h2>
                   <p className="mt-2 truncate whitespace-nowrap text-[0.82rem] text-[var(--fz-text-muted)]">
                     {setlist.songCount} morceau{setlist.songCount > 1 ? 'x' : ''}
                     {' · '}

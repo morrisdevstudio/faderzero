@@ -319,9 +319,28 @@ body::before {
   animation: fz-calendar-month-previous 180ms cubic-bezier(0.25, 1, 0.5, 1) both;
 }
 
+.fz-calendar-view {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 260ms cubic-bezier(0.25, 1, 0.5, 1), opacity 180ms ease;
+}
+
+.fz-calendar-view-expanded {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.fz-calendar-view > * {
+  min-height: 0;
+  overflow: hidden;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .fz-calendar-month-transition-next,
-  .fz-calendar-month-transition-previous {
+  .fz-calendar-month-transition-previous,
+  .fz-calendar-view {
     animation: none;
+    transition: none;
   }
 }

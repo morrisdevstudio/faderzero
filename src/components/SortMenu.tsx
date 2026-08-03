@@ -34,9 +34,18 @@ function SortIcon() {
   );
 }
 
+function CheckIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="m5 12 4 4L19 6" />
+    </svg>
+  );
+}
+
 export function SortMenu({ value, onChange, label = 'Trier', filter }: SortMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const selectedOption = options.find((option) => option.value === value) ?? options[0]!;
+  const selectedFilterOption = filter?.options.find((option) => option.value === filter.value);
 
   useEffect(() => {
     if (!isOpen) {
@@ -61,7 +70,7 @@ export function SortMenu({ value, onChange, label = 'Trier', filter }: SortMenuP
         aria-label={label}
         aria-haspopup="menu"
         aria-expanded={isOpen}
-        title={`${label} : ${selectedOption.label}`}
+        title={filter ? `${label} et filtrer` : `${label} : ${selectedOption.label}`}
         className="flex h-10 w-10 items-center justify-center text-white/65 transition hover:text-white"
       >
         <span className="h-5 w-5">
@@ -85,7 +94,9 @@ export function SortMenu({ value, onChange, label = 'Trier', filter }: SortMenuP
           >
             <div className="mb-4 flex items-center justify-between gap-4">
               <div>
-                <h2 id="sort-menu-title" className="text-[1.28rem] font-black tracking-tight text-white">{label}</h2>
+                <h2 id="sort-menu-title" className="text-[1.28rem] font-black tracking-tight text-white">
+                  {filter ? 'Trier et filtrer' : label}
+                </h2>
               </div>
               <button
                 type="button"
@@ -98,7 +109,10 @@ export function SortMenu({ value, onChange, label = 'Trier', filter }: SortMenuP
             </div>
             <div className="space-y-5">
               <div>
-                <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-[var(--fz-text-muted)]">Tri</p>
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--fz-text-muted)]">Tri</p>
+                  <p className="truncate text-xs font-bold text-white/70">{selectedOption.label}</p>
+                </div>
                 <div role="menu" className="divide-y divide-white/8 border-y border-white/8">
                   {options.map((option) => (
                     <button
@@ -110,17 +124,22 @@ export function SortMenu({ value, onChange, label = 'Trier', filter }: SortMenuP
                         onChange(option.value);
                         setIsOpen(false);
                       }}
-                      className="flex min-h-12 w-full items-center justify-between px-1 py-3 text-left text-sm font-black text-white transition hover:bg-white/5"
+                      className="flex min-h-12 w-full items-center gap-3 px-1 py-3 text-left text-sm font-black text-white transition hover:bg-white/5"
                     >
+                      <span className={['flex h-5 w-5 shrink-0 items-center justify-center', value === option.value ? 'text-[var(--fz-accent-strong)]' : 'text-transparent'].join(' ')}>
+                        <CheckIcon />
+                      </span>
                       <span>{option.label}</span>
-                      {value === option.value ? <span className="text-[var(--fz-accent-strong)]" aria-hidden="true">✓</span> : null}
                     </button>
                   ))}
                 </div>
               </div>
               {filter ? (
                 <div>
-                  <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-[var(--fz-text-muted)]">{filter.label}</p>
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--fz-text-muted)]">{filter.label}</p>
+                    <p className="truncate text-xs font-bold text-white/70">{selectedFilterOption?.label}</p>
+                  </div>
                   <div className="divide-y divide-white/8 border-y border-white/8">
                     {filter.options.map((option) => (
                       <button
@@ -131,10 +150,12 @@ export function SortMenu({ value, onChange, label = 'Trier', filter }: SortMenuP
                           filter.onChange(option.value);
                           setIsOpen(false);
                         }}
-                        className="flex min-h-12 w-full items-center justify-between px-1 py-3 text-left text-sm font-black text-white transition hover:bg-white/5"
+                        className="flex min-h-12 w-full items-center gap-3 px-1 py-3 text-left text-sm font-black text-white transition hover:bg-white/5"
                       >
+                        <span className={['flex h-5 w-5 shrink-0 items-center justify-center', filter.value === option.value ? 'text-[var(--fz-accent-strong)]' : 'text-transparent'].join(' ')}>
+                          <CheckIcon />
+                        </span>
                         <span>{option.label}</span>
-                        {filter.value === option.value ? <span className="text-[var(--fz-accent-strong)]" aria-hidden="true">✓</span> : null}
                       </button>
                     ))}
                   </div>

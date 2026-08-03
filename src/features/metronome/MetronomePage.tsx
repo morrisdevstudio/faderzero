@@ -575,7 +575,7 @@ export function MetronomePage() {
               Aucune setlist disponible.
             </div>
           ) : (
-            <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
+            <div className="max-h-[60vh] divide-y divide-white/10 overflow-y-auto">
               {setlists.map((setlist) => (
                 <button
                   key={setlist.id}
@@ -585,10 +585,10 @@ export function MetronomePage() {
                     setIsSetlistModalOpen(false);
                     setIsLiveViewOpen(true);
                   }}
-                  className="w-full text-left fz-card-soft block rounded-[1.2rem] px-4 py-3.5 transition hover:border-[var(--fz-border-strong)] hover:bg-white/10"
+                  className="block w-full px-1 py-5 text-left transition first:pt-1 last:pb-1 hover:bg-white/[0.02]"
                 >
-                  <h3 className="truncate text-base font-black text-white">{setlist.name}</h3>
-                  <p className="mt-1 truncate text-xs text-[var(--fz-text-muted)]">
+                  <h3 className="truncate text-[1.35rem] font-black tracking-tight text-white">{setlist.name}</h3>
+                  <p className="mt-2 truncate text-[0.82rem] text-[var(--fz-text-muted)]">
                     {setlist.songCount} morceau{setlist.songCount > 1 ? 'x' : ''}
                     {' · '}
                     {formatSetDuration(setlist.totalDurationSeconds)}
@@ -899,4 +899,3 @@ export function MetronomePage() {
     </div>
   );
 }
-
