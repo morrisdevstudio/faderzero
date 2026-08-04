@@ -24,6 +24,10 @@ function CalendarIcon(props: IconProps) {
   );
 }
 
+function HomeIcon(props: IconProps) {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="m3 10 9-7 9 7v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" /><path d="M9 22v-7h6v7" /></svg>;
+}
+
 function SongsIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
@@ -398,7 +402,11 @@ export function AppShell() {
       {/* Bottom Navigation Bar */}
       <nav className="fixed inset-x-0 bottom-0 z-40 bg-[#0c0d10]/96 border-t border-white/10 shadow-[0_-16px_40px_rgba(0,0,0,0.5)] backdrop-blur-xl">
         <div className="mx-auto flex w-full max-w-md items-center justify-around px-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2">
-          {/* 1. Calendrier */}
+          <NavLink to="/home" className={({ isActive }) => ['flex flex-1 flex-col items-center justify-center gap-1 py-1 text-center transition-colors', isActive ? 'text-white font-bold' : 'text-white/40 hover:text-white/70'].join(' ')}>
+            {({ isActive }) => <><HomeIcon className={['h-5 w-5', isActive ? 'text-white' : 'text-white/40'].join(' ')} /><span className="text-[0.6rem] uppercase tracking-wider">Accueil</span><span className={['h-1 w-1 rounded-full', isActive ? 'bg-[#ff3a63]' : 'bg-transparent'].join(' ')} /></>}
+          </NavLink>
+
+          {/* 2. Calendrier */}
           <NavLink
             to="/calendar"
             className={({ isActive }) =>
@@ -426,7 +434,10 @@ export function AppShell() {
                   onClick={() => setIsLiveMenuOpen(false)}
                   onTouchStart={() => setIsLiveMenuOpen(false)}
                 />
-                <div className="absolute bottom-22 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-3 bg-transparent border-0 shadow-none p-0 whitespace-nowrap animate-in fade-in slide-in-from-bottom-3">
+                <div role="dialog" aria-label="Créer ou capturer" className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] left-1/2 z-50 w-[calc(100%-1rem)] max-w-[30rem] -translate-x-1/2 rounded-t-[2.5rem] border border-white/15 bg-[#14161b]/98 px-6 pb-6 pt-6 shadow-[0_-20px_55px_rgba(0,0,0,0.7)] backdrop-blur-xl animate-in fade-in slide-in-from-bottom-3">
+                  <div className="mx-auto h-1 w-10 rounded-full bg-white/30" aria-hidden="true" />
+                  <h2 className="mt-6 text-xl font-black tracking-tight text-white">Créer ou jouer</h2>
+                  <div className="mt-8 grid grid-cols-2 gap-4">
                   {canWrite ? (
                     <button
                       type="button"
@@ -435,10 +446,10 @@ export function AppShell() {
                         setVoiceRecorderMessage(null);
                         setIsVoiceRecorderOpen(true);
                       }}
-                      className="flex min-w-[180px] items-center justify-center gap-3 rounded-2xl px-6 py-4 text-sm font-black uppercase tracking-[0.14em] transition-all backdrop-blur-2xl active:scale-95 bg-[#14161b]/98 text-white border border-white/20 hover:bg-white/18 hover:border-white/35 shadow-[0_14px_36px_rgba(0,0,0,0.7)]"
+                      className="flex min-h-36 flex-col items-center justify-center gap-5 rounded-[1.5rem] border border-white/10 bg-black/20 p-4 text-center text-white transition hover:border-rose-300/35 hover:bg-rose-400/8 active:scale-[0.98]"
                     >
-                      <RecordIdeaIcon className="h-5 w-5 text-[#ff547b]" />
-                      Enregistrer
+                      <RecordIdeaIcon className="h-10 w-10 text-white" />
+                      <span className="text-xs font-medium leading-tight">Enregistrer une idée</span>
                     </button>
                   ) : null}
                   <button
@@ -447,41 +458,42 @@ export function AppShell() {
                       setIsLiveMenuOpen(false);
                       navigate('/songs/new/write');
                     }}
-                    className="flex min-w-[180px] items-center justify-center gap-3 rounded-2xl px-6 py-4 text-sm font-black uppercase tracking-[0.14em] transition-all backdrop-blur-2xl active:scale-95 bg-[#14161b]/98 text-white border border-white/20 hover:bg-white/18 hover:border-white/35 shadow-[0_14px_36px_rgba(0,0,0,0.7)]"
+                    className="flex min-h-36 flex-col items-center justify-center gap-5 rounded-[1.5rem] border border-white/10 bg-black/20 p-4 text-center text-white transition hover:border-rose-300/35 hover:bg-rose-400/8 active:scale-[0.98]"
                   >
-                    <WriteIcon className="h-5 w-5 text-[#ff547b]" />
-                    Écrire
+                    <WriteIcon className="h-10 w-10 text-white" />
+                    <span className="text-xs font-medium leading-tight">Nouvelles paroles</span>
                   </button>
                   <NavLink
                     to="/prompter"
                     onClick={() => setIsLiveMenuOpen(false)}
                     className={({ isActive }) =>
                       [
-                        'flex min-w-[180px] items-center justify-center gap-3 rounded-2xl px-6 py-4 text-sm font-black uppercase tracking-[0.14em] transition-all backdrop-blur-2xl active:scale-95',
+                        'flex min-h-36 flex-col items-center justify-center gap-5 rounded-[1.5rem] border p-4 text-center transition active:scale-[0.98]',
                         isActive
-                          ? 'bg-[#ff3a63]/25 text-rose-200 border border-[#ff3a63]/60 shadow-[0_0_20px_rgba(255,58,99,0.4)]'
-                          : 'bg-[#14161b]/98 text-white border border-white/20 hover:bg-white/18 hover:border-white/35 shadow-[0_14px_36px_rgba(0,0,0,0.7)]',
+                          ? 'border-rose-300/55 bg-rose-400/15 text-rose-100'
+                          : 'border-white/10 bg-black/20 text-white hover:border-rose-300/35 hover:bg-rose-400/8',
                       ].join(' ')
                     }
                   >
-                    <PrompterIcon className="h-5 w-5 text-[#ff547b]" />
-                    Prompteur
+                    <PrompterIcon className="h-10 w-10 text-white" />
+                    <span className="text-xs font-medium leading-tight">Prompteur</span>
                   </NavLink>
                   <NavLink
                     to="/metronome"
                     onClick={() => setIsLiveMenuOpen(false)}
                     className={({ isActive }) =>
                       [
-                        'flex min-w-[180px] items-center justify-center gap-3 rounded-2xl px-6 py-4 text-sm font-black uppercase tracking-[0.14em] transition-all backdrop-blur-2xl active:scale-95',
+                        'flex min-h-36 flex-col items-center justify-center gap-5 rounded-[1.5rem] border p-4 text-center transition active:scale-[0.98]',
                         isActive
-                          ? 'bg-[#ff3a63]/25 text-rose-200 border border-[#ff3a63]/60 shadow-[0_0_20px_rgba(255,58,99,0.4)]'
-                          : 'bg-[#14161b]/98 text-white border border-white/20 hover:bg-white/18 hover:border-white/35 shadow-[0_14px_36px_rgba(0,0,0,0.7)]',
+                          ? 'border-rose-300/55 bg-rose-400/15 text-rose-100'
+                          : 'border-white/10 bg-black/20 text-white hover:border-rose-300/35 hover:bg-rose-400/8',
                       ].join(' ')
                     }
                   >
-                    <MetronomeIcon className="h-5 w-5 text-[#ff547b]" />
-                    Click
+                    <MetronomeIcon className="h-10 w-10 text-white" />
+                    <span className="text-xs font-medium leading-tight">Métronome</span>
                   </NavLink>
+                  </div>
                 </div>
               </>
             ) : null}

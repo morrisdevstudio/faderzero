@@ -41,13 +41,17 @@ describe('subscribeToWorkspaceChanges', () => {
     subscribeToWorkspaceChanges('workspace-1', vi.fn());
 
     expect(channelFactory).toHaveBeenCalledWith('workspace:workspace-1');
-    expect(channel.on).toHaveBeenCalledTimes(5);
+    expect(channel.on).toHaveBeenCalledTimes(9);
     expect(channel.on.mock.calls.map((call) => call[1])).toEqual([
       { event: '*', schema: 'public', table: 'songs', filter: 'workspace_id=eq.workspace-1' },
       { event: '*', schema: 'public', table: 'setlists', filter: 'workspace_id=eq.workspace-1' },
       { event: '*', schema: 'public', table: 'setlist_songs', filter: 'workspace_id=eq.workspace-1' },
       { event: '*', schema: 'public', table: 'song_assets', filter: 'workspace_id=eq.workspace-1' },
       { event: '*', schema: 'public', table: 'events', filter: 'workspace_id=eq.workspace-1' },
+      { event: '*', schema: 'public', table: 'workspace_contacts', filter: 'workspace_id=eq.workspace-1' },
+      { event: '*', schema: 'public', table: 'booking_leads', filter: 'workspace_id=eq.workspace-1' },
+      { event: '*', schema: 'public', table: 'booking_notes', filter: 'workspace_id=eq.workspace-1' },
+      { event: '*', schema: 'public', table: 'booking_lead_contacts', filter: 'workspace_id=eq.workspace-1' },
     ]);
     expect(channel.subscribe).toHaveBeenCalledTimes(1);
   });

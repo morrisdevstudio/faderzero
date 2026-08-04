@@ -110,6 +110,14 @@ function UploadIcon() {
   );
 }
 
+function PlusIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
+}
+
 function PlayIcon() {
   return (
     <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true">
@@ -976,9 +984,9 @@ export function ImportsPage() {
               setIsCreateSongOpen(true);
             }}
             aria-label="Créer un morceau"
-            className="fz-button-primary inline-flex h-11 w-11 shrink-0 items-center justify-center p-0 text-xl font-light"
+            className="fz-button-primary h-11 w-11 shrink-0 p-0"
           >
-            <span aria-hidden="true">+</span>
+            <PlusIcon />
           </button> : null}
           {canWrite ? <input
             ref={fileInputRef}

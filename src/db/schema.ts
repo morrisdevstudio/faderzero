@@ -92,6 +92,85 @@ export interface PendingAudioUploadRecord {
 
 
 export type EventType = 'rehearsal' | 'concert' | 'meeting' | 'other';
+export type BookingStage = 'to_contact' | 'contacted' | 'in_discussion' | 'option' | 'confirmed' | 'closed';
+export type BookingPriority = 'low' | 'normal' | 'high';
+export type BookingNoteType = 'email_sent' | 'call' | 'message_sent' | 'reply_received' | 'internal_decision' | 'free_note';
+
+export interface PersonalContactRecord {
+  id: string;
+  ownerId: string;
+  name: string;
+  organization?: string | undefined;
+  role?: string | undefined;
+  city?: string | undefined;
+  website?: string | undefined;
+  email?: string | undefined;
+  phone?: string | undefined;
+  instagramUrl?: string | undefined;
+  facebookUrl?: string | undefined;
+  createdAt: number;
+  updatedAt: number;
+  deletedAt?: number;
+  serverVersion?: number;
+  syncStatus?: 'synced' | 'pending' | 'conflict';
+}
+
+export interface WorkspaceContactRecord extends Omit<PersonalContactRecord, 'ownerId'> {
+  workspaceId: string;
+}
+
+export interface BookingLeadRecord {
+  id: string;
+  workspaceId: string;
+  venueName: string;
+  city?: string | undefined;
+  stage: BookingStage;
+  priority: BookingPriority;
+  targetDate?: string | undefined;
+  targetPeriodStart?: string | undefined;
+  targetPeriodEnd?: string | undefined;
+  ownerId: string;
+  nextAction: string;
+  nextActionAt: number;
+  feeAmount?: number | undefined;
+  feeCurrency?: string | undefined;
+  summary?: string | undefined;
+  closeReason?: string | undefined;
+  eventId?: string | undefined;
+  createdAt: number;
+  updatedAt: number;
+  deletedAt?: number;
+  serverVersion?: number;
+  syncStatus?: 'synced' | 'pending' | 'conflict';
+}
+
+export interface BookingNoteRecord {
+  id: string;
+  workspaceId: string;
+  leadId: string;
+  authorId: string;
+  type: BookingNoteType;
+  occurredAt: number;
+  summary: string;
+  result?: string | undefined;
+  createdAt: number;
+  updatedAt: number;
+  deletedAt?: number;
+  serverVersion?: number;
+  syncStatus?: 'synced' | 'pending' | 'conflict';
+}
+
+export interface BookingLeadContactRecord {
+  id: string;
+  workspaceId: string;
+  leadId: string;
+  contactId: string;
+  createdAt: number;
+  updatedAt: number;
+  deletedAt?: number;
+  serverVersion?: number;
+  syncStatus?: 'synced' | 'pending' | 'conflict';
+}
 
 export interface EventRecord {
   id: string;
@@ -112,7 +191,7 @@ export interface EventRecord {
 export interface SyncQueueItem {
   id?: number;
   workspaceId: string;
-  entityType: 'song' | 'setlist' | 'setlistSong' | 'songAsset' | 'event';
+  entityType: LocalEntityType;
   entityId: string;
   operation: 'create' | 'update' | 'soft_delete';
   payload: any;
@@ -127,7 +206,7 @@ export interface SyncQueueItem {
 export interface SyncConflictRecord {
   id: string;
   workspaceId: string;
-  entityType: 'song' | 'setlist' | 'setlistSong' | 'songAsset' | 'event';
+  entityType: LocalEntityType;
   entityId: string;
   localRecord: any;
   remoteRecord: any;
@@ -143,7 +222,7 @@ export interface SyncStateRecord {
   lastPulledAt: number;
 }
 
-export type LocalEntityType = 'song' | 'setlist' | 'setlistSong' | 'songAsset' | 'event';
+export type LocalEntityType = 'song' | 'setlist' | 'setlistSong' | 'songAsset' | 'event' | 'personalContact' | 'workspaceContact' | 'bookingLead' | 'bookingNote' | 'bookingLeadContact';
 
 export interface LocalMigrationJournalRecord {
   id: string;
@@ -176,6 +255,11 @@ export interface RecoveryItemRecord {
 
 export interface DatabaseSchema {
   events: EventRecord;
+  personalContacts: PersonalContactRecord;
+  workspaceContacts: WorkspaceContactRecord;
+  bookingLeads: BookingLeadRecord;
+  bookingNotes: BookingNoteRecord;
+  bookingLeadContacts: BookingLeadContactRecord;
   songs: SongRecord;
   setlists: SetlistRecord;
   setlistSongs: SetlistSongRecord;

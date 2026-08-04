@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useLiveQuery } from 'dexie-react-hooks';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { StatusPill } from '@/components/StatusPill';
 import { eventsRepository } from '@/db/repositories/eventsRepository';
+import { bookingRepository } from '@/db/repositories/bookingRepository';
 import type { EventRecord } from '@/db/schema';
 import { useAuthStore } from '@/stores/authStore';
 import { EventFormModal } from './EventFormModal';
@@ -25,6 +27,15 @@ function PlusIcon() {
   return (
     <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
+}
+
+function BookingIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4 7h16v10H4z" />
+      <path d="M8 7V4h8v3M8 12h8M8 15h4" />
     </svg>
   );
 }
@@ -93,7 +104,7 @@ const WEEKDAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 type MonthTransitionDirection = 'previous' | 'next';
 
 export function CalendarPage() {
-  const { workspaces, session } = useAuthStore();
+  const { workspaces, session, activeWorkspace } = useAuthStore();
   const user = session?.user;
   useWorkspaceBadgeColors();
   const [events, setEvents] = useState<EventRecord[]>([]);
@@ -112,6 +123,9 @@ export function CalendarPage() {
   const [isDeletingEvent, setIsDeletingEvent] = useState(false);
   const [monthTransitionDirection, setMonthTransitionDirection] = useState<MonthTransitionDirection | null>(null);
   const calendarTouchStart = useRef<{ x: number; y: number } | null>(null);
+  const bookingLeads = useLiveQuery(() => bookingRepository.listLeads(activeWorkspace?.id), [activeWorkspace?.id]) ?? [];
+  const leadByEventId = useMemo(() => new Map(bookingLeads.filter((lead) => lead.eventId).map((lead) => [lead.eventId!, lead])), [bookingLeads]);
+  const goToBooking = () => { window.location.assign('/booking'); };
 
   const loadEvents = async () => {
     setLoading(true);
@@ -540,14 +554,10 @@ export function CalendarPage() {
             </svg>
             <h1 className="min-w-0 flex-1 text-[2rem] font-black tracking-tight text-white">Événements</h1>
           </div>
-          <button
-            type="button"
-            onClick={() => handleCreateNew()}
-            aria-label="Nouvel événement"
-            className="fz-button-primary h-11 w-11 shrink-0 p-0"
-          >
-            <PlusIcon />
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            <button type="button" onClick={goToBooking} aria-label="Ouvrir la prospection" title="Prospection" className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/10 text-white/80 transition hover:bg-white/15 hover:text-white"><BookingIcon /></button>
+            <button type="button" onClick={() => handleCreateNew()} aria-label="Nouvel événement" className="fz-button-primary h-11 w-11 shrink-0 p-0"><PlusIcon /></button>
+          </div>
         </div>
 
         {/* Search box & Filter Trigger */}
@@ -1052,6 +1062,7 @@ export function CalendarPage() {
 
             {/* Event Information as Form Controls (ReadOnly) */}
             {(() => {
+              const bookingLead = leadByEventId.get(activeBottomSheetEvent.id);
               const wsInfo = workspaceMap.get(activeBottomSheetEvent.workspaceId);
               const isPersonal = wsInfo?.type === 'personal' || activeBottomSheetEvent.workspaceId === 'personal' || activeBottomSheetEvent.workspaceId === 'default-workspace';
 
@@ -1083,6 +1094,11 @@ export function CalendarPage() {
 
               return (
                 <div className="mt-4 space-y-3.5">
+                  {bookingLead ? (
+                    <button type="button" onClick={goToBooking} className="flex w-full items-center justify-between rounded-xl border border-rose-300/20 bg-rose-400/10 px-3 py-2 text-xs font-black text-rose-100">
+                      Voir la prospection liée <span aria-hidden="true">→</span>
+                    </button>
+                  ) : null}
                   <div>
                     <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
                       Titre de l’événement

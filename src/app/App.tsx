@@ -6,7 +6,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { LoginPage } from '@/components/LoginPage';
 import { WorkspaceInvitePage } from '@/components/WorkspaceInvitePage';
 import { WorkspaceSelectionPage } from '@/components/WorkspaceSelectionPage';
-import { pushPendingMutations, pullRemoteChanges } from '@/services/supabase/sync';
+import { pushPendingMutations, pullRemoteChanges, syncPersonalContacts } from '@/services/supabase/sync';
 import { subscribeToWorkspaceChanges } from '@/services/supabase/realtime';
 import { db } from '@/db/db';
 import { canWriteWorkspace } from '@/services/supabase/workspace';
@@ -18,6 +18,7 @@ import { SplashScreen } from '@/components/SplashScreen';
 
 function SyncBootstrap() {
   const activeWorkspace = useAuthStore((state) => state.activeWorkspace);
+  const session = useAuthStore((state) => state.session);
   const refreshWorkspaceAccess = useAuthStore((state) => state.refreshWorkspaceAccess);
   const canWrite = canWriteWorkspace(activeWorkspace?.role);
   const isOnline = useOnlineStatus();
@@ -67,6 +68,7 @@ function SyncBootstrap() {
       syncInFlightRef.current = true;
 
       try {
+        if (session?.user.id) await syncPersonalContacts(session.user.id);
         const verifiedWorkspaces = await refreshWorkspaceAccess();
         const verifiedWorkspace = verifiedWorkspaces.find(({ id }) => id === workspaceId);
         if (!verifiedWorkspace) return;
@@ -106,7 +108,7 @@ function SyncBootstrap() {
       window.removeEventListener('online', handleOnline);
       window.clearInterval(intervalId);
     };
-  }, [activeWorkspace, canWrite, isOnline, refreshWorkspaceAccess]);
+  }, [activeWorkspace, canWrite, isOnline, refreshWorkspaceAccess, session?.user.id]);
 
   useEffect(() => {
     if (!activeWorkspace || !canWrite || !pendingMutationCount || pendingMutationCount <= 0 || !isOnline) {
@@ -149,6 +151,7 @@ function SyncBootstrap() {
       const verifiedWorkspaces = await refreshWorkspaceAccess();
       const verifiedWorkspace = verifiedWorkspaces.find(({ id }) => id === activeWorkspace.id);
       if (!verifiedWorkspace || !canWriteWorkspace(verifiedWorkspace.role)) return;
+      if (session?.user.id) await syncPersonalContacts(session.user.id);
       await processPendingAudioUploads(activeWorkspace.id);
       await pushPendingMutations(activeWorkspace.id, { includeFailed: true });
       await pullRemoteChanges(activeWorkspace.id);

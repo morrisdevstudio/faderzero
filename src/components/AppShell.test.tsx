@@ -90,10 +90,10 @@ describe('AppShell logo', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Actions rapides/ }));
 
-    expect(screen.getByRole('button', { name: 'Enregistrer' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Écrire' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Enregistrer une idée' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Nouvelles paroles' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Prompteur' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Click' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Métronome' })).toBeInTheDocument();
   });
 
   it('hides recording for read-only guests', () => {

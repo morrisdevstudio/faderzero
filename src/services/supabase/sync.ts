@@ -13,6 +13,8 @@ import {
   toLocalSongAsset,
   toDbEvent,
   toLocalEvent,
+  toDbPersonalContact, toLocalPersonalContact, toDbWorkspaceContact, toLocalWorkspaceContact,
+  toDbBookingLead, toLocalBookingLead, toDbBookingNote, toLocalBookingNote, toDbBookingLeadContact, toLocalBookingLeadContact,
   mapTimestampToMs,
 } from './mappers';
 
@@ -22,31 +24,41 @@ const ENTITY_CONFIGS = {
     localTable: 'songs',
     toDb: toDbSong,
     toLocal: toLocalSong,
+    scope: 'workspace',
   },
   setlist: {
     dbTable: 'setlists',
     localTable: 'setlists',
     toDb: toDbSetlist,
     toLocal: toLocalSetlist,
+    scope: 'workspace',
   },
   setlistSong: {
     dbTable: 'setlist_songs',
     localTable: 'setlistSongs',
     toDb: toDbSetlistSong,
     toLocal: toLocalSetlistSong,
+    scope: 'workspace',
   },
   songAsset: {
     dbTable: 'song_assets',
     localTable: 'songAssets',
     toDb: toDbSongAsset,
     toLocal: toLocalSongAsset,
+    scope: 'workspace',
   },
   event: {
     dbTable: 'events',
     localTable: 'events',
     toDb: toDbEvent,
     toLocal: toLocalEvent,
+    scope: 'workspace',
   },
+  personalContact: { dbTable: 'personal_contacts', localTable: 'personalContacts', toDb: toDbPersonalContact, toLocal: toLocalPersonalContact, scope: 'owner' },
+  workspaceContact: { dbTable: 'workspace_contacts', localTable: 'workspaceContacts', toDb: toDbWorkspaceContact, toLocal: toLocalWorkspaceContact, scope: 'workspace' },
+  bookingLead: { dbTable: 'booking_leads', localTable: 'bookingLeads', toDb: toDbBookingLead, toLocal: toLocalBookingLead, scope: 'workspace' },
+  bookingNote: { dbTable: 'booking_notes', localTable: 'bookingNotes', toDb: toDbBookingNote, toLocal: toLocalBookingNote, scope: 'workspace' },
+  bookingLeadContact: { dbTable: 'booking_lead_contacts', localTable: 'bookingLeadContacts', toDb: toDbBookingLeadContact, toLocal: toLocalBookingLeadContact, scope: 'workspace' },
 } as const;
 
 const DEFAULT_RETRY_DELAY_MS = 5000;
@@ -313,15 +325,19 @@ async function updateStateCheckpoint(workspaceId: string, tableName: string, ser
 
 export async function pullRemoteChanges(workspaceId: string): Promise<void> {
   for (const [, config] of Object.entries(ENTITY_CONFIGS)) {
+    const isUserScope = workspaceId.startsWith('user:');
+    if ((config.scope === 'owner') !== isUserScope) continue;
     const stateKey = `${workspaceId}:${config.localTable}`;
     const state = await db.syncState.get(stateKey);
     const lastPulledVersion = state ? state.lastPulledVersion : 0;
 
     try {
+      const scopeId = config.scope === 'owner' ? workspaceId.replace(/^user:/, '') : workspaceId;
+      const scopeColumn = config.scope === 'owner' ? 'owner_id' : 'workspace_id';
       const { data: remoteRows, error: pullError } = await supabase
         .from(config.dbTable)
         .select('*')
-        .eq('workspace_id', workspaceId)
+        .eq(scopeColumn, scopeId)
         .gt('server_version', lastPulledVersion)
         .order('server_version', { ascending: true });
 
@@ -368,6 +384,12 @@ export async function pullRemoteChanges(workspaceId: string): Promise<void> {
       throw err;
     }
   }
+}
+
+export async function syncPersonalContacts(ownerId: string): Promise<void> {
+  const scope = `user:${ownerId}`;
+  await pushPendingMutations(scope);
+  await pullRemoteChanges(scope);
 }
 
 export async function resolveConflict(conflictId: string, resolution: 'local' | 'remote'): Promise<void> {

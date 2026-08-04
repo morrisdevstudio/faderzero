@@ -152,12 +152,7 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
       return;
     }
 
-    if (!startDate || !startTime) {
-      setError("La date et l'heure de début sont requises.");
-      return;
-    }
-
-    if (endDate && endDate < startDate) {
+    if (endDate && startDate && endDate < startDate) {
       setError("La date de fin ne peut pas être antérieure à la date de début.");
       return;
     }
@@ -166,8 +161,9 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
     setError(null);
 
     try {
-      const startMs = new Date(`${startDate}T${startTime}`).getTime();
-      const endMs = endDate && endTime ? new Date(`${endDate}T${endTime}`).getTime() : undefined;
+      const effectiveStartDate = startDate || formatDateToInput(new Date());
+      const startMs = new Date(`${effectiveStartDate}T${startTime || '00:00'}`).getTime();
+      const endMs = endDate ? new Date(`${endDate}T${endTime || '00:00'}`).getTime() : undefined;
 
       const optionalFields = {
         ...(endMs !== undefined ? { endAt: endMs } : {}),
@@ -311,25 +307,23 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
-                Date de début
+                Date de début (optionnelle)
               </label>
               <input
                 type="date"
                 value={startDate}
                 onChange={(e) => handleStartDateChange(e.target.value)}
-                required
                 className="fz-input w-full text-xs"
               />
             </div>
             <div>
               <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
-                Heure de début
+                Heure de début (optionnelle)
               </label>
               <input
                 type="time"
                 value={startTime}
                 onChange={(e) => handleStartTimeChange(e.target.value)}
-                required
                 className="fz-input w-full text-xs"
               />
             </div>

@@ -5,6 +5,8 @@ import { eventsRepository } from '@/db/repositories/eventsRepository';
 import { getWorkspaceNewsFeed, type NewsFeedItem } from '@/services/newsFeed';
 import type { EventRecord, SongRecord } from '@/db/schema';
 import { db } from '@/db/db';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { bookingRepository } from '@/db/repositories/bookingRepository';
 
 interface GroupFeedSummary {
   workspaceId: string;
@@ -18,6 +20,8 @@ export function HomePage() {
   const [recentCreations, setRecentCreations] = useState<SongRecord[]>([]);
   const [groupSummaries, setGroupSummaries] = useState<GroupFeedSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const bookingLeads = useLiveQuery(() => bookingRepository.listLeads(activeWorkspace?.id), [activeWorkspace?.id]) ?? [];
+  const dueBookingCount = bookingLeads.filter((lead) => lead.stage !== 'closed' && lead.nextActionAt <= Date.now()).length;
 
   useEffect(() => {
     let active = true;
@@ -91,6 +95,11 @@ export function HomePage() {
           </div>
         </div>
       </section>
+
+      <Link to="/booking" className="flex items-center justify-between gap-3 rounded-2xl border border-rose-300/20 bg-rose-400/10 px-4 py-3 transition hover:bg-rose-400/15">
+        <span><span className="block text-[0.65rem] font-black uppercase tracking-[0.16em] text-rose-200">Prospection</span><span className="mt-0.5 block text-sm font-bold text-white">{dueBookingCount > 0 ? `${dueBookingCount} relance${dueBookingCount > 1 ? 's' : ''} à traiter` : 'Aucune relance en retard'}</span></span>
+        <span className="text-lg font-black text-rose-200" aria-hidden="true">→</span>
+      </Link>
 
       {/* 1. Prochains événements */}
       <section className="space-y-3">

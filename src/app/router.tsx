@@ -14,6 +14,7 @@ const SongWriterPage = lazy(async () => ({ default: (await import('@/features/so
 const SyncPage = lazy(async () => ({ default: (await import('@/features/sync/SyncPage')).SyncPage }));
 const HomePage = lazy(async () => ({ default: (await import('@/features/home/HomePage')).HomePage }));
 const CalendarPage = lazy(async () => ({ default: (await import('@/features/events/CalendarPage')).CalendarPage }));
+const BookingPage = lazy(async () => ({ default: (await import('@/features/booking/BookingPage')).BookingPage }));
 
 function RouteFallback() {
   return <div className="py-10 text-center text-xs text-white/45">Chargement…</div>;
@@ -29,6 +30,7 @@ export function AppRouter() {
         <Route index element={<HomePage />} />
         <Route path="/home" element={<HomePage />} />
         <Route path="/calendar" element={<CalendarPage />} />
+        <Route path="/booking" element={<BookingPage />} />
         <Route path="/songs" element={<ImportsPage />} />
         <Route path="/songs/:songId" element={<SongDetailPage />} />
         <Route path="/imports" element={<Navigate to="/songs" replace />} />

@@ -1,7 +1,7 @@
 import { supabase } from './client';
 import { getSession } from './auth';
 
-const REALTIME_TABLES = ['songs', 'setlists', 'setlist_songs', 'song_assets', 'events'] as const;
+const REALTIME_TABLES = ['songs', 'setlists', 'setlist_songs', 'song_assets', 'events', 'workspace_contacts', 'booking_leads', 'booking_notes', 'booking_lead_contacts'] as const;
 
 export function subscribeToWorkspaceChanges(
   workspaceId: string,

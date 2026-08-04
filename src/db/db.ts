@@ -12,13 +12,18 @@ import type {
   LocalMigrationJournalRecord,
   RecoveryItemRecord,
   EventRecord,
+  PersonalContactRecord,
+  WorkspaceContactRecord,
+  BookingLeadRecord,
+  BookingNoteRecord,
+  BookingLeadContactRecord,
 } from '@/db/schema';
 import { createId } from '@/lib/createId';
 import { now } from '@/lib/now';
 import { normalizeSongDocument, SONG_DOCUMENT_VERSION } from '@/db/songDocument';
 
 export const FADERZERO_DB_NAME = 'faderzero-pwa';
-export const FADERZERO_LOCAL_SCHEMA_VERSION = 12;
+export const FADERZERO_LOCAL_SCHEMA_VERSION = 13;
 
 const version1Stores = {
   songs: 'id, title, updatedAt',
@@ -64,10 +69,7 @@ const version7Stores = {
   syncQueue: '++id, status, queuedAt, entityType, entityId, workspaceId',
   syncConflicts: 'id, workspaceId, entityId, detectedAt',
   syncState: 'id, workspaceId, tableName',
-} satisfies Record<
-  Exclude<keyof DatabaseSchema, 'localMigrationJournal' | 'recoveryItems' | 'events' | 'pendingAudioUploads'>,
-  string
->;
+} satisfies Record<string, string>;
 
 const version8Stores = version7Stores;
 
@@ -75,19 +77,27 @@ const version9Stores = {
   ...version8Stores,
   localMigrationJournal: 'id, userId, status, updatedAt',
   recoveryItems: 'id, status, entityType, sourceWorkspaceId',
-} satisfies Record<Exclude<keyof DatabaseSchema, 'events' | 'pendingAudioUploads'>, string>;
+} satisfies Record<string, string>;
 
 const version10Stores = {
   ...version9Stores,
   events: 'id, workspaceId, startAt, eventType, updatedAt, deletedAt, syncStatus',
-} satisfies Record<Exclude<keyof DatabaseSchema, 'pendingAudioUploads'>, string>;
+} satisfies Record<string, string>;
 
 const version11Stores = {
   ...version10Stores,
   pendingAudioUploads: 'id, workspaceId, songId, status, queuedAt',
-} satisfies Record<keyof DatabaseSchema, string>;
+} satisfies Record<string, string>;
 
 const version12Stores = version11Stores;
+const version13Stores = {
+  ...version12Stores,
+  personalContacts: 'id, ownerId, name, organization, updatedAt, deletedAt, syncStatus',
+  workspaceContacts: 'id, workspaceId, name, organization, updatedAt, deletedAt, syncStatus',
+  bookingLeads: 'id, workspaceId, stage, nextActionAt, ownerId, updatedAt, deletedAt, syncStatus',
+  bookingNotes: 'id, workspaceId, leadId, occurredAt, updatedAt, deletedAt, syncStatus',
+  bookingLeadContacts: 'id, workspaceId, leadId, contactId, [leadId+contactId], updatedAt, deletedAt, syncStatus',
+} satisfies Record<keyof DatabaseSchema, string>;
 
 export class FaderZeroDatabase extends Dexie {
   songs!: EntityTable<SongRecord, 'id'>;
@@ -101,6 +111,11 @@ export class FaderZeroDatabase extends Dexie {
   localMigrationJournal!: EntityTable<LocalMigrationJournalRecord, 'id'>;
   recoveryItems!: EntityTable<RecoveryItemRecord, 'id'>;
   events!: EntityTable<EventRecord, 'id'>;
+  personalContacts!: EntityTable<PersonalContactRecord, 'id'>;
+  workspaceContacts!: EntityTable<WorkspaceContactRecord, 'id'>;
+  bookingLeads!: EntityTable<BookingLeadRecord, 'id'>;
+  bookingNotes!: EntityTable<BookingNoteRecord, 'id'>;
+  bookingLeadContacts!: EntityTable<BookingLeadContactRecord, 'id'>;
 
   constructor(name = FADERZERO_DB_NAME) {
     super(name);
@@ -252,6 +267,7 @@ export class FaderZeroDatabase extends Dexie {
             song.lyricsDocumentVersion = SONG_DOCUMENT_VERSION;
           });
       });
+    this.version(13).stores(version13Stores);
   }
 }
 

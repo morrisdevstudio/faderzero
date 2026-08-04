@@ -4,6 +4,11 @@ import type {
   SetlistSongRecord,
   SongAssetRecord,
   EventRecord,
+  PersonalContactRecord,
+  WorkspaceContactRecord,
+  BookingLeadRecord,
+  BookingNoteRecord,
+  BookingLeadContactRecord,
 } from '@/db/schema';
 import { normalizeSongDocument, SONG_DOCUMENT_VERSION } from '@/db/songDocument';
 
@@ -345,3 +350,30 @@ export function toDbEvent(event: EventRecord): Omit<DbEvent, 'server_version' | 
     deleted_at: mapMsToTimestamp(event.deletedAt),
   };
 }
+
+type DbSyncRecord = Record<string, any>;
+function toLocalShared<T extends { id: string; createdAt: number; updatedAt: number; syncStatus?: 'synced' | 'pending' | 'conflict'; serverVersion?: number }>(row: DbSyncRecord, fields: Record<string, string>) {
+  const result: Record<string, any> = { id: row.id, createdAt: mapTimestampToMs(row.created_at)!, updatedAt: mapTimestampToMs(row.client_updated_at) ?? mapTimestampToMs(row.updated_at)!, syncStatus: 'synced', serverVersion: row.server_version };
+  for (const [local, remote] of Object.entries(fields)) if (row[remote] !== null && row[remote] !== undefined) result[local] = row[remote];
+  const deletedAt = mapTimestampToMs(row.deleted_at); if (deletedAt !== undefined) result.deletedAt = deletedAt;
+  return result as T;
+}
+function toDbShared(record: Record<string, any>, fields: Record<string, string>) {
+  const result: Record<string, any> = { id: record.id, created_at: mapMsToTimestamp(record.createdAt), updated_at: mapMsToTimestamp(record.updatedAt), client_updated_at: mapMsToTimestamp(record.updatedAt), deleted_at: mapMsToTimestamp(record.deletedAt) };
+  for (const [local, remote] of Object.entries(fields)) result[remote] = record[local] ?? null;
+  return result;
+}
+const contactFields = { name: 'name', organization: 'organization', role: 'role', city: 'city', website: 'website', email: 'email', phone: 'phone', instagramUrl: 'instagram_url', facebookUrl: 'facebook_url' };
+export const toLocalPersonalContact = (row: DbSyncRecord) => toLocalShared<PersonalContactRecord>(row, { ownerId: 'owner_id', ...contactFields });
+export const toDbPersonalContact = (record: PersonalContactRecord) => toDbShared(record, { ownerId: 'owner_id', ...contactFields });
+export const toLocalWorkspaceContact = (row: DbSyncRecord) => toLocalShared<WorkspaceContactRecord>(row, { workspaceId: 'workspace_id', ...contactFields });
+export const toDbWorkspaceContact = (record: WorkspaceContactRecord) => toDbShared(record, { workspaceId: 'workspace_id', ...contactFields });
+const leadFields = { workspaceId: 'workspace_id', venueName: 'venue_name', city: 'city', stage: 'stage', priority: 'priority', targetDate: 'target_date', targetPeriodStart: 'target_period_start', targetPeriodEnd: 'target_period_end', ownerId: 'owner_id', nextAction: 'next_action', nextActionAt: 'next_action_at', feeAmount: 'fee_amount', feeCurrency: 'fee_currency', summary: 'summary', closeReason: 'close_reason', eventId: 'event_id' };
+export const toLocalBookingLead = (row: DbSyncRecord) => { const lead = toLocalShared<BookingLeadRecord>(row, leadFields); lead.nextActionAt = mapTimestampToMs(row.next_action_at)!; return lead; };
+export const toDbBookingLead = (record: BookingLeadRecord) => ({ ...toDbShared(record, leadFields), next_action_at: mapMsToTimestamp(record.nextActionAt) });
+const noteFields = { workspaceId: 'workspace_id', leadId: 'lead_id', authorId: 'author_id', type: 'type', summary: 'summary', result: 'result' };
+export const toLocalBookingNote = (row: DbSyncRecord) => { const note = toLocalShared<BookingNoteRecord>(row, noteFields); note.occurredAt = mapTimestampToMs(row.occurred_at)!; return note; };
+export const toDbBookingNote = (record: BookingNoteRecord) => ({ ...toDbShared(record, noteFields), occurred_at: mapMsToTimestamp(record.occurredAt) });
+const linkFields = { workspaceId: 'workspace_id', leadId: 'lead_id', contactId: 'contact_id' };
+export const toLocalBookingLeadContact = (row: DbSyncRecord) => toLocalShared<BookingLeadContactRecord>(row, linkFields);
+export const toDbBookingLeadContact = (record: BookingLeadContactRecord) => toDbShared(record, linkFields);
