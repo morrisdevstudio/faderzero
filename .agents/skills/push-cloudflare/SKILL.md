@@ -11,9 +11,9 @@ Publier le contenu courant du dépôt directement sur `origin/main`. Ce workflow
 ## Workflow
 
 1. Vérifier le contexte avec `git status --short --branch`, `git branch --show-current` et `git remote get-url origin`.
-2. Vérifier Docker avec `docker info`. Si le daemon est indisponible, démarrer Docker Desktop avec `docker desktop start`, mémoriser que la skill l'a démarré, puis attendre que `docker info` réussisse (maximum 90 secondes). Si Docker ne devient pas disponible, arrêter et indiquer la première erreur.
+2. Vérifier Docker avec `docker info` **dans le même contexte hôte autorisé que celui qui exécutera le hook `pre-push`**. Si un premier essai isolé signale un accès refusé au fichier de configuration Docker ou au pipe `docker_engine`, ce n'est pas un diagnostic de daemon indisponible : relancer `docker info` avec l'autorisation d'exécution hôte avant toute autre décision. Si le daemon est réellement indisponible dans ce contexte, démarrer Docker Desktop avec `docker desktop start`, mémoriser que la skill l'a démarré, puis attendre que `docker info` réussisse dans le même contexte (maximum 90 secondes). Si Docker ne devient pas disponible, arrêter et indiquer la première erreur réelle.
    - Ne jamais arrêter un Docker Desktop déjà démarré avant l'exécution de la skill.
-   - Si la skill a démarré Docker Desktop, l'arrêter avec `docker desktop stop` après le résultat final du push, qu'il réussisse ou échoue.
+   - Si la skill a démarré Docker Desktop, l'arrêter avec `docker desktop stop` dans le même contexte hôte après le résultat final du push, qu'il réussisse ou échoue.
 3. Si la branche courante n'est pas exactement `main`, arrêter et signaler le blocage. Ne pas changer de branche et ne pas fusionner automatiquement.
 4. Inspecter `git diff --stat`, `git diff`, `git diff --cached --stat` et les fichiers non suivis afin de comprendre tous les changements à publier.
 5. Si un fichier sensible non ignoré est détecté (`.env`, clé privée, token ou secret), arrêter avant le staging et indiquer le fichier concerné sans afficher sa valeur.

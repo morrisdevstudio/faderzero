@@ -70,10 +70,10 @@ export const bookingRepository = {
 
   async archiveLead(id: string) { return this.updateLead(id, { deletedAt: now() }); },
 
-  async confirmLead(id: string) {
+  async confirmLead(id: string, scheduledAt?: number) {
     const lead = await db.bookingLeads.get(id); if (!lead) throw new Error('Prospection introuvable');
     if (!lead.targetDate) throw new Error('Une date précise est requise pour créer le concert dans le calendrier.');
-    const startAt = new Date(`${lead.targetDate}T20:00:00`).getTime();
+    const startAt = scheduledAt ?? new Date(`${lead.targetDate}T20:00:00`).getTime();
     const location = [lead.venueName, lead.city].filter(Boolean).join(', ');
     const eventInput = { title: lead.venueName, eventType: 'concert' as const, startAt };
     const event = await eventsRepository.create({ ...eventInput, ...(location ? { location } : {}), ...(lead.summary ? { notes: lead.summary } : {}) }, lead.workspaceId);
@@ -123,5 +123,15 @@ export const bookingRepository = {
     const exists = await db.bookingLeadContacts.where('[leadId+contactId]').equals([leadId, contactId]).first(); if (exists && !exists.deletedAt) return exists;
     const timestamp = now(); const link: BookingLeadContactRecord = { id: createId(), workspaceId: lead.workspaceId, leadId, contactId, createdAt: timestamp, updatedAt: timestamp, serverVersion: 1, syncStatus: 'pending' };
     await db.transaction('rw', db.bookingLeadContacts, db.syncQueue, async () => { await db.bookingLeadContacts.add(link); await enqueueMutation(db, lead.workspaceId, 'bookingLeadContact', link.id, 'create', link); }); return link;
+  },
+
+  async unlinkContact(leadId: string, contactId: string) {
+    const link = await db.bookingLeadContacts.where('[leadId+contactId]').equals([leadId, contactId]).first();
+    if (!link || link.deletedAt) return;
+    const archived: BookingLeadContactRecord = { ...link, deletedAt: now(), updatedAt: now(), syncStatus: 'pending' };
+    await db.transaction('rw', db.bookingLeadContacts, db.syncQueue, async () => {
+      await db.bookingLeadContacts.put(archived);
+      await enqueueMutation(db, archived.workspaceId, 'bookingLeadContact', archived.id, 'soft_delete', archived, link.serverVersion);
+    });
   },
 };
