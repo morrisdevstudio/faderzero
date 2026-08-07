@@ -1,0 +1,150 @@
+{
+  "generatedAt": "2026-08-06T17:31:22.418Z",
+  "summary": {
+    "requested": 13,
+    "captured": 4,
+    "blocked": 9,
+    "failed": 0
+  },
+  "occurrences": [
+    {
+      "occurrenceId": "056ba440f53eb434",
+      "status": "captured",
+      "route": "/",
+      "scenarioId": "login-password-masked",
+      "selector": "[data-icon-audit-id=\"056ba440f53eb434\"]",
+      "file": "screenshots/icons/runtime/25932fdfbb12ff727f1f.png",
+      "width": 20,
+      "height": 20,
+      "reason": "rendu dépendant des propriétés React"
+    },
+    {
+      "occurrenceId": "c3083e5d6a796d19",
+      "status": "captured",
+      "route": "/",
+      "scenarioId": "login-confirm-password-masked",
+      "selector": "[data-icon-audit-id=\"c3083e5d6a796d19\"]",
+      "file": "screenshots/icons/runtime/e89d95adc2cf29dc5f86.png",
+      "width": 20,
+      "height": 20,
+      "reason": "rendu dépendant des propriétés React"
+    },
+    {
+      "occurrenceId": "614f22a90c4e443d",
+      "route": "/",
+      "scenarioId": "splash-loading",
+      "action": "splash",
+      "reason": "Ancre d’audit absente ou non visible dans ce scénario",
+      "status": "blocked-not-visible",
+      "selector": "[data-icon-audit-id=\"614f22a90c4e443d\"]"
+    },
+    {
+      "occurrenceId": "258c70ffcd42151a",
+      "status": "blocked-no-fixture",
+      "route": "/booking",
+      "scenarioId": "booking-contact-phone",
+      "selector": "[data-icon-audit-id=\"258c70ffcd42151a\"]",
+      "file": null,
+      "width": null,
+      "height": null,
+      "reason": "rendu dépendant des propriétés React — aucun contact de réservation visible"
+    },
+    {
+      "occurrenceId": "631082649aa6b220",
+      "status": "blocked-no-fixture",
+      "route": "/booking",
+      "scenarioId": "booking-contact-email",
+      "selector": "[data-icon-audit-id=\"631082649aa6b220\"]",
+      "file": null,
+      "width": null,
+      "height": null,
+      "reason": "rendu dépendant des propriétés React — aucun contact de réservation visible"
+    },
+    {
+      "occurrenceId": "98c96dd10aabaab6",
+      "status": "blocked-no-fixture",
+      "route": "/booking",
+      "scenarioId": "booking-contact-social",
+      "selector": "[data-icon-audit-id=\"98c96dd10aabaab6\"]",
+      "file": null,
+      "width": null,
+      "height": null,
+      "reason": "rendu dépendant des propriétés React — aucun contact de réservation visible"
+    },
+    {
+      "occurrenceId": "c1c3bba9be11ab46",
+      "status": "blocked-no-fixture",
+      "route": "/songs",
+      "scenarioId": "songs-audio-primary",
+      "selector": "[data-icon-audit-id=\"c1c3bba9be11ab46\"]",
+      "file": null,
+      "width": null,
+      "height": null,
+      "reason": "rendu dépendant des propriétés React — aucune piste audio visible"
+    },
+    {
+      "occurrenceId": "e141b12888456545",
+      "route": "/songs",
+      "scenarioId": "songs-extra-audio",
+      "action": "none",
+      "reason": "Ancre d’audit absente ou non visible dans ce scénario",
+      "status": "blocked-not-visible",
+      "selector": "[data-icon-audit-id=\"e141b12888456545\"]"
+    },
+    {
+      "occurrenceId": "3d216faaf426162e",
+      "status": "captured",
+      "route": "/prompter/play",
+      "scenarioId": "prompter-settings-speed-one",
+      "selector": "[data-icon-audit-id=\"3d216faaf426162e\"]",
+      "file": "screenshots/icons/runtime/6ad93e2242562d6f271e.png",
+      "width": null,
+      "height": null,
+      "reason": "rendu dépendant des propriétés React"
+    },
+    {
+      "occurrenceId": "889334d53deca34c",
+      "status": "captured",
+      "route": "/prompter/play",
+      "scenarioId": "prompter-settings-text-normal",
+      "selector": "[data-icon-audit-id=\"889334d53deca34c\"]",
+      "file": "screenshots/icons/runtime/27a034ef8bef5d1aee02.png",
+      "width": null,
+      "height": null,
+      "reason": "rendu dépendant des propriétés React"
+    },
+    {
+      "occurrenceId": "cbc0a967f918a0e7",
+      "status": "blocked-no-fixture",
+      "route": "/songs/:songId/write",
+      "scenarioId": "song-writer-left",
+      "selector": "[data-icon-audit-id=\"cbc0a967f918a0e7\"]",
+      "file": null,
+      "width": null,
+      "height": null,
+      "reason": "rendu dépendant des propriétés React — parcours dynamique de morceau à découvrir"
+    },
+    {
+      "occurrenceId": "f7d0341f46591999",
+      "status": "blocked-no-fixture",
+      "route": "/songs/:songId/write",
+      "scenarioId": "song-writer-right",
+      "selector": "[data-icon-audit-id=\"f7d0341f46591999\"]",
+      "file": null,
+      "width": null,
+      "height": null,
+      "reason": "rendu dépendant des propriétés React — parcours dynamique de morceau à découvrir"
+    },
+    {
+      "occurrenceId": "40b3ed90385e3285",
+      "status": "blocked-no-fixture",
+      "route": "/songs/:songId",
+      "scenarioId": "song-detail-primary-audio",
+      "selector": "[data-icon-audit-id=\"40b3ed90385e3285\"]",
+      "file": null,
+      "width": null,
+      "height": null,
+      "reason": "rendu dépendant des propriétés React — parcours dynamique de morceau à découvrir"
+    }
+  ]
+}

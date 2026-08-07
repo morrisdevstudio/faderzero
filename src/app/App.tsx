@@ -222,6 +222,10 @@ function AppContent() {
     );
   }
 
+  if (window.location.pathname === '/internal/design-system/icons') {
+    return <AppRouter />;
+  }
+
   if (!activeWorkspace) {
     return <WorkspaceSelectionPage />;
   }

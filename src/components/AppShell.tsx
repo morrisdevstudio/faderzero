@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type SVGProps } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { FormDialog } from '@/components/FormDialog';
 import { AudioMiniPlayer } from '@/features/audio/AudioMiniPlayer';
 import { QuickVoiceRecorder } from '@/features/recorder/QuickVoiceRecorder';
@@ -8,88 +8,9 @@ import { useForcedOffline, useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useWorkspaceBadgeColors } from '@/services/workspaceColors';
 import { toggleForcedOffline } from '@/services/connectivity';
 import { canWriteWorkspace } from '@/services/supabase/workspace';
-
-type IconProps = SVGProps<SVGSVGElement>;
+import { FzIcon } from '@/ui/icons';
 
 const scrollPositions = new Map<string, number>();
-
-function CalendarIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-      <line x1="16" y1="2" x2="16" y2="6" />
-      <line x1="8" y1="2" x2="8" y2="6" />
-      <line x1="3" y1="10" x2="21" y2="10" />
-    </svg>
-  );
-}
-
-function HomeIcon(props: IconProps) {
-  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="m3 10 9-7 9 7v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" /><path d="M9 22v-7h6v7" /></svg>;
-}
-
-function SongsIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
-      <path d="M6.5 17H20" />
-      <path d="M12 7v5" />
-      <circle cx="10.5" cy="12" r="1.5" />
-    </svg>
-  );
-}
-
-function SetlistIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" {...props}>
-      <path d="M9 7h10" />
-      <path d="M9 12h10" />
-      <path d="M9 17h10" />
-      <path d="M4 7h.01" />
-      <path d="M4 12h.01" />
-      <path d="M4 17h.01" />
-    </svg>
-  );
-}
-
-function PrompterIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <rect x="4" y="5" width="16" height="12" rx="2.5" />
-      <path d="M8 21h8" />
-      <path d="M12 17v4" />
-    </svg>
-  );
-}
-
-function MetronomeIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M7 20h10" />
-      <path d="M8.5 20 11 5h2l2.5 15" />
-      <path d="M10 11h4" />
-      <path d="M14.5 7.5 18 5" />
-    </svg>
-  );
-}
-
-function WriteIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M12 20h9" />
-      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-    </svg>
-  );
-}
-
-function RecordIdeaIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <rect x="9" y="3" width="6" height="12" rx="3" />
-      <path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7" />
-    </svg>
-  );
-}
 
 function FaderHeaderLogo() {
   const longPressTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -403,7 +324,7 @@ export function AppShell() {
       <nav className="fixed inset-x-0 bottom-0 z-40 bg-[#0c0d10]/96 border-t border-white/10 shadow-[0_-16px_40px_rgba(0,0,0,0.5)] backdrop-blur-xl">
         <div className="mx-auto flex w-full max-w-md items-center justify-around px-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2">
           <NavLink to="/home" className={({ isActive }) => ['flex flex-1 flex-col items-center justify-center gap-1 py-1 text-center transition-colors', isActive ? 'text-white font-bold' : 'text-white/40 hover:text-white/70'].join(' ')}>
-            {({ isActive }) => <><HomeIcon className={['h-5 w-5', isActive ? 'text-white' : 'text-white/40'].join(' ')} /><span className="text-[0.6rem] uppercase tracking-wider">Accueil</span><span className={['h-1 w-1 rounded-full', isActive ? 'bg-[#ff3a63]' : 'bg-transparent'].join(' ')} /></>}
+            {({ isActive }) => <><FzIcon name="home" usageId="app-shell.navigation.home" className={['h-5 w-5', isActive ? 'text-white' : 'text-white/40'].join(' ')} /><span className="text-[0.6rem] uppercase tracking-wider">Accueil</span><span className={['h-1 w-1 rounded-full', isActive ? 'bg-[#ff3a63]' : 'bg-transparent'].join(' ')} /></>}
           </NavLink>
 
           {/* 2. Calendrier */}
@@ -418,7 +339,7 @@ export function AppShell() {
           >
             {({ isActive }) => (
               <>
-                <CalendarIcon className={['h-5 w-5 transition-colors', isActive ? 'text-white' : 'text-white/40'].join(' ')} />
+                <FzIcon name="calendar" usageId="app-shell.navigation.calendar" className={['h-5 w-5 transition-colors', isActive ? 'text-white' : 'text-white/40'].join(' ')} />
                 <span className="text-[0.6rem] uppercase tracking-wider">Calendrier</span>
                 <span className={['h-1 w-1 rounded-full transition-all', isActive ? 'bg-[#ff3a63] opacity-100 scale-100' : 'bg-transparent opacity-0 scale-50'].join(' ')} />
               </>
@@ -448,7 +369,7 @@ export function AppShell() {
                       }}
                       className="flex min-h-36 flex-col items-center justify-center gap-5 rounded-[1.5rem] border border-white/10 bg-black/20 p-4 text-center text-white transition hover:border-rose-300/35 hover:bg-rose-400/8 active:scale-[0.98]"
                     >
-                      <RecordIdeaIcon className="h-10 w-10 text-white" />
+                      <FzIcon name="record" usageId="app-shell.quick-actions.record" size="xl" className="h-10 w-10 text-white" />
                       <span className="text-xs font-medium leading-tight">Enregistrer une idée</span>
                     </button>
                   ) : null}
@@ -460,7 +381,7 @@ export function AppShell() {
                     }}
                     className="flex min-h-36 flex-col items-center justify-center gap-5 rounded-[1.5rem] border border-white/10 bg-black/20 p-4 text-center text-white transition hover:border-rose-300/35 hover:bg-rose-400/8 active:scale-[0.98]"
                   >
-                    <WriteIcon className="h-10 w-10 text-white" />
+                    <FzIcon name="edit" usageId="app-shell.quick-actions.write" size="xl" className="h-10 w-10 text-white" />
                     <span className="text-xs font-medium leading-tight">Nouvelles paroles</span>
                   </button>
                   <NavLink
@@ -475,7 +396,7 @@ export function AppShell() {
                       ].join(' ')
                     }
                   >
-                    <PrompterIcon className="h-10 w-10 text-white" />
+                    <FzIcon name="prompter" usageId="app-shell.quick-actions.prompter" size="xl" className="h-10 w-10 text-white" />
                     <span className="text-xs font-medium leading-tight">Prompteur</span>
                   </NavLink>
                   <NavLink
@@ -490,7 +411,7 @@ export function AppShell() {
                       ].join(' ')
                     }
                   >
-                    <MetronomeIcon className="h-10 w-10 text-white" />
+                    <FzIcon name="metronome" usageId="app-shell.quick-actions.metronome" size="xl" className="h-10 w-10 text-white" />
                     <span className="text-xs font-medium leading-tight">Métronome</span>
                   </NavLink>
                   </div>
@@ -529,7 +450,7 @@ export function AppShell() {
           >
             {({ isActive }) => (
               <>
-                <SongsIcon className={['h-5 w-5 transition-colors', isActive ? 'text-white' : 'text-white/40'].join(' ')} />
+                <FzIcon name="songs" usageId="app-shell.navigation.songs" className={['h-5 w-5 transition-colors', isActive ? 'text-white' : 'text-white/40'].join(' ')} />
                 <span className="text-[0.6rem] uppercase tracking-wider">Morceaux</span>
                 <span className={['h-1 w-1 rounded-full transition-all', isActive ? 'bg-[#ff3a63] opacity-100 scale-100' : 'bg-transparent opacity-0 scale-50'].join(' ')} />
               </>
@@ -548,7 +469,7 @@ export function AppShell() {
           >
             {({ isActive }) => (
               <>
-                <SetlistIcon className={['h-5 w-5 transition-colors', isActive ? 'text-white' : 'text-white/40'].join(' ')} />
+                <FzIcon name="setlist" usageId="app-shell.navigation.setlists" className={['h-5 w-5 transition-colors', isActive ? 'text-white' : 'text-white/40'].join(' ')} />
                 <span className="text-[0.6rem] uppercase tracking-wider">Setlist</span>
                 <span className={['h-1 w-1 rounded-full transition-all', isActive ? 'bg-[#ff3a63] opacity-100 scale-100' : 'bg-transparent opacity-0 scale-50'].join(' ')} />
               </>

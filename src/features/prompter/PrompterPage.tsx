@@ -43,9 +43,9 @@ function SpeedIcon({ count, ...props }: IconProps & { count: 1 | 2 | 3 }) {
   return <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>{count === 1 ? <path d="M7 5.5 18 12 7 18.5Z" /> : count === 2 ? <><path d="M3.5 6 12 12l-8.5 6Z" /><path d="M11.5 6 20 12l-8.5 6Z" /></> : <><path d="M2 7 9 12l-7 5Z" /><path d="M8 7l7 5-7 5Z" /><path d="m14 7 7 5-7 5Z" /></>}</svg>;
 }
 
-function TextSizeIcon({ scale }: { scale: number }) {
+function TextSizeIcon({ scale, iconAuditId }: { scale: number; iconAuditId?: string | undefined }) {
   const sizeClass = scale === 1 ? 'text-[0.62rem]' : scale === 1.15 ? 'text-[0.95rem]' : 'text-[1.3rem]';
-  return <span aria-hidden="true" className={`inline-flex items-baseline font-black leading-none tracking-[-0.04em] ${sizeClass}`}><span>A</span><span className="text-[0.65em]">a</span></span>;
+  return <span aria-hidden="true" data-icon-audit-id={iconAuditId} className={`inline-flex items-baseline font-black leading-none tracking-[-0.04em] ${sizeClass}`}><span>A</span><span className="text-[0.65em]">a</span></span>;
 }
 
 function Lyrics({ text, scale }: { text: string; scale: number }) {
@@ -141,7 +141,7 @@ export function PrompterPage() {
             {([0, 1, 2, 3] as const).map((speed) => {
               const isActive = preferences.speed === speed;
               const label = speed === 0 ? 'Arrêter le défilement' : `Vitesse de défilement ${speed}`;
-              return <button key={speed} type="button" onClick={() => savePreferences({ ...preferences, speed })} aria-label={label} title={label} aria-pressed={isActive} className={[settingsOptionClass, isActive ? 'bg-emerald-300 text-[#07100a]' : 'text-white/60 hover:bg-white/8 hover:text-white active:bg-white/12'].join(' ')}>{speed === 0 ? <StopIcon className="h-4 w-4" /> : <SpeedIcon count={speed} className="h-5 w-5" />}</button>;
+              return <button key={speed} type="button" onClick={() => savePreferences({ ...preferences, speed })} aria-label={label} title={label} aria-pressed={isActive} className={[settingsOptionClass, isActive ? 'bg-emerald-300 text-[#07100a]' : 'text-white/60 hover:bg-white/8 hover:text-white active:bg-white/12'].join(' ')}>{speed === 0 ? <StopIcon className="h-4 w-4" /> : <SpeedIcon count={speed} className="h-5 w-5" data-icon-audit-id={speed === 1 ? '3d216faaf426162e' : undefined} />}</button>;
             })}
           </div>
           <span aria-hidden="true" className="h-6 w-px shrink-0 bg-white/10" />
@@ -149,7 +149,7 @@ export function PrompterPage() {
             {[1, 1.15, 1.3].map((scale) => {
               const isActive = preferences.scale === scale;
               const label = scale === 1 ? 'Texte normal' : scale === 1.15 ? 'Texte agrandi' : 'Texte très agrandi';
-              return <button key={scale} type="button" onClick={() => savePreferences({ ...preferences, scale })} aria-label={label} title={label} aria-pressed={isActive} className={[settingsOptionClass, isActive ? 'bg-emerald-300 text-[#07100a]' : 'text-white/60 hover:bg-white/8 hover:text-white active:bg-white/12'].join(' ')}><TextSizeIcon scale={scale} /></button>;
+              return <button key={scale} type="button" onClick={() => savePreferences({ ...preferences, scale })} aria-label={label} title={label} aria-pressed={isActive} className={[settingsOptionClass, isActive ? 'bg-emerald-300 text-[#07100a]' : 'text-white/60 hover:bg-white/8 hover:text-white active:bg-white/12'].join(' ')}><TextSizeIcon scale={scale} iconAuditId={scale === 1 ? '889334d53deca34c' : undefined} /></button>;
             })}
           </div>
         </div>

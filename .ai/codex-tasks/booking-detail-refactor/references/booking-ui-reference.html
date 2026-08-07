@@ -1,0 +1,1087 @@
+<!doctype html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FaderZero — Booking UI Canvas · Design B</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --page: #08090b;
+      --page-grid: rgba(255,255,255,.025);
+      --panel: #111318;
+      --panel-2: #161920;
+      --panel-3: #20242b;
+      --field: #24272e;
+      --text: #f5f1ec;
+      --muted: #9ca4af;
+      --faint: #68717d;
+      --line: rgba(255,255,255,.10);
+      --line-strong: rgba(255,255,255,.18);
+      --accent: #ff315f;
+      --accent-2: #ff7594;
+      --accent-soft: rgba(255,49,95,.14);
+      --accent-glow: rgba(255,49,95,.22);
+      --warning: #f7c96d;
+      --success: #63dda0;
+      --danger: #ff9eb0;
+      --shadow: 0 28px 80px rgba(0,0,0,.48);
+      --phone-shadow: 0 24px 80px rgba(0,0,0,.55);
+      --radius-xl: 28px;
+      --radius-lg: 20px;
+      --radius-md: 16px;
+      --radius-sm: 12px;
+      --phone-w: 390px;
+      --phone-h: 844px;
+    }
+
+    html[data-theme="light"] {
+      color-scheme: light;
+      --page: #eeeae5;
+      --page-grid: rgba(25,25,28,.035);
+      --panel: #ffffff;
+      --panel-2: #f7f4f1;
+      --panel-3: #ebe7e3;
+      --field: #f2efec;
+      --text: #17171a;
+      --muted: #686973;
+      --faint: #94959d;
+      --line: rgba(25,25,28,.10);
+      --line-strong: rgba(25,25,28,.18);
+      --accent-soft: rgba(255,49,95,.10);
+      --accent-glow: rgba(255,49,95,.12);
+      --warning: #916710;
+      --success: #167a4b;
+      --danger: #b82646;
+      --shadow: 0 28px 80px rgba(63,54,45,.18);
+      --phone-shadow: 0 24px 60px rgba(63,54,45,.24);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; }
+    body {
+      margin: 0;
+      min-width: 320px;
+      background:
+        radial-gradient(circle at 12% 10%, rgba(255,49,95,.13), transparent 22%),
+        radial-gradient(circle at 86% 15%, rgba(110,130,255,.08), transparent 22%),
+        linear-gradient(var(--page-grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--page-grid) 1px, transparent 1px),
+        var(--page);
+      background-size: auto, auto, 28px 28px, 28px 28px, auto;
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button, input, select, textarea { font: inherit; }
+    button { color: inherit; }
+
+    .workspace {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    .toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      border-bottom: 1px solid var(--line);
+      background: color-mix(in srgb, var(--page) 88%, transparent);
+      backdrop-filter: blur(22px);
+    }
+
+    .toolbar-inner {
+      width: min(1380px, 100%);
+      margin: 0 auto;
+      padding: 14px 18px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .brand-block { min-width: 0; }
+    .eyebrow {
+      margin: 0 0 3px;
+      color: var(--accent-2);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: .17em;
+      text-transform: uppercase;
+    }
+    .title {
+      margin: 0;
+      font-size: clamp(18px, 2vw, 24px);
+      line-height: 1.05;
+      letter-spacing: -.035em;
+    }
+    .subtitle {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      max-width: 700px;
+    }
+
+    .toolbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: color-mix(in srgb, var(--panel) 78%, transparent);
+    }
+
+    .icon-button {
+      width: 36px;
+      height: 36px;
+      border: 0;
+      border-radius: 10px;
+      background: transparent;
+      display: inline-grid;
+      place-items: center;
+      color: var(--muted);
+      cursor: pointer;
+      transition: 150ms ease;
+    }
+    .icon-button:hover { background: var(--panel-3); color: var(--text); }
+
+    .canvas-layout {
+      width: min(1380px, 100%);
+      margin: 0 auto;
+      padding: 28px 18px 56px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 360px;
+      gap: 28px;
+      align-items: start;
+    }
+
+    .stage {
+      min-height: 920px;
+      display: grid;
+      place-items: start center;
+      padding: 24px;
+      border: 1px solid var(--line);
+      border-radius: 26px;
+      background:
+        radial-gradient(circle at 50% 16%, rgba(255,255,255,.045), transparent 32%),
+        color-mix(in srgb, var(--panel) 45%, transparent);
+      overflow: hidden;
+    }
+
+    .device-stack {
+      position: relative;
+      display: grid;
+      place-items: center;
+      width: 100%;
+      min-height: 870px;
+    }
+
+    .device-label {
+      position: absolute;
+      top: -7px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 7px 11px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--panel);
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      z-index: 3;
+    }
+
+    .phone {
+      position: relative;
+      width: var(--phone-w);
+      height: var(--phone-h);
+      border: 1px solid var(--line-strong);
+      border-radius: 42px;
+      background: #050607;
+      box-shadow: var(--phone-shadow);
+      overflow: hidden;
+      transform-origin: top center;
+    }
+    html[data-theme="light"] .phone { background: #f7f4f0; }
+    .phone::before {
+      content: "";
+      position: absolute;
+      top: 9px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 92px;
+      height: 24px;
+      border-radius: 999px;
+      background: #000;
+      z-index: 20;
+    }
+
+    .app {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      background:
+        radial-gradient(circle at 84% 0%, rgba(255,49,95,.12), transparent 26%),
+        linear-gradient(180deg, #0f1115 0%, #0b0c0f 100%);
+    }
+    html[data-theme="light"] .app {
+      background:
+        radial-gradient(circle at 84% 0%, rgba(255,49,95,.08), transparent 26%),
+        linear-gradient(180deg, #faf8f6 0%, #efebe7 100%);
+    }
+
+    .app-header {
+      position: sticky;
+      top: 0;
+      z-index: 6;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 44px 18px 10px;
+      background: linear-gradient(180deg, rgba(8,9,11,.94), rgba(8,9,11,.70), transparent);
+      backdrop-filter: blur(10px);
+    }
+    html[data-theme="light"] .app-header { background: linear-gradient(180deg, rgba(250,248,246,.92), rgba(250,248,246,.72), transparent); }
+
+    .fz-logo { display: flex; align-items: center; gap: 9px; }
+    .fader-mark {
+      width: 9px; height: 34px; position: relative; display: inline-block; background: white; border-radius: 1px;
+    }
+    .fader-mark::after {
+      content: ""; position: absolute; left: 50%; top: 9px; transform: translateX(-50%); width: 16px; height: 15px; border-radius: 2px; background: white;
+    }
+    .fz-wordmark {
+      display: grid; gap: 1px; font-size: 14px; font-weight: 950; letter-spacing: .10em; line-height: 1;
+    }
+    .fz-wordmark span { display: block; }
+
+    .workspace-badge {
+      display: flex; align-items: center; gap: 10px; min-width: 0;
+    }
+    .workspace-name {
+      max-width: 150px; font-size: 12px; font-weight: 900; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .avatar {
+      width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: linear-gradient(145deg, #7263ff, #5d3aff); color: white; font-size: 11px; font-weight: 950;
+      box-shadow: 0 10px 26px rgba(93,58,255,.28);
+    }
+
+    .app-main {
+      padding: 8px 16px 18px;
+      overflow: auto;
+      scrollbar-width: none;
+    }
+    .app-main::-webkit-scrollbar { display: none; }
+
+    .detail-header {
+      display: grid;
+      grid-template-columns: 44px 1fr 44px;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+    .back, .kebab {
+      width: 44px; height: 44px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 14px; background: color-mix(in srgb, var(--panel) 88%, transparent); color: var(--text); cursor: pointer;
+    }
+    .back { font-size: 24px; line-height: 1; }
+    .kebab { font-size: 20px; }
+    .venue-title {
+      margin: 0; font-size: 24px; line-height: 1; letter-spacing: -.04em; font-weight: 950;
+    }
+    .venue-city {
+      margin: 7px 0 0; color: var(--muted); font-size: 13px;
+    }
+
+    .status-strip {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .status-pill {
+      min-height: 42px;
+      display: grid;
+      align-content: center;
+      justify-items: center;
+      padding: 8px 4px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: color-mix(in srgb, var(--panel) 92%, transparent);
+      color: var(--faint);
+      font-size: 10px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      text-align: center;
+    }
+    .status-pill.active {
+      color: white;
+      border-color: rgba(255,49,95,.3);
+      background: linear-gradient(180deg, rgba(255,49,95,.22), rgba(255,49,95,.08));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 12px 28px rgba(255,49,95,.12);
+    }
+
+    .section-label {
+      margin: 0;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 950;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+    }
+    .section-block { margin: 18px 2px 10px; }
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin: 18px 2px 10px;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: color-mix(in srgb, var(--panel) 92%, transparent);
+      box-shadow: 0 14px 42px rgba(0,0,0,.18);
+    }
+
+    .hero-card {
+      position: relative;
+      overflow: hidden;
+      padding: 15px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,0)),
+        color-mix(in srgb, var(--panel) 94%, transparent);
+      box-shadow: 0 10px 28px rgba(0,0,0,.14);
+    }
+    .hero-card::after {
+      content: "";
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 3px;
+      background: rgba(255,49,95,.55);
+    }
+    .hero-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .hero-eyebrow {
+      margin: 0;
+      color: var(--muted);
+      font-size: 9px;
+      font-weight: 950;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+    .hero-title {
+      margin: 7px 0 0;
+      font-size: 19px;
+      line-height: 1.08;
+      letter-spacing: -.03em;
+      font-weight: 900;
+    }
+    .hero-copy {
+      margin: 7px 0 0;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.45;
+    }
+    .hero-badge {
+      flex: 0 0 auto;
+      padding: 6px 9px;
+      border-radius: 999px;
+      background: rgba(247,201,109,.10);
+      color: var(--warning);
+      font-size: 9px;
+      font-weight: 950;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .meta-card {
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: color-mix(in srgb, var(--panel-2) 90%, transparent);
+    }
+    .meta-label {
+      margin: 0;
+      color: var(--muted);
+      font-size: 9px;
+      font-weight: 950;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+    }
+    .meta-value {
+      margin: 6px 0 0;
+      font-size: 13px;
+      font-weight: 900;
+      line-height: 1.25;
+      letter-spacing: -.02em;
+    }
+    .action-row {
+      display: grid;
+      grid-template-columns: 1fr 1.2fr;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .soft-button, .primary, .secondary, .danger-button, .quick-action {
+      min-height: 40px;
+      border: 0;
+      border-radius: 14px;
+      font-size: 12px;
+      font-weight: 900;
+      cursor: pointer;
+      transition: 140ms ease;
+    }
+    .soft-button {
+      background: color-mix(in srgb, var(--panel-3) 90%, transparent);
+      color: var(--text);
+      border: 1px solid var(--line);
+    }
+    .primary {
+      background: linear-gradient(180deg, #ff547b 0%, #ff2f5c 100%);
+      color: white;
+      box-shadow: 0 12px 26px rgba(255,49,95,.25);
+    }
+    .secondary {
+      background: #fff;
+      color: #111318;
+    }
+    .danger-button {
+      background: rgba(255,49,95,.12);
+      color: var(--danger);
+      border: 1px solid rgba(255,49,95,.20);
+    }
+
+    .negotiation-card {
+      padding: 14px;
+      display: grid;
+      gap: 12px;
+      border-radius: 18px;
+      background: color-mix(in srgb, var(--panel) 95%, transparent);
+      box-shadow: 0 10px 28px rgba(0,0,0,.14);
+    }
+    .negotiation-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .negotiation-label {
+      margin: 0;
+      color: var(--muted);
+      font-size: 9px;
+      font-weight: 950;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+    .negotiation-value {
+      margin: 6px 0 0;
+      font-size: 19px;
+      font-weight: 900;
+      letter-spacing: -.03em;
+      line-height: 1.08;
+    }
+    .negotiation-badge {
+      flex: 0 0 auto;
+      min-height: 28px;
+      padding: 0 10px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255,49,95,.12);
+      color: var(--accent-2);
+      font-size: 9px;
+      font-weight: 950;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .negotiation-copy {
+      margin: 0;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.45;
+    }
+    .negotiation-meta {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap: 8px;
+    }
+    .negotiation-meta-card {
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: color-mix(in srgb, var(--panel-2) 90%, transparent);
+    }
+    .negotiation-meta-card span {
+      display: block;
+      color: var(--muted);
+      font-size: 9px;
+      font-weight: 950;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    .negotiation-meta-card strong {
+      display: block;
+      margin-top: 6px;
+      font-size: 13px;
+      font-weight: 900;
+      line-height: 1.25;
+    }
+
+    .contact-stack, .note-stack, .timeline { display: grid; gap: 10px; }
+
+    .contact-card {
+      padding: 12px 14px;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 20px;
+      background:
+        radial-gradient(circle at 50% 50%, rgba(255,255,255,.03), transparent 65%),
+        linear-gradient(180deg, rgba(255,255,255,.018), rgba(255,255,255,0)),
+        color-mix(in srgb, var(--panel) 97%, transparent);
+      box-shadow: 0 12px 30px rgba(0,0,0,.16);
+    }
+    .contact-avatar {
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: linear-gradient(145deg, #a84a61, #7d3146);
+      color: white;
+      font-size: 12px;
+      font-weight: 900;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+    }
+    .contact-info { min-width: 0; }
+    .contact-name { margin: 0; font-size: 14px; font-weight: 950; color: var(--text); }
+    .contact-role { margin: 4px 0 0; color: #9cacbf; font-size: 10.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .contact-actions { display: flex; gap: 8px; }
+    .contact-icon-button {
+      width: 40px;
+      height: 40px;
+      border: 0;
+      border-radius: 12px;
+      display: inline-grid;
+      place-items: center;
+      background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02)), color-mix(in srgb, var(--panel-2) 94%, transparent);
+      color: #f5f1ec;
+      cursor: pointer;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+    }
+    .contact-icon-button svg { width: 16px; height: 16px; }
+
+    .note-card {
+      padding: 14px;
+    }
+    .note-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .timeline {
+      position: relative;
+      padding-bottom: 6px;
+    }
+    .timeline::before {
+      content: "";
+      position: absolute;
+      left: 15px;
+      top: 10px;
+      bottom: 8px;
+      width: 1px;
+      background: linear-gradient(180deg, rgba(255,49,95,.22), var(--line));
+    }
+    .timeline-item {
+      position: relative;
+      display: grid;
+      grid-template-columns: 32px 1fr;
+      gap: 10px;
+      align-items: start;
+    }
+    .timeline-dot {
+      width: 30px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      border: 1px solid var(--line);
+      background: color-mix(in srgb, var(--panel-2) 96%, transparent);
+      color: var(--accent-2);
+      font-size: 11px;
+      font-weight: 900;
+      z-index: 1;
+    }
+    .timeline-body {
+      padding: 12px 13px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: color-mix(in srgb, var(--panel) 94%, transparent);
+    }
+    .timeline-body.future {
+      border-color: rgba(255,49,95,.28);
+      box-shadow: inset 0 0 0 1px rgba(255,49,95,.06);
+    }
+    .timeline-title { margin: 0; font-size: 12px; font-weight: 950; }
+    .timeline-copy { margin: 5px 0 0; color: var(--muted); font-size: 11px; line-height: 1.45; }
+    .timeline-time { margin: 8px 0 0; color: var(--faint); font-size: 9px; }
+    .timeline-add-button {
+      min-height: 34px;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--panel-2) 90%, transparent);
+      color: var(--text);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+    .timeline-add-button:hover {
+      border-color: rgba(255,49,95,.25);
+      background: color-mix(in srgb, var(--panel-3) 88%, transparent);
+    }
+
+    .bottom-nav {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      align-items: center;
+      border-top: 1px solid var(--line);
+      background: color-mix(in srgb, var(--panel) 95%, transparent);
+      backdrop-filter: blur(18px);
+      padding: 7px 8px 9px;
+      z-index: 5;
+    }
+    .nav-item {
+      display: grid;
+      place-items: center;
+      gap: 3px;
+      color: var(--faint);
+      font-size: 7px;
+      font-weight: 850;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+    .nav-item svg { width: 18px; height: 18px; }
+    .nav-item.active { color: var(--text); }
+    .nav-dot { width: 4px; height: 4px; border-radius: 50%; background: transparent; }
+    .nav-item.active .nav-dot { background: var(--accent); }
+    .live-button {
+      margin-top: -13px;
+      width: 42px; height: 42px; border-radius: 50%;
+      display: grid; place-items: center;
+      background: linear-gradient(180deg, #ff4a4a, #b41414);
+      box-shadow: 0 0 18px rgba(239,68,68,.45);
+    }
+    .live-button::after { content: ""; width: 11px; height: 11px; border-radius: 50%; background: white; }
+
+    .modal-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,.64);
+      display: none;
+      align-items: end;
+      justify-content: center;
+      padding: 20px 12px 0;
+      z-index: 16;
+    }
+    .modal-overlay.active { display: flex; }
+    .sheet {
+      width: 100%;
+      border: 1px solid var(--line-strong);
+      border-radius: 28px 28px 0 0;
+      background:
+        radial-gradient(circle at 50% 0%, rgba(255,255,255,.06), transparent 30%),
+        var(--panel);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      max-height: 92%;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+    .sheet-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 18px 18px 12px;
+      border-bottom: 1px solid var(--line);
+    }
+    .sheet-title { margin: 0; font-size: 20px; letter-spacing: -.03em; }
+    .close-sheet {
+      width: 36px; height: 36px; border: 0; border-radius: 12px; background: transparent; color: var(--muted); font-size: 28px; line-height: 1; cursor: pointer;
+    }
+    .sheet-body {
+      padding: 14px 18px 20px;
+      overflow: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .field {
+      display: grid;
+      gap: 8px;
+    }
+    .field label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .required { color: var(--accent-2); }
+    .input, .select, .textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: color-mix(in srgb, var(--field) 92%, transparent);
+      color: var(--text);
+      outline: none;
+      padding: 13px 14px;
+    }
+    .textarea { min-height: 110px; resize: vertical; }
+    .hint { margin: 0; color: var(--faint); font-size: 11px; }
+    .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .date-chip {
+      min-height: 34px;
+      padding: 0 11px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--panel-2) 92%, transparent);
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .date-chip.active {
+      border-color: rgba(255,49,95,.28);
+      background: rgba(255,49,95,.14);
+      color: white;
+    }
+    .sheet-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 2px;
+    }
+    .sheet-actions.one { grid-template-columns: 1fr; }
+
+    .success-toast {
+      position: absolute;
+      left: 50%; bottom: 100px;
+      transform: translateX(-50%) translateY(15px);
+      min-width: 230px;
+      max-width: calc(100% - 36px);
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: rgba(13,17,22,.92);
+      border: 1px solid var(--line);
+      color: white;
+      font-size: 12px;
+      text-align: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: 180ms ease;
+      z-index: 25;
+    }
+    .success-toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .notes-panel {
+      position: sticky;
+      top: 96px;
+      display: grid;
+      gap: 14px;
+    }
+    .notes-card {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: color-mix(in srgb, var(--panel) 92%, transparent);
+      box-shadow: var(--shadow);
+    }
+    .notes-card h2 { margin: 0; font-size: 16px; letter-spacing: -.02em; }
+    .notes-card p { margin: 8px 0 0; color: var(--muted); font-size: 12px; line-height: 1.55; }
+    .recommendation-list { display: grid; gap: 10px; margin: 14px 0 0; padding: 0; list-style: none; }
+    .recommendation-list li { display: grid; grid-template-columns: 24px 1fr; gap: 9px; align-items: start; color: var(--muted); font-size: 11px; line-height: 1.45; }
+    .recommendation-list b { color: var(--text); }
+    .number { width: 24px; height: 24px; display: grid; place-items: center; border-radius: 8px; background: var(--accent-soft); color: var(--accent-2); font-size: 10px; font-weight: 950; }
+    .legend { display: grid; gap: 9px; margin-top: 14px; }
+    .legend-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 11px; }
+    .legend-row span:first-child { color: var(--muted); }
+    .priority { padding: 4px 7px; border-radius: 999px; font-size: 9px; font-weight: 900; text-transform: uppercase; }
+    .priority.high { background: rgba(255,49,95,.14); color: var(--danger); }
+    .priority.mid { background: rgba(247,201,109,.12); color: var(--warning); }
+    .priority.low { background: rgba(99,221,160,.12); color: var(--success); }
+    .source-note { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); color: var(--faint); font-size: 9px; line-height: 1.5; }
+
+    @media (max-width: 1050px) {
+      .canvas-layout { grid-template-columns: 1fr; }
+      .notes-panel { position: static; grid-template-columns: repeat(2, minmax(0,1fr)); }
+    }
+
+    @media (max-width: 690px) {
+      .toolbar-inner { padding: 12px; gap: 10px; }
+      .subtitle { max-width: 220px; }
+      .canvas-layout { padding: 12px 0 30px; gap: 14px; }
+      .stage { border-radius: 0; border-left: 0; border-right: 0; padding: 22px 0; min-height: 870px; }
+      .phone { border-radius: 34px; transform: scale(.91); margin-bottom: -76px; }
+      .notes-panel { grid-template-columns: 1fr; padding: 0 12px; }
+      .notes-card { box-shadow: none; }
+    }
+
+    @media (max-width: 430px) {
+      .phone { transform: scale(.84); margin-bottom: -135px; }
+      .stage { min-height: 740px; }
+      .meta-grid, .action-row, .sheet-actions { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="workspace">
+    <header class="toolbar">
+      <div class="toolbar-inner">
+        <div class="brand-block">
+          <p class="eyebrow">FaderZero · Booking</p>
+          <h1 class="title">Canvas · Design B amélioré</h1>
+          <p class="subtitle">Version recentrée sur une seule piste : en-tête simple, contact, notes globales et timeline, sans section de négociation séparée.</p>
+        </div>
+        <div class="toolbar-actions">
+          <button class="icon-button" id="themeToggle" type="button" title="Changer de thème" aria-label="Changer de thème">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9Z"/></svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="canvas-layout">
+      <section class="stage" aria-label="Aperçu mobile FaderZero">
+        <div class="device-stack">
+          <div class="device-label">Écran détail · Booking B</div>
+          <div class="phone">
+            <div class="app">
+              <header class="app-header">
+                <div class="fz-logo" aria-label="FaderZero">
+                  <span class="fader-mark"></span>
+                  <span class="fz-wordmark"><span>FADER</span><span>ZERO</span></span>
+                </div>
+                <div class="workspace-badge">
+                  <span class="workspace-name">Kicked To Heaven</span>
+                  <span class="avatar">KH</span>
+                </div>
+              </header>
+
+              <div class="app-main">
+                <div class="detail-header">
+                  <button class="back" type="button" aria-label="Retour">‹</button>
+                  <div>
+                    <h2 class="venue-title">Le Chabada</h2>
+                    <p class="venue-city">Angers · 22 août 2026</p>
+                  </div>
+                  <button class="kebab open-venue" type="button" aria-label="Modifier la salle">•••</button>
+                </div>
+
+                <div class="status-strip">
+                  <span class="status-pill">À contacter</span>
+                  <span class="status-pill active">Contacté</span>
+                  <span class="status-pill">Discussion</span>
+                  <span class="status-pill">Option</span>
+                </div>
+                <div class="section-block"><p class="section-label">Contacts</p></div>
+                <div class="contact-stack">
+                  <article class="card contact-card">
+                    <span class="contact-avatar">CM</span>
+                    <div class="contact-info">
+                      <p class="contact-name">Clara Martin</p>
+                      <p class="contact-role">Programmation · contact principal</p>
+                    </div>
+                    <div class="contact-actions">
+                      <button class="contact-icon-button" type="button" aria-label="Appeler Clara">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.9.33 1.78.62 2.63a2 2 0 0 1-.45 2.11L8 9.99a16 16 0 0 0 6 6l1.53-1.28a2 2 0 0 1 2.11-.45c.85.29 1.73.5 2.63.62A2 2 0 0 1 22 16.92Z"/></svg>
+                      </button>
+                      <button class="contact-icon-button" type="button" aria-label="Envoyer un e-mail à Clara">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16v12H4z"/><path d="m4 8 8 6 8-6"/></svg>
+                      </button>
+                    </div>
+                  </article>
+                </div>
+
+                <p class="section-label">Notes globales</p>
+                <div class="note-stack">
+                  <article class="card note-card">
+                    <p>Objectif : proposer une date de rentrée pour Kicked To Heaven. Dossier de presse déjà envoyé. La salle préfère une relance juste après le festival. Si retour positif, faire passer le lead en <b style="color:var(--text)">Discussion</b>.</p>
+                  </article>
+                </div>
+
+                <div class="section-head">
+                  <p class="section-label">Timeline</p>
+                  <button class="timeline-add-button open-exchange" type="button">Ajouter une note</button>
+                </div>
+                <div class="timeline">
+                  <div class="timeline-item">
+                    <span class="timeline-dot">↩</span>
+                    <div class="timeline-body future">
+                      <p class="timeline-title">À faire maintenant · Appeler</p>
+                      <p class="timeline-copy">Relancer Clara et confirmer si la date du 22 août reste une option réaliste.</p>
+                      <p class="timeline-time">Aujourd'hui · 11:48</p>
+                    </div>
+                  </div>
+                  <div class="timeline-item">
+                    <span class="timeline-dot">↩</span>
+                    <div class="timeline-body">
+                      <p class="timeline-title">Réponse reçue</p>
+                      <p class="timeline-copy">Clara confirme l'intérêt et demande une relance après le festival.</p>
+                      <p class="timeline-time">6 août · 16:20</p>
+                    </div>
+                  </div>
+                  <div class="timeline-item">
+                    <span class="timeline-dot">↗</span>
+                    <div class="timeline-body">
+                      <p class="timeline-title">E-mail envoyé</p>
+                      <p class="timeline-copy">Dossier de presse, fiche technique et lien live transmis.</p>
+                      <p class="timeline-time">4 août · 09:12</p>
+                    </div>
+                  </div>
+                  <div class="timeline-item">
+                    <span class="timeline-dot">＋</span>
+                    <div class="timeline-body">
+                      <p class="timeline-title">Salle ajoutée</p>
+                      <p class="timeline-copy">Date cible initiale enregistrée pour le 22 août 2026.</p>
+                      <p class="timeline-time">2 août · 18:41</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <nav class="bottom-nav" aria-label="Navigation principale">
+                <span class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="m3 10 9-7 9 7v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M9 22v-7h6v7"/></svg><span>Accueil</span><i class="nav-dot"></i></span>
+                <span class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg><span>Calendrier</span><i class="nav-dot"></i></span>
+                <span class="nav-item"><span class="live-button"></span><span>Live</span><i class="nav-dot"></i></span>
+                <span class="nav-item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5Z"/><path d="M7 17h13"/></svg><span>Booking</span><i class="nav-dot"></i></span>
+                <span class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M9 7h10M9 12h10M9 17h10M4 7h.01M4 12h.01M4 17h.01"/></svg><span>Setlist</span><i class="nav-dot"></i></span>
+              </nav>
+            </div>
+
+            <div class="modal-overlay" id="exchangeModal" role="dialog" aria-modal="true" aria-labelledby="exchangeTitle">
+              <section class="sheet">
+                <header class="sheet-header"><h2 class="sheet-title" id="exchangeTitle">Consigner un échange</h2><button class="close-sheet" type="button" data-close-modal aria-label="Fermer">×</button></header>
+                <div class="sheet-body">
+                  <div class="field"><label for="exchangeType">Type d'échange</label><select class="select" id="exchangeType"><option>Appel effectué</option><option>E-mail envoyé</option><option>Réponse reçue</option><option>Message envoyé</option><option>Note libre</option></select></div>
+                  <div class="field"><label for="summary">Résumé de l'échange <span class="required">*</span></label><textarea class="textarea" id="summary" placeholder="Ex. intéressée, rappeler après le festival pour confirmer la date."></textarea><p class="hint">Commence par le résultat, puis termine par la prochaine action si nécessaire.</p></div>
+                  <div class="field"><label for="nextAction">Prochaine action <span class="required">*</span></label><select class="select" id="nextAction"><option>Relancer</option><option>Appeler</option><option>Envoyer le dossier</option><option>Attendre une réponse</option><option>Autre</option></select></div>
+                  <div class="field"><label>Quand ? <span class="required">*</span></label><div class="chip-row"><button class="date-chip" type="button">Demain</button><button class="date-chip active" type="button">Dans 3 jours</button><button class="date-chip" type="button">1 semaine</button><button class="date-chip" type="button">Choisir…</button></div><input class="input" type="datetime-local" value="2026-08-08T11:48" style="margin-top:8px"></div>
+                  <div class="sheet-actions one"><button class="primary" id="saveExchange" type="button">Enregistrer et planifier</button></div>
+                </div>
+              </section>
+            </div>
+
+            <div class="modal-overlay" id="venueModal" role="dialog" aria-modal="true" aria-labelledby="venueTitle">
+              <section class="sheet">
+                <header class="sheet-header"><h2 class="sheet-title" id="venueTitle">Détails de la salle</h2><button class="close-sheet" type="button" data-close-modal aria-label="Fermer">×</button></header>
+                <div class="sheet-body">
+                  <div class="field"><label for="venueName">Salle ou organisateur</label><input class="input" id="venueName" value="Le Chabada"></div>
+                  <div class="field"><label for="city">Ville</label><input class="input" id="city" value="Angers"></div>
+                  <div class="field"><label for="targetDate">Date prévue de l'événement</label><input class="input" id="targetDate" type="date" value="2026-08-22"></div>
+                  <div class="field"><label for="stageSelect">Statut</label><select class="select" id="stageSelect"><option>À contacter</option><option selected>Contacté</option><option>En discussion</option><option>Option</option><option>Confirmé</option></select></div>
+                  <div class="sheet-actions"><button class="primary" id="saveVenue" type="button">Enregistrer</button><button class="danger-button" type="button">Supprimer</button></div>
+                </div>
+              </section>
+            </div>
+
+            <div class="success-toast" id="toast" role="status">Modification enregistrée</div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="notes-panel">
+        <article class="notes-card">
+          <p class="eyebrow">Design B</p>
+          <h2>Améliorations intégrées</h2>
+          <p>Le concept a été simplifié pour ne garder qu'une seule direction visuelle. L'écran met le contexte stratégique au-dessus de la timeline.</p>
+          <ul class="recommendation-list">
+            <li><span class="number">01</span><span><b>Une seule piste :</b> les autres variantes ont été retirées pour se concentrer sur le design B.</span></li>
+            <li><span class="number">02</span><span><b>Carte de négociation simplifiée :</b> la section de négociation a été supprimée pour alléger l’écran.</span></li>
+            <li><span class="number">03</span><span><b>Contexte avant historique :</b> le contact et les notes globales arrivent avant la timeline.</span></li>
+            <li><span class="number">04</span><span><b>Timeline clarifiée :</b> le premier item sert de rappel opérationnel, les suivants racontent l'historique.</span></li>
+          </ul>
+        </article>
+
+        <article class="notes-card">
+          <h2>Priorités UI/UX</h2>
+          <div class="legend">
+            <div class="legend-row"><span>Action principale très visible</span><span class="priority high">Haute</span></div>
+            <div class="legend-row"><span>Date de l'événement toujours lisible</span><span class="priority high">Haute</span></div>
+            <div class="legend-row"><span>Contexte partagé pour le groupe</span><span class="priority mid">Moyenne</span></div>
+            <div class="legend-row"><span>Ajout rapide d'échange</span><span class="priority low">Confort</span></div>
+          </div>
+          <p class="source-note">Prototype autonome : le bouton principal, le bouton + et le menu ••• ouvrent les bottom sheets. Le thème clair/sombre reste disponible.</p>
+        </article>
+      </aside>
+    </main>
+  </div>
+
+  <script>
+    const exchangeModal = document.getElementById('exchangeModal');
+    const venueModal = document.getElementById('venueModal');
+    const allModals = [exchangeModal, venueModal];
+
+    function openModal(modal) {
+      allModals.forEach(item => item.classList.remove('active'));
+      modal.classList.add('active');
+      setTimeout(() => modal.querySelector('input, select, textarea, button')?.focus(), 40);
+    }
+    function closeModals() { allModals.forEach(item => item.classList.remove('active')); }
+
+    document.querySelectorAll('.open-exchange').forEach(btn => btn.addEventListener('click', () => openModal(exchangeModal)));
+    document.querySelectorAll('.open-venue').forEach(btn => btn.addEventListener('click', () => openModal(venueModal)));
+    document.querySelectorAll('[data-close-modal]').forEach(btn => btn.addEventListener('click', closeModals));
+    allModals.forEach(modal => modal.addEventListener('click', event => { if (event.target === modal) closeModals(); }));
+    document.addEventListener('keydown', event => { if (event.key === 'Escape') closeModals(); });
+
+    document.querySelectorAll('.date-chip').forEach(chip => chip.addEventListener('click', () => {
+      document.querySelectorAll('.date-chip').forEach(item => item.classList.remove('active'));
+      chip.classList.add('active');
+    }));
+
+    const toast = document.getElementById('toast');
+    function showToast(text) {
+      toast.textContent = text;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 1800);
+    }
+    document.getElementById('saveExchange').addEventListener('click', () => { closeModals(); showToast("Échange enregistré · relance planifiée"); });
+    document.getElementById('saveVenue').addEventListener('click', () => { closeModals(); showToast('Détails de la salle enregistrés'); });
+
+    document.getElementById('themeToggle').addEventListener('click', () => {
+      const root = document.documentElement;
+      root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+    });
+  </script>
+</body>
+</html>

@@ -8,6 +8,7 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
+.icon-publication-build.json
 dist
 dist-ssr
 .cert
@@ -18,6 +19,12 @@ dist-ssr
 .codex-remote-attachments/
 .wrangler/
 cloudflare/audio-worker/wrangler.local.jsonc
+playwright-report/
+test-results/
+playwright/.auth/
+docs/icon-audit/.smoke-tmp/
+.env.e2e
+.env.e2e.local
 
 # Editor directories and files
 .vscode/*

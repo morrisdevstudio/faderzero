@@ -6,7 +6,7 @@ import { assertValidPassword, getPasswordRequirements } from '@/services/supabas
 
 type AuthMode = 'signin' | 'signup' | 'forgot';
 
-function EyeIcon({ crossed = false }: { crossed?: boolean }) {
+function EyeIcon({ crossed = false, iconAuditId }: { crossed?: boolean; iconAuditId?: string }) {
   return (
     <svg
       className="h-5 w-5"
@@ -17,6 +17,7 @@ function EyeIcon({ crossed = false }: { crossed?: boolean }) {
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
+      data-icon-audit-id={iconAuditId}
     >
       <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
       <circle cx="12" cy="12" r="3" />
@@ -242,7 +243,7 @@ export function LoginPage({ inviteTokenPresent = false }: LoginPageProps) {
                   aria-pressed={isPasswordVisible}
                   className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-white/45 transition hover:text-white disabled:cursor-not-allowed disabled:text-white/20"
                 >
-                  <EyeIcon crossed={!isPasswordVisible} />
+                  <EyeIcon crossed={!isPasswordVisible} iconAuditId="056ba440f53eb434" />
                 </button>
               </div>
             </div>
@@ -292,7 +293,7 @@ export function LoginPage({ inviteTokenPresent = false }: LoginPageProps) {
                   aria-pressed={isConfirmPasswordVisible}
                   className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-white/45 transition hover:text-white disabled:cursor-not-allowed disabled:text-white/20"
                 >
-                  <EyeIcon crossed={!isConfirmPasswordVisible} />
+                  <EyeIcon crossed={!isConfirmPasswordVisible} iconAuditId="c3083e5d6a796d19" />
                 </button>
               </div>
             </div>

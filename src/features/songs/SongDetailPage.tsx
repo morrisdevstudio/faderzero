@@ -957,7 +957,7 @@ export function SongDetailPage() {
                         title={isPrimary ? 'Piste principale' : 'Définir comme principale'}
                         className={["flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition", isPrimary ? 'border-white/40 bg-white/20 text-white' : 'border-white/8 bg-white/5 text-white/55 hover:bg-white/10 hover:text-white'].join(' ')}
                       >
-                        <PrimaryAudioIcon active={isPrimary} className="h-4 w-4" />
+                        <PrimaryAudioIcon active={isPrimary} className="h-4 w-4" data-icon-audit-id="40b3ed90385e3285" />
                       </button> : null}
                     </div>
                   );

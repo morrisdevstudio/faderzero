@@ -209,9 +209,10 @@ function CloseIcon() {
   );
 }
 
-function ChevronIcon({ className, isOpen }: { className?: string; isOpen: boolean }) {
+function ChevronIcon({ className, isOpen, iconAuditId }: { className?: string; isOpen: boolean; iconAuditId?: string }) {
   return (
     <svg
+      data-icon-audit-id={iconAuditId}
       viewBox="0 0 24 24"
       className={['h-4 w-4 transition-transform duration-200', isOpen ? 'rotate-180' : '', className].join(' ')}
       fill="none"
@@ -1340,7 +1341,7 @@ export function ImportsPage() {
                           aria-label={isExpanded ? 'Masquer les pistes supplémentaires' : `Afficher les ${otherAssets.length} pistes supplémentaires`}
                           className="flex w-full items-center justify-center border-t border-white/6 px-3 py-3 text-white/60 transition hover:bg-white/5 hover:text-white"
                         >
-                          <ChevronIcon isOpen={isExpanded} />
+                          <ChevronIcon isOpen={isExpanded} iconAuditId="e141b12888456545" />
                         </button>
                       </>
                     )}
@@ -1599,7 +1600,7 @@ export function ImportsPage() {
                     : handleSetPrimaryTrack(openTrackMenu.songId!, openTrackMenu.asset.id)}
                   className="flex min-h-12 w-full items-center gap-3 rounded-xl border border-white/8 bg-white/5 px-4 py-3 text-left text-sm font-black uppercase leading-5 tracking-[0.12em] text-white transition hover:bg-white/10"
                 >
-                  <PrimaryIcon active={openTrackMenu.isPrimary} className="h-5 w-5 shrink-0 text-white/70" />
+                  <PrimaryIcon active={openTrackMenu.isPrimary} className="h-5 w-5 shrink-0 text-white/70" data-icon-audit-id="c1c3bba9be11ab46" />
                   <span>{openTrackMenu.isPrimary ? 'Ne plus définir comme principal' : 'Définir comme principal'}</span>
                 </button>
               ) : null}
