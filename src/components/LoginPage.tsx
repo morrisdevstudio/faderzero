@@ -3,28 +3,9 @@ import { useAuthStore } from '@/stores/authStore';
 import { getSupabaseConfigError } from '@/services/supabase/client';
 import { normalizeDisplayName } from '@/services/supabase/profile';
 import { assertValidPassword, getPasswordRequirements } from '@/services/supabase/passwordPolicy';
+import { FzIcon } from '@/ui/icons/FzIcon';
 
 type AuthMode = 'signin' | 'signup' | 'forgot';
-
-function EyeIcon({ crossed = false, iconAuditId }: { crossed?: boolean; iconAuditId?: string }) {
-  return (
-    <svg
-      className="h-5 w-5"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      data-icon-audit-id={iconAuditId}
-    >
-      <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
-      <circle cx="12" cy="12" r="3" />
-      {crossed ? <path d="m4 4 16 16" /> : null}
-    </svg>
-  );
-}
 
 interface LoginPageProps {
   inviteTokenPresent?: boolean;
@@ -243,7 +224,9 @@ export function LoginPage({ inviteTokenPresent = false }: LoginPageProps) {
                   aria-pressed={isPasswordVisible}
                   className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-white/45 transition hover:text-white disabled:cursor-not-allowed disabled:text-white/20"
                 >
-                  <EyeIcon crossed={!isPasswordVisible} iconAuditId="056ba440f53eb434" />
+                  {isPasswordVisible
+                    ? <FzIcon name="hide-password" usageId="login.password.hide" className="h-5 w-5" />
+                    : <FzIcon name="show-password" usageId="login.password.show" className="h-5 w-5" />}
                 </button>
               </div>
             </div>
@@ -293,7 +276,9 @@ export function LoginPage({ inviteTokenPresent = false }: LoginPageProps) {
                   aria-pressed={isConfirmPasswordVisible}
                   className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-white/45 transition hover:text-white disabled:cursor-not-allowed disabled:text-white/20"
                 >
-                  <EyeIcon crossed={!isConfirmPasswordVisible} iconAuditId="c3083e5d6a796d19" />
+                  {isConfirmPasswordVisible
+                    ? <FzIcon name="hide-password" usageId="login.confirm-password.hide" className="h-5 w-5" />
+                    : <FzIcon name="show-password" usageId="login.confirm-password.show" className="h-5 w-5" />}
                 </button>
               </div>
             </div>

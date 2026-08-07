@@ -1,14 +1,12 @@
 import {
-  ArrowLeft, AudioWaveform, CalendarDays, Check, CloudDownload, Ellipsis,
+  ArrowLeft, AudioWaveform, CalendarDays, Check, CloudDownload, Ellipsis, Eye, EyeOff, FileDown,
   House, Library, ListMusic, Maximize, Mic, MonitorUp, Pause, Pencil, Play,
   Plus, Settings, Square, Trash2, Upload, X,
   type LucideIcon,
 } from 'lucide-react';
-import type { IconRoleKey } from './contracts';
-
 // Fallback registry committed for local/offline builds. The Cloudflare preparation
 // step may regenerate this module from the last approved publication.
-export const publishedIconComponents: Record<IconRoleKey, LucideIcon> = {
+export const publishedIconComponents: Record<string, LucideIcon> = {
   add: Plus,
   back: ArrowLeft,
   calendar: CalendarDays,
@@ -30,4 +28,9 @@ export const publishedIconComponents: Record<IconRoleKey, LucideIcon> = {
   songs: Library,
   stop: Square,
   upload: Upload,
+  'show-password': Eye,
+  'hide-password': EyeOff,
+  'export-pdf': FileDown,
 };
+
+export const publishedIconUsageOverrides: Record<string, LucideIcon> = {};

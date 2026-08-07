@@ -1,5 +1,6 @@
 import type { ComponentPropsWithoutRef } from 'react';
-import { publishedIconComponents } from './published.generated';
+import { CircleHelp } from 'lucide-react';
+import { publishedIconComponents, publishedIconUsageOverrides } from './published.generated';
 import type { IconRoleKey, IconSize } from './contracts';
 
 const sizes: Record<IconSize, number> = { sm: 16, md: 20, lg: 24, xl: 28 };
@@ -16,7 +17,7 @@ type FzIconProps = CommonProps & (
 );
 
 export function FzIcon({ name, usageId, size = 'md', decorative = true, ...props }: FzIconProps) {
-  const Icon = publishedIconComponents[name];
+  const Icon = publishedIconUsageOverrides[usageId] ?? publishedIconComponents[name] ?? CircleHelp;
   return (
     <Icon
       {...props}

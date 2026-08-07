@@ -12,6 +12,7 @@ import { songsRepository } from '@/db/repositories/songsRepository';
 import { formatSetDuration, formatSongDuration } from '@/features/songs/songPresentation';
 import { useAuthStore } from '@/stores/authStore';
 import { canWriteWorkspace } from '@/services/supabase/workspace';
+import { FzIcon } from '@/ui/icons/FzIcon';
 
 type IconProps = SVGProps<SVGSVGElement>;
 
@@ -96,19 +97,6 @@ function DirectSegueIcon(props: IconProps) {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
       <path d="M12 4v14" />
       <path d="m7 13 5 5 5-5" />
-    </svg>
-  );
-}
-
-function PdfIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
-      <path d="M14 3v5h5" />
-      <path d="M8 14h2" />
-      <path d="M8 18h1" />
-      <path d="M13 14h1a1.5 1.5 0 0 1 0 3h-1v-3Z" />
-      <path d="M17 17v-3h2" />
     </svg>
   );
 }
@@ -517,7 +505,7 @@ export function SetlistDetailPage() {
               aria-label="Exporter en PDF"
               className="flex h-11 w-11 items-center justify-center text-emerald-300 transition-colors hover:text-emerald-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300/70"
             >
-              <PdfIcon className="h-4.5 w-4.5" />
+              <FzIcon name="export-pdf" usageId="setlist.export-pdf" className="h-4.5 w-4.5" />
             </button>
 
             {canWrite ? <button

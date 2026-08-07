@@ -1,14 +1,13 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { iconNames } from 'lucide-react/dynamic.js';
+import { generateIconRegistry } from './registry.mjs';
 
 const root = process.cwd();
 const supabaseUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
 const publishableKey = process.env.VITE_SUPABASE_ANON_KEY;
 const buildToken = process.env.ICON_BUILD_TOKEN;
 const isCloudflare = process.env.CF_PAGES === '1';
-const roleKeys = ['add', 'back', 'calendar', 'check', 'close', 'delete', 'download', 'edit', 'fullscreen', 'home', 'menu', 'metronome', 'pause', 'play', 'prompter', 'record', 'setlist', 'settings', 'songs', 'stop', 'upload'];
 
 function headers() {
   return { apikey: publishableKey, Authorization: `Bearer ${publishableKey}`, 'Content-Type': 'application/json' };
@@ -18,19 +17,6 @@ async function buildChannel(body) {
   if (!response.ok) throw new Error(`Supabase build request failed (${response.status}): ${await response.text()}`);
   const text = await response.text();
   return text ? JSON.parse(text) : null;
-}
-function componentName(iconName) {
-  return iconName.split('-').map((part) => part ? part[0].toUpperCase() + part.slice(1) : '').join('');
-}
-function generateRegistry(manifest) {
-  const available = new Set(iconNames);
-  const roles = roleKeys.map((key) => {
-    const entry = manifest.roles?.[key];
-    if (!entry || entry.sourceType !== 'lucide' || !available.has(entry.iconName)) throw new Error(`Invalid published icon for role ${key}`);
-    return [key, componentName(entry.iconName)];
-  });
-  const imports = [...new Set(roles.map(([, component]) => component))].sort();
-  return `import {\n  ${imports.join(', ')},\n  type LucideIcon,\n} from 'lucide-react';\nimport type { IconRoleKey } from './contracts';\n\n// Generated from publication ${manifest.publicationId}. Do not edit during a Cloudflare build.\nexport const publishedIconComponents: Record<IconRoleKey, LucideIcon> = {\n${roles.map(([key, component]) => `  ${key}: ${component},`).join('\n')}\n};\n`;
 }
 
 if (!isCloudflare || !supabaseUrl || !publishableKey || !buildToken) {
@@ -42,7 +28,7 @@ execFileSync(process.execPath, ['scripts/audit-icons.mjs'], { cwd: root, stdio: 
 const inventory = JSON.parse(readFileSync(resolve(root, 'docs/icon-audit/icon-inventory.json'), 'utf8'));
 const revision = process.env.CF_PAGES_COMMIT_SHA ?? '';
 const rows = (inventory.icons ?? []).map((item) => ({
-  usageId: `legacy:${item.occurrenceId}`,
+  usageId: item.usageId || `legacy:${item.occurrenceId}`,
   occurrenceId: item.occurrenceId,
   metadata: { name: item.name, route: item.route ?? '', pageName: item.pageName ?? '', file: item.file, line: item.line, format: item.format, fingerprint: item.fingerprint ?? '', source: item.source ?? '' },
 }));
@@ -52,6 +38,6 @@ if (!publication) {
   console.log('[icons] Inventory synchronized; no queued publication.');
   process.exit(0);
 }
-writeFileSync(resolve(root, 'src/ui/icons/published.generated.ts'), generateRegistry(publication.manifest), 'utf8');
+writeFileSync(resolve(root, 'src/ui/icons/published.generated.ts'), generateIconRegistry(publication.manifest), 'utf8');
 writeFileSync(resolve(root, '.icon-publication-build.json'), JSON.stringify({ id: publication.id }), 'utf8');
 console.log(`[icons] Prepared publication ${publication.id}.`);

@@ -1,5 +1,6 @@
 import { supabase } from '@/services/supabase/client';
 import fallbackInventoryRaw from '../../../docs/icon-audit/icon-inventory.json?raw';
+import { iconRoleKey } from './iconRole';
 
 export type IconRole = {
   key: string;
@@ -64,6 +65,8 @@ const defaultRoles: IconRole[] = [
   ['record', 'Enregistrer', 'mic'], ['setlist', 'Setlist', 'list-music'],
   ['settings', 'Réglages', 'settings'], ['songs', 'Morceaux', 'library'],
   ['stop', 'Arrêt', 'square'], ['upload', 'Importer', 'upload'],
+  ['show-password', 'Afficher le mot de passe', 'eye'], ['hide-password', 'Masquer le mot de passe', 'eye-off'],
+  ['export-pdf', 'Exporter en PDF', 'file-down'],
 ].map(([key, label, iconName]) => ({ key: key!, label: label!, iconName: iconName!, description: '', sourceType: 'lucide', status: 'approved', version: 1 }));
 
 function fallbackOccurrences(): IconOccurrence[] {
@@ -179,6 +182,38 @@ export async function saveIconDecision(input: {
     }).eq('key', role);
     if (roleError) throw roleError;
   }
+}
+
+export async function createIconRole(input: { label: string; description: string; iconName: string; userId: string }) {
+  const label = input.label.trim();
+  const description = input.description.trim();
+  const key = iconRoleKey(label);
+  if (label.length < 2 || label.length > 80) throw new Error('Le nom du rôle doit contenir entre 2 et 80 caractères.');
+  if (key.length < 2) throw new Error('Choisis un nom de rôle plus précis.');
+  if (description.length > 500) throw new Error('La description ne peut pas dépasser 500 caractères.');
+  if (!/^[A-Za-z][A-Za-z0-9-]{0,127}$/.test(input.iconName)) throw new Error('Choisis une icône valide.');
+
+  const { data, error } = await supabase.from('design_icon_roles').insert({
+    key,
+    label,
+    description,
+    source_type: 'lucide',
+    icon_name: input.iconName,
+    status: 'approved',
+    version: 1,
+    updated_by: input.userId,
+  }).select('*').single();
+  if (error?.code === '23505') throw new Error('Un rôle avec ce nom existe déjà.');
+  if (error) throw error;
+  return {
+    key: data.key,
+    label: data.label,
+    description: data.description,
+    sourceType: data.source_type,
+    iconName: data.icon_name,
+    status: data.status,
+    version: Number(data.version),
+  } as IconRole;
 }
 
 export async function requestIconPublication() {

@@ -19,4 +19,8 @@ describe('audit des icônes', () => {
     expect(occurrences.filter((item) => item.kind === 'react-icon-component')).toHaveLength(2);
     expect(new Set(occurrences.map((item) => item.occurrenceId)).size).toBe(2);
   });
+  it('conserve l’identifiant stable déclaré par FzIcon', () => {
+    const occurrences = collectOccurrencesFromSource("import { FzIcon } from './FzIcon'; export function Page() { return <FzIcon name=\"back\" usageId=\"header.back\" />; }");
+    expect(occurrences.find((item) => item.name === 'FzIcon')).toMatchObject({ usageId: 'header.back' });
+  });
 });

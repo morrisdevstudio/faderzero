@@ -51,16 +51,23 @@ Deno.serve(async (request) => {
   }
   const [{ data: roles, error: rolesError }, { data: occurrences, error: occurrencesError }] = await Promise.all([
     serviceClient.from('design_icon_roles').select('key,source_type,icon_name').eq('status', 'approved').order('key'),
-    serviceClient.from('design_icon_occurrences').select('usage_id,override_source_type,override_icon_name').not('override_icon_name', 'is', null).order('usage_id'),
+    serviceClient.from('design_icon_occurrences').select('usage_id,assigned_role_key,override_source_type,override_icon_name').or('assigned_role_key.not.is.null,override_icon_name.not.is.null').order('usage_id'),
   ]);
   if (rolesError || occurrencesError) return json(request, { error: 'CATALOG_READ_FAILED' }, 500);
 
+  const roleEntries = new Map((roles ?? []).map((role) => [role.key, { sourceType: role.source_type, iconName: role.icon_name }]));
+  const usageOverrides = Object.fromEntries((occurrences ?? []).flatMap((item) => {
+    const resolved = item.override_icon_name
+      ? { sourceType: item.override_source_type, iconName: item.override_icon_name }
+      : roleEntries.get(item.assigned_role_key ?? '');
+    return resolved ? [[item.usage_id, resolved]] : [];
+  }));
   const publicationId = crypto.randomUUID();
   const manifest = {
     schemaVersion: 1,
     publicationId,
-    roles: Object.fromEntries((roles ?? []).map((role) => [role.key, { sourceType: role.source_type, iconName: role.icon_name }])),
-    usageOverrides: Object.fromEntries((occurrences ?? []).map((item) => [item.usage_id, { sourceType: item.override_source_type, iconName: item.override_icon_name }])),
+    roles: Object.fromEntries(roleEntries),
+    usageOverrides,
   };
   const sourceRevision = request.headers.get('x-faderzero-revision')?.slice(0, 120) ?? new Date().toISOString();
   const { error: insertError } = await serviceClient.from('design_icon_publications').insert({

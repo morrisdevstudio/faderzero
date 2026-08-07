@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Check, ChevronLeft, ChevronRight, CircleHelp, CloudUpload, icons, Search, SlidersHorizontal, X, type LucideIcon } from 'lucide-react';
+import { ArrowLeft, Check, ChevronLeft, ChevronRight, CircleHelp, CloudUpload, icons, Plus, Search, SlidersHorizontal, X, type LucideIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useAuthStore } from '@/stores/authStore';
 import {
+  createIconRole,
   isPlatformAdmin,
   loadIconCatalog,
   requestIconPublication,
@@ -73,12 +74,16 @@ function IconEditor({ occurrence, catalog, online, onClose, onSaved, onMove }: {
 }) {
   const userId = useAuthStore((state) => state.session?.user.id);
   const initialRole = occurrence.assignedRoleKey ?? '';
-  const initialIcon = iconFor(occurrence, catalog) ?? 'circle-help';
+  const initialIcon = iconFor(occurrence, catalog) ?? previewIconFor(occurrence, catalog) ?? 'circle-help';
   const [roleKey, setRoleKey] = useState(initialRole);
   const [candidate, setCandidate] = useState(initialIcon);
   const [exception, setException] = useState(Boolean(occurrence.overrideIconName));
   const [query, setQuery] = useState('');
   const [saving, setSaving] = useState(false);
+  const [creatingRole, setCreatingRole] = useState(false);
+  const [newRoleOpen, setNewRoleOpen] = useState(false);
+  const [newRoleLabel, setNewRoleLabel] = useState('');
+  const [newRoleDescription, setNewRoleDescription] = useState('');
   const [error, setError] = useState<string | null>(null);
   const candidates = useMemo(() => lucideCandidates.filter(({ name }) => name.includes(query.trim().toLowerCase())).slice(0, 120), [query]);
 
@@ -87,7 +92,26 @@ function IconEditor({ occurrence, catalog, online, onClose, onSaved, onMove }: {
     setCandidate(initialIcon);
     setException(Boolean(occurrence.overrideIconName));
     setQuery('');
+    setNewRoleOpen(false);
+    setNewRoleLabel('');
+    setNewRoleDescription('');
   }, [occurrence.usageId, initialIcon, initialRole, occurrence.overrideIconName]);
+
+  async function addRole() {
+    if (!userId || !online || creatingRole) return;
+    setCreatingRole(true); setError(null);
+    try {
+      const role = await createIconRole({ label: newRoleLabel, description: newRoleDescription, iconName: candidate, userId });
+      await onSaved();
+      setRoleKey(role.key);
+      setCandidate(role.iconName);
+      setNewRoleOpen(false);
+      setNewRoleLabel('');
+      setNewRoleDescription('');
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Création du rôle impossible.');
+    } finally { setCreatingRole(false); }
+  }
 
   async function save() {
     if (!userId || !online || !roleKey) return;
@@ -106,7 +130,7 @@ function IconEditor({ occurrence, catalog, online, onClose, onSaved, onMove }: {
       <section className="flex h-dvh w-full flex-col border-l border-white/10 bg-[#101010] text-white md:max-w-xl">
         <header className="flex items-center gap-3 border-b border-white/10 px-4 py-3">
           <button onClick={onClose} className="grid min-h-11 min-w-11 place-items-center rounded-xl bg-white/5" aria-label="Fermer"><X size={20} /></button>
-          <div className="min-w-0 flex-1"><p className="truncate font-bold">{occurrence.name}</p><p className="truncate text-xs text-white/45">{occurrence.pageName || occurrence.route || 'Emplacement inconnu'}</p></div>
+          <div className="min-w-0 flex-1"><p className="truncate font-bold">{occurrence.name}</p><p className="truncate text-xs text-white/55">{occurrenceLocation(occurrence)}</p></div>
           <button onClick={() => onMove(-1)} className="grid min-h-11 min-w-11 place-items-center rounded-xl bg-white/5" aria-label="Précédente"><ChevronLeft size={20} /></button>
           <button onClick={() => onMove(1)} className="grid min-h-11 min-w-11 place-items-center rounded-xl bg-white/5" aria-label="Suivante"><ChevronRight size={20} /></button>
         </header>
@@ -117,11 +141,13 @@ function IconEditor({ occurrence, catalog, online, onClose, onSaved, onMove }: {
             <div className="grid min-h-32 place-items-center rounded-3xl border border-amber-300/25 bg-amber-300/[0.06]"><div className="text-center"><CandidateIcon name={candidate} size={38} strokeWidth={1.8} /><p className="mt-2 text-[0.65rem] font-bold uppercase tracking-[0.16em] text-amber-200/70">Candidate</p></div></div>
           </div>
 
-          <label className="block"><span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-white/45">Rôle sémantique</span><select value={roleKey} onChange={(event) => { const next = event.target.value; setRoleKey(next); const role = catalog.roles.find(({ key }) => key === next); if (role && !exception) setCandidate(role.iconName); }} className="min-h-12 w-full rounded-2xl border border-white/10 bg-[#1a1a1a] px-4 text-sm outline-none focus:border-amber-300/60"><option value="">Choisir un rôle</option>{catalog.roles.map((role) => <option key={role.key} value={role.key}>{role.label} · {role.iconName}</option>)}</select></label>
+          <div><label className="block"><span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-white/45">Rôle sémantique</span><select value={roleKey} onChange={(event) => { const next = event.target.value; setRoleKey(next); const role = catalog.roles.find(({ key }) => key === next); if (role && !exception) setCandidate(role.iconName); }} className="min-h-12 w-full rounded-2xl border border-white/10 bg-[#1a1a1a] px-4 text-sm outline-none focus:border-amber-300/60"><option value="">Choisir un rôle</option>{catalog.roles.map((role) => <option key={role.key} value={role.key}>{role.label} · {role.iconName}</option>)}</select></label><button type="button" onClick={() => setNewRoleOpen((value) => !value)} className="mt-2 flex min-h-11 items-center gap-2 rounded-xl px-2 text-sm font-bold text-amber-200 transition hover:bg-amber-300/8 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-300"><Plus size={17} /><span>{newRoleOpen ? 'Fermer la création' : 'Créer un nouveau rôle'}</span></button></div>
 
           <label className="flex min-h-14 items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4"><input type="checkbox" checked={exception} onChange={(event) => setException(event.target.checked)} className="h-5 w-5 accent-amber-300" /><span className="flex-1"><span className="block text-sm font-bold">Exception locale</span><span className="block text-xs text-white/45">Cette occurrence peut différer du rôle partagé.</span></span></label>
 
           <div><label className="relative block"><Search size={17} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-white/35" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher dans Lucide…" className="min-h-12 w-full rounded-2xl border border-white/10 bg-white/[0.04] pl-11 pr-4 text-sm outline-none focus:border-amber-300/60" /></label><div className="mt-3 grid max-h-72 grid-cols-5 gap-2 overflow-y-auto pr-1 sm:grid-cols-7">{candidates.map(({ name, component: Icon }) => <button key={name} onClick={() => setCandidate(name)} title={name} className={`grid aspect-square min-h-11 place-items-center rounded-xl border transition ${candidate === name ? 'border-amber-300 bg-amber-300/15 text-amber-200' : 'border-white/8 bg-white/[0.03] text-white/65 hover:bg-white/10'}`}><Icon size={21} /></button>)}</div></div>
+
+          {newRoleOpen && <section className="rounded-2xl border border-amber-300/25 bg-amber-300/[0.05] p-4" aria-label="Créer un rôle"><h2 className="text-sm font-black">Nouveau rôle</h2><p className="mt-1 text-xs leading-5 text-white/55">Nomme l’intention de l’action, pas son dessin. L’icône candidate actuelle deviendra son apparence par défaut.</p><div className="mt-4 space-y-3"><label className="block"><span className="mb-1.5 block text-xs font-bold text-white/65">Nom du rôle</span><input value={newRoleLabel} onChange={(event) => setNewRoleLabel(event.target.value)} maxLength={80} placeholder="Ex. Exporter en PDF" className="min-h-12 w-full rounded-xl border border-white/10 bg-[#171717] px-3 text-sm outline-none placeholder:text-white/45 focus:border-amber-300/60" /></label><label className="block"><span className="mb-1.5 block text-xs font-bold text-white/65">Description <span className="font-normal text-white/40">(facultative)</span></span><textarea value={newRoleDescription} onChange={(event) => setNewRoleDescription(event.target.value)} maxLength={500} rows={2} placeholder="Quand utiliser ce rôle ?" className="w-full resize-none rounded-xl border border-white/10 bg-[#171717] px-3 py-3 text-sm outline-none placeholder:text-white/45 focus:border-amber-300/60" /></label><div className="flex items-center gap-3 rounded-xl bg-black/20 p-3"><span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white/7 text-amber-100"><CandidateIcon name={candidate} size={23} /></span><span className="min-w-0 flex-1"><span className="block text-xs text-white/45">Icône par défaut</span><span className="block truncate text-sm font-bold">{candidate}</span></span></div><button type="button" onClick={() => void addRole()} disabled={!online || creatingRole || newRoleLabel.trim().length < 2} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-amber-300 px-4 text-sm font-black text-black disabled:opacity-40"><Plus size={18} />{creatingRole ? 'Création…' : 'Créer et sélectionner'}</button></div></section>}
 
           <details className="rounded-2xl border border-white/10 px-4 py-3 text-xs text-white/50"><summary className="cursor-pointer font-bold text-white/65">Détails techniques</summary><dl className="mt-3 space-y-2 break-all"><div><dt>Usage</dt><dd className="text-white/75">{occurrence.usageId}</dd></div><div><dt>Fichier</dt><dd className="text-white/75">{occurrence.file}:{occurrence.line}</dd></div><div><dt>Format</dt><dd className="text-white/75">{occurrence.format}</dd></div></dl></details>
           {error && <p className="rounded-xl bg-rose-500/10 p-3 text-sm text-rose-200">{error}</p>}

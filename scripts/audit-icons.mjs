@@ -104,8 +104,8 @@ function attributeValue(attributes, name) {
   if (ts.isStringLiteral(attribute.initializer)) return attribute.initializer.text;
   return ts.isJsxExpression(attribute.initializer) ? attribute.initializer.expression?.getText() : undefined;
 }
-function makeOccurrence({ file, route = '', kind, name, line, column, fingerprint = '', source = '', format }) {
-  return { occurrenceId: stableId([file, kind, name, String(line), String(column)]), route, file, line, column, kind, name, format, fingerprint, source, status: 'discovered' };
+function makeOccurrence({ file, route = '', kind, name, line, column, fingerprint = '', source = '', format, usageId }) {
+  return { occurrenceId: stableId([file, kind, name, String(line), String(column)]), route, file, line, column, kind, name, format, fingerprint, source, ...(usageId ? { usageId } : {}), status: 'discovered' };
 }
 
 export function collectOccurrencesFromSource(source, file = 'src/example.tsx', route = '') {
@@ -131,7 +131,8 @@ export function collectOccurrencesFromSource(source, file = 'src/example.tsx', r
       const name = jsxName(node.tagName);
       if (name.endsWith('Icon') || importedIcons.has(name)) {
         const component = components.get(name);
-        occurrences.push(makeOccurrence({ file, route, kind: importedIcons.has(name) ? 'icon-library' : 'react-icon-component', name, line, column, fingerprint: component?.fingerprint ?? '', source: component?.svg ?? '', format: importedIcons.has(name) ? 'icon-library' : 'react-component' }));
+        const usageId = name === 'FzIcon' ? attributeValue(node.attributes, 'usageId') : undefined;
+        occurrences.push(makeOccurrence({ file, route, kind: importedIcons.has(name) ? 'icon-library' : 'react-icon-component', name, line, column, fingerprint: component?.fingerprint ?? '', source: usageId ? node.getText(sourceFile) : component?.svg ?? '', format: importedIcons.has(name) ? 'icon-library' : 'react-component', usageId }));
       }
       if (name.toLowerCase() === 'svg' && !isInIconDeclaration(node, sourceFile)) {
         const text = node.parent && ts.isJsxElement(node.parent) ? node.parent.getText(sourceFile) : node.getText(sourceFile);
