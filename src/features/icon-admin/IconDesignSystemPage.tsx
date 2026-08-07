@@ -26,9 +26,10 @@ function CandidateIcon({ name, ...props }: { name: string; size?: number; stroke
   return <Icon {...props} />;
 }
 
-function legacySvgUrl(source: string) {
+export function legacySvgUrl(source: string) {
   if (!source.trim().startsWith('<svg')) return null;
   const svg = source
+    .replace(/^\s*<svg/, '<svg xmlns="http://www.w3.org/2000/svg"')
     .replace(/\{\.\.\.props\}/g, '')
     .replace(/strokeWidth=/g, 'stroke-width=')
     .replace(/strokeLinecap=/g, 'stroke-linecap=')
@@ -40,7 +41,9 @@ function legacySvgUrl(source: string) {
 
 function LegacyPreview({ occurrence }: { occurrence: IconOccurrence }) {
   const source = legacySvgUrl(occurrence.source);
-  if (source) return <img src={source} alt="" className="h-8 w-8 object-contain" />;
+  const [failed, setFailed] = useState(false);
+  useEffect(() => setFailed(false), [source]);
+  if (source && !failed) return <img src={source} alt="" className="h-8 w-8 object-contain" onError={() => setFailed(true)} />;
   return <span className="text-xl font-black text-white/70">{occurrence.name.slice(0, 1).toUpperCase()}</span>;
 }
 
