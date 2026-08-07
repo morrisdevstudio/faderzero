@@ -7,10 +7,12 @@ import {
   isPlatformAdmin,
   loadIconCatalog,
   requestIconPublication,
+  roleByLegacyName,
   saveIconDecision,
   type IconCatalog,
   type IconOccurrence,
 } from './iconCatalogService';
+import { legacySvgUrl, lucideNameCandidates, occurrenceFormatLabel, occurrenceLocation, publicIconUrl } from './iconPreview';
 
 type View = 'all' | 'unassigned' | 'roles' | 'exceptions';
 
@@ -26,30 +28,31 @@ function CandidateIcon({ name, ...props }: { name: string; size?: number; stroke
   return <Icon {...props} />;
 }
 
-export function legacySvgUrl(source: string) {
-  if (!source.trim().startsWith('<svg')) return null;
-  const svg = source
-    .replace(/^\s*<svg/, '<svg xmlns="http://www.w3.org/2000/svg"')
-    .replace(/\{\.\.\.props\}/g, '')
-    .replace(/strokeWidth=/g, 'stroke-width=')
-    .replace(/strokeLinecap=/g, 'stroke-linecap=')
-    .replace(/strokeLinejoin=/g, 'stroke-linejoin=')
-    .replace(/className=/g, 'class=')
-    .replace(/currentColor/g, '#f4f4f5');
-  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-}
-
-function LegacyPreview({ occurrence }: { occurrence: IconOccurrence }) {
-  const source = legacySvgUrl(occurrence.source);
+function ImagePreview({ occurrence }: { occurrence: IconOccurrence }) {
+  const source = publicIconUrl(occurrence.source, occurrence.file) ?? legacySvgUrl(occurrence.source);
   const [failed, setFailed] = useState(false);
   useEffect(() => setFailed(false), [source]);
-  if (source && !failed) return <img src={source} alt="" className="h-8 w-8 object-contain" onError={() => setFailed(true)} />;
+  if (source && !failed) return <img src={source} alt="" className="h-9 w-9 object-contain" onError={() => setFailed(true)} />;
   return <span className="text-xl font-black text-white/70">{occurrence.name.slice(0, 1).toUpperCase()}</span>;
 }
 
 function iconFor(occurrence: IconOccurrence, catalog: IconCatalog) {
   if (occurrence.overrideIconName) return occurrence.overrideIconName;
   return catalog.roles.find(({ key }) => key === occurrence.assignedRoleKey)?.iconName ?? null;
+}
+
+function previewIconFor(occurrence: IconOccurrence, catalog: IconCatalog) {
+  const selectedIcon = iconFor(occurrence, catalog);
+  if (selectedIcon && lucideByName.has(selectedIcon)) return selectedIcon;
+  const mappedRole = roleByLegacyName[occurrence.name];
+  const mappedIcon = catalog.roles.find(({ key }) => key === mappedRole)?.iconName;
+  if (mappedIcon && lucideByName.has(mappedIcon)) return mappedIcon;
+  return lucideNameCandidates(occurrence.name, occurrence.source).find((name) => lucideByName.has(name)) ?? null;
+}
+
+function IconPreview({ occurrence, catalog, size = 31 }: { occurrence: IconOccurrence; catalog: IconCatalog; size?: number }) {
+  const iconName = previewIconFor(occurrence, catalog);
+  return iconName ? <CandidateIcon name={iconName} size={size} strokeWidth={1.8} /> : <ImagePreview occurrence={occurrence} />;
 }
 
 function AdminNotFound() {
@@ -110,7 +113,7 @@ function IconEditor({ occurrence, catalog, online, onClose, onSaved, onMove }: {
 
         <div className="flex-1 space-y-6 overflow-y-auto px-4 py-5 pb-28 sm:px-6">
           <div className="grid grid-cols-2 gap-3">
-            <div className="grid min-h-32 place-items-center rounded-3xl border border-white/10 bg-white/[0.03]"><div className="text-center"><div className="mx-auto grid h-14 w-14 place-items-center"><LegacyPreview occurrence={occurrence} /></div><p className="mt-2 text-[0.65rem] font-bold uppercase tracking-[0.16em] text-white/35">Actuelle</p></div></div>
+            <div className="grid min-h-32 place-items-center rounded-2xl border border-white/10 bg-white/[0.03]"><div className="text-center"><div className="mx-auto grid h-14 w-14 place-items-center"><IconPreview occurrence={occurrence} catalog={catalog} size={38} /></div><p className="mt-2 text-[0.65rem] font-bold uppercase tracking-[0.16em] text-white/45">Actuelle</p></div></div>
             <div className="grid min-h-32 place-items-center rounded-3xl border border-amber-300/25 bg-amber-300/[0.06]"><div className="text-center"><CandidateIcon name={candidate} size={38} strokeWidth={1.8} /><p className="mt-2 text-[0.65rem] font-bold uppercase tracking-[0.16em] text-amber-200/70">Candidate</p></div></div>
           </div>
 
@@ -160,6 +163,15 @@ export function IconDesignSystemPage() {
   }, [catalog, query, view]);
   const selectedIndex = filtered.findIndex(({ usageId }) => usageId === selectedId);
   const selected = selectedIndex >= 0 ? filtered[selectedIndex] : null;
+  const viewCounts = useMemo(() => {
+    if (!catalog) return { all: 0, unassigned: 0, roles: 0, exceptions: 0 };
+    return {
+      all: catalog.occurrences.length,
+      unassigned: catalog.occurrences.filter((item) => !item.assignedRoleKey).length,
+      roles: catalog.occurrences.filter((item) => Boolean(item.assignedRoleKey)).length,
+      exceptions: catalog.occurrences.filter((item) => Boolean(item.overrideIconName)).length,
+    };
+  }, [catalog]);
 
   async function publish() {
     setPublishing(true); setNotice(null);
@@ -182,10 +194,10 @@ export function IconDesignSystemPage() {
         {notice && <button onClick={() => setNotice(null)} className="mb-4 w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-left text-sm text-white/75">{notice}</button>}
         <div className="sticky top-[69px] z-20 -mx-4 space-y-3 bg-[#090909]/95 px-4 py-3 backdrop-blur-xl sm:-mx-6 sm:px-6">
           <label className="relative block"><Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/35" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Nom, page, rôle…" className="min-h-12 w-full rounded-2xl border border-white/10 bg-[#151515] pl-11 pr-4 text-sm outline-none focus:border-amber-300/60" /></label>
-          <div className="flex gap-2 overflow-x-auto pb-1">{([['all', 'Tous'], ['unassigned', 'À classer'], ['roles', 'Rôles'], ['exceptions', 'Exceptions']] as const).map(([key, label]) => <button key={key} onClick={() => setView(key)} className={`min-h-10 shrink-0 rounded-xl px-4 text-xs font-bold ${view === key ? 'bg-white text-black' : 'border border-white/10 bg-white/[0.03] text-white/55'}`}>{key === 'all' && <SlidersHorizontal size={14} className="mr-2 inline" />}{label}</button>)}</div>
+          <div className="flex gap-2 overflow-x-auto pb-1">{([['all', 'Tous'], ['unassigned', 'À classer'], ['roles', 'Rôles'], ['exceptions', 'Exceptions']] as const).map(([key, label]) => <button key={key} onClick={() => setView(key)} className={`flex min-h-10 shrink-0 items-center gap-2 rounded-xl px-3 text-xs font-bold ${view === key ? 'bg-white text-black' : 'border border-white/10 bg-white/[0.03] text-white/65'}`}>{key === 'all' && <SlidersHorizontal size={14} />}<span>{label}</span><span className={`rounded-md px-1.5 py-0.5 text-[0.62rem] ${view === key ? 'bg-black/10 text-black/65' : 'bg-white/7 text-white/55'}`}>{viewCounts[key]}</span></button>)}</div>
         </div>
 
-        <section className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">{filtered.map((occurrence) => { const iconName = iconFor(occurrence, catalog); return <button key={occurrence.usageId} onClick={() => setSelectedId(occurrence.usageId)} className="group min-h-44 rounded-3xl border border-white/10 bg-[#121212] p-3 text-left transition hover:-translate-y-0.5 hover:border-white/25 hover:bg-[#171717]"><div className="grid h-20 place-items-center rounded-2xl bg-white/[0.035]">{iconName ? <CandidateIcon name={iconName} size={31} strokeWidth={1.8} /> : <LegacyPreview occurrence={occurrence} />}</div><p className="mt-3 truncate text-sm font-bold">{occurrence.name}</p><p className="mt-1 truncate text-[0.68rem] text-white/38">{occurrence.pageName || occurrence.route || 'Sans page'}</p><div className="mt-3 flex items-center gap-1.5"><span className={`h-1.5 w-1.5 rounded-full ${occurrence.overrideIconName ? 'bg-violet-300' : occurrence.assignedRoleKey ? 'bg-emerald-300' : 'bg-amber-300'}`} /><span className="truncate text-[0.62rem] font-bold uppercase tracking-[0.1em] text-white/35">{occurrence.overrideIconName ? 'Exception' : occurrence.assignedRoleKey ?? 'À classer'}</span></div></button>; })}</section>
+        <section className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">{filtered.map((occurrence) => <button key={occurrence.usageId} onClick={() => setSelectedId(occurrence.usageId)} className="group min-h-44 rounded-2xl border border-white/10 bg-[#121212] p-3 text-left transition hover:-translate-y-0.5 hover:border-white/25 hover:bg-[#171717]"><div className="grid h-16 place-items-center rounded-xl bg-white/[0.035]"><IconPreview occurrence={occurrence} catalog={catalog} /></div><p className="mt-3 truncate text-sm font-bold" title={occurrence.name}>{occurrence.name}</p><p className="mt-1 truncate text-[0.68rem] text-white/60" title={occurrenceLocation(occurrence)}>{occurrenceLocation(occurrence)}</p><p className="mt-0.5 truncate text-[0.65rem] text-white/40">{occurrenceFormatLabel(occurrence.format)}</p><div className="mt-2.5 flex items-center gap-1.5"><span className={`h-1.5 w-1.5 rounded-full ${occurrence.overrideIconName ? 'bg-violet-300' : occurrence.assignedRoleKey ? 'bg-emerald-300' : 'bg-amber-300'}`} /><span className="truncate text-[0.62rem] font-bold uppercase tracking-[0.1em] text-white/45">{occurrence.overrideIconName ? 'Exception' : occurrence.assignedRoleKey ?? 'À classer'}</span></div></button>)}</section>
         {!filtered.length && <div className="py-24 text-center text-sm text-white/35">Aucune icône ne correspond à cette vue.</div>}
       </div>
 

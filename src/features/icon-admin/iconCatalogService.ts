@@ -42,7 +42,7 @@ export type IconCatalog = { roles: IconRole[]; occurrences: IconOccurrence[]; pu
 
 const cacheKey = 'faderzero:icon-design-system:v1';
 
-const roleByLegacyName: Record<string, string> = {
+export const roleByLegacyName: Record<string, string> = {
   ArrowDownIcon: 'menu', ArrowUpIcon: 'menu', BackIcon: 'back', CalendarIcon: 'calendar',
   CachedIcon: 'download', CheckIcon: 'check', ChevronDownIcon: 'menu', ChevronIcon: 'menu',
   CloseIcon: 'close', DownloadCloudIcon: 'download', DotsIcon: 'menu', EditLineIcon: 'edit',
