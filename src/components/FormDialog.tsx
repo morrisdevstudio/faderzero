@@ -1,51 +1,72 @@
 import { useId, type PropsWithChildren } from 'react';
 import { createPortal } from 'react-dom';
+import { FzIcon } from '@/ui/icons';
+import { useDialogAccessibility } from './useDialogAccessibility';
 
 interface FormDialogProps extends PropsWithChildren {
   title: string;
   closeLabel?: string;
+  closeDisabled?: boolean;
   onClose: () => void;
   placement?: 'center' | 'bottom';
 }
 
-export function FormDialog({ title, closeLabel = 'Fermer', onClose, placement = 'center', children }: FormDialogProps) {
+export function FormDialog({
+  title,
+  closeLabel = 'Fermer',
+  closeDisabled = false,
+  onClose,
+  placement = 'center',
+  children,
+}: FormDialogProps) {
   const isBottomSheet = placement === 'bottom';
   const titleId = useId();
+  const requestClose = () => {
+    if (!closeDisabled) {
+      onClose();
+    }
+  };
+  const dialogRef = useDialogAccessibility(requestClose);
 
   return createPortal(
     (
     <div
       className={[
-        'fixed inset-0 z-50 flex justify-center bg-black/70 px-4 pt-16',
-        isBottomSheet ? 'items-end pb-4' : 'items-start overflow-y-auto pb-5',
+        'fixed inset-0 z-50 flex justify-center bg-black/70 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-[max(4rem,env(safe-area-inset-top))]',
+        isBottomSheet
+          ? 'items-end pb-[max(1rem,env(safe-area-inset-bottom))]'
+          : 'items-start overflow-y-auto pb-[max(1.25rem,env(safe-area-inset-bottom))]',
       ].join(' ')}
       onClick={(event) => {
         if (event.target === event.currentTarget) {
-          onClose();
+          requestClose();
         }
       }}
     >
-      <div className={['mx-auto w-full', isBottomSheet ? 'max-w-md' : 'max-w-sm'].join(' ')}>
+      <div className={['mx-auto max-h-full w-full', isBottomSheet ? 'max-w-md' : 'max-w-sm'].join(' ')}>
         <div
+          ref={dialogRef}
           role="dialog"
           aria-modal="true"
           aria-labelledby={titleId}
+          tabIndex={-1}
           className={[
-            'fz-card max-h-[calc(100dvh-2.5rem)] overflow-y-auto p-5',
-            isBottomSheet ? 'rounded-[1.6rem]' : 'rounded-[1.9rem]',
+            'fz-card fz-dialog-panel p-5',
+            isBottomSheet ? 'fz-dialog-panel--bottom rounded-[1.6rem]' : 'rounded-[1.9rem]',
           ].join(' ')}
         >
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-start justify-between gap-3">
             <div>
               <h2 id={titleId} className="text-[1.35rem] font-black text-white">{title}</h2>
             </div>
             <button
               type="button"
-              onClick={onClose}
+              onClick={requestClose}
+              disabled={closeDisabled}
               aria-label={closeLabel}
               className="fz-dialog-close"
             >
-              &times;
+              <FzIcon name="close" usageId="form-dialog.close" size="md" />
             </button>
           </div>
 

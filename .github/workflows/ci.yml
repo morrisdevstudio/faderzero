@@ -35,6 +35,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm run check:cloudflare:costs
       - run: npm run typecheck:worker
       - run: npm run test:worker
       - run: npx wrangler@4.118.0 types --check --config cloudflare/audio-worker/wrangler.jsonc cloudflare/audio-worker/worker-configuration.d.ts
@@ -74,5 +75,8 @@ jobs:
           docker exec supabase_db_pwa psql -U postgres -d postgres -X -v ON_ERROR_STOP=1 -f /tmp/epic-9-events-rls.sql
           docker cp supabase/tests/epic-10-compatibility-observation.sql supabase_db_pwa:/tmp/epic-10-compatibility-observation.sql
           docker exec supabase_db_pwa psql -U postgres -d postgres -X -v ON_ERROR_STOP=1 -f /tmp/epic-10-compatibility-observation.sql
+          docker cp supabase/tests/cloudflare-free-tier-guardrails.sql supabase_db_pwa:/tmp/cloudflare-free-tier-guardrails.sql
+          docker exec supabase_db_pwa psql -U postgres -d postgres -X -v ON_ERROR_STOP=1 -f /tmp/cloudflare-free-tier-guardrails.sql
+          npm run test:cloudflare:concurrency
       - if: always()
         run: supabase stop --no-backup

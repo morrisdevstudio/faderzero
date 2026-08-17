@@ -10,10 +10,9 @@ import { formatSongDuration, getSongStatusLabel, getSongStatusTone } from '@/fea
 import { useAuthStore } from '@/stores/authStore';
 import { canWriteWorkspace } from '@/services/supabase/workspace';
 import { AddButton } from '@/ui/components/AddButton';
-import { SearchField } from '@/ui/components/SearchField';
+import { PageHeader } from '@/ui/components/PageHeader';
 import { TextField } from '@/ui/components/TextField';
-
-
+import { FzIcon } from '@/ui/icons';
 
 export function SongsPage() {
   const navigate = useNavigate();
@@ -71,45 +70,36 @@ export function SongsPage() {
     navigate('/songs/new/write');
   }
 
+  function openCreateDialog() {
+    setIsCreateOpen(true);
+    setNewSongTitle('');
+    setCreationError(null);
+  }
 
+  const showTools = Boolean(songs && (songs.length > 0 || searchQuery.trim()));
 
   return (
     <div className="space-y-4">
-      <section className="space-y-3 -mt-2">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0 flex-1">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-7 w-7 text-white shrink-0">
-              <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
-              <path d="M6.5 17H20" />
-              <path d="M12 7v5" />
-              <circle cx="10.5" cy="12" r="1.5" />
-            </svg>
-            <h1 className="min-w-0 flex-1 text-[2rem] font-black tracking-tight text-white">Répertoire</h1>
-          </div>
-          {canWrite ? (
-            <AddButton
-              onClick={() => {
-                setIsCreateOpen(true);
-                setNewSongTitle('');
-                setCreationError(null);
-              }}
-              aria-label="Nouvelle chanson"
-              title="Nouvelle chanson"
-            />
-          ) : null}
-        </div>
-
-        {songs && (songs.length > 0 || searchQuery.trim()) ? (
-          <div className="mt-3 flex items-center gap-2">
-            <SearchField
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-              placeholder="Rechercher une chanson..."
-            />
-            <SortMenu value={sortMode} onChange={setSortMode} label="Trier le répertoire" />
-          </div>
-        ) : null}
-      </section>
+      <PageHeader
+        icon={<FzIcon name="songs" usageId="page-header.songs" size="xl" />}
+        title="Répertoire"
+        actions={canWrite ? (
+          <AddButton
+            onClick={openCreateDialog}
+            aria-label="Nouvelle chanson"
+            title="Nouvelle chanson"
+          />
+        ) : undefined}
+        search={showTools ? {
+          value: searchQuery,
+          onChange: setSearchQuery,
+          placeholder: 'Rechercher une chanson...',
+          'aria-label': 'Rechercher dans le répertoire',
+        } : undefined}
+        sortAction={showTools ? (
+          <SortMenu value={sortMode} onChange={setSortMode} label="Trier le répertoire" />
+        ) : undefined}
+      />
 
       <section className="space-y-3">
         {songs === undefined ? (

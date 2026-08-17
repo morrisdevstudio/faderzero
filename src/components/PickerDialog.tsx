@@ -1,5 +1,7 @@
-import { useEffect, useRef, type PropsWithChildren, type UIEvent } from 'react';
+import { useEffect, useId, useRef, type PropsWithChildren, type UIEvent } from 'react';
 import { createPortal } from 'react-dom';
+import { FzIcon } from '@/ui/icons';
+import { useDialogAccessibility } from './useDialogAccessibility';
 
 const wheelItemHeight = 64;
 const wheelViewportHeight = 256;
@@ -12,22 +14,13 @@ export function PickerDialog({
   onClose,
   children,
 }: PropsWithChildren<{ title: string; description?: string; closeLabel?: string; onClose: () => void }>) {
-  useEffect(() => {
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        onClose();
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [onClose]);
+  const titleId = useId();
+  const descriptionId = useId();
+  const dialogRef = useDialogAccessibility(onClose);
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 px-4 pb-4 pt-16 sm:items-center"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 pb-[max(1rem,env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-[max(4rem,env(safe-area-inset-top))] sm:items-center"
       onClick={(event) => {
         if (event.target === event.currentTarget) {
           onClose();
@@ -35,14 +28,18 @@ export function PickerDialog({
       }}
     >
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
-        className="fz-card w-full max-w-md rounded-[1.6rem] p-5"
+        aria-labelledby={titleId}
+        aria-describedby={description ? descriptionId : undefined}
+        tabIndex={-1}
+        className="fz-card fz-dialog-panel fz-dialog-panel--bottom w-full max-w-md rounded-[1.6rem] p-5"
       >
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-[1.28rem] font-black tracking-tight text-white">{title}</h2>
-            {description ? <p className="mt-1 text-sm leading-6 text-[var(--fz-text-muted)]">{description}</p> : null}
+            <h2 id={titleId} className="text-[1.28rem] font-black tracking-tight text-white">{title}</h2>
+            {description ? <p id={descriptionId} className="mt-1 text-sm leading-6 text-[var(--fz-text-muted)]">{description}</p> : null}
           </div>
           <button
             type="button"
@@ -50,7 +47,7 @@ export function PickerDialog({
             aria-label={closeLabel}
             className="fz-dialog-close"
           >
-            &times;
+            <FzIcon name="close" usageId="picker-dialog.close" size="md" />
           </button>
         </div>
 

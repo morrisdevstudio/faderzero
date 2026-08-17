@@ -166,11 +166,11 @@ function getWorkspaceById(workspaces: Workspace[], workspaceId: string | null | 
 }
 
 export function selectInitialWorkspace(workspaces: Workspace[]): Workspace | undefined {
-  const personalWorkspace = workspaces.find((workspace) => workspace.type === 'personal');
-  if (personalWorkspace) return personalWorkspace;
   const storedId = localStorage.getItem(LOCAL_STORAGE_KEY);
   const storedWorkspace = getWorkspaceById(workspaces, storedId);
   if (storedWorkspace) return storedWorkspace;
+  const personalWorkspace = workspaces.find((workspace) => workspace.type === 'personal');
+  if (personalWorkspace) return personalWorkspace;
   return workspaces[0];
 }
 

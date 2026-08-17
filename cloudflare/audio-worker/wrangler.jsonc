@@ -16,6 +16,10 @@
     {
       "binding": "AUDIO_BUCKET",
       "bucket_name": "faderzero-audio"
+    },
+    {
+      "binding": "AUDIO_BACKUP_BUCKET",
+      "bucket_name": "faderzero-audio-backup-20260720"
     }
   ],
   "vars": {

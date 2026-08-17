@@ -1,5 +1,6 @@
-import { useEffect } from 'react';
+import { useId } from 'react';
 import { createPortal } from 'react-dom';
+import { useDialogAccessibility } from './useDialogAccessibility';
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -22,23 +23,14 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
-  useEffect(() => {
-    if (!isOpen) {
-      return;
+  const titleId = useId();
+  const descriptionId = useId();
+  const requestCancel = () => {
+    if (!isBusy) {
+      onCancel();
     }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape' && !isBusy) {
-        onCancel();
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isBusy, isOpen, onCancel]);
+  };
+  const dialogRef = useDialogAccessibility(requestCancel, isOpen);
 
   if (!isOpen) {
     return null;
@@ -46,28 +38,31 @@ export function ConfirmDialog({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[60] flex items-end justify-center bg-black/70 px-4 pb-4 pt-16 sm:items-center"
+      className="fixed inset-0 z-[60] flex items-end justify-center bg-black/70 pb-[max(1rem,env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-[max(4rem,env(safe-area-inset-top))] sm:items-center"
       onClick={(event) => {
-        if (event.target === event.currentTarget && !isBusy) {
-          onCancel();
+        if (event.target === event.currentTarget) {
+          requestCancel();
         }
       }}
     >
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
-        aria-labelledby="confirm-dialog-title"
-        className="fz-card w-full max-w-sm rounded-[1.5rem] p-5"
+        aria-labelledby={titleId}
+        aria-describedby={descriptionId}
+        tabIndex={-1}
+        className="fz-card fz-dialog-panel fz-dialog-panel--bottom w-full max-w-sm rounded-[1.5rem] p-5"
       >
-        <h2 id="confirm-dialog-title" className="text-[1.35rem] font-black tracking-tight text-white">
+        <h2 id={titleId} className="text-[1.35rem] font-black tracking-tight text-white">
           {title}
         </h2>
-        <p className="mt-2 text-sm leading-6 text-[var(--fz-text-muted)]">{description}</p>
+        <p id={descriptionId} className="mt-2 text-sm leading-6 text-[var(--fz-text-muted)]">{description}</p>
 
         <div className="mt-5 grid grid-cols-2 gap-3">
           <button
             type="button"
-            onClick={onCancel}
+            onClick={requestCancel}
             disabled={isBusy}
             className="fz-button-secondary px-4 py-3 text-sm font-black uppercase tracking-[0.16em] text-white disabled:opacity-50"
           >

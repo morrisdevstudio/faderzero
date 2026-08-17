@@ -24,6 +24,7 @@ interface ObjectKeyDetails {
 }
 
 type WorkspaceRole = 'admin' | 'member' | 'guest';
+type R2OperationClass = 'A' | 'B';
 
 export default {
   async fetch(request: Request, env: WorkerEnv): Promise<Response> {
@@ -130,6 +131,12 @@ async function uploadObject(
 
   const uploadBody = validatedBody.pipeThrough(new FixedLengthStream(contentLength));
 
+  const operationGuardError = await reserveR2OperationBudget(env, 'A');
+  if (operationGuardError) {
+    await releaseAudioReservation(env, user, reservationId);
+    return r2GuardrailResponse(request, env, operationGuardError);
+  }
+
   const onlyIf = new Headers({ 'if-none-match': '*' });
   let object: R2Object | null;
   try {
@@ -221,39 +228,105 @@ function callSupabaseRpc(
   });
 }
 
+async function reserveR2OperationBudget(
+  env: WorkerEnv,
+  operationClass: R2OperationClass,
+): Promise<string | null> {
+  if (!env.SUPABASE_SECRET_KEY) return 'R2 guardrail unavailable';
+
+  const response = await callServiceRpc(env, 'reserve_r2_operation_budget', {
+    p_operation_class: operationClass,
+    p_operation_count: 1,
+  });
+  if (response.ok) return null;
+
+  const body: unknown = await response.json().catch(() => null);
+  return isRecord(body) && typeof body.message === 'string'
+    ? body.message
+    : 'R2 guardrail unavailable';
+}
+
+function callServiceRpc(
+  env: WorkerEnv,
+  functionName: string,
+  body: Record<string, unknown>,
+) {
+  if (!env.SUPABASE_SECRET_KEY) throw new Error('SUPABASE_SECRET_KEY missing');
+  return fetch(`${env.SUPABASE_URL}/rest/v1/rpc/${functionName}`, {
+    method: 'POST',
+    headers: {
+      apikey: env.SUPABASE_SECRET_KEY,
+      authorization: `Bearer ${env.SUPABASE_SECRET_KEY}`,
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+}
+
+function r2GuardrailResponse(request: Request, env: WorkerEnv, error: string): Response {
+  const limited = error.includes('R2_FREE_TIER_');
+  return jsonResponse(request, env, {
+    error: limited
+      ? 'Limite gratuite Cloudflare presque atteinte. Réessaie après le renouvellement du quota.'
+      : 'Protection du quota Cloudflare temporairement indisponible.',
+    code: limited ? 'R2_FREE_TIER_GUARDRAIL' : 'R2_GUARDRAIL_UNAVAILABLE',
+  }, limited ? 429 : 503);
+}
+
 async function auditR2Objects(env: WorkerEnv): Promise<void> {
   if (!env.SUPABASE_SECRET_KEY) {
     console.error(JSON.stringify({ message: 'R2 audit skipped', error: 'SUPABASE_SECRET_KEY missing' }));
     return;
   }
 
-  let cursor: string | undefined;
   let quarantinedCount = 0;
+  const primaryStorageBytes = await auditR2Bucket(env, env.AUDIO_BUCKET, async (objects) => {
+    const response = await callServiceRpc(env, 'audit_audio_r2_keys', {
+      p_r2_keys: objects.map((object) => object.key),
+    });
+    if (!response.ok) throw new Error(`R2 audit RPC failed (${response.status})`);
+    const count: unknown = await response.json();
+    if (typeof count === 'number') quarantinedCount += count;
+  });
+  const externalStorageBytes = await auditR2Bucket(env, env.AUDIO_BACKUP_BUCKET);
+
+  const observationResponse = await callServiceRpc(env, 'record_r2_storage_observation', {
+    p_primary_storage_bytes: primaryStorageBytes,
+    p_external_storage_bytes: externalStorageBytes,
+  });
+  if (!observationResponse.ok) {
+    throw new Error(`R2 storage observation failed (${observationResponse.status})`);
+  }
+
+  console.log(JSON.stringify({
+    message: 'R2 audit complete',
+    quarantinedCount,
+    primaryStorageBytes,
+    externalStorageBytes,
+  }));
+}
+
+async function auditR2Bucket(
+  env: WorkerEnv,
+  bucket: R2Bucket,
+  inspectObjects?: (objects: R2Object[]) => Promise<void>,
+): Promise<number> {
+  let cursor: string | undefined;
+  let storageBytes = 0;
   do {
-    const page = await env.AUDIO_BUCKET.list({
+    const operationGuardError = await reserveR2OperationBudget(env, 'A');
+    if (operationGuardError) throw new Error(operationGuardError);
+
+    const page = await bucket.list({
       limit: MAX_AUDIT_BATCH_SIZE,
       ...(cursor ? { cursor } : {}),
     });
-    if (page.objects.length > 0) {
-      const response = await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/audit_audio_r2_keys`, {
-        method: 'POST',
-        headers: {
-          apikey: env.SUPABASE_SECRET_KEY,
-          authorization: `Bearer ${env.SUPABASE_SECRET_KEY}`,
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({ p_r2_keys: page.objects.map((object) => object.key) }),
-      });
-      if (!response.ok) {
-        throw new Error(`R2 audit RPC failed (${response.status})`);
-      }
-      const count: unknown = await response.json();
-      if (typeof count === 'number') quarantinedCount += count;
-    }
+    storageBytes += page.objects.reduce((total, object) => total + object.size, 0);
+    if (inspectObjects && page.objects.length > 0) await inspectObjects(page.objects);
     cursor = page.truncated ? page.cursor : undefined;
   } while (cursor);
 
-  console.log(JSON.stringify({ message: 'R2 audit complete', quarantinedCount }));
+  return storageBytes;
 }
 
 async function createSignedUrl(request: Request, env: WorkerEnv): Promise<Response> {
@@ -274,10 +347,6 @@ async function createSignedUrl(request: Request, env: WorkerEnv): Promise<Respon
 
   if (!(await getWorkspaceRole(user, details.workspaceId, env))) {
     return jsonResponse(request, env, { error: 'Forbidden' }, 403);
-  }
-
-  if (!(await env.AUDIO_BUCKET.head(details.key))) {
-    return jsonResponse(request, env, { error: 'Object not found' }, 404);
   }
 
   const expires = Math.floor(Date.now() / 1000) + SIGNED_URL_TTL_SECONDS;
@@ -308,6 +377,9 @@ async function serveObject(request: Request, env: WorkerEnv, key: string): Promi
     return jsonResponse(request, env, { error: 'Invalid or expired signature' }, 403);
   }
 
+  const operationGuardError = await reserveR2OperationBudget(env, 'B');
+  if (operationGuardError) return r2GuardrailResponse(request, env, operationGuardError);
+
   const object = await env.AUDIO_BUCKET.get(key, { range: request.headers });
   if (!object) {
     return jsonResponse(request, env, { error: 'Object not found' }, 404);
@@ -336,33 +408,16 @@ async function serveObject(request: Request, env: WorkerEnv, key: string): Promi
 }
 
 async function validateAndReplayMp3Body(body: ReadableStream<Uint8Array>): Promise<ReadableStream<Uint8Array> | null> {
-  const reader = body.getReader();
+  const [validationBody, uploadBody] = body.tee();
+  const reader = validationBody.getReader();
   const firstChunk = await reader.read();
   if (firstChunk.done || !firstChunk.value || !hasMp3FrameHeader(firstChunk.value)) {
-    await reader.cancel();
+    await Promise.all([reader.cancel(), uploadBody.cancel()]);
     return null;
   }
 
-  return new ReadableStream<Uint8Array>({
-    start(controller) {
-      controller.enqueue(firstChunk.value);
-    },
-    async pull(controller) {
-      try {
-        const next = await reader.read();
-        if (next.done) {
-          controller.close();
-          return;
-        }
-        controller.enqueue(next.value);
-      } catch (error) {
-        controller.error(error);
-      }
-    },
-    async cancel(reason) {
-      await reader.cancel(reason);
-    },
-  });
+  void reader.cancel().catch(() => undefined);
+  return uploadBody;
 }
 
 function hasMp3FrameHeader(bytes: Uint8Array): boolean {

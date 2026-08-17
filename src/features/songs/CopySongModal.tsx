@@ -1,4 +1,5 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { FormDialog } from '@/components/FormDialog';
 import { listAvailableTargetWorkspaces, copySongToWorkspace, type CopySongResult } from '@/services/supabase/copy';
 import type { Workspace } from '@/services/supabase/workspace';
 import { SelectField } from '@/ui/components/SelectField';
@@ -57,85 +58,74 @@ export const CopySongModal: React.FC<CopySongModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/80 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl">
-        <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
-          <div>
-            <h2 className="text-lg font-bold text-zinc-100">Copier vers un autre espace</h2>
-            <p className="text-xs text-zinc-400">Titre d'origine : {songTitle}</p>
-          </div>
-          <button
-            onClick={onClose}
-            disabled={loading}
-            className="rounded-lg p-2 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 disabled:opacity-30"
-          >
-            Fermer
-          </button>
+    <FormDialog
+      title="Copier vers un autre espace"
+      closeLabel="Fermer la copie"
+      closeDisabled={loading}
+      onClose={onClose}
+    >
+      <p className="text-sm leading-6 text-[var(--fz-text-muted)]">Titre d’origine : {songTitle}</p>
+
+      {error && (
+        <div role="alert" className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-300">
+          {error}
+        </div>
+      )}
+
+      <div className="mt-4 space-y-4">
+        <div>
+          <label className="fz-field-label mb-2 block">Espace de destination</label>
+          {targetWorkspaces.length === 0 ? (
+            <p className="text-sm italic text-[var(--fz-text-muted)]">Aucun autre espace accessible en écriture.</p>
+          ) : (
+            <SelectField
+              aria-label="Espace de destination"
+              value={selectedTargetId}
+              onChange={(event) => setSelectedTargetId(event.target.value)}
+              disabled={loading}
+            >
+              {targetWorkspaces.map((workspace) => (
+                <option key={workspace.id} value={workspace.id}>
+                  {workspace.name} ({workspace.type === 'personal' ? 'Mon espace' : 'Groupe'})
+                </option>
+              ))}
+            </SelectField>
+          )}
         </div>
 
-        {error && (
-          <div className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-400">
-            {error}
-          </div>
-        )}
-
-        <div className="mt-4 space-y-4">
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-2">
-              Espace de destination
-            </label>
-            {targetWorkspaces.length === 0 ? (
-              <p className="text-xs text-zinc-500 italic">Aucun autre espace accessible en écriture.</p>
-            ) : (
-              <SelectField
-                aria-label="Espace de destination"
-                value={selectedTargetId}
-                onChange={(e) => setSelectedTargetId(e.target.value)}
-                disabled={loading}
-              >
-                {targetWorkspaces.map((ws) => (
-                  <option key={ws.id} value={ws.id}>
-                    {ws.name} ({ws.type === 'personal' ? 'Mon espace' : 'Groupe'})
-                  </option>
-                ))}
-              </SelectField>
-            )}
-          </div>
-
-          <div className="flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-950/60 p-3.5">
-            <input
-              id="includeAudioOption"
-              type="checkbox"
-              checked={includeAudio}
-              onChange={(e) => setIncludeAudio(e.target.checked)}
-              disabled={loading || targetWorkspaces.length === 0}
-              className="h-4 w-4 rounded border-zinc-700 bg-zinc-900 text-orange-500 focus:ring-orange-500"
-            />
-            <label htmlFor="includeAudioOption" className="cursor-pointer text-xs text-zinc-300">
-              Inclure les fichiers audio (référence partagée sans duplication R2)
-            </label>
-          </div>
-        </div>
-
-        <div className="mt-6 flex items-center justify-end gap-3 border-t border-zinc-800 pt-4">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={loading}
-            className="rounded-xl border border-zinc-700 px-4 py-2 text-xs font-semibold text-zinc-300 hover:bg-zinc-800 disabled:opacity-30"
-          >
-            Annuler
-          </button>
-          <button
-            type="button"
-            onClick={handleCopy}
+        <div className="flex min-h-11 items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-950/60 p-3.5">
+          <input
+            id="includeAudioOption"
+            type="checkbox"
+            checked={includeAudio}
+            onChange={(event) => setIncludeAudio(event.target.checked)}
             disabled={loading || targetWorkspaces.length === 0}
-            className="rounded-xl bg-orange-500 px-4 py-2 text-xs font-bold text-white hover:bg-orange-400 disabled:opacity-40"
-          >
-            {loading ? 'Copie en cours...' : 'Copier la chanson'}
-          </button>
+            className="h-5 w-5 shrink-0 accent-[var(--fz-accent)]"
+          />
+          <label htmlFor="includeAudioOption" className="cursor-pointer text-sm leading-5 text-zinc-300">
+            Inclure les fichiers audio (référence partagée sans duplication R2)
+          </label>
         </div>
       </div>
-    </div>
+
+      <div className="mt-6 grid grid-cols-2 gap-3 border-t border-zinc-800 pt-4">
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={loading}
+          className="fz-button-secondary min-h-11 px-4 text-xs font-semibold text-zinc-300 disabled:opacity-30"
+        >
+          Annuler
+        </button>
+        <button
+          type="button"
+          onClick={() => void handleCopy()}
+          disabled={loading || targetWorkspaces.length === 0}
+          className="fz-button-primary min-h-11 px-4 text-xs font-bold disabled:opacity-40"
+        >
+          {loading ? 'Copie en cours...' : 'Copier la chanson'}
+        </button>
+      </div>
+    </FormDialog>
   );
 };

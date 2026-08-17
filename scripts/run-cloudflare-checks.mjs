@@ -26,6 +26,7 @@ console.log(`  Node.js: ${process.version}`);
 console.log(`  npm: ${expected.npm}`);
 
 const checks = [
+  ['Politique Cloudflare gratuite', ['run', 'check:cloudflare:costs']],
   ['TypeScript', ['run', 'typecheck']],
   ['Lint', ['run', 'lint']],
   ['Tests', ['test']],

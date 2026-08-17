@@ -1,0 +1,11 @@
+{
+  "storageLimitBytes": 8000000000,
+  "classAOperationLimit": 800000,
+  "classBOperationLimit": 8000000,
+  "workerDailyRequestLimit": 100000,
+  "workerCpuTargetMilliseconds": 8,
+  "allowedR2Buckets": [
+    "faderzero-audio",
+    "faderzero-audio-backup-20260720"
+  ]
+}

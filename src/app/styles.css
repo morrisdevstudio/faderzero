@@ -313,6 +313,15 @@ body::before {
   transition: color 150ms ease, opacity 150ms ease;
 }
 
+.fz-dialog-panel {
+  max-height: calc(100dvh - max(4rem, env(safe-area-inset-top)) - max(1.25rem, env(safe-area-inset-bottom)));
+  overflow-y: auto;
+}
+
+.fz-dialog-panel--bottom {
+  max-height: calc(100dvh - max(4rem, env(safe-area-inset-top)) - max(1rem, env(safe-area-inset-bottom)));
+}
+
 .fz-dialog-close:hover {
   color: white;
 }
@@ -324,6 +333,12 @@ body::before {
 .fz-dialog-close:focus-visible {
   outline: 2px solid var(--fz-accent-strong);
   outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fz-dialog-close {
+    transition: none;
+  }
 }
 
 .fz-actions-row {

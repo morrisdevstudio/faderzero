@@ -23,6 +23,7 @@ function makeAudioEnv() {
   return {
     ...baseEnv,
     URL_SIGNING_SECRET: 'test-signing-secret',
+    SUPABASE_SECRET_KEY: 'service-role-test-key',
     SUPABASE_URL: 'https://supabase.example',
     SUPABASE_PUBLISHABLE_KEY: 'publishable-test-key',
     AUDIO_BUCKET: {
@@ -56,13 +57,17 @@ function makeAudioEnv() {
       }),
       list: vi.fn(async () => ({ objects: [], truncated: false })),
     },
+    AUDIO_BACKUP_BUCKET: {
+      list: vi.fn(async () => ({ objects: [], truncated: false })),
+    },
   } as WorkerEnv;
 }
 
 function mockSupabaseRole(role: 'owner' | 'admin' | 'member' | 'guest' | null, upload = false) {
   const fetchMock = vi.fn()
     .mockResolvedValueOnce(Response.json({ id: 'user-123' }))
-    .mockResolvedValueOnce(Response.json(role ? [{ role }] : []));
+    .mockResolvedValueOnce(Response.json(role ? [{ role }] : []))
+    .mockResolvedValue(Response.json(null));
   if (upload) fetchMock.mockResolvedValue(Response.json(null));
   vi.stubGlobal('fetch', fetchMock);
 }
@@ -232,6 +237,37 @@ describe('audio Worker request boundary', () => {
     expect(response.status).toBe(429);
   });
 
+  it('does not write to R2 when the simulated Class A budget is exhausted', async () => {
+    vi.stubGlobal('fetch', vi.fn()
+      .mockResolvedValueOnce(Response.json({ id: 'user-123' }))
+      .mockResolvedValueOnce(Response.json([{ role: 'member' }]))
+      .mockResolvedValueOnce(Response.json(null))
+      .mockResolvedValueOnce(Response.json(
+        { message: 'R2_FREE_TIER_OPERATION_GUARDRAIL' },
+        { status: 400 },
+      ))
+      .mockResolvedValue(Response.json(null)));
+    const env = makeAudioEnv();
+
+    const response = await worker.fetch(
+      new Request(`https://audio.example/objects/workspaces/${workspaceId}/imports/test.mp3`, {
+        method: 'PUT',
+        headers: {
+          authorization: 'Bearer token',
+          'content-type': 'audio/mpeg',
+          'content-length': '4',
+          'x-audio-reservation-id': reservationId,
+        },
+        body: validMp3Bytes,
+      }),
+      env,
+    );
+
+    expect(response.status).toBe(429);
+    await expect(response.json()).resolves.toMatchObject({ code: 'R2_FREE_TIER_GUARDRAIL' });
+    expect(env.AUDIO_BUCKET.put).not.toHaveBeenCalled();
+  });
+
   it('allows guests to request playback URLs', async () => {
     mockSupabaseRole('guest');
     const env = makeAudioEnv();
@@ -249,7 +285,7 @@ describe('audio Worker request boundary', () => {
     );
 
     expect(response.status).toBe(200);
-    expect(env.AUDIO_BUCKET.head).toHaveBeenCalledWith(key);
+    expect(env.AUDIO_BUCKET.head).not.toHaveBeenCalled();
   });
 
   it('denies playback URLs to non-members', async () => {
@@ -297,6 +333,33 @@ describe('audio Worker request boundary', () => {
     expect(mediaResponse.headers.get('cache-control')).toBe('private, no-store');
   });
 
+  it('does not read R2 when the simulated Class B budget is exhausted', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(1_800_000_000_000);
+    vi.stubGlobal('fetch', vi.fn()
+      .mockResolvedValueOnce(Response.json({ id: 'user-123' }))
+      .mockResolvedValueOnce(Response.json([{ role: 'member' }]))
+      .mockResolvedValueOnce(Response.json(
+        { message: 'R2_FREE_TIER_OPERATION_GUARDRAIL' },
+        { status: 400 },
+      )));
+    const env = makeAudioEnv();
+    const key = `workspaces/${workspaceId}/imports/test.mp3`;
+    const signedResponse = await worker.fetch(
+      new Request('https://audio.example/signed-url', {
+        method: 'POST',
+        headers: { authorization: 'Bearer token', 'content-type': 'application/json' },
+        body: JSON.stringify({ key }),
+      }),
+      env,
+    );
+    const signedBody = await signedResponse.json<{ signedUrl: string }>();
+
+    const response = await worker.fetch(new Request(signedBody.signedUrl), env);
+
+    expect(response.status).toBe(429);
+    expect(env.AUDIO_BUCKET.get).not.toHaveBeenCalled();
+  });
+
   it('rejects a tampered signed playback URL', async () => {
     mockSupabaseRole('member');
     const env = makeAudioEnv();
@@ -315,5 +378,52 @@ describe('audio Worker request boundary', () => {
     const response = await worker.fetch(new Request(tamperedUrl), env);
     expect(response.status).toBe(403);
     expect(env.AUDIO_BUCKET.get).not.toHaveBeenCalled();
+  });
+});
+
+describe('audio Worker R2 audit', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it('reserves Class A before listing both buckets and records their storage', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(Response.json(null));
+    vi.stubGlobal('fetch', fetchMock);
+    const env = makeAudioEnv();
+    let auditTask: Promise<unknown> | undefined;
+    const ctx = {
+      waitUntil(task: Promise<unknown>) {
+        auditTask = task;
+      },
+    } as ExecutionContext;
+
+    await worker.scheduled({} as ScheduledController, env, ctx);
+    await auditTask;
+
+    expect(env.AUDIO_BUCKET.list).toHaveBeenCalledOnce();
+    expect(env.AUDIO_BACKUP_BUCKET.list).toHaveBeenCalledOnce();
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock.mock.calls[2]?.[0]).toContain('/rpc/record_r2_storage_observation');
+  });
+
+  it('does not list either bucket when the Class A reservation is rejected', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json(
+      { message: 'R2_FREE_TIER_OPERATION_GUARDRAIL' },
+      { status: 400 },
+    )));
+    const env = makeAudioEnv();
+    let auditTask: Promise<unknown> | undefined;
+    const ctx = {
+      waitUntil(task: Promise<unknown>) {
+        auditTask = task;
+      },
+    } as ExecutionContext;
+
+    await worker.scheduled({} as ScheduledController, env, ctx);
+    await expect(auditTask).rejects.toThrow('R2_FREE_TIER_OPERATION_GUARDRAIL');
+
+    expect(env.AUDIO_BUCKET.list).not.toHaveBeenCalled();
+    expect(env.AUDIO_BACKUP_BUCKET.list).not.toHaveBeenCalled();
   });
 });

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { FormDialog } from '@/components/FormDialog';
 import { eventsRepository } from '@/db/repositories/eventsRepository';
 import type { EventRecord, EventType } from '@/db/schema';
 import { useAuthStore } from '@/stores/authStore';
@@ -215,42 +216,27 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-xs"
-      onClick={(e) => {
-        if (e.target === e.currentTarget && !loading) {
-          onClose();
-        }
-      }}
-    >
-      <div className="fz-card w-full max-w-md rounded-[1.6rem] p-5">
-        <div className="flex items-center justify-between border-b border-white/10 pb-3">
-          <h2 className="text-[1.35rem] font-black tracking-tight text-white">
-            {event ? 'Modifier l’événement' : 'Nouvel événement'}
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={loading}
-            aria-label="Fermer"
-            className="fz-dialog-close"
-          >
-            &times;
-          </button>
-        </div>
+    <>
+      <FormDialog
+        title={event ? 'Modifier l’événement' : 'Nouvel événement'}
+        closeLabel="Fermer le formulaire d’événement"
+        closeDisabled={loading || isConfirmDeleteOpen}
+        onClose={onClose}
+      >
 
         {error && (
-          <div className="mt-3 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-400">
+          <div role="alert" className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-300">
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="mt-4 space-y-3.5">
+        <form onSubmit={handleSubmit} className="space-y-3.5">
           <div>
-            <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
+            <label className="fz-field-label mb-1 block">
               Titre de l’événement
             </label>
             <TextField
+              aria-label="Titre de l’événement"
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -261,7 +247,7 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
 
           {!event && workspaces.length > 0 && (
             <div>
-              <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
+              <label className="fz-field-label mb-1 block">
                 Espace / Groupe
               </label>
               <SelectField
@@ -278,9 +264,9 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
-              <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
+              <label className="fz-field-label mb-1 block">
                 Type
               </label>
               <SelectField
@@ -295,10 +281,11 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
               </SelectField>
             </div>
             <div>
-              <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
+              <label className="fz-field-label mb-1 block">
                 Lieu
               </label>
               <TextField
+                aria-label="Lieu"
                 type="text"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
@@ -307,9 +294,9 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
-              <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
+              <label className="fz-field-label mb-1 block">
                 Date de début (optionnelle)
               </label>
               <DateField
@@ -319,7 +306,7 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
               />
             </div>
             <div>
-              <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
+              <label className="fz-field-label mb-1 block">
                 Heure de début (optionnelle)
               </label>
               <TimeField
@@ -330,9 +317,9 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
-              <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
+              <label className="fz-field-label mb-1 block">
                 Date de fin (optionnelle)
               </label>
               <DateField
@@ -343,7 +330,7 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
               />
             </div>
             <div>
-              <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
+              <label className="fz-field-label mb-1 block">
                 Heure de fin
               </label>
               <TimeField
@@ -355,10 +342,11 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
           </div>
 
           <div>
-            <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
+            <label className="fz-field-label mb-1 block">
               Notes
             </label>
             <TextArea
+              aria-label="Notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
@@ -367,13 +355,13 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
             />
           </div>
 
-          <div className="flex items-center justify-between border-t border-white/10 pt-4">
+          <div className="flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
             {event ? (
               <button
                 type="button"
                 onClick={() => setIsConfirmDeleteOpen(true)}
                 disabled={loading}
-                className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-xs font-bold text-red-400 hover:bg-red-500/20"
+                className="fz-button-danger min-h-11 px-4 text-xs font-bold"
               >
                 Supprimer
               </button>
@@ -381,26 +369,26 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
               <div />
             )}
 
-            <div className="flex gap-2">
+            <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={onClose}
                 disabled={loading}
-                className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-zinc-300 hover:bg-white/10"
+                className="fz-button-secondary min-h-11 px-4 text-xs font-semibold text-zinc-300"
               >
                 Annuler
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="fz-button-primary px-4 py-2 text-xs font-bold disabled:opacity-60"
+                className="fz-button-primary min-h-11 px-4 text-xs font-bold disabled:opacity-60"
               >
                 {loading ? 'Enregistrement...' : 'Enregistrer'}
               </button>
             </div>
           </div>
         </form>
-      </div>
+      </FormDialog>
 
       <ConfirmDialog
         isOpen={isConfirmDeleteOpen}
@@ -414,6 +402,6 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
         }}
         onCancel={() => setIsConfirmDeleteOpen(false)}
       />
-    </div>
+    </>
   );
 };

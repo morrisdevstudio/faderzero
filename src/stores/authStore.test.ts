@@ -20,8 +20,13 @@ const personalWorkspace: Workspace = {
 };
 
 describe('sélection initiale du workspace', () => {
-  it('ouvre toujours Mon espace quand il existe', () => {
+  it('restaure le dernier groupe actif quand il existe encore', () => {
     localStorage.setItem('faderzero_active_workspace_id', groupWorkspace.id);
+    expect(selectInitialWorkspace([groupWorkspace, personalWorkspace])).toEqual(groupWorkspace);
+  });
+
+  it('ouvre Mon espace quand aucun workspace valide n’est mémorisé', () => {
+    localStorage.setItem('faderzero_active_workspace_id', 'workspace-supprime');
     expect(selectInitialWorkspace([groupWorkspace, personalWorkspace])).toEqual(personalWorkspace);
   });
 
