@@ -13,6 +13,7 @@ import { canWriteWorkspace } from '@/services/supabase/workspace';
 import { clearPendingInviteToken, readPendingInviteToken } from '@/services/supabase/inviteContext';
 import { processPendingAudioUploads } from '@/services/audio/pendingUploads';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { FzIcon } from '@/ui/icons';
 
 import { SplashScreen } from '@/components/SplashScreen';
 
@@ -24,6 +25,7 @@ function SyncBootstrap() {
   const isOnline = useOnlineStatus();
   const syncInFlightRef = useRef(false);
   const [isForcingSync, setIsForcingSync] = useState(false);
+  const [dismissedFailureKey, setDismissedFailureKey] = useState<string | null>(null);
 
   const pendingMutationCount = useLiveQuery(async () => {
     if (!activeWorkspace || !canWrite) {
@@ -163,7 +165,11 @@ function SyncBootstrap() {
     }
   }
 
-  if (!failedMutation) {
+  const failureKey = failedMutation
+    ? `${failedMutation.id ?? failedMutation.entityId}:${failedMutation.lastTriedAt ?? 0}`
+    : null;
+
+  if (!failedMutation || dismissedFailureKey === failureKey) {
     return null;
   }
 
@@ -183,6 +189,14 @@ function SyncBootstrap() {
           className="rounded-xl border border-rose-300/30 bg-rose-400/15 px-3 py-2 text-[0.7rem] font-black uppercase tracking-[0.14em] text-rose-50 transition hover:bg-rose-400/25 disabled:opacity-60"
         >
           {isForcingSync ? 'Retry...' : 'Forcer la synchro'}
+        </button>
+        <button
+          type="button"
+          onClick={() => setDismissedFailureKey(failureKey)}
+          aria-label="Masquer l’alerte de synchronisation"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-rose-100/75 transition hover:bg-rose-400/15 hover:text-rose-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-200"
+        >
+          <FzIcon name="close" usageId="sync.failure.dismiss" size="md" />
         </button>
       </div>
     </div>

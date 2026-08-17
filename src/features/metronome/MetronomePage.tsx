@@ -8,6 +8,8 @@ import { songsRepository } from '@/db/repositories/songsRepository';
 import { clampBeatsPerBar, clampBpm, MetronomeEngine } from '@/features/metronome/metronomeEngine';
 import { bpmOptions, formatSetDuration } from '@/features/songs/songPresentation';
 import { useAuthStore } from '@/stores/authStore';
+import { PageHeader } from '@/ui/components/PageHeader';
+import { FzIcon } from '@/ui/icons';
 
 const TAP_MEMORY = 5;
 
@@ -23,19 +25,6 @@ const subdivisionOptions: Array<{ value: MetronomeSubdivision; symbol: string; l
 ];
 
 type IconProps = SVGProps<SVGSVGElement>;
-
-function SetlistIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" {...props}>
-      <path d="M9 7h10" />
-      <path d="M9 12h10" />
-      <path d="M9 17h10" />
-      <path d="M4 7h.01" />
-      <path d="M4 12h.01" />
-      <path d="M4 17h.01" />
-    </svg>
-  );
-}
 
 function PlayIcon(props: IconProps) {
   return (
@@ -430,28 +419,19 @@ export function MetronomePage() {
 
   return (
     <div className="space-y-4">
-      <section className="space-y-3 -mt-2">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-7 w-7 text-white shrink-0">
-              <path d="M7 20h10" />
-              <path d="M8.5 20 11 5h2l2.5 15" />
-              <path d="M10 11h4" />
-              <path d="M14.5 7.5 18 5" />
-            </svg>
-            <h1 className="text-[2rem] font-black tracking-tight text-white">Métronome</h1>
-          </div>
-          <button
+      <PageHeader
+        icon={<FzIcon name="metronome" usageId="page-header.metronome" size="xl" />}
+        title="Métronome"
+        actions={<button
             type="button"
             onClick={() => setIsSetlistModalOpen(true)}
             aria-label="Choisir une setlist"
             className="fz-button-primary h-11 w-11 shrink-0 p-0 flex items-center justify-center"
             title="Choisir une setlist"
           >
-            <SetlistIcon className="h-5 w-5" />
-          </button>
-        </div>
-      </section>
+            <FzIcon name="setlist" usageId="page-header.metronome.setlist" />
+          </button>}
+      />
 
       <section aria-label="Contrôles du métronome" className="rounded-[1.5rem] border border-white/8 bg-black/20 p-4">
         <div className="flex items-center justify-between gap-4 py-1">

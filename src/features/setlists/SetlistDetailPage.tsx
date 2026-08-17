@@ -13,61 +13,18 @@ import { formatSetDuration, formatSongDuration } from '@/features/songs/songPres
 import { useAuthStore } from '@/stores/authStore';
 import { canWriteWorkspace } from '@/services/supabase/workspace';
 import { FzIcon } from '@/ui/icons/FzIcon';
+import { DateField } from '@/ui/components/DateField';
+import { DetailHeader } from '@/ui/components/DetailHeader';
+import { TextArea } from '@/ui/components/TextArea';
+import { TextField } from '@/ui/components/TextField';
 
 type IconProps = SVGProps<SVGSVGElement>;
-
-function BackIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M15 18 9 12l6-6" />
-    </svg>
-  );
-}
-
-function PrompterIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <rect x="4" y="5" width="16" height="12" rx="2.5" />
-      <path d="M8 21h8" />
-      <path d="M12 17v4" />
-    </svg>
-  );
-}
-
-function PencilIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="m4 20 4.5-1 9-9a2.1 2.1 0 0 0-3-3l-9 9L4 20Z" />
-      <path d="M13.5 6.5 17.5 10.5" />
-    </svg>
-  );
-}
 
 function PlusIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
       <path d="M12 5v14" />
       <path d="M5 12h14" />
-    </svg>
-  );
-}
-
-function CheckIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="m5 12 4.5 4.5L19 7" />
-    </svg>
-  );
-}
-
-function TrashIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M4 7h16" />
-      <path d="M10 11v6" />
-      <path d="M14 11v6" />
-      <path d="M6 7l1 12h10l1-12" />
-      <path d="M9 7V5h6v2" />
     </svg>
   );
 }
@@ -459,33 +416,19 @@ export function SetlistDetailPage() {
 
   return (
     <div className="space-y-5 pb-6">
-      <section
-        className="sticky z-30 -mx-1 -mt-5 border-b border-white/8 bg-[var(--fz-bg)] px-1 pb-4 pt-2"
-        style={{ top: 'calc(var(--fz-header-height, 64px) + var(--fz-viewport-offset-top, 0px))' }}
-      >
-        <div className="grid grid-cols-[2.75rem_minmax(0,1fr)_auto] items-center gap-3">
-          <Link
-            to="/setlists"
-            aria-label="Retour"
-            className="flex h-11 w-11 items-center justify-center text-white transition-colors hover:text-white/75 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60"
-          >
-            <BackIcon className="h-5 w-5" />
-          </Link>
-
-          <div className="min-w-0 px-1 text-left">
-            <h1 className="truncate text-[1.05rem] font-black text-white">{currentSetlist.name}</h1>
-            <p className="mt-0.5 truncate text-[0.78rem] text-[var(--fz-text-muted)]">
-              {songCount} morceau{songCount > 1 ? 'x' : ''} · {formatSetDuration(totalDurationSeconds)}
-            </p>
-          </div>
-
-          <div className="flex items-center justify-end gap-2">
+      <DetailHeader
+        title={currentSetlist.name}
+        subtitle={`${songCount} morceau${songCount > 1 ? 'x' : ''} · ${formatSetDuration(totalDurationSeconds)}`}
+        onBack={() => navigate('/setlists')}
+        backLabel="Retour aux setlists"
+        actions={
+          <>
             <Link
               to={`/prompter/play?setlistId=${encodeURIComponent(currentSetlist.id)}`}
               aria-label="Ouvrir le prompteur"
-              className="flex h-11 w-11 items-center justify-center text-emerald-300 transition-colors hover:text-emerald-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300/70"
+              className="text-emerald-300 hover:text-emerald-200"
             >
-              <PrompterIcon className="h-5 w-5" />
+              <FzIcon name="prompter" usageId="setlist-detail.prompter" size="md" />
             </Link>
             {canWrite && isEditing ? (
               <button
@@ -493,9 +436,9 @@ export function SetlistDetailPage() {
                 onClick={() => setIsDeleteDialogOpen(true)}
                 disabled={isDeleting}
                 aria-label="Supprimer"
-                className="flex h-11 w-11 items-center justify-center text-rose-300 transition-colors hover:text-rose-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-300/70 disabled:opacity-60"
+                className="text-rose-300 hover:text-rose-200 disabled:opacity-60"
               >
-                <TrashIcon className="h-4.5 w-4.5" />
+                <FzIcon name="delete" usageId="setlist-detail.delete" size="md" />
               </button>
             ) : null}
 
@@ -503,7 +446,7 @@ export function SetlistDetailPage() {
               type="button"
               onClick={handleExportPdf}
               aria-label="Exporter en PDF"
-              className="flex h-11 w-11 items-center justify-center text-emerald-300 transition-colors hover:text-emerald-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300/70"
+              className="text-emerald-300 hover:text-emerald-200"
             >
               <FzIcon name="export-pdf" usageId="setlist.export-pdf" className="h-4.5 w-4.5" />
             </button>
@@ -521,17 +464,21 @@ export function SetlistDetailPage() {
               }}
               aria-label={isEditing ? 'Annuler la modification' : 'Modifier'}
               className={[
-                'flex h-11 w-11 items-center justify-center transition-colors focus-visible:outline-2 focus-visible:outline-offset-2',
+                '',
                 isEditing
                   ? 'text-white hover:text-white/75 focus-visible:outline-white/60'
                   : 'text-indigo-300 hover:text-indigo-200 focus-visible:outline-indigo-300/70',
               ].join(' ')}
             >
-              {isEditing ? <CheckIcon className="h-4.5 w-4.5" /> : <PencilIcon className="h-4.5 w-4.5" />}
+              <FzIcon
+                name={isEditing ? 'check' : 'edit'}
+                usageId={isEditing ? 'setlist-detail.finish-edit' : 'setlist-detail.edit'}
+                size="md"
+              />
             </button> : null}
-          </div>
-        </div>
-      </section>
+          </>
+        }
+      />
 
       <section className="space-y-4 pt-1">
         {error ? <p className="text-sm font-semibold text-rose-400">{error}</p> : null}
@@ -541,31 +488,28 @@ export function SetlistDetailPage() {
             <form className="space-y-4" onSubmit={handleSaveSetlist}>
               <label className="block">
                 <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-[var(--fz-text-muted)]">Nom</span>
-                <input
+                <TextField
                   value={name}
                   onChange={(event) => setName(event.target.value)}
                   disabled={isSaving}
-                  className="fz-input text-sm"
                 />
               </label>
               <label className="block">
                 <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-[var(--fz-text-muted)]">Date</span>
-                <input
+                <DateField
                   value={date}
                   onChange={(event) => setDate(event.target.value)}
-                  type="date"
                   disabled={isSaving}
-                  className="fz-input text-sm"
+                  aria-label="Date de la setlist"
                 />
               </label>
               <label className="block">
                 <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-[var(--fz-text-muted)]">Notes</span>
-                <textarea
+                <TextArea
                   value={notes}
                   onChange={(event) => setNotes(event.target.value)}
                   rows={3}
                   disabled={isSaving}
-                  className="fz-input min-h-24 resize-y text-sm"
                 />
               </label>
 
@@ -790,12 +734,11 @@ export function SetlistDetailPage() {
 
             <label className="block">
               <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-[var(--fz-text-muted)]">Note</span>
-              <input
+              <TextField
                 value={transitionAnnotation}
                 onChange={(event) => setTransitionAnnotation(event.target.value)}
                 placeholder="Ex. Intro guitare, changement d'instrument..."
                 disabled={isSavingTransition}
-                className="fz-input text-sm"
               />
             </label>
 
@@ -883,12 +826,11 @@ export function SetlistDetailPage() {
           <form className="space-y-4" onSubmit={handleSaveEndingNotes}>
             <label className="block">
               <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-[var(--fz-text-muted)]">Note</span>
-              <input
+              <TextField
                 value={endingAnnotation}
                 onChange={(event) => setEndingAnnotation(event.target.value)}
                 placeholder="Ex. Merci, rappel, sortie de scene..."
                 disabled={isSavingTransition}
-                className="fz-input text-sm"
               />
             </label>
 

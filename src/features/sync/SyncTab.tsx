@@ -5,7 +5,7 @@ import { db } from '@/db/db';
 import { useAuthStore } from '@/stores/authStore';
 import { pushPendingMutations, pullRemoteChanges, resolveConflict } from '@/services/supabase/sync';
 import { FeatureCard } from '@/components/FeatureCard';
-import { StatusPill } from '@/components/StatusPill';
+import { StatusPill } from '@/ui/components/StatusPill';
 import {
   applySyncImport,
   deserializeSyncQrFragment,

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { AppShell } from '@/components/AppShell';
 import { setForcedOffline } from '@/services/connectivity';
@@ -94,6 +94,26 @@ describe('AppShell logo', () => {
     expect(screen.getByRole('button', { name: 'Nouvelles paroles' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Prompteur' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Métronome' })).toBeInTheDocument();
+  });
+
+  it('opens the existing group picker from the shared app header', () => {
+    render(
+      <MemoryRouter initialEntries={['/songs']}>
+        <Routes>
+          <Route element={<AppShell />}>
+            <Route path="/songs" element={<LocationLabel />} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Changer de groupe (Groupe test)' }));
+    });
+
+    const dialog = screen.getByRole('dialog', { name: 'Choisir un groupe' });
+    expect(dialog).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: /Groupe test/ })).toBeInTheDocument();
   });
 
   it('hides recording for read-only guests', () => {

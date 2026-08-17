@@ -1,6 +1,7 @@
 ﻿import React, { useEffect, useState } from 'react';
 import { listAvailableTargetWorkspaces, copySongToWorkspace, type CopySongResult } from '@/services/supabase/copy';
 import type { Workspace } from '@/services/supabase/workspace';
+import { SelectField } from '@/ui/components/SelectField';
 
 interface CopySongModalProps {
   songId: string;
@@ -86,18 +87,18 @@ export const CopySongModal: React.FC<CopySongModalProps> = ({
             {targetWorkspaces.length === 0 ? (
               <p className="text-xs text-zinc-500 italic">Aucun autre espace accessible en écriture.</p>
             ) : (
-              <select
+              <SelectField
+                aria-label="Espace de destination"
                 value={selectedTargetId}
                 onChange={(e) => setSelectedTargetId(e.target.value)}
                 disabled={loading}
-                className="w-full rounded-xl border border-zinc-700 bg-zinc-950 p-3 text-sm text-zinc-100 focus:outline-none"
               >
                 {targetWorkspaces.map((ws) => (
                   <option key={ws.id} value={ws.id}>
                     {ws.name} ({ws.type === 'personal' ? 'Mon espace' : 'Groupe'})
                   </option>
                 ))}
-              </select>
+              </SelectField>
             )}
           </div>
 

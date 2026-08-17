@@ -8,7 +8,7 @@ import { songsRepository } from '@/db/repositories/songsRepository';
 import type { AudioTrack } from '@/features/audio/audioPlayerStore';
 import { useAudioPlayerStore } from '@/features/audio/audioPlayerStore';
 import { SongFormFields, type SongFormValues } from '@/features/songs/SongFormFields';
-import { bpmOptions, formatSongDuration, songStatusOptions } from '@/features/songs/songPresentation';
+import { bpmOptions, formatSongDuration, getSongStatusLabel, getSongStatusTone, songStatusOptions } from '@/features/songs/songPresentation';
 import { PickerDialog, WheelColumn } from '@/components/PickerDialog';
 import { useAuthStore } from '@/stores/authStore';
 import { songAssetsRepository } from '@/db/repositories/songAssetsRepository';
@@ -26,34 +26,14 @@ import { canWriteWorkspace } from '@/services/supabase/workspace';
 import { CopySongModal } from '@/features/songs/CopySongModal';
 import type { SongStatus } from '@/db/schema';
 import { QuickVoiceRecorder } from '@/features/recorder/QuickVoiceRecorder';
+import { DetailHeader } from '@/ui/components/DetailHeader';
+import { FzIcon } from '@/ui/icons';
+import { StatusPill } from '@/ui/components/StatusPill';
+import { SelectField } from '@/ui/components/SelectField';
+import { TextArea } from '@/ui/components/TextArea';
+import { TextField } from '@/ui/components/TextField';
 
 type IconProps = SVGProps<SVGSVGElement>;
-
-function BackIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M15 18 9 12l6-6" />
-    </svg>
-  );
-}
-
-function PrompterIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <rect x="4" y="5" width="16" height="12" rx="2.5" />
-      <path d="M8 21h8" />
-      <path d="M12 17v4" />
-    </svg>
-  );
-}
-
-function CheckIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="m5 12 4.5 4.5L19 7" />
-    </svg>
-  );
-}
 
 function TrashIcon(props: IconProps) {
   return (
@@ -689,31 +669,13 @@ export function SongDetailPage() {
 
   return (
     <div className="space-y-4">
-      <section
-        className="sticky z-30 -mx-1 -mt-5 border-b border-white/8 bg-[var(--fz-bg)] px-1 pb-3 pt-2"
-        style={{ top: 'calc(var(--fz-header-height, 64px) + var(--fz-viewport-offset-top, 0px))' }}
-      >
-        <div className="grid grid-cols-[2.75rem_minmax(0,1fr)_auto] items-center gap-3">
-          <Link
-            to="/songs"
-            aria-label="Retour"
-            className="flex h-11 w-11 items-center justify-center justify-self-start text-white transition-colors hover:text-white/75 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60"
-          >
-            <BackIcon className="h-5 w-5" />
-          </Link>
-
-          <h1
-            className={[
-              'truncate text-left text-[1rem] font-black text-white',
-              canWrite ? 'cursor-pointer select-none transition hover:text-white/90 active:opacity-75' : '',
-            ].join(' ')}
-            title={canWrite ? 'Appui long pour modifier le titre' : undefined}
-            {...(canWrite ? titleLongPress : {})}
-          >
-            {currentSong.title || 'Sans titre'}
-          </h1>
-
-          <div className="flex items-center justify-end gap-2 justify-self-end">
+      <DetailHeader
+        title={currentSong.title || 'Sans titre'}
+        onBack={() => navigate('/songs')}
+        backLabel="Retour aux morceaux"
+        titleInteraction={canWrite ? { title: 'Appui long pour modifier le titre', ...titleLongPress } : undefined}
+        actions={
+          <>
             {canWrite ? (
               <button
                 type="button"
@@ -721,9 +683,9 @@ export function SongDetailPage() {
                 disabled={isSaving}
                 aria-label="Supprimer la chanson"
                 title="Supprimer la chanson"
-                className="flex h-11 w-11 items-center justify-center text-rose-400 transition-colors hover:text-rose-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-400/70 disabled:opacity-60"
+                className="text-rose-400 hover:text-rose-300 disabled:opacity-60"
               >
-                <TrashIcon className="h-4.5 w-4.5" />
+                <FzIcon name="delete" usageId="song-detail.delete" size="md" />
               </button>
             ) : null}
 
@@ -733,7 +695,7 @@ export function SongDetailPage() {
                 onClick={() => setIsCopyModalOpen(true)}
                 aria-label="Copier vers un autre espace"
                 title="Copier vers un autre espace"
-                className="flex h-11 w-11 items-center justify-center text-amber-300 transition-colors hover:text-amber-200"
+                className="text-amber-300 hover:text-amber-200"
               >
                 <svg className="h-4.5 w-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
@@ -746,9 +708,9 @@ export function SongDetailPage() {
               <Link
                 to={`/prompter/play?songId=${encodeURIComponent(currentSong.id)}`}
                 aria-label="Ouvrir cette chanson dans le prompteur"
-                className="flex h-11 w-11 items-center justify-center text-emerald-300 transition-colors hover:text-emerald-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300/70"
+                className="text-emerald-300 hover:text-emerald-200"
               >
-                <PrompterIcon className="h-5 w-5" />
+                <FzIcon name="prompter" usageId="song-detail.prompter" size="md" />
               </Link>
             ) : null}
 
@@ -758,14 +720,14 @@ export function SongDetailPage() {
                 onClick={() => handleCloseEdit()}
                 aria-label="Terminer la modification"
                 title="Terminer"
-                className="flex h-11 w-11 items-center justify-center text-white hover:text-white/75 focus-visible:outline-white/60 transition-colors"
+                className="text-white hover:text-white/75"
               >
-                <CheckIcon className="h-4.5 w-4.5" />
+                <FzIcon name="check" usageId="song-detail.finish-edit" size="md" />
               </button>
             ) : null}
-          </div>
-        </div>
-      </section>
+          </>
+        }
+      />
 
       <section className="space-y-4 pt-1">
         {error ? <p className="text-sm font-semibold text-rose-400">{error}</p> : null}
@@ -820,18 +782,10 @@ export function SongDetailPage() {
                   {...(canWrite ? statusLongPress : {})}
                 >
                   <p className="text-[0.58rem] font-medium uppercase leading-tight text-[var(--fz-text-muted)]">État</p>
-                  <p
-                    className={[
-                      'truncate text-[0.72rem] font-black uppercase leading-tight',
-                      currentSong.status === 'Pret'
-                        ? 'text-[var(--fz-success)]'
-                        : currentSong.status === 'En cours'
-                          ? 'text-[var(--fz-accent-strong)]'
-                          : 'text-white/70',
-                    ].join(' ')}
-                  >
-                    {currentSong.status}
-                  </p>
+                  <StatusPill
+                    label={getSongStatusLabel(currentSong.status)}
+                    tone={getSongStatusTone(currentSong.status)}
+                  />
                 </div>
                 <div
                   className={[
@@ -1090,17 +1044,17 @@ export function SongDetailPage() {
                 <span className="mb-2 block text-xs font-black uppercase tracking-[0.18em] text-[var(--fz-text-muted)]">
                   Fichier importe
                 </span>
-                <select
+                <SelectField
+                  aria-label="Fichier importé à associer"
                   value={selectedAssetToLinkId}
                   onChange={(event) => setSelectedAssetToLinkId(event.target.value)}
-                  className="fz-input text-sm"
                 >
                   {unlinkedAssets.map((asset) => (
                     <option key={asset.id} value={asset.id}>
                       {asset.filename}
                     </option>
                   ))}
-                </select>
+                </SelectField>
               </label>
             ) : (
               <p className="rounded-[1rem] border border-white/8 bg-white/5 p-3 text-sm text-white/60">
@@ -1156,7 +1110,7 @@ export function SongDetailPage() {
               <span className="mb-2 block text-xs font-black uppercase tracking-[0.18em] text-[var(--fz-text-muted)]">
                 Nouveau nom
               </span>
-              <input
+              <TextField
                 value={duplicatePrompt.renameValue}
                 onChange={(event) =>
                   setDuplicatePrompt({
@@ -1165,7 +1119,6 @@ export function SongDetailPage() {
                     error: null,
                   })
                 }
-                className="fz-input text-sm"
               />
             </label>
 
@@ -1210,12 +1163,11 @@ export function SongDetailPage() {
             }}
             className="space-y-4"
           >
-            <input
+            <TextField
               type="text"
               value={quickValue}
               onChange={(e) => setQuickValue(e.target.value)}
               placeholder="Titre du morceau"
-              className="fz-input text-base"
               autoFocus
             />
             <div className="flex items-center justify-end gap-3 pt-2">
@@ -1371,12 +1323,12 @@ export function SongDetailPage() {
             }}
             className="space-y-4"
           >
-            <textarea
+            <TextArea
               rows={4}
               value={quickValue}
               onChange={(e) => setQuickValue(e.target.value)}
               placeholder="Repere scene, structure, remarques..."
-              className="fz-input min-h-24 resize-none overflow-hidden text-sm leading-6"
+              resize="none"
               autoFocus
             />
             <div className="flex items-center justify-end gap-3 pt-2">

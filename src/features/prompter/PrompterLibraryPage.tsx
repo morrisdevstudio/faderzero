@@ -1,11 +1,13 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Link } from 'react-router-dom';
 import { FeatureCard } from '@/components/FeatureCard';
-import { StatusPill } from '@/components/StatusPill';
+import { StatusPill } from '@/ui/components/StatusPill';
 import { setlistsRepository } from '@/db/repositories/setlistsRepository';
 import { songsRepository } from '@/db/repositories/songsRepository';
-import { formatSetDuration, formatSongDuration, getSongStatusTone } from '@/features/songs/songPresentation';
+import { formatSetDuration, formatSongDuration, getSongStatusLabel, getSongStatusTone } from '@/features/songs/songPresentation';
 import { useAuthStore } from '@/stores/authStore';
+import { PageHeader } from '@/ui/components/PageHeader';
+import { FzIcon } from '@/ui/icons';
 
 function SetlistSectionIcon() {
   return (
@@ -33,17 +35,7 @@ export function PrompterLibraryPage() {
 
   return (
     <div className="space-y-8">
-      <header>
-        <div className="flex items-center gap-3">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-7 w-7 text-white shrink-0">
-            <rect x="4" y="5" width="16" height="12" rx="2.5" />
-            <path d="M8 21h8" />
-            <path d="M12 17v4" />
-          </svg>
-          <h1 className="text-[2rem] font-black tracking-tight text-white">Prompteur</h1>
-        </div>
-        <p className="mt-1 text-sm text-[var(--fz-text-muted)]">Choisissez une setlist ou une chanson pour commencer.</p>
-      </header>
+      <PageHeader icon={<FzIcon name="prompter" usageId="page-header.prompter" size="xl" />} title="Prompteur" />
 
       <section aria-labelledby="prompter-setlists-title" className="space-y-3">
         <div>
@@ -119,7 +111,7 @@ export function PrompterLibraryPage() {
                   </p>
                 </div>
                 <div className="shrink-0 pt-0.5">
-                  <StatusPill label={song.status} tone={getSongStatusTone(song.status)} />
+                  <StatusPill label={getSongStatusLabel(song.status)} tone={getSongStatusTone(song.status)} />
                 </div>
               </div>
             </Link>

@@ -8,14 +8,11 @@ import { setlistsRepository } from '@/db/repositories/setlistsRepository';
 import { formatSetDuration } from '@/features/songs/songPresentation';
 import { useAuthStore } from '@/stores/authStore';
 import { canWriteWorkspace } from '@/services/supabase/workspace';
-
-function PlusIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-      <path d="M12 5v14M5 12h14" />
-    </svg>
-  );
-}
+import { AddButton } from '@/ui/components/AddButton';
+import { PageHeader } from '@/ui/components/PageHeader';
+import { FzIcon } from '@/ui/icons';
+import { TextArea } from '@/ui/components/TextArea';
+import { TextField } from '@/ui/components/TextField';
 
 export function SetlistsPage() {
   const navigate = useNavigate();
@@ -89,47 +86,28 @@ export function SetlistsPage() {
 
   return (
     <div className="space-y-4">
-      <section className="space-y-3 -mt-2">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0 flex-1">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="h-7 w-7 text-white shrink-0">
-              <path d="M9 7h10" />
-              <path d="M9 12h10" />
-              <path d="M9 17h10" />
-              <path d="M4 7h.01" />
-              <path d="M4 12h.01" />
-              <path d="M4 17h.01" />
-            </svg>
-            <h1 className="min-w-0 text-[2rem] font-black tracking-tight text-white">Setlists</h1>
-          </div>
-
-          {canWrite ? <button
-            type="button"
-            onClick={() => {
-              setIsCreateOpen(true);
-              setName('');
-              setNotes('');
-              setError(null);
-            }}
-            aria-label="Nouvelle setlist"
-            className="fz-button-primary h-11 w-11 shrink-0 p-0"
-          >
-            <PlusIcon />
-          </button> : null}
-        </div>
-
-        {setlists && setlists.length > 0 ? (
-          <div className="flex items-center gap-2">
-            <input
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-              placeholder="Rechercher une setlist..."
-              className="fz-input min-w-0 flex-1 text-sm"
-            />
-            <SortMenu value={sortMode} onChange={setSortMode} label="Trier les setlists" />
-          </div>
-        ) : null}
-      </section>
+      <PageHeader
+        icon={<FzIcon name="setlist" usageId="page-header.setlists" size="xl" />}
+        title="Setlists"
+        actions={canWrite ? <AddButton
+          onClick={() => {
+            setIsCreateOpen(true);
+            setName('');
+            setNotes('');
+            setError(null);
+          }}
+          aria-label="Nouvelle setlist"
+        /> : undefined}
+        search={setlists && setlists.length > 0 ? {
+          value: searchQuery,
+          onChange: setSearchQuery,
+          placeholder: 'Rechercher une setlist...',
+          'aria-label': 'Rechercher dans les setlists',
+        } : undefined}
+        sortAction={setlists && setlists.length > 0 ? (
+          <SortMenu value={sortMode} onChange={setSortMode} label="Trier les setlists" />
+        ) : undefined}
+      />
 
       <section className="divide-y divide-white/10">
         {filteredSetlists === undefined ? (
@@ -189,13 +167,12 @@ export function SetlistsPage() {
               <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-[var(--fz-text-muted)]">
                 Nom
               </span>
-              <input
+              <TextField
                 value={name}
                 onChange={(event) => setName(event.target.value)}
                 placeholder="Ex. Festival ete 2026"
                 autoFocus
                 disabled={isSaving}
-                className="fz-input text-sm"
               />
             </label>
 
@@ -203,13 +180,12 @@ export function SetlistsPage() {
               <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-[var(--fz-text-muted)]">
                 Notes
               </span>
-              <textarea
+              <TextArea
                 value={notes}
                 onChange={(event) => setNotes(event.target.value)}
                 placeholder="Intentions de scene, rappels ou contexte"
                 rows={3}
                 disabled={isSaving}
-                className="fz-input min-h-28 resize-y text-sm"
               />
             </label>
 

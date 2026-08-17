@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 
 const bookingMocks = vi.hoisted(() => ({
   listLeads: vi.fn(), listWorkspaceContacts: vi.fn(), listNotes: vi.fn(), listLeadContacts: vi.fn(),
@@ -31,13 +32,27 @@ describe('BookingPage detail', () => {
     Object.values(bookingMocks).forEach((mock) => mock.mockReset());
   });
 
+  function renderBooking(initialEntry = '/booking') {
+    render(
+      <MemoryRouter initialEntries={[initialEntry]}>
+        <Routes>
+          <Route path="/booking" element={<BookingPage />} />
+          <Route path="/booking/:bookingId" element={<BookingPage />} />
+          <Route path="/calendar" element={<p>Calendrier</p>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+  }
+
   function openDetail() {
-    render(<BookingPage />);
-    fireEvent.click(screen.getByRole('button', { name: /Le Chabada/ }));
+    renderBooking('/booking/lead-1');
   }
 
   it('uses the proposition wording and consistent labels in the creation sheet', () => {
-    render(<BookingPage />);
+    renderBooking();
+    expect(screen.getByRole('heading', { level: 1, name: 'Booking' })).toBeInTheDocument();
+    expect(screen.queryByText('Les salles à relancer et leurs interlocuteurs.')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ajouter une proposition' }).querySelector('svg')).toHaveAttribute('data-icon-usage', 'booking-header.add');
     fireEvent.click(screen.getByRole('button', { name: 'Ajouter une proposition' }));
     const dialog = screen.getByRole('dialog', { name: 'Nouvelle proposition' });
     expect(within(dialog).getByLabelText('Nom du contact')).toBeInTheDocument();
@@ -54,6 +69,15 @@ describe('BookingPage detail', () => {
     expect(screen.queryByRole('button', { name: 'Option' })).not.toBeInTheDocument();
     expect(screen.queryByText('Négociation')).not.toBeInTheDocument();
     expect(screen.queryByText('À faire maintenant')).not.toBeInTheDocument();
+  });
+
+  it('opens a proposition on its stable detail route', () => {
+    renderBooking();
+
+    fireEvent.click(screen.getByRole('button', { name: /Le Chabada/ }));
+
+    expect(screen.getByRole('heading', { level: 1, name: 'Le Chabada' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Retour au booking' })).toBeInTheDocument();
   });
 
   it('renders the compact contact actions, global notes and the future action in the timeline', () => {
@@ -74,7 +98,9 @@ describe('BookingPage detail', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Ajouter une note' }));
     expect(screen.getByRole('dialog', { name: 'Consigner un échange' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Fermer' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Modifier la salle' }));
+    const editButton = screen.getByRole('button', { name: 'Modifier la salle' });
+    expect(editButton.querySelector('svg')).toHaveAttribute('data-icon-usage', 'booking-detail.edit');
+    fireEvent.click(editButton);
     const dialog = screen.getByRole('dialog', { name: 'Détails de la salle' });
     expect(dialog).toBeInTheDocument();
     expect(within(dialog).getByLabelText('Notes globales')).toHaveValue('Dossier de presse déjà envoyé.');

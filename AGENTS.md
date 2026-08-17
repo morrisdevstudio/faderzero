@@ -8,6 +8,13 @@ Migration progressive de FaderZero vers une PWA mobile-first et offline-first, s
 - Base distante : Supabase.
 - Fichiers audio : Cloudflare R2.
 
+## Rules
+
+Lire la règle spécialisée correspondant à la tâche avant toute modification :
+
+- **Design system** — [`.agents/rules/design-system.md`](.agents/rules/design-system.md) — obligatoire pour toute création, modification ou revue d’interface.
+- **Migration PWA** — [`.agents/rules/rules.md`](.agents/rules/rules.md) — obligatoire pour la migration web, la base locale, la synchronisation et l’import/export.
+
 ## Routage des tâches
 
 - **Annonce obligatoire** : avant toute analyse, commande ou modification, afficher exactement une ligne `Routage : <Lite|Standard|Strict|APEX|Antigravity> — <justification brève>`.

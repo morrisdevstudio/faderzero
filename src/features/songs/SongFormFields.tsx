@@ -2,6 +2,8 @@ import { useLayoutEffect, useRef, useState, type ChangeEvent, type FocusEvent } 
 import { PickerDialog, PickerTrigger, WheelColumn } from '@/components/PickerDialog';
 import type { SongStatus } from '@/db/schema';
 import { bpmOptions, songStatusOptions } from '@/features/songs/songPresentation';
+import { TextArea } from '@/ui/components/TextArea';
+import { TextField } from '@/ui/components/TextField';
 
 export interface SongFormValues {
   title: string;
@@ -128,12 +130,11 @@ export function SongFormFields({ values, onChange, disabled = false, showLyrics 
       <div className="space-y-3">
         <label className="block">
           <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-[var(--fz-text-muted)]">Titre</span>
-          <input
+          <TextField
             value={values.title}
             onChange={handleInputChange('title')}
             placeholder="Ex. Last Train Home"
             disabled={disabled}
-            className="fz-input text-base"
           />
         </label>
 
@@ -166,14 +167,14 @@ export function SongFormFields({ values, onChange, disabled = false, showLyrics 
 
         <label className="block">
           <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-[var(--fz-text-muted)]">Notes</span>
-          <textarea
+          <TextArea
             ref={notesTextareaRef}
             value={values.notes}
             onChange={handleTextAreaChange('notes')}
             rows={1}
             placeholder="Repere scene, structure, remarques..."
             disabled={disabled}
-            className="fz-input min-h-0 resize-none overflow-hidden text-sm leading-6"
+            resize="none"
           />
         </label>
 
@@ -218,7 +219,7 @@ export function SongFormFields({ values, onChange, disabled = false, showLyrics 
               </div>
             </div>
           ) : null}
-          <textarea
+          <TextArea
             ref={lyricsTextareaRef}
             value={values.lyrics}
             onChange={handleTextAreaChange('lyrics')}
@@ -227,7 +228,7 @@ export function SongFormFields({ values, onChange, disabled = false, showLyrics 
             rows={10}
             placeholder="Couplets, refrains, accords..."
             disabled={disabled}
-            className="fz-input min-h-52 resize-none overflow-hidden text-sm leading-7"
+            resize="none"
           />
         </label> : null}
 

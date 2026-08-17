@@ -7,6 +7,8 @@ import type { EventRecord, SongRecord } from '@/db/schema';
 import { db } from '@/db/db';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { bookingRepository } from '@/db/repositories/bookingRepository';
+import { PageHeader } from '@/ui/components/PageHeader';
+import { FzIcon } from '@/ui/icons';
 
 interface GroupFeedSummary {
   workspaceId: string;
@@ -83,18 +85,7 @@ export function HomePage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <section className="space-y-3 -mt-2">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0 flex-1">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-7 w-7 text-white shrink-0">
-              <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-              <polyline points="9 22 9 12 15 12 15 22" />
-            </svg>
-            <h1 className="min-w-0 flex-1 text-[2rem] font-black tracking-tight text-white">Mon Espace</h1>
-          </div>
-        </div>
-      </section>
+      <PageHeader icon={<FzIcon name="home" usageId="page-header.home" size="xl" />} title="Mon Espace" />
 
       <Link to="/booking" className="flex items-center justify-between gap-3 rounded-2xl border border-rose-300/20 bg-rose-400/10 px-4 py-3 transition hover:bg-rose-400/15">
         <span><span className="block text-[0.65rem] font-black uppercase tracking-[0.16em] text-rose-200">Prospection</span><span className="mt-0.5 block text-sm font-bold text-white">{dueBookingCount > 0 ? `${dueBookingCount} relance${dueBookingCount > 1 ? 's' : ''} à traiter` : 'Aucune relance en retard'}</span></span>

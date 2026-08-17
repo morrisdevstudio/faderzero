@@ -3,7 +3,8 @@ import { useAuthStore } from '@/stores/authStore';
 import { getSupabaseConfigError } from '@/services/supabase/client';
 import { normalizeDisplayName } from '@/services/supabase/profile';
 import { assertValidPassword, getPasswordRequirements } from '@/services/supabase/passwordPolicy';
-import { FzIcon } from '@/ui/icons/FzIcon';
+import { PasswordField } from '@/ui/components/PasswordField';
+import { TextField } from '@/ui/components/TextField';
 
 type AuthMode = 'signin' | 'signup' | 'forgot';
 
@@ -17,8 +18,6 @@ export function LoginPage({ inviteTokenPresent = false }: LoginPageProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
-  const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const [pendingConfirmationEmail, setPendingConfirmationEmail] = useState<string | null>(null);
 
@@ -37,8 +36,6 @@ export function LoginPage({ inviteTokenPresent = false }: LoginPageProps) {
 
   useEffect(() => {
     setLocalError(null);
-    setIsPasswordVisible(false);
-    setIsConfirmPasswordVisible(false);
     clearFeedback();
   }, [mode, clearFeedback]);
 
@@ -165,7 +162,7 @@ export function LoginPage({ inviteTokenPresent = false }: LoginPageProps) {
               <label htmlFor="displayName" className="mb-2 block text-[0.68rem] font-black uppercase tracking-[0.18em] text-white/60">
                 Pseudo
               </label>
-              <input
+              <TextField
                 id="displayName"
                 type="text"
                 required
@@ -176,7 +173,6 @@ export function LoginPage({ inviteTokenPresent = false }: LoginPageProps) {
                 onChange={(event) => setDisplayName(event.target.value)}
                 placeholder="Votre nom affiché"
                 disabled={loading}
-                className="w-full rounded-[1.1rem] border border-white/10 bg-white/5 px-4 py-3.5 text-sm text-white placeholder-white/25 transition focus:border-white/30 focus:bg-white/10 focus:outline-none"
               />
               <p className="mt-1.5 text-[0.68rem] text-white/40">2 à 30 caractères, non unique.</p>
             </div>
@@ -186,7 +182,7 @@ export function LoginPage({ inviteTokenPresent = false }: LoginPageProps) {
             <label htmlFor="email" className="block text-[0.68rem] font-black uppercase tracking-[0.18em] text-white/60 mb-2">
               Adresse e-mail
             </label>
-            <input
+            <TextField
               id="email"
               type="email"
               required
@@ -195,7 +191,6 @@ export function LoginPage({ inviteTokenPresent = false }: LoginPageProps) {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="nom@exemple.com"
               disabled={loading}
-              className="w-full rounded-[1.1rem] border border-white/10 bg-white/5 px-4 py-3.5 text-sm text-white placeholder-white/25 transition focus:border-white/30 focus:bg-white/10 focus:outline-none"
             />
           </div>
 
@@ -204,31 +199,16 @@ export function LoginPage({ inviteTokenPresent = false }: LoginPageProps) {
               <label htmlFor="password" className="block text-[0.68rem] font-black uppercase tracking-[0.18em] text-white/60 mb-2">
                 Mot de passe
               </label>
-              <div className="relative">
-                <input
+              <PasswordField
+                  key={`password-${mode}`}
                   id="password"
-                  type={isPasswordVisible ? 'text' : 'password'}
                   required
                   autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Au moins 8 caractères"
                   disabled={loading}
-                  className="w-full rounded-[1.1rem] border border-white/10 bg-white/5 px-4 py-3.5 pr-13 text-sm text-white placeholder-white/25 transition focus:border-white/30 focus:bg-white/10 focus:outline-none"
                 />
-                <button
-                  type="button"
-                  onClick={() => setIsPasswordVisible((currentValue) => !currentValue)}
-                  disabled={loading}
-                  aria-label={isPasswordVisible ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
-                  aria-pressed={isPasswordVisible}
-                  className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-white/45 transition hover:text-white disabled:cursor-not-allowed disabled:text-white/20"
-                >
-                  {isPasswordVisible
-                    ? <FzIcon name="hide-password" usageId="login.password.hide" className="h-5 w-5" />
-                    : <FzIcon name="show-password" usageId="login.password.show" className="h-5 w-5" />}
-                </button>
-              </div>
             </div>
           ) : null}
 
@@ -252,35 +232,17 @@ export function LoginPage({ inviteTokenPresent = false }: LoginPageProps) {
               <label htmlFor="confirmPassword" className="block text-[0.68rem] font-black uppercase tracking-[0.18em] text-white/60 mb-2">
                 Confirmer le mot de passe
               </label>
-              <div className="relative">
-                <input
+              <PasswordField
                   id="confirmPassword"
-                  type={isConfirmPasswordVisible ? 'text' : 'password'}
                   required
                   autoComplete="new-password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Retapez votre mot de passe"
                   disabled={loading}
-                  className="w-full rounded-[1.1rem] border border-white/10 bg-white/5 px-4 py-3.5 pr-13 text-sm text-white placeholder-white/25 transition focus:border-white/30 focus:bg-white/10 focus:outline-none"
+                  showPasswordLabel="Afficher la confirmation du mot de passe"
+                  hidePasswordLabel="Masquer la confirmation du mot de passe"
                 />
-                <button
-                  type="button"
-                  onClick={() => setIsConfirmPasswordVisible((currentValue) => !currentValue)}
-                  disabled={loading}
-                  aria-label={
-                    isConfirmPasswordVisible
-                      ? 'Masquer la confirmation du mot de passe'
-                      : 'Afficher la confirmation du mot de passe'
-                  }
-                  aria-pressed={isConfirmPasswordVisible}
-                  className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-white/45 transition hover:text-white disabled:cursor-not-allowed disabled:text-white/20"
-                >
-                  {isConfirmPasswordVisible
-                    ? <FzIcon name="hide-password" usageId="login.confirm-password.hide" className="h-5 w-5" />
-                    : <FzIcon name="show-password" usageId="login.confirm-password.show" className="h-5 w-5" />}
-                </button>
-              </div>
             </div>
           )}
 

@@ -33,6 +33,7 @@ export function AppRouter() {
         <Route path="/home" element={<HomePage />} />
         <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/booking" element={<BookingPage />} />
+        <Route path="/booking/:bookingId" element={<BookingPage />} />
         <Route path="/songs" element={<ImportsPage />} />
         <Route path="/songs/:songId" element={<SongDetailPage />} />
         <Route path="/imports" element={<Navigate to="/songs" replace />} />

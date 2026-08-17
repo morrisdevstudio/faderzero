@@ -37,6 +37,9 @@ import { AudioQuotaBanner } from '@/features/audio/AudioQuotaBanner';
 import { SyncTab } from '@/features/sync/SyncTab';
 import { useWorkspaceBadgeColors, WORKSPACE_COLOR_OPTIONS } from '@/services/workspaceColors';
 import { isAppOnline } from '@/services/connectivity';
+import { PasswordField } from '@/ui/components/PasswordField';
+import { SelectField } from '@/ui/components/SelectField';
+import { TextField } from '@/ui/components/TextField';
 
 const INVITE_ROLE_LABELS: Record<WorkspaceRole, string> = {
   admin: 'Administrateur',
@@ -122,15 +125,17 @@ function WorkspaceMemberList({
           </div>
           {canAdmin && (
             <div className="flex items-center gap-2 shrink-0">
-              <select
-                value={m.role}
-                onChange={(e) => onMemberRoleChange(m.userId, e.target.value as WorkspaceRole)}
-                className="rounded-lg border border-white/10 bg-zinc-900 px-2 py-1 text-[0.7rem] text-white focus:outline-none"
-              >
-                <option value="admin">Admin</option>
-                <option value="member">Membre</option>
-                <option value="guest">Invité</option>
-              </select>
+              <div className="w-28">
+                <SelectField
+                  aria-label={`Rôle de ${m.pseudo}`}
+                  value={m.role}
+                  onChange={(e) => onMemberRoleChange(m.userId, e.target.value as WorkspaceRole)}
+                >
+                  <option value="admin">Admin</option>
+                  <option value="member">Membre</option>
+                  <option value="guest">Invité</option>
+                </SelectField>
+              </div>
               <button
                 type="button"
                 onClick={() => onRemoveMember(m)}
@@ -796,7 +801,7 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
                     <label htmlFor="profileDisplayName" className="block text-[0.62rem] font-black uppercase tracking-[0.2em] text-white/45">
                       Pseudo public
                     </label>
-                    <input
+                    <TextField
                       id="profileDisplayName"
                       type="text"
                       minLength={2}
@@ -804,7 +809,6 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
                       value={displayName}
                       onChange={(event) => setDisplayName(event.target.value)}
                       disabled={profileLoading || !profile}
-                      className="mt-2 w-full rounded-[0.9rem] border border-white/10 bg-white/5 px-3 py-2.5 text-sm font-semibold text-white focus:border-orange-500/50 focus:bg-white/10 focus:outline-none disabled:opacity-45"
                     />
                   </div>
                 </div>
@@ -842,7 +846,7 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
                   <label htmlFor="newEmail" className="block text-[0.66rem] font-black uppercase tracking-[0.18em] text-white/55">
                     Nouvelle adresse e-mail
                   </label>
-                  <input
+                  <TextField
                     id="newEmail"
                     type="email"
                     autoComplete="email"
@@ -850,7 +854,6 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
                     onChange={(event) => setNewEmail(event.target.value)}
                     placeholder="nouvelle@adresse.fr"
                     disabled={loading}
-                    className="mt-2 w-full rounded-[1rem] border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/20 focus:border-orange-500/50 focus:bg-white/10 focus:outline-none"
                   />
                 </div>
                 <button
@@ -882,14 +885,12 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
                     <label htmlFor="currentPassword" className="block text-[0.66rem] font-black uppercase tracking-[0.18em] text-white/55">
                       Mot de passe actuel
                     </label>
-                    <input
+                    <PasswordField
                       id="currentPassword"
-                      type="password"
                       autoComplete="current-password"
                       value={currentPassword}
                       onChange={(event) => setCurrentPassword(event.target.value)}
                       disabled={loading}
-                      className="mt-2 w-full rounded-[1rem] border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-orange-500/50 focus:bg-white/10 focus:outline-none"
                     />
                   </div>
                 ) : null}
@@ -897,15 +898,13 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
                   <label htmlFor="newPassword" className="block text-[0.66rem] font-black uppercase tracking-[0.18em] text-white/55">
                     Nouveau mot de passe
                   </label>
-                  <input
+                  <PasswordField
                     id="newPassword"
-                    type="password"
                     autoComplete="new-password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="Au moins 8 caractères"
                     disabled={loading}
-                    className="mt-2 w-full rounded-[1rem] border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/20 focus:border-orange-500/50 focus:bg-white/10 focus:outline-none"
                   />
                 </div>
                 <ul className="grid grid-cols-2 gap-2 text-[0.68rem]" aria-label="Règles du nouveau mot de passe">
@@ -924,15 +923,15 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
                   <label htmlFor="confirmNewPassword" className="block text-[0.66rem] font-black uppercase tracking-[0.18em] text-white/55">
                     Confirmer le nouveau mot de passe
                   </label>
-                  <input
+                  <PasswordField
                     id="confirmNewPassword"
-                    type="password"
                     autoComplete="new-password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Retapez le mot de passe"
                     disabled={loading}
-                    className="mt-2 w-full rounded-[1rem] border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/20 focus:border-orange-500/50 focus:bg-white/10 focus:outline-none"
+                    showPasswordLabel="Afficher la confirmation du nouveau mot de passe"
+                    hidePasswordLabel="Masquer la confirmation du nouveau mot de passe"
                   />
                 </div>
                 <button
@@ -1136,14 +1135,15 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
                             <label className="block text-[0.62rem] font-black uppercase tracking-[0.18em] text-white/50">
                               Texte du badge (3 lettres max)
                             </label>
-                            <input
+                            <div className="max-w-[140px]">
+                            <TextField
                               type="text"
                               maxLength={3}
                               value={getBadgeText(ws.id, ws.name)}
                               onChange={(e) => setBadgeText(ws.id, e.target.value.toUpperCase().slice(0, 3))}
                               placeholder={getWorkspaceInitials(ws.name)}
-                              className="w-full max-w-[140px] rounded-lg border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-black uppercase tracking-wider text-white placeholder-white/30 focus:border-amber-400/60 focus:outline-none focus:ring-1 focus:ring-amber-400/60 transition"
                             />
+                            </div>
                           </div>
 
                           {/* Group Administration */}
@@ -1178,7 +1178,8 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
                                     Nom du groupe
                                   </label>
                                   <div className="flex gap-2">
-                                    <input
+                                    <div className="min-w-0 flex-1">
+                                    <TextField
                                       type="text"
                                       value={editingWorkspaceId === ws.id ? editingGroupName : ws.name}
                                       onFocus={() => {
@@ -1189,8 +1190,8 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
                                         setEditingWorkspaceId(ws.id);
                                         setEditingGroupName(e.target.value);
                                       }}
-                                      className="flex-1 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white focus:outline-none"
                                     />
+                                    </div>
                                     <button
                                       onClick={() => void handleUpdateGroupName(ws.id, editingGroupName)}
                                       className="rounded-lg bg-orange-500 px-3 py-1.5 text-xs font-bold text-white hover:bg-orange-400 transition"
@@ -1245,13 +1246,12 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
             </div>
             <div className="rounded-[1.6rem] border border-white/10 bg-white/[0.045] p-5">
               <form onSubmit={handleCreateWorkspace} className="space-y-3">
-                <input
+                <TextField
                   type="text"
                   value={workspaceName}
                   onChange={(e) => setWorkspaceName(e.target.value)}
                   placeholder="Nom du groupe"
                   disabled={loading}
-                  className="w-full rounded-[1rem] border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:outline-none"
                 />
                 {localWorkspaceError && <p className="text-xs text-red-400">{localWorkspaceError}</p>}
                 <button
@@ -1268,14 +1268,13 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
                   <label htmlFor="workspaceInviteLink" className="block text-[0.66rem] font-black uppercase tracking-[0.18em] text-white/55">
                     Rejoindre un groupe avec un lien
                   </label>
-                  <input
+                  <TextField
                     id="workspaceInviteLink"
                     type="text"
                     value={joinInviteValue}
                     onChange={(e) => setJoinInviteValue(e.target.value)}
                     placeholder="Collez ici un lien d'invitation"
                     disabled={loading || joinInviteLoading}
-                    className="mt-2 w-full rounded-[1rem] border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/20 focus:border-orange-500/50 focus:bg-white/10 focus:outline-none"
                   />
                 </div>
                 <button
@@ -1312,17 +1311,18 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
                 Rôle attribué
               </label>
               <div className="mt-3 flex gap-2">
-                <select
-                  id="inviteRole"
-                  value={inviteRole}
-                  onChange={(event) => setInviteRole(event.target.value as WorkspaceRole)}
-                  disabled={inviteLoading}
-                  className="min-w-0 flex-1 rounded-[1rem] border border-white/10 bg-[#18191d] px-4 py-3 text-sm text-white focus:border-orange-500/50 focus:outline-none"
-                >
-                  <option value="admin">Administrateur</option>
-                  <option value="member">Membre</option>
-                  <option value="guest">Invité</option>
-                </select>
+                <div className="min-w-0 flex-1">
+                  <SelectField
+                    id="inviteRole"
+                    value={inviteRole}
+                    onChange={(event) => setInviteRole(event.target.value as WorkspaceRole)}
+                    disabled={inviteLoading}
+                  >
+                    <option value="admin">Administrateur</option>
+                    <option value="member">Membre</option>
+                    <option value="guest">Invité</option>
+                  </SelectField>
+                </div>
                 <button
                   type="button"
                   onClick={() => void generateInviteLink(shareWorkspace, inviteRole)}

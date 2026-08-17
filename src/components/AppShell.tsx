@@ -9,6 +9,8 @@ import { useWorkspaceBadgeColors } from '@/services/workspaceColors';
 import { toggleForcedOffline } from '@/services/connectivity';
 import { canWriteWorkspace } from '@/services/supabase/workspace';
 import { FzIcon } from '@/ui/icons';
+import { AppHeader } from '@/ui/components/AppHeader';
+import { FaderLogo } from '@/ui/components/FaderLogo';
 
 const scrollPositions = new Map<string, number>();
 
@@ -46,7 +48,7 @@ function FaderHeaderLogo() {
   return (
     <NavLink
       to="/home"
-      className="flex items-center gap-2 transition hover:opacity-90"
+      className="flex items-center transition hover:opacity-90"
       aria-label="FaderZero Accueil"
       onPointerDown={handlePointerDown}
       onPointerUp={clearLongPress}
@@ -59,20 +61,7 @@ function FaderHeaderLogo() {
         event.preventDefault();
       }}
     >
-      <div className="flex h-[34px] items-center">
-        <svg viewBox="0 0 20 80" className="h-full w-[9px] fill-white">
-          <rect x="9" y="0" width="2" height="80" rx="0.5" />
-          <rect x="2" y="20" width="16" height="24" rx="2" />
-        </svg>
-      </div>
-      <div className="flex w-[70px] flex-col justify-center text-white font-extrabold text-[14px] font-sans">
-        <div className="flex w-full justify-between leading-[1.05]">
-          <span>F</span><span>A</span><span>D</span><span>E</span><span>R</span>
-        </div>
-        <div className="flex w-full justify-between leading-[1.05]">
-          <span>Z</span><span>E</span><span>R</span><span>O</span>
-        </div>
-      </div>
+      <FaderLogo className="h-[34px] w-auto text-white sm:h-10" />
     </NavLink>
   );
 }
@@ -209,42 +198,25 @@ export function AppShell() {
         className="fixed inset-x-0 z-40 bg-[var(--fz-bg)]/98 backdrop-blur-sm"
         style={{ top: `${viewportOffsetTop}px` }}
       >
-        <div className="mx-auto w-full max-w-md px-4 pb-2 pt-3 sm:px-5">
-          <div className="relative flex h-11 items-center justify-between gap-2.5">
-            <div className="flex items-center shrink-0">
-              <FaderHeaderLogo />
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setIsWorkspacePickerOpen(true)}
-              aria-label={`Changer de groupe (${activeWorkspace?.name ?? 'Mon Espace'})`}
-              title={activeWorkspace?.name ?? 'Changer de groupe'}
-              className="group flex min-w-0 flex-1 items-center justify-end gap-2 rounded-full py-1 pl-2 pr-0.5 transition hover:bg-white/5 active:scale-95 focus:outline-none"
+        <AppHeader
+          logo={<FaderHeaderLogo />}
+          currentGroup={{
+            name: activeWorkspace?.name ?? 'Mon Espace',
+            initials: workspaceInitials,
+            avatarUrl: activeWorkspace?.logoUrl,
+            badgeColor: activeBadgeColor.hex,
+          }}
+          onChangeGroup={() => setIsWorkspacePickerOpen(true)}
+          status={!isOnline ? (
+            <span
+              className="mt-1 flex w-full items-center justify-end text-right text-[0.58rem] font-bold uppercase tracking-[0.14em] text-amber-300"
+              aria-live="polite"
             >
-              <div className="flex min-w-0 flex-1 flex-col items-end justify-center leading-none">
-                <span className="w-full text-right text-[0.82rem] font-black uppercase tracking-wider text-[#f5f0ea] truncate">
-                  {activeWorkspace?.name ?? 'Mon Espace'}
-                </span>
-                {!isOnline && (
-                  <span
-                    className="mt-1 flex w-full items-center justify-center text-center text-[0.58rem] font-bold uppercase tracking-[0.14em] text-amber-300"
-                    aria-live="polite"
-                  >
-                    <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse mr-1 shrink-0" aria-hidden="true" />
-                    {isForcedOffline ? 'Hors ligne · test' : 'Hors ligne'}
-                  </span>
-                )}
-              </div>
-              <span
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/20 text-[0.75rem] font-black uppercase tracking-wider text-white shadow-[0_4px_12px_rgba(0,0,0,0.25)] transition group-hover:scale-105 group-hover:border-white/40"
-                style={{ backgroundColor: activeBadgeColor.hex }}
-              >
-                {workspaceInitials}
-              </span>
-            </button>
-          </div>
-        </div>
+              <span className="mr-1 h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-amber-400" aria-hidden="true" />
+              {isForcedOffline ? 'Hors ligne · test' : 'Hors ligne'}
+            </span>
+          ) : undefined}
+        />
       </header>
 
       {/* Workspace Picker Dialog */}

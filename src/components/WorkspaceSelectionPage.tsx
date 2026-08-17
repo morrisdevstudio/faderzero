@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { extractWorkspaceInviteToken } from '@/services/supabase/workspace';
+import { TextField } from '@/ui/components/TextField';
 
 export function WorkspaceSelectionPage() {
   const { workspaces, createWorkspace, joinWorkspaceByInvite, setActiveWorkspace, signOut, loading, error } = useAuthStore();
@@ -115,7 +116,7 @@ export function WorkspaceSelectionPage() {
                 <label htmlFor="wsName" className="mb-2 block text-[0.68rem] font-black uppercase tracking-[0.18em] text-white/60">
                   Nom du groupe / workspace
                 </label>
-                <input
+                <TextField
                   id="wsName"
                   type="text"
                   required
@@ -123,7 +124,6 @@ export function WorkspaceSelectionPage() {
                   onChange={(e) => setNewWsName(e.target.value)}
                   placeholder="Ex: Mon Super Groupe"
                   disabled={loading}
-                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3.5 text-sm text-white placeholder-white/20 transition focus:border-orange-500/50 focus:bg-white/10 focus:outline-none focus:ring-0"
                 />
               </div>
 
@@ -149,14 +149,13 @@ export function WorkspaceSelectionPage() {
                 <label htmlFor="workspaceInviteLink" className="mb-2 block text-[0.68rem] font-black uppercase tracking-[0.18em] text-orange-200/80">
                   Rejoindre avec un lien
                 </label>
-                <input
+                <TextField
                   id="workspaceInviteLink"
                   type="text"
                   value={inviteLinkValue}
                   onChange={(e) => setInviteLinkValue(e.target.value)}
                   placeholder="Collez ici votre lien d'invitation"
                   disabled={loading}
-                  className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3.5 text-sm text-white placeholder-white/20 transition focus:border-orange-500/50 focus:bg-white/10 focus:outline-none focus:ring-0"
                 />
               </div>
 

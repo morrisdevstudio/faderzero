@@ -21,6 +21,8 @@ import {
   type RecorderState,
 } from './voiceRecorderEngine';
 import { VoiceMemoPlayer } from './VoiceMemoPlayer';
+import { SearchField } from '@/ui/components/SearchField';
+import { TextField } from '@/ui/components/TextField';
 
 interface QuickVoiceRecorderProps {
   onClose: () => void;
@@ -368,11 +370,10 @@ export function QuickVoiceRecorder({
               <span className="mb-2 block text-xs font-black uppercase tracking-[0.16em] text-white/55">
                 Nom de l’audio
               </span>
-              <input
+              <TextField
                 value={recordingName}
                 onChange={(event) => setRecordingName(event.target.value)}
                 disabled={isAudioStaged}
-                className="fz-input w-full px-4 py-3 text-base font-bold disabled:opacity-55"
                 maxLength={120}
                 autoComplete="off"
               />
@@ -427,11 +428,10 @@ export function QuickVoiceRecorder({
               <span className="mb-2 block text-xs font-black uppercase tracking-[0.16em] text-white/55">
                 Nom de l’audio
               </span>
-              <input
+              <TextField
                 value={recordingName}
                 onChange={(event) => setRecordingName(event.target.value)}
                 disabled={recorderState === 'saving' || isAudioStaged}
-                className="fz-input w-full px-4 py-3 text-base font-bold disabled:opacity-55"
                 maxLength={120}
               />
             </label>
@@ -483,13 +483,11 @@ export function QuickVoiceRecorder({
 
             {destination.type === 'existingSong' ? (
               <div className="space-y-2">
-                <input
-                  type="search"
+                <SearchField
                   value={songQuery}
                   onChange={(event) => setSongQuery(event.target.value)}
                   placeholder="Rechercher une chanson"
                   disabled={recorderState === 'saving'}
-                  className="fz-input w-full px-4 py-3 text-sm"
                 />
                 <div className="max-h-44 space-y-1 overflow-y-auto rounded-xl border border-white/8 bg-black/20 p-2">
                   {filteredSongs.length > 0 ? filteredSongs.map((song) => (
@@ -517,14 +515,13 @@ export function QuickVoiceRecorder({
                 <span className="mb-2 block text-xs font-black uppercase tracking-[0.16em] text-white/55">
                   Titre de la chanson
                 </span>
-                <input
+                <TextField
                   value={newSongTitle}
                   onChange={(event) => {
                     setNewSongTitle(event.target.value);
                     setDestination({ type: 'newSong', title: event.target.value });
                   }}
                   disabled={recorderState === 'saving'}
-                  className="fz-input w-full px-4 py-3 text-base font-bold"
                   maxLength={160}
                 />
               </label>

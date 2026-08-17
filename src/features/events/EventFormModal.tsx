@@ -3,6 +3,11 @@ import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { eventsRepository } from '@/db/repositories/eventsRepository';
 import type { EventRecord, EventType } from '@/db/schema';
 import { useAuthStore } from '@/stores/authStore';
+import { DateField } from '@/ui/components/DateField';
+import { SelectField } from '@/ui/components/SelectField';
+import { TextArea } from '@/ui/components/TextArea';
+import { TextField } from '@/ui/components/TextField';
+import { TimeField } from '@/ui/components/TimeField';
 
 interface EventFormModalProps {
   event?: EventRecord | null;
@@ -245,13 +250,12 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
             <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
               Titre de l’événement
             </label>
-            <input
+            <TextField
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Ex: Répétition générale, Concert au Studio..."
               required
-              className="fz-input w-full text-xs"
             />
           </div>
 
@@ -260,17 +264,17 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
               <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
                 Espace / Groupe
               </label>
-              <select
+              <SelectField
+                aria-label="Espace ou groupe"
                 value={targetWorkspaceId}
                 onChange={(e) => setTargetWorkspaceId(e.target.value)}
-                className="fz-input w-full text-xs"
               >
                 {workspaces.map((ws) => (
                   <option key={ws.id} value={ws.id}>
                     {ws.type === 'personal' ? `Perso (${ws.name})` : `Groupe: ${ws.name}`}
                   </option>
                 ))}
-              </select>
+              </SelectField>
             </div>
           )}
 
@@ -279,27 +283,26 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
               <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
                 Type
               </label>
-              <select
+              <SelectField
+                aria-label="Type d’événement"
                 value={eventType}
                 onChange={(e) => setEventType(e.target.value as EventType)}
-                className="fz-input w-full text-xs"
               >
                 <option value="rehearsal">Répétition</option>
                 <option value="concert">Concert</option>
                 <option value="meeting">Réunion</option>
                 <option value="other">Autre</option>
-              </select>
+              </SelectField>
             </div>
             <div>
               <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
                 Lieu
               </label>
-              <input
+              <TextField
                 type="text"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
                 placeholder="Ex: Salle 3, Studio A..."
-                className="fz-input w-full text-xs"
               />
             </div>
           </div>
@@ -309,22 +312,20 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
               <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
                 Date de début (optionnelle)
               </label>
-              <input
-                type="date"
+              <DateField
+                aria-label="Date de début"
                 value={startDate}
                 onChange={(e) => handleStartDateChange(e.target.value)}
-                className="fz-input w-full text-xs"
               />
             </div>
             <div>
               <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
                 Heure de début (optionnelle)
               </label>
-              <input
-                type="time"
+              <TimeField
+                aria-label="Heure de début"
                 value={startTime}
                 onChange={(e) => handleStartTimeChange(e.target.value)}
-                className="fz-input w-full text-xs"
               />
             </div>
           </div>
@@ -334,23 +335,21 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
               <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
                 Date de fin (optionnelle)
               </label>
-              <input
-                type="date"
+              <DateField
+                aria-label="Date de fin"
                 value={endDate}
                 min={startDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="fz-input w-full text-xs"
               />
             </div>
             <div>
               <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
                 Heure de fin
               </label>
-              <input
-                type="time"
+              <TimeField
+                aria-label="Heure de fin"
                 value={endTime}
                 onChange={(e) => handleEndTimeChange(e.target.value)}
-                className="fz-input w-full text-xs"
               />
             </div>
           </div>
@@ -359,12 +358,12 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
             <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
               Notes
             </label>
-            <textarea
+            <TextArea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
               placeholder="Ordre du jour, liste du matériel, instructions..."
-              className="fz-input w-full text-xs resize-none"
+              resize="none"
             />
           </div>
 

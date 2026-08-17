@@ -2,12 +2,15 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
-import { StatusPill } from '@/components/StatusPill';
 import { eventsRepository } from '@/db/repositories/eventsRepository';
 import { bookingRepository } from '@/db/repositories/bookingRepository';
 import type { EventRecord } from '@/db/schema';
 import { useAuthStore } from '@/stores/authStore';
 import { EventFormModal } from './EventFormModal';
+import { AddButton } from '@/ui/components/AddButton';
+import { PageHeader } from '@/ui/components/PageHeader';
+import { SelectField } from '@/ui/components/SelectField';
+import { FzIcon } from '@/ui/icons';
 
 import { getWorkspaceColorOption, useWorkspaceBadgeColors } from '@/services/workspaceColors';
 
@@ -20,15 +23,6 @@ const EVENT_TYPE_LABELS: Record<string, string> = {
 
 function getWorkspaceColor(workspaceId: string, isPersonal: boolean): string {
   return getWorkspaceColorOption(workspaceId, isPersonal ? 'personal' : 'group').hex;
-}
-
-// SVG icons as components
-function PlusIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M12 5v14M5 12h14" />
-    </svg>
-  );
 }
 
 function BookingIcon() {
@@ -125,7 +119,9 @@ export function CalendarPage() {
   const calendarTouchStart = useRef<{ x: number; y: number } | null>(null);
   const bookingLeads = useLiveQuery(() => bookingRepository.listLeads(activeWorkspace?.id), [activeWorkspace?.id]) ?? [];
   const leadByEventId = useMemo(() => new Map(bookingLeads.filter((lead) => lead.eventId).map((lead) => [lead.eventId!, lead])), [bookingLeads]);
-  const goToBooking = () => { window.location.assign('/booking'); };
+  const goToBooking = (bookingId?: string) => {
+    window.location.assign(bookingId ? `/booking/${encodeURIComponent(bookingId)}` : '/booking');
+  };
 
   const loadEvents = async () => {
     setLoading(true);
@@ -541,37 +537,20 @@ export function CalendarPage() {
 
   return (
     <div className="w-full space-y-4 pb-24 text-slate-200">
-      {/* PAGE HEADER */}
-      <section className="space-y-3 -mt-2">
-        {/* Header Title & Plus button */}
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0 flex-1">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-7 w-7 text-white shrink-0">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-              <line x1="16" y1="2" x2="16" y2="6" />
-              <line x1="8" y1="2" x2="8" y2="6" />
-              <line x1="3" y1="10" x2="21" y2="10" />
-            </svg>
-            <h1 className="min-w-0 flex-1 text-[2rem] font-black tracking-tight text-white">Événements</h1>
-          </div>
-          <div className="flex shrink-0 items-center gap-2">
-            <button type="button" onClick={goToBooking} aria-label="Ouvrir la prospection" title="Prospection" className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/10 text-white/80 transition hover:bg-white/15 hover:text-white"><BookingIcon /></button>
-            <button type="button" onClick={() => handleCreateNew()} aria-label="Nouvel événement" className="fz-button-primary h-11 w-11 shrink-0 p-0"><PlusIcon /></button>
-          </div>
-        </div>
-
-        {/* Search box & Filter Trigger */}
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Rechercher un événement..."
-            className="fz-input min-w-0 flex-1 text-sm"
-          />
-
-          {/* Standard Filter Icon Trigger Button */}
-          <div className="relative shrink-0">
+      <PageHeader
+        icon={<FzIcon name="calendar" usageId="page-header.calendar" size="xl" />}
+        title="Événements"
+        actions={<>
+            <button type="button" onClick={() => goToBooking()} aria-label="Ouvrir la prospection" title="Prospection" className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/10 text-white/80 transition hover:bg-white/15 hover:text-white"><BookingIcon /></button>
+            <AddButton onClick={() => handleCreateNew()} aria-label="Nouvel événement" />
+          </>}
+        search={{
+          value: searchQuery,
+          onChange: setSearchQuery,
+          placeholder: 'Rechercher un événement...',
+          'aria-label': 'Rechercher dans les événements',
+        }}
+        sortAction={<div className="relative shrink-0">
             <button
               type="button"
               onClick={(e) => {
@@ -710,11 +689,10 @@ export function CalendarPage() {
                     </div>
                   </div>
                 </div>,
-                document.body
+                document.body,
               )}
-          </div>
-        </div>
-      </section>
+          </div>}
+      />
 
       {/* ACCORDION CALENDAR CARD */}
       <div
@@ -1018,10 +996,12 @@ export function CalendarPage() {
 
                         {/* Event tag */}
                         <div className="flex shrink-0 items-start pt-0.5">
-                          <StatusPill
-                            label={spaceBadgeText}
-                            style={{ backgroundColor: color, color: '#ffffff', borderColor: `${color}80` }}
-                          />
+                          <span
+                            className="inline-flex shrink-0 items-center whitespace-nowrap rounded-full border px-2.5 py-1 text-[0.68rem] font-black uppercase leading-none tracking-[0.16em] text-white"
+                            style={{ backgroundColor: color, borderColor: `${color}80` }}
+                          >
+                            {spaceBadgeText}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -1095,7 +1075,7 @@ export function CalendarPage() {
               return (
                 <div className="mt-4 space-y-3.5">
                   {bookingLead ? (
-                    <button type="button" onClick={goToBooking} className="flex w-full items-center justify-between rounded-xl border border-rose-300/20 bg-rose-400/10 px-3 py-2 text-xs font-black text-rose-100">
+                    <button type="button" onClick={() => goToBooking(bookingLead.id)} className="flex w-full items-center justify-between rounded-xl border border-rose-300/20 bg-rose-400/10 px-3 py-2 text-xs font-black text-rose-100">
                       Voir la prospection liée <span aria-hidden="true">→</span>
                     </button>
                   ) : null}
@@ -1130,17 +1110,17 @@ export function CalendarPage() {
                       <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
                         Type
                       </label>
-                      <select
+                      <SelectField
+                        aria-label="Type d’événement"
                         value={activeBottomSheetEvent.eventType}
                         disabled
                         tabIndex={-1}
-                        className={`${readOnlyClass} opacity-90`}
                       >
                         <option value="rehearsal">Répétition</option>
                         <option value="concert">Concert</option>
                         <option value="meeting">Réunion</option>
                         <option value="other">Autre</option>
-                      </select>
+                      </SelectField>
                     </div>
                     <div>
                       <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">

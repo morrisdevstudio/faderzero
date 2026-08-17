@@ -1,11 +1,20 @@
 import { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { useNavigate, useParams } from 'react-router-dom';
 import { bookingRepository, BOOKING_STAGE_LABELS } from '@/db/repositories/bookingRepository';
 import { FormDialog } from '@/components/FormDialog';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import type { BookingNoteType, BookingStage, WorkspaceContactRecord } from '@/db/schema';
 import { useAuthStore } from '@/stores/authStore';
 import { canWriteWorkspace } from '@/services/supabase/workspace';
+import { DateField } from '@/ui/components/DateField';
+import { DateTimeField } from '@/ui/components/DateTimeField';
+import { DetailHeader } from '@/ui/components/DetailHeader';
+import { FzIcon } from '@/ui/icons';
+import { SelectField } from '@/ui/components/SelectField';
+import { TextArea } from '@/ui/components/TextArea';
+import { TextField } from '@/ui/components/TextField';
+import { TimeField } from '@/ui/components/TimeField';
 
 type Tab = 'due' | 'all' | 'confirmed';
 type FollowUpKind = 'call' | 'email' | 'follow_up' | 'send_press_kit' | 'other';
@@ -60,40 +69,42 @@ function focusFirstInvalidField(form: HTMLFormElement) {
 
 function FollowUpFields({ includeSummary = false }: { includeSummary?: boolean }) {
   return <>
-    <label className="block text-xs text-white/60">Prochaine action <span className="text-rose-300">*</span>
-      <select required name="followUpKind" defaultValue="follow_up" className="fz-input mt-1 text-sm">
+    <label className="block"><span className="fz-field-label">Prochaine action <span className="text-rose-300">*</span></span>
+      <SelectField required name="followUpKind" aria-label="Prochaine action" defaultValue="follow_up">
         {Object.entries(followUpLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-      </select>
+      </SelectField>
     </label>
-    <label className="block text-xs text-white/60">Précision si nécessaire
-      <input name="followUpCustom" placeholder="Ex. rappeler après le festival" className="fz-input mt-1 text-sm" />
+    <label className="block"><span className="fz-field-label">Précision si nécessaire</span>
+      <TextField name="followUpCustom" placeholder="Ex. rappeler après le festival" />
     </label>
-    <label className="block text-xs text-white/60">Quand ? <span className="text-rose-300">*</span>
-      <input required name="nextActionAt" type="datetime-local" className="fz-input mt-1 text-sm" />
+    <label className="block"><span className="fz-field-label">Quand ? <span className="text-rose-300">*</span></span>
+      <DateTimeField required name="nextActionAt" aria-label="Date et heure de la prochaine action" />
     </label>
-    {includeSummary ? <label className="block text-xs text-white/60">Résumé de l’échange <span className="text-rose-300">*</span>
-      <textarea required name="summary" placeholder="Ce qui a été décidé ou appris…" className="fz-input mt-1 min-h-24 text-sm" />
+    {includeSummary ? <label className="block"><span className="fz-field-label">Résumé de l’échange <span className="text-rose-300">*</span></span>
+      <TextArea required name="summary" placeholder="Ce qui a été décidé ou appris…" />
     </label> : null}
   </>;
 }
 
 function ContactForm({ contact }: { contact?: WorkspaceContactRecord }) {
   return <>
-    <input required name="name" aria-label="Nom du contact" defaultValue={contact?.name} placeholder="Nom du contact" className="fz-input text-sm" />
-    <input name="role" aria-label="Rôle" defaultValue={contact?.role} placeholder="Rôle (programmation, régie…)" className="fz-input text-sm" />
-    <input name="phone" aria-label="Téléphone" type="tel" defaultValue={contact?.phone} placeholder="Téléphone" className="fz-input text-sm" />
-    <input name="email" aria-label="E-mail" type="email" defaultValue={contact?.email} placeholder="E-mail" className="fz-input text-sm" />
-    <input name="instagramUrl" aria-label="Lien Instagram" defaultValue={contact?.instagramUrl} placeholder="Lien Instagram" className="fz-input text-sm" />
-    <input name="facebookUrl" aria-label="Lien Facebook" defaultValue={contact?.facebookUrl} placeholder="Lien Facebook" className="fz-input text-sm" />
+    <TextField required name="name" aria-label="Nom du contact" defaultValue={contact?.name} placeholder="Nom du contact" />
+    <TextField name="role" aria-label="Rôle" defaultValue={contact?.role} placeholder="Rôle (programmation, régie…)" />
+    <TextField name="phone" aria-label="Téléphone" type="tel" defaultValue={contact?.phone} placeholder="Téléphone" />
+    <TextField name="email" aria-label="E-mail" type="email" defaultValue={contact?.email} placeholder="E-mail" />
+    <TextField name="instagramUrl" aria-label="Lien Instagram" type="url" defaultValue={contact?.instagramUrl} placeholder="Lien Instagram" />
+    <TextField name="facebookUrl" aria-label="Lien Facebook" type="url" defaultValue={contact?.facebookUrl} placeholder="Lien Facebook" />
   </>;
 }
 
 export function BookingPage() {
+  const navigate = useNavigate();
+  const { bookingId } = useParams<{ bookingId?: string }>();
   const activeWorkspace = useAuthStore((state) => state.activeWorkspace);
   const session = useAuthStore((state) => state.session);
   const canWrite = canWriteWorkspace(activeWorkspace?.role);
   const [tab, setTab] = useState<Tab>('due');
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selectedId = bookingId ?? null;
   const [isAdding, setIsAdding] = useState(false);
   const [isEditingLead, setIsEditingLead] = useState(false);
   const [isLoggingExchange, setIsLoggingExchange] = useState(false);
@@ -136,7 +147,7 @@ export function BookingPage() {
         });
         await bookingRepository.linkContact(lead.id, contact.id);
       }
-      setSelectedId(lead.id); setIsAdding(false);
+      navigate(`/booking/${lead.id}`); setIsAdding(false);
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Impossible de créer la salle.'); }
   }
 
@@ -204,7 +215,7 @@ export function BookingPage() {
 
   async function deleteSelected() {
     if (!selected) return; setError(null);
-    try { await bookingRepository.archiveLead(selected.id); setIsDeleteConfirmOpen(false); setIsEditingLead(false); setSelectedId(null); } catch (reason) { setError(reason instanceof Error ? reason.message : 'Impossible de supprimer cette salle.'); }
+    try { await bookingRepository.archiveLead(selected.id); setIsDeleteConfirmOpen(false); setIsEditingLead(false); navigate('/booking'); } catch (reason) { setError(reason instanceof Error ? reason.message : 'Impossible de supprimer cette salle.'); }
   }
 
   async function updateStage(stage: BookingStage) {
@@ -215,11 +226,17 @@ export function BookingPage() {
 
   if (selected) {
     return <section className="space-y-6 pb-6">
-      <header className="flex items-center gap-3 border-b border-white/8 pb-4">
-        <button type="button" onClick={() => setSelectedId(null)} aria-label="Retour aux relances" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] text-2xl text-white/75 transition hover:bg-white/10 hover:text-white">‹</button>
-        <div className="min-w-0 flex-1"><h1 className="truncate text-xl font-black tracking-tight">{selected.venueName}</h1><p className="mt-1 truncate text-sm text-[var(--fz-text-muted)]">{selected.city || 'Ville non renseignée'} · {targetDateLabel(selected)}</p></div>
-        {canWrite && <button type="button" onClick={() => setIsEditingLead(true)} aria-label="Modifier la salle" className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] text-lg text-white/80 transition hover:bg-white/10">•••</button>}
-      </header>
+      <DetailHeader
+        title={selected.venueName}
+        subtitle={`${selected.city || 'Ville non renseignée'} · ${targetDateLabel(selected)}`}
+        onBack={() => navigate('/booking')}
+        backLabel="Retour au booking"
+        actions={canWrite ? (
+          <button type="button" onClick={() => setIsEditingLead(true)} aria-label="Modifier la salle">
+            <FzIcon name="edit" usageId="booking-detail.edit" size="md" />
+          </button>
+        ) : undefined}
+      />
 
       {error && <p role="alert" className="rounded-xl bg-rose-500/15 p-3 text-sm text-rose-100">{error}</p>}
 
@@ -231,15 +248,15 @@ export function BookingPage() {
 
       <section aria-labelledby="timeline-heading" className="space-y-3"><div className="flex items-center justify-between gap-3"><p id="timeline-heading" className="text-[0.68rem] font-black uppercase tracking-[0.18em] text-[var(--fz-text-muted)]">Timeline</p>{canWrite && <button type="button" onClick={() => setIsLoggingExchange(true)} className="rounded-lg bg-white/8 px-3 py-2 text-xs font-black text-white transition hover:bg-white/14">Ajouter une note</button>}</div><div className="space-y-3 border-l border-white/10 pl-4"><article className="relative fz-card rounded-2xl p-3 before:absolute before:-left-[1.35rem] before:top-4 before:h-3 before:w-3 before:rounded-full before:border before:border-rose-300/50 before:bg-[var(--fz-bg)]"><p className="text-xs font-black text-rose-200">À venir · {dueLabel(selected.nextActionAt)}</p><p className="mt-1 text-sm font-bold text-white">{selected.nextAction}</p><p className={`mt-2 text-[0.68rem] ${selected.nextActionAt < Date.now() ? 'text-rose-200' : 'text-white/45'}`}>{new Date(selected.nextActionAt).toLocaleString('fr-FR')}</p></article>{notes.map((note) => <article key={note.id} className="relative fz-card rounded-2xl p-3 before:absolute before:-left-[1.35rem] before:top-4 before:h-3 before:w-3 before:rounded-full before:border before:border-white/20 before:bg-[var(--fz-bg-elevated)]"><p className="text-xs font-black text-rose-200">{noteTypes.find(([type]) => type === note.type)?.[1]}</p><p className="mt-1 text-sm leading-6 text-white/85">{note.summary}</p><p className="mt-2 text-[0.68rem] text-white/45">{new Date(note.occurredAt).toLocaleString('fr-FR')}</p></article>)}{notes.length === 0 && <p className="text-sm text-white/50">Aucun échange consigné pour le moment.</p>}</div></section>
 
-      {isLoggingExchange && <FormDialog title="Consigner un échange" onClose={() => setIsLoggingExchange(false)} placement="bottom"><form onSubmit={(event) => { event.preventDefault(); void logExchange(event.currentTarget); }} className="space-y-3"><label className="block text-xs text-white/60">Type d’échange<select name="type" defaultValue="call" className="fz-input mt-1 text-sm">{noteTypes.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><FollowUpFields includeSummary /><button className="w-full rounded-xl bg-rose-500 px-4 py-3 text-xs font-black uppercase tracking-widest">Enregistrer</button></form></FormDialog>}
+      {isLoggingExchange && <FormDialog title="Consigner un échange" onClose={() => setIsLoggingExchange(false)} placement="bottom"><form onSubmit={(event) => { event.preventDefault(); void logExchange(event.currentTarget); }} className="space-y-3"><label className="block"><span className="fz-field-label">Type d’échange</span><SelectField name="type" aria-label="Type d’échange" defaultValue="call">{noteTypes.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</SelectField></label><FollowUpFields includeSummary /><button className="w-full rounded-xl bg-rose-500 px-4 py-3 text-xs font-black uppercase tracking-widest">Enregistrer</button></form></FormDialog>}
       {isAddingContact && <FormDialog title="Nouveau contact" onClose={() => setIsAddingContact(false)} placement="bottom"><form onSubmit={(event) => { event.preventDefault(); void createContact(event.currentTarget); }} className="space-y-3">{error && <p role="alert" className="rounded-xl bg-rose-500/15 p-3 text-sm text-rose-100">{error}</p>}<ContactForm /><button className="w-full rounded-xl bg-rose-500 px-4 py-3 text-xs font-black uppercase tracking-widest">Ajouter le contact</button></form></FormDialog>}
       {contactToEdit && <FormDialog title="Modifier le contact" onClose={() => setContactToEdit(null)} placement="bottom"><form onSubmit={(event) => { event.preventDefault(); void updateContact(event.currentTarget); }} className="space-y-3">{error && <p role="alert" className="rounded-xl bg-rose-500/15 p-3 text-sm text-rose-100">{error}</p>}<ContactForm contact={contactToEdit} /><button className="w-full rounded-xl bg-rose-500 px-4 py-3 text-xs font-black uppercase tracking-widest">Enregistrer</button><button type="button" onClick={() => { void unlinkContact(contactToEdit.id); setContactToEdit(null); }} className="w-full rounded-xl bg-rose-500/15 px-4 py-3 text-xs font-black uppercase tracking-widest text-rose-200">Retirer de cette salle</button></form></FormDialog>}
       {isLinkingContact && <FormDialog title="Lier un contact" onClose={() => setIsLinkingContact(false)} placement="bottom"><div className="space-y-2">{availableContacts.map((contact) => <button key={contact.id} type="button" onClick={() => void linkContact(contact.id)} className="w-full rounded-xl bg-white/6 p-4 text-left transition hover:bg-white/12"><p className="font-black">{contact.name}</p><p className="mt-1 text-xs text-white/55">{contact.role || contact.email || contact.phone || 'Sans coordonnées'}</p></button>)}{availableContacts.length === 0 && <p className="text-sm text-white/60">Aucun autre contact disponible dans le carnet.</p>}</div></FormDialog>}
-      {isCalendarOpen && <FormDialog title="Ajouter le concert au calendrier" onClose={() => setIsCalendarOpen(false)} placement="bottom"><form onSubmit={(event) => { event.preventDefault(); void addToCalendar(event.currentTarget); }} className="space-y-4"><p className="text-sm text-white/65">{selected.venueName}{selected.city ? ` · ${selected.city}` : ''}</p><label className="block text-xs text-white/60">Date<input required name="date" type="date" defaultValue={selected.targetDate} className="fz-input mt-1 text-sm" /></label><label className="block text-xs text-white/60">Heure<input required name="time" type="time" defaultValue="20:00" className="fz-input mt-1 text-sm" /></label><button className="w-full rounded-xl bg-emerald-500 px-4 py-3 text-xs font-black uppercase tracking-widest text-white">Créer le concert</button></form></FormDialog>}
-      {isEditingLead && <FormDialog title="Détails de la salle" onClose={() => setIsEditingLead(false)} placement="bottom"><form onSubmit={(event) => { event.preventDefault(); void saveLead(event.currentTarget); }} className="space-y-3"><input required name="venueName" aria-label="Salle ou organisateur" defaultValue={selected.venueName} className="fz-input text-sm" /><input name="city" aria-label="Ville" defaultValue={selected.city} placeholder="Ville" className="fz-input text-sm" /><label className="block text-xs text-white/60">Date cible<input required name="targetDate" type="date" defaultValue={selected.targetDate} className="fz-input mt-1 text-sm" /></label><label className="block text-xs text-white/60">Statut<select name="stage" defaultValue={selected.stage} className="fz-input mt-1 text-sm">{editableStages.map((stage) => <option key={stage} value={stage}>{BOOKING_STAGE_LABELS[stage]}</option>)}</select></label><label className="block text-xs text-white/60">Notes globales<textarea name="summary" defaultValue={selected.summary} placeholder="Objectif, contexte et informations utiles…" className="fz-input mt-1 min-h-28 text-sm" /></label><div className="grid grid-cols-2 gap-2"><button className="rounded-xl bg-rose-500 px-4 py-3 text-xs font-black uppercase tracking-widest">Enregistrer</button><button type="button" onClick={() => setIsDeleteConfirmOpen(true)} className="rounded-xl bg-rose-500/15 px-4 py-3 text-xs font-black uppercase tracking-widest text-rose-200">Supprimer</button></div></form></FormDialog>}
+      {isCalendarOpen && <FormDialog title="Ajouter le concert au calendrier" onClose={() => setIsCalendarOpen(false)} placement="bottom"><form onSubmit={(event) => { event.preventDefault(); void addToCalendar(event.currentTarget); }} className="space-y-4"><p className="text-sm text-white/65">{selected.venueName}{selected.city ? ` · ${selected.city}` : ''}</p><label className="block"><span className="fz-field-label">Date</span><DateField required name="date" aria-label="Date du concert" defaultValue={selected.targetDate} /></label><label className="block"><span className="fz-field-label">Heure</span><TimeField required name="time" aria-label="Heure du concert" defaultValue="20:00" /></label><button className="w-full rounded-xl bg-emerald-500 px-4 py-3 text-xs font-black uppercase tracking-widest text-white">Créer le concert</button></form></FormDialog>}
+      {isEditingLead && <FormDialog title="Détails de la salle" onClose={() => setIsEditingLead(false)} placement="bottom"><form onSubmit={(event) => { event.preventDefault(); void saveLead(event.currentTarget); }} className="space-y-3"><TextField required name="venueName" aria-label="Salle ou organisateur" defaultValue={selected.venueName} /><TextField name="city" aria-label="Ville" defaultValue={selected.city} placeholder="Ville" /><label className="block"><span className="fz-field-label">Date cible</span><DateField required name="targetDate" aria-label="Date cible" defaultValue={selected.targetDate} /></label><label className="block"><span className="fz-field-label">Statut</span><SelectField name="stage" aria-label="Statut" defaultValue={selected.stage}>{editableStages.map((stage) => <option key={stage} value={stage}>{BOOKING_STAGE_LABELS[stage]}</option>)}</SelectField></label><label className="block"><span className="fz-field-label">Notes globales</span><TextArea name="summary" defaultValue={selected.summary} placeholder="Objectif, contexte et informations utiles…" /></label><div className="grid grid-cols-2 gap-2"><button className="rounded-xl bg-rose-500 px-4 py-3 text-xs font-black uppercase tracking-widest">Enregistrer</button><button type="button" onClick={() => setIsDeleteConfirmOpen(true)} className="rounded-xl bg-rose-500/15 px-4 py-3 text-xs font-black uppercase tracking-widest text-rose-200">Supprimer</button></div></form></FormDialog>}
       <ConfirmDialog isOpen={isDeleteConfirmOpen} title="Supprimer cette salle ?" description="Les relances et l’historique associés ne seront plus visibles." confirmLabel="Supprimer" onConfirm={() => void deleteSelected()} onCancel={() => setIsDeleteConfirmOpen(false)} />
     </section>;
   }
 
-  return <section className="space-y-4 pb-6"><div className="flex items-center justify-between gap-3"><div><h1 className="text-2xl font-black">Contacts</h1><p className="mt-1 text-sm text-[var(--fz-text-muted)]">Les salles à relancer et leurs interlocuteurs.</p></div>{canWrite && <button type="button" onClick={() => setIsAdding(true)} aria-label="Ajouter une proposition" className="fz-button-primary h-11 w-11 shrink-0 p-0 text-xl">+</button>}</div><div className="grid grid-cols-3 gap-2">{([['due', 'À relancer'], ['all', 'Toutes'], ['confirmed', 'Confirmées']] as const).map(([value, label]) => <button key={value} aria-pressed={tab === value} onClick={() => setTab(value)} className={`rounded-xl px-2 py-2 text-xs font-black ${tab === value ? 'bg-white text-black' : 'bg-white/5 text-white/55'}`}>{label}</button>)}</div>{error && <p className="rounded-xl bg-rose-500/15 p-3 text-sm text-rose-100">{error}</p>}<div className="space-y-2">{visible.map((lead) => <button key={lead.id} onClick={() => setSelectedId(lead.id)} className="w-full rounded-[1rem] bg-[var(--fz-bg-elevated)] p-4 text-left transition hover:bg-white/8"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate font-black">{lead.venueName}</p><p className="mt-1 truncate text-xs text-white/60">{lead.city || 'Ville non renseignée'} · {lead.nextAction}</p></div><span className={`shrink-0 text-[0.65rem] font-black ${lead.nextActionAt < Date.now() ? 'text-rose-300' : 'text-amber-200'}`}>{dueLabel(lead.nextActionAt)}</span></div></button>)}{visible.length === 0 && <div className="rounded-[1rem] bg-[var(--fz-bg-elevated)] p-6 text-center text-sm text-white/60">Aucune relance à faire dans cette vue.</div>}</div>{isAdding && <FormDialog title="Nouvelle proposition" onClose={() => setIsAdding(false)} placement="bottom"><form noValidate onInput={() => setNewLeadFormError(null)} onSubmit={(event) => { event.preventDefault(); if (focusFirstInvalidField(event.currentTarget)) { setNewLeadFormError('Complète les champs obligatoires indiqués par un astérisque.'); return; } void createLead(event.currentTarget); }} className="space-y-4">{newLeadFormError && <p role="alert" className="rounded-xl bg-rose-500/15 p-3 text-sm text-rose-100">{newLeadFormError}</p>}<label className="block text-xs text-white/60">Salle ou organisateur <span className="text-rose-300">*</span><input required name="venueName" aria-label="Salle ou organisateur" placeholder="Salle ou organisateur" className="fz-input mt-1 text-sm" /></label><label className="block text-xs text-white/60">Ville<input name="city" aria-label="Ville" placeholder="Ville" className="fz-input mt-1 text-sm" /></label><label className="block text-xs text-white/60">Date cible <span className="text-rose-300">*</span><input required name="targetDate" type="date" className="fz-input mt-1 text-sm" /></label><fieldset className="space-y-3 border-t border-white/10 pt-4"><legend className="text-xs font-black uppercase tracking-widest text-white/60">Contact (facultatif)</legend><label className="block text-xs text-white/60">Nom du contact<input name="contactName" aria-label="Nom du contact" placeholder="Nom du contact" className="fz-input mt-1 text-sm" /></label><label className="block text-xs text-white/60">Rôle<input name="contactRole" aria-label="Rôle du contact" placeholder="Programmation, régie…" className="fz-input mt-1 text-sm" /></label><label className="block text-xs text-white/60">Téléphone<input name="contactPhone" aria-label="Téléphone du contact" type="tel" placeholder="Téléphone" className="fz-input mt-1 text-sm" /></label><label className="block text-xs text-white/60">E-mail<input name="contactEmail" aria-label="E-mail du contact" type="email" placeholder="E-mail" className="fz-input mt-1 text-sm" /></label></fieldset><FollowUpFields /><p className="text-xs text-white/55"><span className="text-rose-300">*</span> Champs obligatoires</p><button className="w-full rounded-xl bg-rose-500 px-4 py-3 text-xs font-black uppercase tracking-widest">Créer la proposition</button></form></FormDialog>}</section>;
+  return <section className="space-y-4 pb-6"><DetailHeader title="Booking" onBack={() => navigate('/calendar')} backLabel="Retour au calendrier" actions={canWrite ? <button type="button" onClick={() => setIsAdding(true)} aria-label="Ajouter une proposition"><FzIcon name="add" usageId="booking-header.add" size="md" /></button> : undefined} /><div className="grid grid-cols-3 gap-2">{([['due', 'À relancer'], ['all', 'Toutes'], ['confirmed', 'Confirmées']] as const).map(([value, label]) => <button key={value} aria-pressed={tab === value} onClick={() => setTab(value)} className={`rounded-xl px-2 py-2 text-xs font-black ${tab === value ? 'bg-white text-black' : 'bg-white/5 text-white/55'}`}>{label}</button>)}</div>{error && <p className="rounded-xl bg-rose-500/15 p-3 text-sm text-rose-100">{error}</p>}<div className="space-y-2">{visible.map((lead) => <button key={lead.id} onClick={() => navigate(`/booking/${lead.id}`)} className="w-full rounded-[1rem] bg-[var(--fz-bg-elevated)] p-4 text-left transition hover:bg-white/8"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate font-black">{lead.venueName}</p><p className="mt-1 truncate text-xs text-white/60">{lead.city || 'Ville non renseignée'} · {lead.nextAction}</p></div><span className={`shrink-0 text-[0.65rem] font-black ${lead.nextActionAt < Date.now() ? 'text-rose-300' : 'text-amber-200'}`}>{dueLabel(lead.nextActionAt)}</span></div></button>)}{visible.length === 0 && <div className="rounded-[1rem] bg-[var(--fz-bg-elevated)] p-6 text-center text-sm text-white/60">Aucune relance à faire dans cette vue.</div>}</div>{isAdding && <FormDialog title="Nouvelle proposition" onClose={() => setIsAdding(false)} placement="bottom"><form noValidate onInput={() => setNewLeadFormError(null)} onSubmit={(event) => { event.preventDefault(); if (focusFirstInvalidField(event.currentTarget)) { setNewLeadFormError('Complète les champs obligatoires indiqués par un astérisque.'); return; } void createLead(event.currentTarget); }} className="space-y-4">{newLeadFormError && <p role="alert" className="rounded-xl bg-rose-500/15 p-3 text-sm text-rose-100">{newLeadFormError}</p>}<label className="block"><span className="fz-field-label">Salle ou organisateur <span className="text-rose-300">*</span></span><TextField required name="venueName" aria-label="Salle ou organisateur" placeholder="Salle ou organisateur" /></label><label className="block"><span className="fz-field-label">Ville</span><TextField name="city" aria-label="Ville" placeholder="Ville" /></label><label className="block"><span className="fz-field-label">Date cible <span className="text-rose-300">*</span></span><DateField required name="targetDate" aria-label="Date cible" /></label><fieldset className="space-y-3 border-t border-white/10 pt-4"><legend className="text-xs font-black uppercase tracking-widest text-white/60">Contact (facultatif)</legend><label className="block"><span className="fz-field-label">Nom du contact</span><TextField name="contactName" aria-label="Nom du contact" placeholder="Nom du contact" /></label><label className="block"><span className="fz-field-label">Rôle</span><TextField name="contactRole" aria-label="Rôle du contact" placeholder="Programmation, régie…" /></label><label className="block"><span className="fz-field-label">Téléphone</span><TextField name="contactPhone" aria-label="Téléphone du contact" type="tel" placeholder="Téléphone" /></label><label className="block"><span className="fz-field-label">E-mail</span><TextField name="contactEmail" aria-label="E-mail du contact" type="email" placeholder="E-mail" /></label></fieldset><FollowUpFields /><p className="text-xs text-white/55"><span className="text-rose-300">*</span> Champs obligatoires</p><button className="w-full rounded-xl bg-rose-500 px-4 py-3 text-xs font-black uppercase tracking-widest">Créer la proposition</button></form></FormDialog>}</section>;
 }

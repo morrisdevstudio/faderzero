@@ -14,6 +14,7 @@ import { SongEditor } from '@/features/songs/editor/SongEditor';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { canWriteWorkspace } from '@/services/supabase/workspace';
 import { useAuthStore } from '@/stores/authStore';
+import { TextField } from '@/ui/components/TextField';
 
 type IconProps = SVGProps<SVGSVGElement>;
 type LocalSaveState = 'idle' | 'dirty' | 'saving' | 'saved' | 'error';
@@ -330,7 +331,7 @@ export function SongWriterPage() {
               <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-[var(--fz-text-muted)]">
                 Titre
               </span>
-              <input
+              <TextField
                 value={draftTitle}
                 onChange={(event) => {
                   setDraftTitle(event.target.value);
@@ -339,7 +340,6 @@ export function SongWriterPage() {
                 placeholder="Titre de la chanson"
                 autoFocus
                 disabled={isCreatingDraft}
-                className="fz-input text-sm"
               />
             </label>
 

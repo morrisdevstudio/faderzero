@@ -4,19 +4,14 @@ import { Link, useNavigate } from 'react-router-dom';
 import { FeatureCard } from '@/components/FeatureCard';
 import { FormDialog } from '@/components/FormDialog';
 import { SortMenu, type SortMode } from '@/components/SortMenu';
-import { StatusPill } from '@/components/StatusPill';
+import { StatusPill } from '@/ui/components/StatusPill';
 import { songsRepository } from '@/db/repositories/songsRepository';
-import { formatSongDuration, getSongStatusTone } from '@/features/songs/songPresentation';
+import { formatSongDuration, getSongStatusLabel, getSongStatusTone } from '@/features/songs/songPresentation';
 import { useAuthStore } from '@/stores/authStore';
 import { canWriteWorkspace } from '@/services/supabase/workspace';
-
-function PlusIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-      <path d="M12 5v14M5 12h14" />
-    </svg>
-  );
-}
+import { AddButton } from '@/ui/components/AddButton';
+import { SearchField } from '@/ui/components/SearchField';
+import { TextField } from '@/ui/components/TextField';
 
 
 
@@ -92,8 +87,7 @@ export function SongsPage() {
             <h1 className="min-w-0 flex-1 text-[2rem] font-black tracking-tight text-white">Répertoire</h1>
           </div>
           {canWrite ? (
-            <button
-              type="button"
+            <AddButton
               onClick={() => {
                 setIsCreateOpen(true);
                 setNewSongTitle('');
@@ -101,20 +95,16 @@ export function SongsPage() {
               }}
               aria-label="Nouvelle chanson"
               title="Nouvelle chanson"
-              className="fz-button-primary h-11 w-11 shrink-0 p-0"
-            >
-              <PlusIcon />
-            </button>
+            />
           ) : null}
         </div>
 
         {songs && (songs.length > 0 || searchQuery.trim()) ? (
           <div className="mt-3 flex items-center gap-2">
-            <input
+            <SearchField
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
               placeholder="Rechercher une chanson..."
-              className="fz-input min-w-0 flex-1 text-sm"
             />
             <SortMenu value={sortMode} onChange={setSortMode} label="Trier le répertoire" />
           </div>
@@ -190,7 +180,7 @@ export function SongsPage() {
                 </div>
 
                 <div className="flex shrink-0 items-start pt-0.5">
-                  <StatusPill label={song.status} tone={getSongStatusTone(song.status)} />
+                  <StatusPill label={getSongStatusLabel(song.status)} tone={getSongStatusTone(song.status)} />
                 </div>
               </div>
             </Link>
@@ -205,13 +195,12 @@ export function SongsPage() {
                 <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-[var(--fz-text-muted)]">
                   Titre
                 </span>
-                <input
+                <TextField
                   value={newSongTitle}
                   onChange={(event) => setNewSongTitle(event.target.value)}
                   placeholder="Saisissez le titre de la chanson"
                   autoFocus
                   disabled={isSaving}
-                  className="fz-input text-sm"
                 />
               </label>
 

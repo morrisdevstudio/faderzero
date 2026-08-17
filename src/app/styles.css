@@ -132,6 +132,98 @@ body::before {
   opacity: 0.6;
 }
 
+.fz-text-field {
+  min-height: 3rem;
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 0.75rem 0.9rem;
+  color: white;
+  font-size: 1rem;
+  line-height: 1.5;
+  outline: none;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.fz-text-field::placeholder {
+  color: rgba(255, 255, 255, 0.55);
+  opacity: 1;
+}
+
+.fz-text-field:hover:not(:disabled):not(:focus) {
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.fz-text-field:focus {
+  border-color: rgba(255, 58, 99, 0.62);
+  background: rgba(255, 255, 255, 0.065);
+  box-shadow: 0 0 0 3px rgba(255, 58, 99, 0.16);
+}
+
+.fz-text-field[aria-invalid='true'] {
+  border-color: rgba(251, 113, 133, 0.78);
+}
+
+.fz-text-field[aria-invalid='true']:focus {
+  box-shadow: 0 0 0 3px rgba(251, 113, 133, 0.16);
+}
+
+.fz-text-field:disabled,
+.fz-text-field:read-only {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.fz-search-field::-webkit-search-cancel-button {
+  cursor: pointer;
+}
+
+.fz-text-area[data-resize='none'] {
+  resize: none;
+}
+
+.fz-text-area[data-resize='vertical'] {
+  resize: vertical;
+}
+
+.fz-temporal-field {
+  color-scheme: dark;
+}
+
+.fz-temporal-field::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.72;
+}
+
+.fz-temporal-field:disabled::-webkit-calendar-picker-indicator {
+  cursor: not-allowed;
+}
+
+.fz-select-field {
+  cursor: pointer;
+  color-scheme: dark;
+}
+
+.fz-select-field:disabled {
+  cursor: not-allowed;
+}
+
+.fz-field-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--fz-text-muted);
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
 .fz-button-primary {
   border-radius: 1rem;
   background: linear-gradient(180deg, #ff547b 0%, #ff2f5c 100%);
@@ -164,6 +256,44 @@ body::before {
   text-align: center;
   white-space: normal;
   overflow-wrap: anywhere;
+}
+
+.fz-add-button {
+  width: 2.75rem;
+  min-width: 2.75rem;
+  max-width: 2.75rem;
+  height: 2.75rem;
+  min-height: 2.75rem;
+  flex: 0 0 2.75rem;
+  padding: 0;
+  border: 0;
+  align-items: center;
+  justify-content: center;
+  transition: filter 150ms ease-out, transform 150ms ease-out, opacity 150ms ease-out;
+}
+
+.fz-add-button:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.fz-add-button:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.fz-add-button:focus-visible {
+  outline: 2px solid var(--fz-accent-strong);
+  outline-offset: 2px;
+}
+
+.fz-add-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fz-add-button {
+    transition: none;
+  }
 }
 
 .fz-dialog-close {

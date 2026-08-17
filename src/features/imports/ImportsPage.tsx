@@ -5,7 +5,8 @@ import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { FeatureCard } from '@/components/FeatureCard';
 import { FormDialog } from '@/components/FormDialog';
 import { SortMenu, type SortMode } from '@/components/SortMenu';
-import { StatusPill } from '@/components/StatusPill';
+import { StatusPill } from '@/ui/components/StatusPill';
+import { SelectField } from '@/ui/components/SelectField';
 import { songAssetsRepository } from '@/db/repositories/songAssetsRepository';
 import { db } from '@/db/db';
 import type { PendingAudioUploadRecord } from '@/db/schema';
@@ -13,7 +14,7 @@ import { songsRepository } from '@/db/repositories/songsRepository';
 import type { AudioTrack } from '@/features/audio/audioPlayerStore';
 import { useAudioPlayerStore } from '@/features/audio/audioPlayerStore';
 import { buildCompressedFileName } from '@/features/songs/audioCompression';
-import { formatSongDuration, getSongStatusTone } from '@/features/songs/songPresentation';
+import { formatSongDuration, getSongStatusLabel, getSongStatusTone } from '@/features/songs/songPresentation';
 import { useAuthStore } from '@/stores/authStore';
 import type { SongAssetUploadProgress } from '@/services/supabase/storage';
 import {
@@ -23,11 +24,15 @@ import {
   uploadOrQueueSongAsset,
 } from '@/services/audio/pendingUploads';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { TextField } from '@/ui/components/TextField';
 import { useAudioCacheStore } from '@/features/audio/audioCacheStore';
 import { useLongPress } from '@/hooks/useLongPress';
 import type { SVGProps } from 'react';
 import { canWriteWorkspace } from '@/services/supabase/workspace';
 import type { SongStatus } from '@/db/schema';
+import { AddButton } from '@/ui/components/AddButton';
+import { PageHeader } from '@/ui/components/PageHeader';
+import { FzIcon } from '@/ui/icons';
 
 type IconProps = SVGProps<SVGSVGElement>;
 
@@ -106,14 +111,6 @@ function UploadIcon() {
       <path d="M12 16V4" />
       <path d="m7 9 5-5 5 5" />
       <path d="M5 20h14" />
-    </svg>
-  );
-}
-
-function PlusIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M12 5v14M5 12h14" />
     </svg>
   );
 }
@@ -958,55 +955,37 @@ export function ImportsPage() {
 
   return (
     <div className="space-y-4">
-      <section className="space-y-3 -mt-2">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0 flex-1">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-7 w-7 text-white shrink-0">
-              <circle cx="12" cy="12" r="9" />
-              <circle cx="12" cy="12" r="2.5" />
-              <path d="M12 12v-5l4-1" />
-            </svg>
-            <h1 className="min-w-0 flex-1 text-[2rem] font-black tracking-tight text-white">Morceaux</h1>
-          </div>
-          {canWrite ? <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isImporting}
-            aria-label={isImporting ? 'Import en cours' : 'Importer des pistes'}
-            className="fz-button-secondary inline-flex h-11 w-11 shrink-0 items-center justify-center p-0 text-white/70 hover:text-white disabled:opacity-60"
-          >
-            <UploadIcon />
-          </button> : null}
-          {canWrite ? <button
-            type="button"
-            onClick={() => {
-              setNewSongTitle('');
-              setCreateSongError(null);
-              setIsCreateSongOpen(true);
-            }}
-            aria-label="Créer un morceau"
-            className="fz-button-primary h-11 w-11 shrink-0 p-0"
-          >
-            <PlusIcon />
-          </button> : null}
-          {canWrite ? <input
-            ref={fileInputRef}
-            type="file"
-            accept="audio/*"
-            multiple
-            onChange={handleFileChange}
-            className="hidden"
-          /> : null}
-        </div>
-        <div className="mt-3 flex items-center gap-2">
-          <input
-            value={searchQuery}
-            onChange={(event) => setSearchQuery(event.target.value)}
-            placeholder="Rechercher un morceau ou un audio..."
-            aria-label="Rechercher dans les morceaux"
-            className="fz-input min-w-0 flex-1 text-sm"
-          />
-          <SortMenu
+      <section className="space-y-3">
+        <PageHeader
+          icon={<FzIcon name="songs" usageId="page-header.songs" size="xl" />}
+          title="Morceaux"
+          actions={canWrite ? <>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isImporting}
+              aria-label={isImporting ? 'Import en cours' : 'Importer des fichiers audio'}
+              title="Importer des fichiers audio"
+              className="fz-button-secondary inline-flex h-11 w-11 shrink-0 items-center justify-center p-0 text-white/70 transition hover:text-white disabled:opacity-60"
+            >
+              <FzIcon name="upload" usageId="page-header.songs.upload" />
+            </button>
+            <AddButton
+              onClick={() => {
+                setNewSongTitle('');
+                setCreateSongError(null);
+                setIsCreateSongOpen(true);
+              }}
+              aria-label="Créer un morceau"
+            />
+          </> : undefined}
+          search={{
+            value: searchQuery,
+            onChange: setSearchQuery,
+            placeholder: 'Rechercher un morceau ou un audio...',
+            'aria-label': 'Rechercher dans les morceaux',
+          }}
+          sortAction={<SortMenu
             value={sortMode}
             onChange={setSortMode}
             label="Trier les morceaux"
@@ -1021,8 +1000,16 @@ export function ImportsPage() {
                 { value: 'Pret', label: 'Prêt' },
               ],
             }}
-          />
-        </div>
+          />}
+        />
+        {canWrite ? <input
+          ref={fileInputRef}
+          type="file"
+          accept="audio/*"
+          multiple
+          onChange={handleFileChange}
+          className="hidden"
+        /> : null}
         {importMessage ? <p className="mt-3 text-sm font-semibold text-orange-300">{importMessage}</p> : null}
         {isProgressPanelVisible ? (
           <div className="mt-3 rounded-[1rem] border border-white/8 bg-black/22 p-3.5">
@@ -1142,9 +1129,8 @@ export function ImportsPage() {
                 </p>
                 <div className="mt-1 flex items-center gap-2 overflow-hidden text-[0.84rem] font-medium text-white/65">
                   <StatusPill
-                    label={summary.song.status}
+                    label={getSongStatusLabel(summary.song.status)}
                     tone={getSongStatusTone(summary.song.status)}
-                    className="shrink-0"
                   />
                   <span className="truncate">
                     {summary.song.lyrics.trim() ? '✓ Paroles' : '! Paroles manquantes'}
@@ -1624,7 +1610,7 @@ export function ImportsPage() {
               <span className="mb-2 block text-xs font-black uppercase tracking-[0.18em] text-[var(--fz-text-muted)]">
                 Titre
               </span>
-              <input
+              <TextField
                 value={newSongTitle}
                 onChange={(event) => {
                   setNewSongTitle(event.target.value);
@@ -1633,7 +1619,6 @@ export function ImportsPage() {
                 placeholder="Titre du morceau"
                 autoFocus
                 disabled={isCreatingSong}
-                className="fz-input text-sm"
               />
             </label>
             {createSongError ? <p className="text-sm font-semibold text-rose-400">{createSongError}</p> : null}
@@ -1674,7 +1659,7 @@ export function ImportsPage() {
               <span className="mb-2 block text-xs font-black uppercase tracking-[0.18em] text-[var(--fz-text-muted)]">
                 Nouveau nom
               </span>
-              <input
+              <TextField
                 value={duplicatePrompt.renameValue}
                 onChange={(event) =>
                   setDuplicatePrompt({
@@ -1683,7 +1668,6 @@ export function ImportsPage() {
                     error: null,
                   })
                 }
-                className="fz-input text-sm"
               />
             </label>
 
@@ -1732,19 +1716,19 @@ export function ImportsPage() {
                 <span className="mb-2 block text-xs font-black uppercase tracking-[0.18em] text-[var(--fz-text-muted)]">
                   Chanson
                 </span>
-                <select
+                <SelectField
+                  aria-label="Chanson à associer"
                   value={singleLinkPrompt.selectedSongId}
                   onChange={(event) =>
                     setSingleLinkPrompt({ ...singleLinkPrompt, selectedSongId: event.target.value, error: null })
                   }
-                  className="fz-input text-sm"
                 >
                   {songs.map((song) => (
                     <option key={song.id} value={song.id}>
                       {song.title || 'Sans titre'}
                     </option>
                   ))}
-                </select>
+                </SelectField>
               </label>
             ) : (
               <p className="rounded-[1rem] border border-white/8 bg-white/5 p-3 text-sm text-white/60">
@@ -1807,7 +1791,8 @@ export function ImportsPage() {
                       <span className="mb-2 block text-xs font-black uppercase tracking-[0.18em] text-[var(--fz-text-muted)]">
                         Chanson
                       </span>
-                      <select
+                      <SelectField
+                        aria-label={`Chanson à associer à ${item.filename}`}
                         value={item.selectedSongId}
                         onChange={(event) =>
                           updateBatchLinkPromptItem(item.id, (currentItem) => ({
@@ -1815,7 +1800,6 @@ export function ImportsPage() {
                             selectedSongId: event.target.value,
                           }))
                         }
-                        className="fz-input text-sm"
                       >
                         <option value="">Garder en musique seule</option>
                         {songs.map((song) => (
@@ -1823,7 +1807,7 @@ export function ImportsPage() {
                             {song.title || 'Sans titre'}
                           </option>
                         ))}
-                      </select>
+                      </SelectField>
                     </label>
 
                     {item.error ? <p className="mt-2 text-sm font-semibold text-rose-400">{item.error}</p> : null}
