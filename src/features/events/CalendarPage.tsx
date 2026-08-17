@@ -8,6 +8,7 @@ import type { EventRecord } from '@/db/schema';
 import { useAuthStore } from '@/stores/authStore';
 import { EventFormModal } from './EventFormModal';
 import { AddButton } from '@/ui/components/AddButton';
+import { ContentRow } from '@/ui/components/ContentRow';
 import { PageHeader } from '@/ui/components/PageHeader';
 import { SelectField } from '@/ui/components/SelectField';
 import { FzIcon } from '@/ui/icons';
@@ -968,43 +969,37 @@ export function CalendarPage() {
                   const color = styleMeta.color;
 
                   return (
-                    <div
+                    <ContentRow
                       key={evt.id}
+                      mode="button"
                       onClick={() => setActiveBottomSheetEvent(evt)}
                       style={{ borderLeftColor: color }}
-                      className="block cursor-pointer border-l-2 px-4 py-5 transition first:pt-1 last:pb-1 hover:bg-white/[0.02] active:scale-[0.98]"
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="min-w-0 flex-1">
-                          <h2 className="truncate text-[1.35rem] font-black tracking-tight text-white" title={evt.title}>
-                            {evt.title}
-                          </h2>
-                          <p className="mt-2 truncate whitespace-nowrap text-[0.82rem] text-[var(--fz-text-muted)] flex items-center gap-1.5">
-                            <span className="font-mono font-bold shrink-0 flex items-center gap-1">
-                              <ClockIcon /> {timeRangeStr}
-                            </span>
-                            {evt.location && (
-                              <>
-                                <span>·</span>
-                                <span className="truncate flex items-center gap-1">
-                                  <LocationIcon /> {evt.location}
-                                </span>
-                              </>
-                            )}
-                          </p>
-                        </div>
-
-                        {/* Event tag */}
-                        <div className="flex shrink-0 items-start pt-0.5">
-                          <span
-                            className="inline-flex shrink-0 items-center whitespace-nowrap rounded-full border px-2.5 py-1 text-[0.68rem] font-black uppercase leading-none tracking-[0.16em] text-white"
-                            style={{ backgroundColor: color, borderColor: `${color}80` }}
-                          >
-                            {spaceBadgeText}
+                      className="border-l-2"
+                      title={evt.title}
+                      metadata={
+                        <span className="flex items-center gap-1.5 truncate">
+                          <span className="font-mono font-bold shrink-0 flex items-center gap-1">
+                            <ClockIcon /> {timeRangeStr}
                           </span>
-                        </div>
-                      </div>
-                    </div>
+                          {evt.location && (
+                            <>
+                              <span>·</span>
+                              <span className="truncate flex items-center gap-1">
+                                <LocationIcon /> {evt.location}
+                              </span>
+                            </>
+                          )}
+                        </span>
+                      }
+                      status={
+                        <span
+                          className="inline-flex shrink-0 items-center whitespace-nowrap rounded-full border px-2.5 py-1 text-[0.68rem] font-black uppercase leading-none tracking-[0.16em] text-white"
+                          style={{ backgroundColor: color, borderColor: `${color}80` }}
+                        >
+                          {spaceBadgeText}
+                        </span>
+                      }
+                    />
                   );
                 })}
               </div>
@@ -1080,10 +1075,11 @@ export function CalendarPage() {
                     </button>
                   ) : null}
                   <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
+                    <label htmlFor="calendar-event-title" className="fz-field-label">
                       Titre de l’événement
                     </label>
                     <input
+                      id="calendar-event-title"
                       type="text"
                       value={activeBottomSheetEvent.title}
                       readOnly
@@ -1093,10 +1089,11 @@ export function CalendarPage() {
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
+                    <label htmlFor="calendar-event-workspace" className="fz-field-label">
                       Espace / Groupe
                     </label>
                     <input
+                      id="calendar-event-workspace"
                       type="text"
                       value={spaceBadgeText}
                       readOnly
@@ -1107,11 +1104,11 @@ export function CalendarPage() {
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
+                      <label htmlFor="calendar-event-type" className="fz-field-label">
                         Type
                       </label>
                       <SelectField
-                        aria-label="Type d’événement"
+                        id="calendar-event-type"
                         value={activeBottomSheetEvent.eventType}
                         disabled
                         tabIndex={-1}
@@ -1123,10 +1120,11 @@ export function CalendarPage() {
                       </SelectField>
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
+                      <label htmlFor="calendar-event-location" className="fz-field-label">
                         Lieu
                       </label>
                       <input
+                        id="calendar-event-location"
                         type="text"
                         value={activeBottomSheetEvent.location || ''}
                         readOnly
@@ -1139,10 +1137,11 @@ export function CalendarPage() {
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
+                      <label htmlFor="calendar-event-start-date" className="fz-field-label">
                         Date de début
                       </label>
                       <input
+                        id="calendar-event-start-date"
                         type="text"
                         value={startDateStr}
                         readOnly
@@ -1151,10 +1150,11 @@ export function CalendarPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
+                      <label htmlFor="calendar-event-start-time" className="fz-field-label">
                         Heure de début
                       </label>
                       <input
+                        id="calendar-event-start-time"
                         type="text"
                         value={startTimeStr}
                         readOnly
@@ -1164,38 +1164,37 @@ export function CalendarPage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
-                        Date de fin (optionnelle)
-                      </label>
-                      <input
-                        type="text"
-                        value={endDateStr || '--'}
-                        readOnly
-                        tabIndex={-1}
-                        className={readOnlyClass}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
-                        Heure de fin
-                      </label>
-                      <input
-                        type="text"
-                        value={endTimeStr || '--'}
-                        readOnly
-                        tabIndex={-1}
-                        className={readOnlyClass}
-                      />
-                    </div>
+                  <div className="grid grid-cols-2 gap-x-3">
+                    <label htmlFor="calendar-event-end-date" className="fz-field-label">
+                      Date de fin (optionnelle)
+                    </label>
+                    <label htmlFor="calendar-event-end-time" className="fz-field-label">
+                      Heure de fin
+                    </label>
+                    <input
+                      id="calendar-event-end-date"
+                      type="text"
+                      value={endDateStr || '--'}
+                      readOnly
+                      tabIndex={-1}
+                      className={readOnlyClass}
+                    />
+                    <input
+                      id="calendar-event-end-time"
+                      type="text"
+                      value={endTimeStr || '--'}
+                      readOnly
+                      tabIndex={-1}
+                      className={readOnlyClass}
+                    />
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
+                    <label htmlFor="calendar-event-notes" className="fz-field-label">
                       Notes
                     </label>
                     <textarea
+                      id="calendar-event-notes"
                       value={activeBottomSheetEvent.notes || ''}
                       readOnly
                       tabIndex={-1}

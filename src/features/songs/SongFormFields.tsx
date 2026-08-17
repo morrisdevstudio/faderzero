@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef, useState, type ChangeEvent, type FocusEvent } 
 import { PickerDialog, PickerTrigger, WheelColumn } from '@/components/PickerDialog';
 import type { SongStatus } from '@/db/schema';
 import { bpmOptions, songStatusOptions } from '@/features/songs/songPresentation';
+import { FieldLabel } from '@/ui/components/FieldLabel';
 import { TextArea } from '@/ui/components/TextArea';
 import { TextField } from '@/ui/components/TextField';
 
@@ -129,7 +130,7 @@ export function SongFormFields({ values, onChange, disabled = false, showLyrics 
     <>
       <div className="space-y-3">
         <label className="block">
-          <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-[var(--fz-text-muted)]">Titre</span>
+          <FieldLabel>Titre</FieldLabel>
           <TextField
             value={values.title}
             onChange={handleInputChange('title')}
@@ -166,7 +167,7 @@ export function SongFormFields({ values, onChange, disabled = false, showLyrics 
         </div>
 
         <label className="block">
-          <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-[var(--fz-text-muted)]">Notes</span>
+          <FieldLabel>Notes</FieldLabel>
           <TextArea
             ref={notesTextareaRef}
             value={values.notes}
@@ -178,60 +179,61 @@ export function SongFormFields({ values, onChange, disabled = false, showLyrics 
           />
         </label>
 
-        {showLyrics ? <label className="block">
-          <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-[var(--fz-text-muted)]">Paroles</span>
-          {isLyricsFocused ? (
-            <div
-              className="sticky z-20 mb-3 rounded-[1rem] bg-[var(--fz-panel-strong)] py-1"
-              style={{ top: 'calc(var(--fz-header-height, 64px) + var(--fz-viewport-offset-top, 0px) + 76px)' }}
-            >
-              <div className="overflow-x-auto overscroll-x-contain touch-pan-x scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none] [-webkit-overflow-scrolling:touch]">
-                <div className="flex min-w-max items-center gap-2 px-1 py-1">
-                  {lyricsBlockOptions.map((blockLabel) => (
-                    <button
-                      key={blockLabel}
-                      type="button"
-                      data-lyrics-shortcut="true"
-                      onPointerDown={(event) => {
-                        event.preventDefault();
-                        lyricsShortcutPointerDownRef.current = true;
-                      }}
-                      onClick={(event) => {
-                        const isPointerClick = event.detail > 0;
-                        const receivedPointerDown = lyricsShortcutPointerDownRef.current;
-                        lyricsShortcutPointerDownRef.current = false;
+        {showLyrics ? (
+          <label className="block">
+            <FieldLabel>Paroles</FieldLabel>
+            {isLyricsFocused ? (
+              <div
+                className="sticky z-20 mb-3 rounded-[1rem] bg-[var(--fz-panel-strong)] py-1"
+                style={{ top: 'calc(var(--fz-header-height, 64px) + var(--fz-viewport-offset-top, 0px) + 76px)' }}
+              >
+                <div className="overflow-x-auto overscroll-x-contain touch-pan-x scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none] [-webkit-overflow-scrolling:touch]">
+                  <div className="flex min-w-max items-center gap-2 px-1 py-1">
+                    {lyricsBlockOptions.map((blockLabel) => (
+                      <button
+                        key={blockLabel}
+                        type="button"
+                        data-lyrics-shortcut="true"
+                        onPointerDown={(event) => {
+                          event.preventDefault();
+                          lyricsShortcutPointerDownRef.current = true;
+                        }}
+                        onClick={(event) => {
+                          const isPointerClick = event.detail > 0;
+                          const receivedPointerDown = lyricsShortcutPointerDownRef.current;
+                          lyricsShortcutPointerDownRef.current = false;
 
-                        // The toolbar appears on textarea focus and can move under an
-                        // already-started pointer click. Only accept pointer clicks
-                        // whose pointerdown actually started on this shortcut.
-                        if (isPointerClick && !receivedPointerDown) {
-                          return;
-                        }
+                          // The toolbar appears on textarea focus and can move under an
+                          // already-started pointer click. Only accept pointer clicks
+                          // whose pointerdown actually started on this shortcut.
+                          if (isPointerClick && !receivedPointerDown) {
+                            return;
+                          }
 
-                        insertLyricsBlock(blockLabel);
-                      }}
-                      className="shrink-0 whitespace-nowrap rounded-[0.85rem] border border-white/10 bg-black/18 px-3 py-2 text-sm font-black text-white/82 transition hover:bg-white/8"
-                    >
-                      {blockLabel}
-                    </button>
-                  ))}
+                          insertLyricsBlock(blockLabel);
+                        }}
+                        className="shrink-0 whitespace-nowrap rounded-[0.85rem] border border-white/10 bg-black/18 px-3 py-2 text-sm font-black text-white/82 transition hover:bg-white/8"
+                      >
+                        {blockLabel}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
-          ) : null}
-          <TextArea
-            ref={lyricsTextareaRef}
-            value={values.lyrics}
-            onChange={handleTextAreaChange('lyrics')}
-            onFocus={handleLyricsFocus}
-            onBlur={handleLyricsBlur}
-            rows={10}
-            placeholder="Couplets, refrains, accords..."
-            disabled={disabled}
-            resize="none"
-          />
-        </label> : null}
-
+            ) : null}
+            <TextArea
+              ref={lyricsTextareaRef}
+              value={values.lyrics}
+              onChange={handleTextAreaChange('lyrics')}
+              onFocus={handleLyricsFocus}
+              onBlur={handleLyricsBlur}
+              rows={10}
+              placeholder="Couplets, refrains, accords..."
+              disabled={disabled}
+              resize="none"
+            />
+          </label>
+        ) : null}
       </div>
 
       {activePicker === 'status' ? (
@@ -323,4 +325,3 @@ export function SongFormFields({ values, onChange, disabled = false, showLyrics 
     </>
   );
 }
-

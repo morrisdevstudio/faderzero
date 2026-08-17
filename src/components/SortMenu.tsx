@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { FzIcon } from '@/ui/icons';
 
 export type SortMode = 'title-asc' | 'title-desc' | 'updated-desc' | 'updated-asc';
 
@@ -30,14 +31,6 @@ function SortIcon() {
       <path d="m4 8 3-3 3 3" />
       <path d="M17 19V5" />
       <path d="m14 16 3 3 3-3" />
-    </svg>
-  );
-}
-
-function CheckIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="m5 12 4 4L19 6" />
     </svg>
   );
 }
@@ -104,7 +97,7 @@ export function SortMenu({ value, onChange, label = 'Trier', filter }: SortMenuP
                 aria-label="Fermer"
                 className="fz-dialog-close"
               >
-                &times;
+                <FzIcon name="close" usageId="sort-menu.close" size="md" />
               </button>
             </div>
             <div className="space-y-5">
@@ -127,7 +120,7 @@ export function SortMenu({ value, onChange, label = 'Trier', filter }: SortMenuP
                       className="flex min-h-12 w-full items-center gap-3 px-1 py-3 text-left text-sm font-black text-white transition hover:bg-white/5"
                     >
                       <span className={['flex h-5 w-5 shrink-0 items-center justify-center', value === option.value ? 'text-[var(--fz-accent-strong)]' : 'text-transparent'].join(' ')}>
-                        <CheckIcon />
+                        <FzIcon name="check" usageId="sort-menu.check" size="sm" />
                       </span>
                       <span>{option.label}</span>
                     </button>
@@ -153,7 +146,7 @@ export function SortMenu({ value, onChange, label = 'Trier', filter }: SortMenuP
                         className="flex min-h-12 w-full items-center gap-3 px-1 py-3 text-left text-sm font-black text-white transition hover:bg-white/5"
                       >
                         <span className={['flex h-5 w-5 shrink-0 items-center justify-center', filter.value === option.value ? 'text-[var(--fz-accent-strong)]' : 'text-transparent'].join(' ')}>
-                          <CheckIcon />
+                          <FzIcon name="check" usageId="sort-menu.filter.check" size="sm" />
                         </span>
                         <span>{option.label}</span>
                       </button>

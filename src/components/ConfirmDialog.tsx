@@ -1,5 +1,6 @@
 import { useId } from 'react';
 import { createPortal } from 'react-dom';
+import { Button } from '@/ui/components/Button';
 import { useDialogAccessibility } from './useDialogAccessibility';
 
 interface ConfirmDialogProps {
@@ -60,22 +61,21 @@ export function ConfirmDialog({
         <p id={descriptionId} className="mt-2 text-sm leading-6 text-[var(--fz-text-muted)]">{description}</p>
 
         <div className="mt-5 grid grid-cols-2 gap-3">
-          <button
-            type="button"
+          <Button
+            variant="secondary"
             onClick={requestCancel}
             disabled={isBusy}
-            className="fz-button-secondary px-4 py-3 text-sm font-black uppercase tracking-[0.16em] text-white disabled:opacity-50"
           >
             {cancelLabel}
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            variant="danger"
             onClick={() => void onConfirm()}
+            loading={isBusy}
             disabled={isBusy}
-            className="fz-button-danger px-4 py-3 text-sm font-black uppercase tracking-[0.16em] disabled:opacity-50"
           >
             {isBusy ? 'Suppression...' : confirmLabel}
-          </button>
+          </Button>
         </div>
       </div>
     </div>,

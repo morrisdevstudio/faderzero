@@ -328,7 +328,7 @@ export function SongWriterPage() {
         >
           <form className="space-y-4" onSubmit={(event) => void handleCreateDraft(event)}>
             <label className="block">
-              <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-[var(--fz-text-muted)]">
+              <span className="fz-field-label mb-2 block">
                 Titre
               </span>
               <TextField

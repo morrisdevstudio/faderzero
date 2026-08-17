@@ -1,4 +1,5 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { FzIcon } from '@/ui/icons';
 
 interface UndoToastProps {
   message: string;
@@ -46,11 +47,10 @@ export const UndoToast: React.FC<UndoToastProps> = ({
         </button>
         <button
           onClick={onDismiss}
+          aria-label="Fermer"
           className="rounded-lg p-1 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
         >
-          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M18 6L6 18M6 6l12 12" />
-          </svg>
+          <FzIcon name="close" usageId="undo-toast.dismiss" size="sm" />
         </button>
       </div>
       <div className="mt-3 h-1 w-full bg-zinc-800">

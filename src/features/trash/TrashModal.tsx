@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { FormDialog } from '@/components/FormDialog';
+import { ContentRow } from '@/ui/components/ContentRow';
 import { listTrashedItems, restoreTrashedContent, purgeExpiredTrash, type TrashedItem } from '@/services/supabase/trash';
 
 interface TrashModalProps {
@@ -92,7 +93,7 @@ export const TrashModal: React.FC<TrashModalProps> = ({
         ) : items.length === 0 ? (
           <div className="py-8 text-center text-sm text-zinc-500">Aucun élément dans la corbeille.</div>
         ) : (
-          <div className="space-y-2">
+          <div className="divide-y divide-white/10">
             {items.map((item) => {
               const daysRemaining = Math.max(
                 0,
@@ -100,41 +101,34 @@ export const TrashModal: React.FC<TrashModalProps> = ({
               );
 
               return (
-                <div
+                <ContentRow
                   key={`${item.entityType}-${item.id}`}
-                  className="flex flex-col items-stretch gap-3 rounded-xl border border-zinc-800/80 bg-zinc-950/50 p-3.5 transition-colors hover:border-zinc-700 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div className="min-w-0">
-                    <div className="flex min-w-0 items-center gap-2">
-                      <span className="shrink-0 rounded bg-zinc-800 px-2 py-0.5 text-[10px] font-semibold uppercase text-zinc-400">
-                        {item.entityType === 'songAsset'
-                          ? 'Audio'
-                          : item.entityType === 'setlist'
-                            ? 'Setlist'
-                            : 'Chanson'}
-                      </span>
-                      <span className="truncate text-sm font-medium text-zinc-200">{item.title}</span>
-                    </div>
-                    <div className="mt-1 flex items-center gap-1.5 text-xs text-zinc-500">
-                      <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <circle cx="12" cy="12" r="10" />
-                        <polyline points="12 6 12 12 16 14" />
+                  mode="controls"
+                  leading={
+                    <span className="shrink-0 rounded bg-white/10 px-2 py-0.5 text-[10px] font-semibold uppercase text-white/70">
+                      {item.entityType === 'songAsset'
+                        ? 'Audio'
+                        : item.entityType === 'setlist'
+                          ? 'Setlist'
+                          : 'Chanson'}
+                    </span>
+                  }
+                  title={item.title}
+                  metadata={`Expire dans ${daysRemaining} jour(s)`}
+                  trailing={
+                    <button
+                      type="button"
+                      onClick={() => handleRestore(item)}
+                      className="flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-zinc-800 px-3 text-xs font-medium text-zinc-200 transition-colors hover:bg-zinc-700 hover:text-white"
+                    >
+                      <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                        <path d="M3 3v5h5" />
                       </svg>
-                      <span>Expire dans {daysRemaining} jour(s)</span>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleRestore(item)}
-                    className="flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-zinc-800 px-3 text-xs font-medium text-zinc-200 transition-colors hover:bg-zinc-700 hover:text-white"
-                  >
-                    <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                      <path d="M3 3v5h5" />
-                    </svg>
-                    Restaurer
-                  </button>
-                </div>
+                      Restaurer
+                    </button>
+                  }
+                />
               );
             })}
           </div>

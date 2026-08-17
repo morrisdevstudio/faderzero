@@ -5,6 +5,7 @@ import { normalizeDisplayName } from '@/services/supabase/profile';
 import { assertValidPassword, getPasswordRequirements } from '@/services/supabase/passwordPolicy';
 import { PasswordField } from '@/ui/components/PasswordField';
 import { TextField } from '@/ui/components/TextField';
+import { FaderLogo } from '@/ui/components/FaderLogo';
 
 type AuthMode = 'signin' | 'signup' | 'forgot';
 
@@ -101,21 +102,11 @@ export function LoginPage({ inviteTokenPresent = false }: LoginPageProps) {
       <div className="relative w-full max-w-md rounded-[1.8rem] border border-white/10 bg-[rgba(16,18,24,0.96)] p-7 sm:p-8 shadow-[0_32px_80px_rgba(0,0,0,0.6)] backdrop-blur-2xl">
         {/* Brand Header */}
         <div className="flex flex-col items-center justify-center text-center mb-8">
-          <div className="flex items-center gap-3">
-            <div className="flex h-[54px] items-center">
-              <svg viewBox="0 0 20 80" className="h-full w-[15px] fill-white">
-                <rect x="9" y="0" width="2" height="80" rx="0.5" />
-                <rect x="2" y="20" width="16" height="24" rx="2" />
-              </svg>
-            </div>
-            <div className="flex w-[120px] flex-col justify-center text-white font-extrabold text-[24px] font-sans">
-              <div className="flex w-full justify-between leading-[1.05]">
-                <span>F</span><span>A</span><span>D</span><span>E</span><span>R</span>
-              </div>
-              <div className="flex w-full justify-between leading-[1.05]">
-                <span>Z</span><span>E</span><span>R</span><span>O</span>
-              </div>
-            </div>
+          <div role="img" aria-label="FaderZero">
+            <FaderLogo
+              className="h-[54px] w-[147px] text-white"
+              preserveAspectRatio="none"
+            />
           </div>
         </div>
 
@@ -159,7 +150,7 @@ export function LoginPage({ inviteTokenPresent = false }: LoginPageProps) {
         <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
           {mode === 'signup' ? (
             <div>
-              <label htmlFor="displayName" className="mb-2 block text-[0.68rem] font-black uppercase tracking-[0.18em] text-white/60">
+              <label htmlFor="displayName" className="fz-field-label">
                 Pseudo
               </label>
               <TextField
@@ -179,7 +170,7 @@ export function LoginPage({ inviteTokenPresent = false }: LoginPageProps) {
           ) : null}
 
           <div>
-            <label htmlFor="email" className="block text-[0.68rem] font-black uppercase tracking-[0.18em] text-white/60 mb-2">
+            <label htmlFor="email" className="fz-field-label">
               Adresse e-mail
             </label>
             <TextField
@@ -196,7 +187,7 @@ export function LoginPage({ inviteTokenPresent = false }: LoginPageProps) {
 
           {mode !== 'forgot' ? (
             <div>
-              <label htmlFor="password" className="block text-[0.68rem] font-black uppercase tracking-[0.18em] text-white/60 mb-2">
+              <label htmlFor="password" className="fz-field-label">
                 Mot de passe
               </label>
               <PasswordField
@@ -229,7 +220,7 @@ export function LoginPage({ inviteTokenPresent = false }: LoginPageProps) {
 
           {mode === 'signup' && (
             <div>
-              <label htmlFor="confirmPassword" className="block text-[0.68rem] font-black uppercase tracking-[0.18em] text-white/60 mb-2">
+              <label htmlFor="confirmPassword" className="fz-field-label">
                 Confirmer le mot de passe
               </label>
               <PasswordField

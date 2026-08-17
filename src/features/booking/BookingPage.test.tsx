@@ -74,7 +74,7 @@ describe('BookingPage detail', () => {
   it('opens a proposition on its stable detail route', () => {
     renderBooking();
 
-    fireEvent.click(screen.getByRole('button', { name: /Le Chabada/ }));
+    fireEvent.click(screen.getByRole('link', { name: /Le Chabada/ }));
 
     expect(screen.getByRole('heading', { level: 1, name: 'Le Chabada' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Retour au booking' })).toBeInTheDocument();

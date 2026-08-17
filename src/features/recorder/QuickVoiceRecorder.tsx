@@ -367,7 +367,7 @@ export function QuickVoiceRecorder({
           <div className="space-y-5">
             <VoiceMemoPlayer src={previewUrl} durationMs={capturedRecording.durationMs} />
             <label className="block">
-              <span className="mb-2 block text-xs font-black uppercase tracking-[0.16em] text-white/55">
+              <span className="fz-field-label mb-2 block">
                 Nom de l’audio
               </span>
               <TextField
@@ -425,7 +425,7 @@ export function QuickVoiceRecorder({
         {(recorderState === 'choosingDestination' || recorderState === 'saving') && !directSongId && capturedRecording ? (
           <div className="space-y-4">
             <label className="block">
-              <span className="mb-2 block text-xs font-black uppercase tracking-[0.16em] text-white/55">
+              <span className="fz-field-label mb-2 block">
                 Nom de l’audio
               </span>
               <TextField
@@ -512,7 +512,7 @@ export function QuickVoiceRecorder({
 
             {destination.type === 'newSong' ? (
               <label className="block">
-                <span className="mb-2 block text-xs font-black uppercase tracking-[0.16em] text-white/55">
+                <span className="fz-field-label mb-2 block">
                   Titre de la chanson
                 </span>
                 <TextField

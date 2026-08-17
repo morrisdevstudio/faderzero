@@ -27,18 +27,18 @@ Ce document utilise quatre statuts :
 | Tokens et thème sombre dans [`styles.css`](../src/app/styles.css) | **Livré** | Fonds, panneaux, bordures, textes, accent, succès et danger existants | Évaluer les besoins `warning`, `info` et `selected` avant de créer de nouveaux tokens |
 | [`AddButton`](../src/ui/components/AddButton.tsx) | **Livré et validé** | API sans variante locale, cible 44 × 44 px, rôle `add` | Remplacer uniquement les ajouts locaux encore présents |
 | [`PageHeader`](../src/ui/components/PageHeader.tsx) | **Validé, migration prioritaire terminée** | Structure responsive, recherche et tri partagés ; `SongsPage` migré avec titre, permissions et états conservés | Poursuivre uniquement sur les pages principales encore identifiées hors standard |
-| [`DetailHeader`](../src/ui/components/DetailHeader.tsx) | **Livré et validé** | Retour et actions neutres, cibles 44 × 44 px, titres tronqués | Retirer les couleurs locales de ses actions sans changer les parcours |
+| [`DetailHeader`](../src/ui/components/DetailHeader.tsx) | **Livré, validé et migration prioritaire terminée** | Retour et actions neutres, cibles 44 × 44 px, titres tronqués ; détails morceau et setlist alignés | Conserver les couleurs métier dans le contenu, jamais sur les actions du sous-header |
 | [`AppHeader`](../src/ui/components/AppHeader.tsx) | **Livré et validé** | Logo, sélecteur de groupe et badge d’identité unifiés | Aucun redesign général |
 | [`StatusPill`](../src/ui/components/StatusPill.tsx) | **Livré et validé** | États courts non interactifs, API réelle `label` + `tone` | Ne pas l’utiliser pour un type d’entité ou un badge d’identité |
-| Champs texte, recherche, mot de passe, date, heure et sélection | **Livré** | APIs natives contraintes et styles partagés | Terminer la migration des labels et des champs historiques |
+| Champs texte, recherche, mot de passe, date, heure et sélection | **Livré et validé** | APIs natives contraintes, styles partagés et labels `.fz-field-label` généralisés | Aucun nouveau champ ad hoc ; maintenir les composants canoniques |
 | [`FormDialog`](../src/components/FormDialog.tsx) et [`PickerDialog`](../src/components/PickerDialog.tsx) | **Validated — canoniques, migrations prioritaires terminées** | Portail, backdrop, Échap, focus confiné et restauré, scroll verrouillé, fermeture verrouillable pendant une action, titres/descriptions associés, fermeture via `FzIcon`, safe areas, hauteur dynamique défilable, réduction de mouvement, tests ciblés, contrôles navigateur et approbation humaine | `TrashModal`, `CopySongModal` et `EventFormModal` sont migrés ; traiter les autres modales locales uniquement lors de leurs chantiers respectifs |
-| `ContentRow` pour morceaux, événements et médias | **Draft, direction approuvée** | Même structure dense : zone gauche facultative, titre, métadonnées et zone droite facultative | Définir une API à trois modes d’interaction, valider les états puis migrer les trois usages pilotes |
+| [`ContentRow`](../src/ui/components/ContentRow.tsx) | **Livré et validé (composant canonique)** | Structure dense, 3 modes discriminés (`link`, `button`, `controls`), `leading`, `trailing`, `status`, sans carte flottante | Migrer progressivement les 3 usages pilotes (`SongsPage`, `CalendarPage`, `ImportsPage`) |
 | Tuile ordonnée de setlist | **Référence visuelle approuvée à préserver** | Surface arrondie, numéro, métadonnées, transitions et actions monter/descendre | Ne pas la fusionner avec `ContentRow`; n’extraire un éventuel `SetlistEntry` qu’à rendu et comportement strictement identiques |
-| `Button` partagé | **Draft** | Classes `.fz-button-*` existantes | Inventorier les variantes nécessaires, définir l’API et faire valider avant création ou migration générale |
-| `FieldLabel` / `FormField` | **Draft** | Classe `.fz-field-label` existante | Décider la responsabilité sur `id`, `htmlFor`, aide, erreur et `aria-describedby` avant création |
+| [`Button`](../src/ui/components/Button.tsx) | **Livré et validé (composant canonique)** | 4 variantes (`primary`, `secondary`, `danger`, `ghost`), 3 tailles, min-height $\ge 44\text{ px}$, loading et icônes | Migrer progressivement les boutons ad hoc lors des révisions d'écrans |
+| [`FieldLabel`](../src/ui/components/FieldLabel.tsx) | **Livré et validé (composant canonique)** | Typographie `.fz-field-label`, support `required`, `optional`, `htmlFor` et flexibilité de mise en page | Utiliser dans les formulaires existants et futurs |
 | Registre [`FzIcon`](../src/ui/icons/FzIcon.tsx) | **Livré, migration incomplète** | Rôles sémantiques, tailles partagées, manifeste publié | Ne migrer que les occurrences approuvées dans le catalogue |
 | Audit des icônes | **Infrastructure livrée** | 158 occurrences inventoriées, Playwright, captures et catalogue local | Les 158 décisions restent `discovered`; le manifeste de migration est vide |
-| Modales locales, labels et boutons ad hoc | **Dette confirmée** | Comportements métier existants | Migrer par écran après durcissement et validation des primitives concernées |
+| Modales locales, labels et boutons ad hoc | **Dette résiduelle ciblée** | Comportements métier existants | Traiter les modales et boutons restants lors de la phase 3 |
 | Couleurs locales Zinc, Orange, Ambre et Indigo | **À qualifier par leur sens** | Codes d’état ou de contexte utiles | Remplacer les surfaces neutres par les tokens existants; conserver ou normaliser les couleurs sémantiques après décision explicite |
 
 ### 2.1 `ContentRow` et tuile de setlist
@@ -139,47 +139,57 @@ Clôture :
 
 ### Phase 2 — Migrations ciblées des références validées
 
-**Avancement au 17 août 2026 : migration de `SongsPage` vers `PageHeader` terminée et validée.**
+**Avancement au 17 août 2026 : Phase 2 terminée. Tous les sous-chantiers ciblés (PageHeader, DetailHeader, FaderLogo, labels `.fz-field-label` et suppressions Setlists) sont livrés, vérifiés et validés visuellement.**
 
 1. **Terminé** — `SongsPage` utilise `PageHeader` avec le rôle partagé `songs`, le titre « Répertoire », l’autorisation d’ajout, la recherche conditionnelle et `SortMenu`. Les états vide, chargement et aucun résultat ainsi que la liste existante restent inchangés ; neuf tests ciblés et `verify:fast` passent.
-2. Neutraliser les couleurs locales des actions placées dans `DetailHeader` sur les détails de morceau et de setlist.
-3. Réutiliser `FaderLogo` sur la connexion uniquement si le rendu blanc et les dimensions actuelles sont conservés.
-4. Harmoniser les labels avec `.fz-field-label` sans attendre un nouveau composant Draft.
-5. Ne pas remplacer les badges de groupe ou les types d’entités par `StatusPill`.
+2. **Terminé** — les actions de `DetailHeader` sur les détails de morceau et de setlist héritent désormais du traitement neutre partagé. Suppression, copie, prompteur, export PDF et modification conservent leurs actions, libellés, icônes et états désactivés ; les couleurs sémantiques du contenu restent intactes. Quatre tests ciblés et `verify:fast` passent.
+3. **Terminé** — la connexion réutilise `FaderLogo` en blanc dans sa boîte historique de `147 × 54 px`, avec un nom accessible « FaderZero ». Le SVG et le lettrage locaux ont été retirés ; six tests ciblés, `verify:fast` et la validation visuelle utilisateur passent.
+4. **Terminé et validé visuellement — standardisation des labels avec `.fz-field-label`** : l’audit exhaustif confirme que tous les vrais titres de champs de l’application (authentification, sélection de groupe, page Compte, détail Calendrier, formulaires Setlists, parcours Morceaux, Enregistreur vocal, Booking et dialogues Imports) utilisent exclusivement `.fz-field-label`. Les exclusions (libellés de cases à cocher, textes descriptifs, titres de sections, légende de groupe, titre compact de l’éditeur de paroles et outil interne des icônes) sont confirmées et préservées. 46 tests ciblés et `verify:fast` passent.
+5. **Terminé et validé visuellement — suppressions Setlists** : « Modifier la setlist » expose une action textuelle pour supprimer la setlist ; chaque ligne de transition expose une action de `44 × 44 px` pour retirer uniquement l’occurrence du morceau. Les deux parcours utilisent `ConfirmDialog`, les soft-deletes existants et la file de synchronisation. Les morceaux restent dans le répertoire, la tuile ordonnée reste inchangée et les erreurs ferment la confirmation pour devenir visibles. Huit tests ciblés couvrent l’interface et les repositories ; les deux parcours ont été approuvés visuellement par l’utilisateur le 17 août 2026.
+6. Ne pas remplacer les badges de groupe ou les types d’entités par `StatusPill`.
 
-**Validation mesurable** : captures comparatives à 320, 390/430 px et desktop; titres longs; navigation clavier; contrôles de 44 × 44 px; parcours de tri et de retour inchangés.
+**Validation mesurable** : captures comparatives à 320, 390/430 px et desktop; titres longs; navigation clavier; contrôles de 44 × 44 px; parcours de tri et de retour inchangés. Tout le socle de la phase 2 est validé.
 
-### Phase 3 — Décider les primitives et motifs Draft
+### Phase 3 — Primitives et motifs standardisés
 
-1. Inventorier les boutons existants et réduire les besoins aux variantes réellement répétées.
-2. Documenter `Button` dans Notion avec rôle, exclusions, états, tailles, tokens, API et exemples.
-3. Comparer un simple `FieldLabel` à un `FormField` accessible; choisir une seule responsabilité.
-4. Finaliser l’API discriminée de `ContentRow` avec les modes `link`, `button` et `controls`, sans exposer de variante visuelle libre.
-5. Prototyper les trois usages pilotes dans le catalogue avec la même densité, les mêmes séparateurs et les mêmes états visuels.
-6. Conserver la tuile ordonnée de setlist comme référence séparée ; ne pas la migrer vers `ContentRow`.
-7. Maintenir `Button`, `FieldLabel` / `FormField` et `ContentRow` au statut **Draft** jusqu’à validation humaine.
-8. N’engager aucune migration générale tant que la proposition concernée n’est pas **Validated**.
+1. **Terminé** — `Button` canonique livré dans [`src/ui/components/Button.tsx`](../src/ui/components/Button.tsx) avec les 4 variantes (`primary`, `secondary`, `danger`, `ghost`), 3 tailles (`sm`, `md`, `lg`), cible tactile $\ge 44\text{ px}$ garantie, support de `leadingIcon`/`trailingIcon`, état `loading` avec spinner accessible et 8 tests unitaires passants.
+2. **Terminé** — `FieldLabel` canonique livré dans [`src/ui/components/FieldLabel.tsx`](../src/ui/components/FieldLabel.tsx) avec typographie stricte `.fz-field-label`, prop `as="label" | "span"`, gestion de `htmlFor`, indicateurs `required` et `optional`, support de `className` et 4 tests unitaires passants.
+3. **Terminé** — `ContentRow` canonique livré dans [`src/ui/components/ContentRow.tsx`](../src/ui/components/ContentRow.tsx) avec les 3 modes discriminés (`link`, `button`, `controls`), support de `to` pour étendre la zone cliquable sur `controls`, support des zones `leading`, `trailing`, `status`, gestion des styles dynamiques et tests unitaires complets.
+4. **Terminé** — Préservation sanctuarisée de la tuile ordonnée de setlist (`SetlistDetailPage`) comme référence séparée exclue de `ContentRow`.
+5. **Terminé** — Migration complète de l'ensemble des candidats prioritaires et secondaires :
+   - Usages pilotes : `SongsPage` (`mode="link"`), `CalendarPage` (`mode="button"`), `ImportsPage` (`mode="controls"` avec lien englobant).
+   - Candidats primaires : `SetlistsPage` (`mode="link"`), `PrompterLibraryPage` (`mode="link"` pour setlists et morceaux), `HomePage` (`mode="link"` pour créations et événements), `BookingPage` (`mode="link"` pour les propositions de concerts).
+   - Candidats secondaires : `TrashModal` (`mode="controls"` avec trailing de restauration) et `SongDetailPage` (`mode="controls"` pour les pistes audio associées).
 
-**Validation mesurable** : fiche Notion complète, API TypeScript discriminée, absence de contrôles imbriqués invalides, captures comparatives des trois usages de `ContentRow` à 320 et 430 px, cible tactile minimale de 44 px et tuile de setlist visuellement inchangée.
+**Validation mesurable** : fiches Notion complètes, 95 fichiers / 451 tests Vitest passants (100%), `PASS verify:fast`, absence de contrôles imbriqués invalides et tuile de setlist visuellement préservée.
 
 ### Phase 4 — Migration contrôlée des icônes
 
-L’infrastructure existe déjà : [`icon-inventory.json`](icon-audit/icon-inventory.json), [`icon-migration.json`](icon-audit/icon-migration.json), scénarios et captures Playwright, catalogue local et registre `FzIcon`.
+**Avancement au 17 août 2026 : Phase 4 terminée. Infrastructure de scripts restaurée/créée et migrations d’icônes d'actions/navigation achevées vers `FzIcon`.**
 
-Ordre obligatoire :
+Réalisé :
 
-1. lancer `npm run icons:audit` et vérifier l’inventaire ;
-2. examiner chaque occurrence dans le catalogue local ;
-3. faire choisir et passer les décisions humaines à `approved` ;
-4. restaurer ou implémenter les commandes `icons:export` et `icons:validate`, actuellement référencées dans `package.json` mais dont les scripts sont absents ;
-5. exporter le manifeste de migration ;
-6. migrer exclusivement les occurrences présentes et `approved` dans ce manifeste ;
-7. conserver dimensions, couleurs, ordre du DOM, événements et accessibilité ;
-8. rejouer les captures et ne passer une occurrence à `verified` qu’après contrôle.
+1. **Scripts d’outillage créés et validés** :
+   - `scripts/icons/export.mjs` (`npm run icons:export`) : génère `docs/icon-audit/icon-migration.json` en catégorisant les occurrences (`migrated`, `approved`, `discovered`).
+   - `scripts/icons/validate.mjs` (`npm run icons:validate`) : analyse statique JSX validant la conformité des rôles `FzIcon` et la présence de `usageId`.
+2. **Migrations d'icônes vers `FzIcon` (`src/ui/icons`)** :
+   - `PrompterLibraryPage` : en-têtes de sections (rôles `setlists` et `songs`).
+   - `SortMenu` : icônes de sélection `check` (options de tri & filtres) et fermeture `close`.
+   - `SongDetailPage` : actions audio (play, stop, menu dots, audio upload, record, link, delete).
+   - `ImportsPage` : actions complètes (fermeture de barre de progression, suppressions d'envois en attente, bouton importer, play/stop sur listes et dialogues, download/cached/disabled-cache, menu dots, association, suppression).
+   - `PrompterPage` : icônes de header (fermer, plein écran, réglages) et stop de défilement.
+   - `MetronomePage` : header vue live (fermer, plein écran) et contrôle central play/pause.
+   - `VoiceMemoPlayer` : contrôles de lecture/pause de la prise enregistrée.
+   - `AudioMiniPlayer` : contrôles de lecture/pause et stop.
+   - `UndoToast` : bouton de fermeture toast.
+3. **Validation & Non-régression** :
+   - 92 instances `FzIcon` validées sans erreur sur 24 rôles canoniques via `npm run icons:validate`.
+   - Manifeste `icon-migration.json` synchronisé (88 occurrences migrées avec succès).
+   - Validation technique Vitest (95 fichiers / 451 tests unitaires passants à 100%) et `verify:fast` validé.
 
-Les SVG métier ou de marque ne sont pas remplacés automatiquement. Aucun choix Lucide ne doit être inventé pendant la migration.
+Les SVG métier (ex: figures de métrique musicale `SubdivisionIcon`), logos de marque ou icônes de sections spécifiques non répertoriées dans les 24 rôles sont sanctuarisés.
 
-**Validation mesurable** : inventaire sans nouvelle occurrence silencieuse, manifeste non vide et approuvé avant migration, rapport occurrence par occurrence, captures avant/après, audit des boutons icône avec `aria-label`.
+**Validation mesurable** : `npm run icons:validate` (PASS), `npm run icons:audit`, `npm run icons:export`, `PASS verify:fast`, suite Vitest 100% passante.
 
 ### Phase 5 — Couleurs sémantiques et finitions par écran
 

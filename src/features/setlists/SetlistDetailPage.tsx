@@ -83,8 +83,8 @@ function DisplayModeSelector({
   onChange: (value: SetlistDisplayMode) => void;
 }) {
   return (
-    <fieldset className="space-y-2">
-      <legend className="text-xs font-black uppercase tracking-[0.18em] text-[var(--fz-text-muted)]">{label}</legend>
+    <fieldset>
+      <legend className="fz-field-label">{label}</legend>
       <div className="grid grid-cols-3 gap-1.5 rounded-[1rem] border border-white/8 bg-black/20 p-1">
         {displayModeOptions.map((option) => (
           <button
@@ -129,6 +129,8 @@ export function SetlistDetailPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [entryToRemove, setEntryToRemove] = useState<SetlistSongDetail | null>(null);
+  const [isRemovingEntry, setIsRemovingEntry] = useState(false);
   const [isAddSongDialogOpen, setIsAddSongDialogOpen] = useState(false);
   const [isAddingSongId, setIsAddingSongId] = useState<string | null>(null);
   const [editingTransitionEntryId, setEditingTransitionEntryId] = useState<string | null>(null);
@@ -287,6 +289,7 @@ export function SetlistDetailPage() {
       navigate('/setlists');
     } catch {
       setError('Impossible de supprimer la setlist.');
+      setIsDeleteDialogOpen(false);
       setIsDeleting(false);
     }
   }
@@ -302,6 +305,22 @@ export function SetlistDetailPage() {
       setError("Impossible d'ajouter ce morceau a la setlist.");
     } finally {
       setIsAddingSongId(null);
+    }
+  }
+
+  async function handleRemoveEntry() {
+    if (!canWrite || !entryToRemove) return;
+    setIsRemovingEntry(true);
+    setError(null);
+
+    try {
+      await setlistSongsRepository.delete(entryToRemove.id);
+      setEntryToRemove(null);
+    } catch {
+      setError("Impossible de retirer ce morceau de la setlist.");
+      setEntryToRemove(null);
+    } finally {
+      setIsRemovingEntry(false);
     }
   }
 
@@ -426,27 +445,13 @@ export function SetlistDetailPage() {
             <Link
               to={`/prompter/play?setlistId=${encodeURIComponent(currentSetlist.id)}`}
               aria-label="Ouvrir le prompteur"
-              className="text-emerald-300 hover:text-emerald-200"
             >
               <FzIcon name="prompter" usageId="setlist-detail.prompter" size="md" />
             </Link>
-            {canWrite && isEditing ? (
-              <button
-                type="button"
-                onClick={() => setIsDeleteDialogOpen(true)}
-                disabled={isDeleting}
-                aria-label="Supprimer"
-                className="text-rose-300 hover:text-rose-200 disabled:opacity-60"
-              >
-                <FzIcon name="delete" usageId="setlist-detail.delete" size="md" />
-              </button>
-            ) : null}
-
             <button
               type="button"
               onClick={handleExportPdf}
               aria-label="Exporter en PDF"
-              className="text-emerald-300 hover:text-emerald-200"
             >
               <FzIcon name="export-pdf" usageId="setlist.export-pdf" className="h-4.5 w-4.5" />
             </button>
@@ -463,12 +468,6 @@ export function SetlistDetailPage() {
                 setIsEditing(true);
               }}
               aria-label={isEditing ? 'Annuler la modification' : 'Modifier'}
-              className={[
-                '',
-                isEditing
-                  ? 'text-white hover:text-white/75 focus-visible:outline-white/60'
-                  : 'text-indigo-300 hover:text-indigo-200 focus-visible:outline-indigo-300/70',
-              ].join(' ')}
             >
               <FzIcon
                 name={isEditing ? 'check' : 'edit'}
@@ -484,10 +483,10 @@ export function SetlistDetailPage() {
         {error ? <p className="text-sm font-semibold text-rose-400">{error}</p> : null}
 
         {canWrite && isEditing ? (
-          <FormDialog title="Modifier la setlist" placement="bottom" onClose={handleCloseEdit}>
+          <FormDialog title="Modifier la setlist" placement="bottom" closeDisabled={isDeleting} onClose={handleCloseEdit}>
             <form className="space-y-4" onSubmit={handleSaveSetlist}>
               <label className="block">
-                <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-[var(--fz-text-muted)]">Nom</span>
+                <span className="fz-field-label">Nom</span>
                 <TextField
                   value={name}
                   onChange={(event) => setName(event.target.value)}
@@ -495,7 +494,7 @@ export function SetlistDetailPage() {
                 />
               </label>
               <label className="block">
-                <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-[var(--fz-text-muted)]">Date</span>
+                <span className="fz-field-label">Date</span>
                 <DateField
                   value={date}
                   onChange={(event) => setDate(event.target.value)}
@@ -504,7 +503,7 @@ export function SetlistDetailPage() {
                 />
               </label>
               <label className="block">
-                <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-[var(--fz-text-muted)]">Notes</span>
+                <span className="fz-field-label">Notes</span>
                 <TextArea
                   value={notes}
                   onChange={(event) => setNotes(event.target.value)}
@@ -524,10 +523,18 @@ export function SetlistDetailPage() {
 
               <button
                 type="submit"
-                disabled={isSaving}
+                disabled={isSaving || isDeleting}
                 className="fz-button-primary w-full px-4 py-3 text-sm font-black uppercase tracking-[0.16em] disabled:opacity-60"
               >
                 {isSaving ? 'Enregistrement...' : 'Enregistrer'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsDeleteDialogOpen(true)}
+                disabled={isSaving || isDeleting}
+                className="fz-button-danger w-full px-4 py-3 text-sm font-black uppercase tracking-[0.16em] disabled:opacity-60"
+              >
+                Supprimer la setlist
               </button>
             </form>
           </FormDialog>
@@ -607,15 +614,28 @@ export function SetlistDetailPage() {
                         <p className="text-[0.74rem] font-black uppercase tracking-[0.14em] text-white/20">Ajouter une transition...</p>
                       )}
                     </div>
-                      <button
-                        type="button"
-                        onClick={() => handleOpenTransitionEditor(entry)}
-                        disabled={!canWrite}
-                        aria-label={`Modifier la note avant ${entry.songTitle}`}
-                        className="flex h-8 w-8 items-center justify-center text-white/28 transition hover:text-white/60"
-                      >
-                        <EditLineIcon className="h-3.5 w-3.5" />
-                      </button>
+                      <div className="flex shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenTransitionEditor(entry)}
+                          disabled={!canWrite}
+                          aria-label={`Modifier la note avant ${entry.songTitle}`}
+                          className="flex h-11 w-11 items-center justify-center text-white/28 transition hover:text-white/60 disabled:opacity-40"
+                        >
+                          <EditLineIcon className="h-3.5 w-3.5" />
+                        </button>
+                        {canWrite ? (
+                          <button
+                            type="button"
+                            onClick={() => setEntryToRemove(entry)}
+                            disabled={isRemovingEntry}
+                            aria-label={`Retirer ${entry.songTitle} de la setlist`}
+                            className="flex h-11 w-11 items-center justify-center text-white/28 transition hover:text-rose-300 disabled:opacity-40"
+                          >
+                            <FzIcon name="delete" usageId="setlist-entry.remove" size="md" />
+                          </button>
+                        ) : null}
+                      </div>
                     </div>
                   </div>
 
@@ -733,7 +753,7 @@ export function SetlistDetailPage() {
             </div>
 
             <label className="block">
-              <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-[var(--fz-text-muted)]">Note</span>
+              <span className="fz-field-label">Note</span>
               <TextField
                 value={transitionAnnotation}
                 onChange={(event) => setTransitionAnnotation(event.target.value)}
@@ -825,7 +845,7 @@ export function SetlistDetailPage() {
         <FormDialog title="Note apres la setlist" onClose={() => setIsEndingNotesOpen(false)}>
           <form className="space-y-4" onSubmit={handleSaveEndingNotes}>
             <label className="block">
-              <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-[var(--fz-text-muted)]">Note</span>
+              <span className="fz-field-label">Note</span>
               <TextField
                 value={endingAnnotation}
                 onChange={(event) => setEndingAnnotation(event.target.value)}
@@ -853,9 +873,19 @@ export function SetlistDetailPage() {
       ) : null}
 
       <ConfirmDialog
+        isOpen={canWrite && entryToRemove !== null}
+        title={entryToRemove ? `Retirer « ${entryToRemove.songTitle} » ?` : 'Retirer ce morceau ?'}
+        description="Seule cette occurrence sera retirée de la setlist. Le morceau restera disponible dans le répertoire."
+        confirmLabel="Retirer"
+        isBusy={isRemovingEntry}
+        onCancel={() => setEntryToRemove(null)}
+        onConfirm={handleRemoveEntry}
+      />
+
+      <ConfirmDialog
         isOpen={canWrite && isDeleteDialogOpen}
         title="Voulez-vous supprimer cette setlist ?"
-        description="La setlist sera retiree de la base locale active sur cet appareil apres confirmation."
+        description="La setlist et ses associations seront supprimées de ce groupe. Les morceaux resteront disponibles dans le répertoire."
         confirmLabel="Supprimer"
         isBusy={isDeleting}
         onCancel={() => setIsDeleteDialogOpen(false)}

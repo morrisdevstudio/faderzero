@@ -31,7 +31,34 @@ Référence locale obligatoire pour maintenir une interface cohérente pendant l
 <AddButton aria-label="Ajouter une chanson" onClick={openCreateSong} />
 ```
 
-Les grands boutons textuels comme « Ajouter des chansons » ne sont pas des `AddButton` : ils conservent un libellé visible et suivent le pattern d’action textuelle de leur écran.
+Les grands boutons textuels comme « Ajouter des chansons » ne sont pas des `AddButton` : ils utilisent le composant canonique `Button`.
+
+## Button validé
+
+- Rôle : bouton d’action textuelle ou icône-texte canonique de l’application.
+- Implémentation canonique : `src/ui/components/Button.tsx`.
+- Variantes sémantiques :
+  - `primary` : action principale rose unique par vue (formulaires, validations d’étape, boutons d’action majeure).
+  - `secondary` (défaut) : actions neutres, annulations et actions secondaires.
+  - `danger` : actions destructrices ou confirmations de suppression.
+  - `ghost` : actions contextuelles discrètes sans fond ni bordure.
+- Tailles :
+  - `sm` : texte compact `12 px`, padding ajusté, cible tactile minimale $\ge 44\text{ px}$ garantie.
+  - `md` (défaut) : standard formulaires et dialogues, hauteur minimale `44 px` (`2.8rem`).
+  - `lg` : bouton dominant ou pleine page, hauteur minimale `52 px`.
+- Fonctionnalités intégrées :
+  - `fullWidth` : adaptation pleine largeur pour conteneurs mobiles et grilles modales.
+  - `leadingIcon` et `trailingIcon` : insertion d’icônes `FzIcon`.
+  - `loading` : indicateur de chargement rotatif, neutralisation des clics et attribut `aria-busy="true"`.
+  - `type` : défaut sécurisé à `button` (évite les soumissions de formulaire inopinées si non spécifié `submit`).
+- **NEVER** : afficher plus d'une variante `primary` visible sur le même écran ou dialogue.
+- **NEVER** : réduire la cible tactile sous `44 × 44 px` pour des raisons esthétiques.
+
+```tsx
+<Button variant="primary" fullWidth onClick={handleSave}>Enregistrer</Button>
+<Button variant="secondary" onClick={handleCancel}>Annuler</Button>
+<Button variant="danger" loading={isDeleting} onClick={handleDelete}>Supprimer</Button>
+```
 
 ## PageHeader validé
 
@@ -79,6 +106,15 @@ Routes migrées observées dans le dépôt : `/home`, `/songs`, `/setlists`, `/c
 />
 ```
 
+## FaderLogo partagé
+
+- Implémentation canonique : `src/ui/components/FaderLogo.tsx`.
+- Le logo complet utilise `currentColor` et reçoit sa couleur et ses dimensions depuis son contexte.
+- Sur la connexion, il reste blanc dans la boîte historique de `147 × 54 px`; `preserveAspectRatio="none"` conserve exactement cette empreinte visuelle.
+- Le conteneur de la marque expose le nom accessible « FaderZero », tandis que le SVG reste décoratif.
+- Le rendu de la connexion a été validé visuellement par l’utilisateur le 17 août 2026.
+- **NEVER** : reconstruire localement le fader et le lettrage avec un SVG et des éléments texte séparés.
+
 ## DetailHeader validé
 
 - Rôle : en-tête uniforme des sous-pages et fiches de détail affichées dans `AppShell`.
@@ -104,6 +140,8 @@ Routes migrées observées dans le dépôt : `/home`, `/songs`, `/setlists`, `/c
 ```
 
 Routes migrées : `/songs/:songId`, `/setlists/:setlistId`, `/booking` et `/booking/:bookingId`.
+
+Les actions de `/songs/:songId` et `/setlists/:setlistId` ont été vérifiées neutres le 17 août 2026 : elles héritent de la couleur, du survol et du focus de `DetailHeader`; seuls les états fonctionnels comme `disabled` restent définis par l’écran.
 
 ## StatusPill validé
 
@@ -171,12 +209,26 @@ Usages migrés : listes de morceaux, fiche morceau, bibliothèque du prompteur e
 <TextArea aria-label="Notes" rows={4} resize="vertical" />
 ```
 
+### FieldLabel
+
+- Implémentation canonique : `src/ui/components/FieldLabel.tsx`.
+- Rôle : composant canonique pour le libellé textuel visible d’un champ de formulaire.
+- Props supportées : `htmlFor`, `children`, `required` (affiche un astérisque accentué sans casser l'accessibilité), `optional` (affiche `(optionnel)` discret), `className`.
+- Applique systématiquement la classe `.fz-field-label` et préserve la liberté de mise en page (grilles multi-colonnes, paires associées, formulaires empilés).
+
+```tsx
+<FieldLabel htmlFor="songTitle" required>Titre du morceau</FieldLabel>
+<TextField id="songTitle" value={title} onChange={setTitle} />
+```
+
 - **NEVER** : utiliser ces composants pour un fichier, une case à cocher, un curseur, une date, une heure ou une liste déroulante.
 - **NEVER** : réutiliser la classe historique `fz-input` pour un nouveau champ texte.
 - La classe historique `fz-input` ne doit plus être utilisée pour un champ de formulaire migré.
 - Exceptions actuelles : titre compact de l’éditeur de paroles, champs en lecture seule du détail calendrier et outil interne des icônes.
 
-Écrans migrés : authentification, sélection de groupe, compte, recherches des pages principales, morceaux, setlists, formulaires d’événements, booking et enregistreur vocal.
+Écrans migrés : authentification, sélection de groupe, compte, recherches des pages principales, morceaux, setlists, formulaires d’événements, booking, enregistreur vocal et dialogues imports.
+
+Les titres de champs de l’authentification, de la sélection de groupe, de la page Compte, du détail Calendrier, des formulaires Setlists, des parcours Morceaux, de Booking, de l’Enregistreur vocal et des dialogues Imports utilisent exclusivement `.fz-field-label` ou le composant `FieldLabel` depuis le 17 août 2026. L’audit exhaustif de l’application est terminé : aucun vrai titre de champ ne reste stylé localement. Sur la page Compte, « Texte du badge » et « Nom du groupe » sont désormais réellement associés à leurs champs ; « Couleur de la pastille » reste un intitulé de groupe et non un faux label. Dans le détail Calendrier, les neuf valeurs en lecture seule sont associées à leurs labels. Les paires de champs dont un label peut passer sur plusieurs lignes partagent une ligne de labels et une ligne de contrôles dans la même grille afin de garder les contrôles alignés. L’authentification, la sélection de groupe, la page Compte, le Calendrier, les formulaires Setlists, les parcours Morceaux, Booking, l’Enregistreur vocal et les quatre dialogues Imports sont validés visuellement. Dans Imports, les titres Titre, Nouveau nom et Chanson des dialogues de création, doublon et association sont harmonisés sans modifier l’upload ni les décisions métier. Le libellé descriptif de la case à cocher audio et le titre compact de l’éditeur de paroles restent inchangés. Les textes descriptifs, titres de section et libellés de cases à cocher ne sont pas concernés par cette règle.
 
 ## Champs de date et d’heure validés
 
@@ -246,31 +298,40 @@ Usages migrés : listes de morceaux, fiche morceau, bibliothèque du prompteur e
 
 Migrations prioritaires terminées : `TrashModal`, `CopySongModal` et `EventFormModal`. La confirmation de suppression d’événement reste distincte et obligatoire.
 
-## `ContentRow` — Draft
+## ContentRow validé
 
-- **Statut : Draft.** La direction visuelle est approuvée, mais aucune implémentation canonique ni migration générale n’est autorisée avant validation humaine de l’API finale.
-- Rôle envisagé : unifier la structure dense des morceaux, événements et fichiers audio sans créer une tuile universelle.
-- Anatomie commune : zone gauche facultative, titre, métadonnées et zone droite facultative.
-- Modes envisagés : `link` pour une ligne entièrement navigable, `button` pour une ligne entièrement activable et `controls` pour une ligne contenant des actions indépendantes.
-- Les modes `link` et `button` interdisent les contrôles interactifs imbriqués.
-- Le mode `controls` autorise lecture, arrêt, téléchargement et menu, chacun avec un nom accessible et une cible de `44 × 44 px`.
-- La ligne reste pleine largeur, dense et séparée par un trait fin ; elle ne devient pas une carte flottante répétée.
-- Les titres et métadonnées se tronquent avant de masquer un statut, une identité ou une action.
-- Les états normal, survol, focus, actif, sélectionné, désactivé et lecture seule doivent être définis avant validation.
-- **NEVER** : utiliser `StatusPill` pour un type d’entité, un calendrier ou l’identité d’un groupe.
-- **NEVER** : extraire ou migrer `ContentRow` sur un seul écran avant validation comparative des trois usages à `320 px` et `430 px`.
+- Implémentation canonique : `src/ui/components/ContentRow.tsx`.
+- Rôle : structure de ligne dense unifiée pour les listes de l'application (morceaux, événements, fichiers audio).
+- 3 modes discriminés stricts :
+  - `mode: 'link'` : ligne entièrement navigable via React Router `<Link to="...">`. Interdit les contrôles interactifs imbriqués.
+  - `mode: 'button'` : ligne entièrement activable via `<button type="button" onClick="...">` (sélection d’événement, ouverture de panneau).
+  - `mode: 'controls'` : conteneur `<div>` d’actions indépendantes (bouton play, zone de texte cliquable, menu contextuel).
+- Structure : zone gauche optionnelle (`leading`), titre Black tronqué, sous-titre/métadonnées gris tronqués, statut compact optionnel (`status`), zone droite optionnelle (`trailing`).
+- Ligne pleine largeur, dense, séparée par un trait fin (`border-b border-white/10`), survol subtil sans carte flottante.
+
+```tsx
+<ContentRow
+  mode="link"
+  to={`/songs/${song.id}`}
+  title={song.title || 'Sans titre'}
+  metadata={`${song.bpm} BPM · ${song.key} · ${duration}`}
+  status={<StatusPill label="Prêt" tone="success" />}
+/>
+```
+
+Écrans et modales migrés : `SongsPage`, `ImportsPage`, `CalendarPage`, `SetlistsPage`, `PrompterLibraryPage`, `HomePage`, `BookingPage`, `TrashModal` et `SongDetailPage`.
 
 ### Exception : tuile ordonnée de setlist
 
 - La tuile de `SetlistDetailPage` reste une référence séparée à préserver.
 - Sa surface arrondie, son numéro, ses métadonnées, ses transitions et ses actions monter/descendre ne doivent pas être harmonisés avec `ContentRow`.
+- Le retrait d’une occurrence est accessible depuis la ligne de transition au-dessus de la tuile, dans une cible de `44 × 44 px`; il exige une confirmation et ne supprime jamais le morceau du répertoire.
+- La suppression de la setlist est une action textuelle visible dans « Modifier la setlist »; elle exige une confirmation et conserve les morceaux du répertoire.
 - Un éventuel `SetlistEntry` ne peut être qu’une extraction technique à DOM, dimensions, couleurs et comportement identiques.
 - **NEVER** : créer un composant universel `Tile` regroupant cette tuile avec les morceaux, événements ou fichiers audio.
 
 ## Composants validés et migrations
 
-- `AddButton`, `PageHeader`, `DetailHeader`, `AppHeader`, `StatusPill`, `FormDialog` et `PickerDialog` sont les noms canoniques validés.
-- `ConfirmDialog` est le composant partagé obligatoire pour une confirmation explicite.
+- `AddButton`, `Button`, `FieldLabel`, `PageHeader`, `DetailHeader`, `AppHeader`, `StatusPill`, `FormDialog`, `PickerDialog`, `ConfirmDialog` et `ContentRow` sont les composants canoniques validés.
 - Leur déploiement sur les écrans reste progressif ; le statut réel observé dans le dépôt prime sur une ancienne liste de routes.
-- `Button`, `FieldLabel` / `FormField` et `ContentRow` restent **Draft** et ne doivent pas être présentés comme canoniques.
 - Catalogue humain de référence : `FaderZero — Catalogue de l’UI existante` dans Notion.

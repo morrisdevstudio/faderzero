@@ -7,7 +7,10 @@ import type { EventRecord, SongRecord } from '@/db/schema';
 import { db } from '@/db/db';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { bookingRepository } from '@/db/repositories/bookingRepository';
+import { formatSongDuration, getSongStatusLabel, getSongStatusTone } from '@/features/songs/songPresentation';
+import { ContentRow } from '@/ui/components/ContentRow';
 import { PageHeader } from '@/ui/components/PageHeader';
+import { StatusPill } from '@/ui/components/StatusPill';
 import { FzIcon } from '@/ui/icons';
 
 interface GroupFeedSummary {
@@ -110,29 +113,22 @@ export function HomePage() {
             <p className="text-xs text-zinc-500">Aucun événement à venir.</p>
           </div>
         ) : (
-          <div className="grid gap-2.5">
+          <div className="divide-y divide-white/10">
             {upcomingEvents.map((evt) => {
               const startDate = new Date(evt.startAt);
               return (
-                <div
+                <ContentRow
                   key={evt.id}
-                  className="flex items-center justify-between rounded-xl border border-white/8 bg-zinc-900/60 p-3.5"
-                >
-                  <div>
+                  mode="link"
+                  to="/calendar"
+                  title={evt.title}
+                  metadata={`${startDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} · ${startDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`}
+                  status={
                     <span className="rounded bg-white/15 px-2 py-0.5 text-[10px] uppercase font-bold text-white">
                       {evt.eventType}
                     </span>
-                    <h3 className="mt-1 text-sm font-bold text-white">{evt.title}</h3>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs font-bold text-white/90">
-                      {startDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
-                    </p>
-                    <p className="text-[11px] text-zinc-500">
-                      {startDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-                    </p>
-                  </div>
-                </div>
+                  }
+                />
               );
             })}
           </div>
@@ -157,21 +153,17 @@ export function HomePage() {
             <p className="text-xs text-zinc-500">Aucune création personnelle récente.</p>
           </div>
         ) : (
-          <div className="grid gap-2.5">
+          <div className="divide-y divide-white/10">
             {recentCreations.map((song) => (
-              <Link
+              <ContentRow
                 key={song.id}
+                mode="link"
                 to={`/songs/${song.id}`}
-                className="flex items-center justify-between rounded-xl border border-white/8 bg-zinc-900/60 p-3.5 transition hover:border-zinc-700"
-              >
-                <div>
-                  <h3 className="text-sm font-bold text-white">{song.title}</h3>
-                  <p className="text-xs text-zinc-400">{song.artist || 'FaderZero'}</p>
-                </div>
-                <span className="rounded bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-300">
-                  {song.status}
-                </span>
-              </Link>
+                title={song.title}
+                subtitle={song.artist || 'FaderZero'}
+                metadata={`${song.bpm ? `${song.bpm} BPM` : 'BPM --'} · ${song.key || 'Ton --'} · ${formatSongDuration(song.durationSeconds)}`}
+                status={<StatusPill label={getSongStatusLabel(song.status)} tone={getSongStatusTone(song.status)} />}
+              />
             ))}
           </div>
         )}

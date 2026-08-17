@@ -27,14 +27,13 @@ import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { TextField } from '@/ui/components/TextField';
 import { useAudioCacheStore } from '@/features/audio/audioCacheStore';
 import { useLongPress } from '@/hooks/useLongPress';
-import type { SVGProps } from 'react';
 import { canWriteWorkspace } from '@/services/supabase/workspace';
 import type { SongStatus } from '@/db/schema';
 import { AddButton } from '@/ui/components/AddButton';
+import { ContentRow } from '@/ui/components/ContentRow';
+import { FieldLabel } from '@/ui/components/FieldLabel';
 import { PageHeader } from '@/ui/components/PageHeader';
 import { FzIcon } from '@/ui/icons';
-
-type IconProps = SVGProps<SVGSVGElement>;
 
 interface ImportProgressState {
   id: string;
@@ -103,107 +102,6 @@ interface BatchLinkPromptState {
 interface DeletePromptState {
   assetId: string;
   filename: string;
-}
-
-function UploadIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M12 16V4" />
-      <path d="m7 9 5-5 5 5" />
-      <path d="M5 20h14" />
-    </svg>
-  );
-}
-
-function PlayIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true">
-      <path d="M8 5v14l11-7z" />
-    </svg>
-  );
-}
-
-function StopIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true">
-      <rect x="6" y="6" width="12" height="12" rx="1" />
-    </svg>
-  );
-}
-
-function DownloadCloudIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M12 13v8M8 17l4 4 4-4" />
-      <path d="M20.38 8.57A9 9 0 0 0 4 9.08a7 7 0 0 0 .37 13.89" />
-    </svg>
-  );
-}
-
-function CachedIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <circle cx="12" cy="12" r="8.5" />
-      <path d="M12 7.5v7" />
-      <path d="m9.3 12.2 2.7 2.7 2.7-2.7" />
-    </svg>
-  );
-}
-
-function LinkSongIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
-      <path d="M10 13a5 5 0 0 0 7.1.1l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1" />
-      <path d="M14 11a5 5 0 0 0-7.1-.1l-2 2A5 5 0 0 0 12 20l1.1-1.1" />
-    </svg>
-  );
-}
-
-function RemoveCacheIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
-      <path d="M6.7 6.7A7 7 0 0 0 4 20h13" />
-      <path d="M9.2 4.2A9 9 0 0 1 20 15.4" />
-      <path d="m5 5 14 14" />
-    </svg>
-  );
-}
-
-function PrimaryIcon({ active, ...props }: IconProps & { active: boolean }) {
-  return (
-    <svg viewBox="0 0 24 24" fill={active ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
-      <path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-2.9-5.6 2.9 1.1-6.2L3 9.6l6.2-.9L12 3Z" />
-    </svg>
-  );
-}
-
-function TrashIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
-      <path d="M4 7h16" />
-      <path d="M10 11v6M14 11v6" />
-      <path d="m6 7 1 13h10l1-13M9 7V4h6v3" />
-    </svg>
-  );
-}
-
-function DotsIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true">
-      <circle cx="5" cy="12" r="1.7" />
-      <circle cx="12" cy="12" r="1.7" />
-      <circle cx="19" cy="12" r="1.7" />
-    </svg>
-  );
-}
-
-function CloseIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M18 6 6 18" />
-      <path d="m6 6 12 12" />
-    </svg>
-  );
 }
 
 function ChevronIcon({ className, isOpen, iconAuditId }: { className?: string; isOpen: boolean; iconAuditId?: string }) {
@@ -320,7 +218,7 @@ function SongPlayButton({
         isPlaying ? 'bg-[var(--fz-accent)] text-white' : 'bg-white text-[#111316] hover:bg-white/88',
       ].join(' ')}
     >
-      {isPlaying ? <StopIcon /> : <PlayIcon />}
+      {isPlaying ? <FzIcon name="stop" usageId="imports.summary.stop" size="sm" /> : <FzIcon name="play" usageId="imports.summary.play" size="sm" />}
     </button>
   );
 }
@@ -1026,7 +924,7 @@ export function ImportsPage() {
                   aria-label="Fermer le panneau de progression"
                   className="flex h-8 w-8 items-center justify-center rounded-full bg-white/6 text-white/65 transition hover:bg-white/10 hover:text-white"
                 >
-                  <CloseIcon />
+                  <FzIcon name="close" usageId="imports.progress.close" size="sm" />
                 </button>
               ) : null}
             </div>
@@ -1099,7 +997,7 @@ export function ImportsPage() {
                   aria-label={`Annuler l'envoi de ${pendingUpload.filename}`}
                   className="flex h-8 w-8 items-center justify-center rounded-full bg-white/6 text-rose-300 disabled:opacity-30"
                 >
-                  <CloseIcon />
+                  <FzIcon name="close" usageId="imports.pending-upload.remove" size="sm" />
                 </button>
               </div>
             ))}
@@ -1117,41 +1015,48 @@ export function ImportsPage() {
           const canPlay = primaryAsset && (isOnline || cachedAssetIds.has(primaryAsset.id));
 
           return (
-            <article key={summary.song.id} className="flex items-center gap-3 border-b border-white/10 px-1 py-5 last:border-b-0">
-              <Link to={`/songs/${summary.song.id}`} className="block min-w-0 flex-1">
-                <h2 className="truncate text-[1.3rem] font-black tracking-tight text-white">{summary.song.title || 'Sans titre'}</h2>
-                <p className="mt-1 truncate text-[0.86rem] font-medium text-[var(--fz-text-muted)]">
-                  {summary.song.bpm ? `${summary.song.bpm} BPM` : 'BPM --'}
-                  {' · '}
-                  {summary.song.key || 'Ton --'}
-                  {' · '}
-                  {formatSongDuration(summary.song.durationSeconds)}
-                </p>
-                <div className="mt-1 flex items-center gap-2 overflow-hidden text-[0.84rem] font-medium text-white/65">
-                  <StatusPill
-                    label={getSongStatusLabel(summary.song.status)}
-                    tone={getSongStatusTone(summary.song.status)}
-                  />
-                  <span className="truncate">
-                    {summary.song.lyrics.trim() ? '✓ Paroles' : '! Paroles manquantes'}
+            <ContentRow
+              key={summary.song.id}
+              mode="controls"
+              to={`/songs/${summary.song.id}`}
+              title={summary.song.title || 'Sans titre'}
+              metadata={
+                <>
+                  <span className="block truncate">
+                    {summary.song.bpm ? `${summary.song.bpm} BPM` : 'BPM --'}
                     {' · '}
-                    {summary.audioCount} audio{summary.audioCount > 1 ? 's' : ''}
+                    {summary.song.key || 'Ton --'}
                     {' · '}
-                    {summary.setlistCount} setlist{summary.setlistCount > 1 ? 's' : ''}
+                    {formatSongDuration(summary.song.durationSeconds)}
                   </span>
-                </div>
-              </Link>
-              {primaryAsset ? (
-                <SongPlayButton
-                  songTitle={summary.song.title}
-                  assets={assets}
-                  isPlaying={isPlaying}
-                  canPlay={Boolean(canPlay)}
-                  onPlay={() => handlePlay(primaryAsset.id, cachedAssetIds.has(primaryAsset.id))}
-                  onChooseAudio={() => setAudioPicker({ songTitle: summary.song.title, assets })}
-                />
-              ) : null}
-            </article>
+                  <span className="mt-1 flex items-center gap-2 overflow-hidden text-[0.84rem] font-medium text-white/65">
+                    <StatusPill
+                      label={getSongStatusLabel(summary.song.status)}
+                      tone={getSongStatusTone(summary.song.status)}
+                    />
+                    <span className="truncate">
+                      {summary.song.lyrics.trim() ? '✓ Paroles' : '! Paroles manquantes'}
+                      {' · '}
+                      {summary.audioCount} audio{summary.audioCount > 1 ? 's' : ''}
+                      {' · '}
+                      {summary.setlistCount} setlist{summary.setlistCount > 1 ? 's' : ''}
+                    </span>
+                  </span>
+                </>
+              }
+              trailing={
+                primaryAsset ? (
+                  <SongPlayButton
+                    songTitle={summary.song.title}
+                    assets={assets}
+                    isPlaying={isPlaying}
+                    canPlay={Boolean(canPlay)}
+                    onPlay={() => handlePlay(primaryAsset.id, cachedAssetIds.has(primaryAsset.id))}
+                    onChooseAudio={() => setAudioPicker({ songTitle: summary.song.title, assets })}
+                  />
+                ) : null
+              }
+            />
           );
         })}
       </section>
@@ -1171,7 +1076,7 @@ export function ImportsPage() {
               disabled={isImporting}
               className="fz-button-primary inline-flex w-full items-center justify-center gap-2 px-4 py-4 text-sm font-black uppercase tracking-[0.16em] disabled:opacity-60"
             >
-              <UploadIcon />
+              <FzIcon name="upload" usageId="imports.empty.upload" size="sm" />
               Importer des pistes
             </button> : null}
           </FeatureCard>
@@ -1234,9 +1139,9 @@ export function ImportsPage() {
                         ].join(' ')}
                       >
                         {isPlaying ? (
-                          <StopIcon />
+                          <FzIcon name="stop" usageId="imports.track.stop" size="sm" />
                         ) : (
-                          <PlayIcon />
+                          <FzIcon name="play" usageId="imports.track.play" size="sm" />
                         )}
                       </button>
                       <div className="min-w-0 flex-1">
@@ -1262,21 +1167,21 @@ export function ImportsPage() {
                           </div>
                         ) : isCached ? (
                           <div className="flex h-7 w-7 items-center justify-center text-white/85" title="Disponible hors ligne" aria-label="Disponible hors ligne">
-                            <CachedIcon className="h-4 w-4" />
+                            <FzIcon name="check" usageId="imports.track.cached" size="sm" />
                           </div>
                         ) : isOnline ? (
                           <div
                             className="flex h-7 w-7 items-center justify-center rounded-full bg-white/6 text-white/45"
                             title="Télécharger hors ligne"
                           >
-                            <DownloadCloudIcon className="h-3.5 w-3.5" />
+                            <FzIcon name="download" usageId="imports.track.download" size="sm" />
                           </div>
                         ) : (
                           <div
                             className="flex h-7 w-7 items-center justify-center rounded-full text-white/25"
                             title="Indisponible hors ligne"
                           >
-                            <DownloadCloudIcon className="h-3.5 w-3.5" />
+                            <FzIcon name="download" usageId="imports.track.download-disabled" size="sm" />
                           </div>
                         )) : null}
 
@@ -1292,7 +1197,7 @@ export function ImportsPage() {
                           aria-label="Actions du fichier audio"
                           className="flex h-9 w-9 items-center justify-center rounded-full bg-white/6 text-white/75 transition hover:bg-white/10 hover:text-white"
                         >
-                          <DotsIcon />
+                          <FzIcon name="menu" usageId="imports.track.menu" size="sm" />
                         </button>
                       </div>
                     </div>
@@ -1379,9 +1284,9 @@ export function ImportsPage() {
                               ].join(' ')}
                             >
                               {isPlaying ? (
-                                <StopIcon />
+                                <FzIcon name="stop" usageId="imports.asset.stop" size="sm" />
                               ) : (
-                                <PlayIcon />
+                                <FzIcon name="play" usageId="imports.asset.play" size="sm" />
                               )}
                             </button>
                             <div className="min-w-0 flex-1">
@@ -1400,21 +1305,21 @@ export function ImportsPage() {
                                 </div>
                               ) : cachedAssetIds.has(asset.id) ? (
                                 <div className="flex h-7 w-7 items-center justify-center text-white/85" title="Disponible hors ligne" aria-label="Disponible hors ligne">
-                                  <CachedIcon className="h-4 w-4" />
+                                  <FzIcon name="check" usageId="imports.asset.cached" size="sm" />
                                 </div>
                               ) : isOnline ? (
                                 <div
                                   className="flex h-7 w-7 items-center justify-center rounded-full bg-white/6 text-white/45"
                                   title="Télécharger hors ligne"
                                 >
-                                  <DownloadCloudIcon className="h-3.5 w-3.5" />
+                                  <FzIcon name="download" usageId="imports.asset.download" size="sm" />
                                 </div>
                               ) : (
                                 <div
                                   className="flex h-7 w-7 items-center justify-center rounded-full text-white/25"
                                   title="Indisponible hors ligne"
                                 >
-                                  <DownloadCloudIcon className="h-3.5 w-3.5" />
+                                  <FzIcon name="download" usageId="imports.asset.download-disabled" size="sm" />
                                 </div>
                               )) : null}
 
@@ -1424,7 +1329,7 @@ export function ImportsPage() {
                                 aria-label="Actions du fichier audio"
                                 className="flex h-9 w-9 items-center justify-center rounded-full bg-white/6 text-white/75 transition hover:bg-white/10 hover:text-white"
                               >
-                                <DotsIcon />
+                                <FzIcon name="menu" usageId="imports.asset.menu" size="sm" />
                               </button>
                             </div>
                           </div>
@@ -1487,7 +1392,7 @@ export function ImportsPage() {
                       'flex h-9 w-9 shrink-0 items-center justify-center rounded-full',
                       isPlaying ? 'bg-[var(--fz-accent)] text-white' : 'bg-white text-[#111316]',
                     ].join(' ')}>
-                      {isPlaying ? <StopIcon /> : <PlayIcon />}
+                      {isPlaying ? <FzIcon name="stop" usageId="imports.picker.stop" size="sm" /> : <FzIcon name="play" usageId="imports.picker.play" size="sm" />}
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-black text-white">{asset.filename}</span>
@@ -1523,7 +1428,7 @@ export function ImportsPage() {
                 aria-label="Fermer"
                 className="fz-dialog-close"
               >
-                &times;
+                <FzIcon name="close" usageId="imports.track-menu.close" size="md" />
               </button>
             </div>
             <div className="mb-4 flex w-full items-center gap-3 rounded-xl border border-white/8 bg-white/5 px-3 py-2.5">
@@ -1543,7 +1448,11 @@ export function ImportsPage() {
                     : 'bg-white text-[#111316] hover:bg-white/88',
                 ].join(' ')}
               >
-                {currentTrack?.assetId === openTrackMenu.asset.id && status === 'playing' ? <StopIcon /> : <PlayIcon />}
+                {currentTrack?.assetId === openTrackMenu.asset.id && status === 'playing' ? (
+                  <FzIcon name="stop" usageId="imports.track-menu.stop" size="sm" />
+                ) : (
+                  <FzIcon name="play" usageId="imports.track-menu.play" size="sm" />
+                )}
               </button>
               <button
                 type="button"
@@ -1562,7 +1471,7 @@ export function ImportsPage() {
                 onClick={() => void handleAssociateAsset(openTrackMenu.asset)}
                 className="flex min-h-12 w-full items-center gap-3 rounded-xl border border-white/8 bg-white/5 px-4 py-3 text-left text-sm font-black uppercase leading-5 tracking-[0.12em] text-white transition hover:bg-white/10"
               >
-                <LinkSongIcon className="h-5 w-5 shrink-0 text-white/70" />
+                <FzIcon name="edit" usageId="imports.track-menu.associate" size="md" className="shrink-0 text-white/70" />
                 <span>Associer à une chanson</span>
               </button> : null}
               <button
@@ -1572,9 +1481,9 @@ export function ImportsPage() {
                 className="flex min-h-12 w-full items-center gap-3 rounded-xl border border-white/8 bg-white/5 px-4 py-3 text-left text-sm font-black uppercase leading-5 tracking-[0.12em] text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {openTrackMenu.isCached ? (
-                  <RemoveCacheIcon className="h-5 w-5 shrink-0 text-white/70" />
+                  <FzIcon name="delete" usageId="imports.track-menu.remove-cache" size="md" className="shrink-0 text-white/70" />
                 ) : (
-                  <DownloadCloudIcon className="h-5 w-5 shrink-0 text-white/70" />
+                  <FzIcon name="download" usageId="imports.track-menu.download" size="md" className="shrink-0 text-white/70" />
                 )}
                 <span>{openTrackMenu.isCached ? 'Supprimer du cache' : 'Mettre en cache hors ligne'}</span>
               </button>
@@ -1586,7 +1495,7 @@ export function ImportsPage() {
                     : handleSetPrimaryTrack(openTrackMenu.songId!, openTrackMenu.asset.id)}
                   className="flex min-h-12 w-full items-center gap-3 rounded-xl border border-white/8 bg-white/5 px-4 py-3 text-left text-sm font-black uppercase leading-5 tracking-[0.12em] text-white transition hover:bg-white/10"
                 >
-                  <PrimaryIcon active={openTrackMenu.isPrimary} className="h-5 w-5 shrink-0 text-white/70" data-icon-audit-id="c1c3bba9be11ab46" />
+                  <FzIcon name="check" usageId="imports.track-menu.primary" size="md" className="shrink-0 text-white/70" />
                   <span>{openTrackMenu.isPrimary ? 'Ne plus définir comme principal' : 'Définir comme principal'}</span>
                 </button>
               ) : null}
@@ -1595,7 +1504,7 @@ export function ImportsPage() {
                 onClick={() => handleRequestDeleteAsset(openTrackMenu.asset.id, openTrackMenu.asset.filename)}
                 className="flex min-h-12 w-full items-center gap-3 rounded-xl border border-rose-400/10 bg-rose-500/5 px-4 py-3 text-left text-sm font-black uppercase leading-5 tracking-[0.12em] text-rose-300 transition hover:bg-rose-500/12"
               >
-                <TrashIcon className="h-5 w-5 shrink-0" />
+                <FzIcon name="delete" usageId="imports.track-menu.delete" size="md" className="shrink-0" />
                 <span>Supprimer</span>
               </button> : null}
             </div>
@@ -1607,34 +1516,34 @@ export function ImportsPage() {
         <FormDialog title="Nouveau morceau" onClose={() => !isCreatingSong && setIsCreateSongOpen(false)}>
           <form className="space-y-4" onSubmit={handleCreateSong}>
             <label className="block">
-              <span className="mb-2 block text-xs font-black uppercase tracking-[0.18em] text-[var(--fz-text-muted)]">
-                Titre
-              </span>
+              <FieldLabel>Titre</FieldLabel>
               <TextField
                 value={newSongTitle}
                 onChange={(event) => {
                   setNewSongTitle(event.target.value);
                   setCreateSongError(null);
                 }}
-                placeholder="Titre du morceau"
+                placeholder="Ex. Last Train Home"
                 autoFocus
                 disabled={isCreatingSong}
               />
             </label>
+
             {createSongError ? <p className="text-sm font-semibold text-rose-400">{createSongError}</p> : null}
-            <div className="flex gap-3">
+
+            <div className="flex gap-3 pt-2">
               <button
                 type="button"
                 onClick={() => setIsCreateSongOpen(false)}
                 disabled={isCreatingSong}
-                className="fz-button-secondary flex-1 px-4 py-3 text-sm font-black disabled:opacity-60"
+                className="fz-button-secondary flex-1 px-4 py-3 text-sm font-black uppercase tracking-[0.14em] text-white disabled:opacity-50"
               >
                 Annuler
               </button>
               <button
                 type="submit"
-                disabled={isCreatingSong}
-                className="fz-button-primary flex-1 px-4 py-3 text-sm font-black disabled:opacity-60"
+                disabled={isCreatingSong || !newSongTitle.trim()}
+                className="fz-button-primary flex-1 px-4 py-3 text-sm font-black uppercase tracking-[0.14em] disabled:opacity-50"
               >
                 {isCreatingSong ? 'Création...' : 'Créer'}
               </button>
@@ -1656,9 +1565,7 @@ export function ImportsPage() {
             </p>
 
             <label className="block">
-              <span className="mb-2 block text-xs font-black uppercase tracking-[0.18em] text-[var(--fz-text-muted)]">
-                Nouveau nom
-              </span>
+              <FieldLabel>Nouveau nom</FieldLabel>
               <TextField
                 value={duplicatePrompt.renameValue}
                 onChange={(event) =>
@@ -1713,9 +1620,7 @@ export function ImportsPage() {
 
             {songs && songs.length > 0 ? (
               <label className="block">
-                <span className="mb-2 block text-xs font-black uppercase tracking-[0.18em] text-[var(--fz-text-muted)]">
-                  Chanson
-                </span>
+                <FieldLabel>Chanson</FieldLabel>
                 <SelectField
                   aria-label="Chanson à associer"
                   value={singleLinkPrompt.selectedSongId}
@@ -1788,9 +1693,7 @@ export function ImportsPage() {
                     </div>
 
                     <label className="mt-3 block">
-                      <span className="mb-2 block text-xs font-black uppercase tracking-[0.18em] text-[var(--fz-text-muted)]">
-                        Chanson
-                      </span>
+                      <FieldLabel>Chanson</FieldLabel>
                       <SelectField
                         aria-label={`Chanson à associer à ${item.filename}`}
                         value={item.selectedSongId}

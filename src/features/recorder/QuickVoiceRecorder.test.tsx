@@ -102,6 +102,7 @@ describe('QuickVoiceRecorder direct song mode', () => {
     });
 
     expect(await screen.findByRole('button', { name: 'Enregistrer pour cette chanson' })).toBeInTheDocument();
+    expect(screen.getByText('Nom de l’audio')).toHaveClass('fz-field-label');
     expect(screen.queryByText('Créer un audio orphelin')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer pour cette chanson' }));
 
@@ -124,5 +125,24 @@ describe('QuickVoiceRecorder direct song mode', () => {
     expect(onComplete).toHaveBeenCalledWith({
       message: 'Audio enregistré et associé à Azeaze.',
     });
+  });
+
+  it('utilise les titres de champs partagés pendant le choix de destination', async () => {
+    render(<QuickVoiceRecorder onClose={vi.fn()} onComplete={vi.fn()} />);
+
+    await waitFor(() => expect(recorderHarness.start).toHaveBeenCalledOnce());
+    act(() => {
+      recorderHarness.callbacks?.onStopped({
+        blob: new Blob(['voice memo'], { type: 'audio/webm' }),
+        mimeType: 'audio/webm',
+        durationMs: 6_000,
+      });
+    });
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Ranger cet audio' }));
+    expect(screen.getByText('Nom de l’audio')).toHaveClass('fz-field-label');
+
+    fireEvent.click(screen.getByRole('radio', { name: /Créer une nouvelle chanson/ }));
+    expect(screen.getByText('Titre de la chanson')).toHaveClass('fz-field-label');
   });
 });

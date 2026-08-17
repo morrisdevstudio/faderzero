@@ -6,6 +6,7 @@ import { setlistSongsRepository } from '@/db/repositories/setlistSongsRepository
 import { setlistsRepository } from '@/db/repositories/setlistsRepository';
 import { songsRepository } from '@/db/repositories/songsRepository';
 import { useAuthStore } from '@/stores/authStore';
+import { FzIcon } from '@/ui/icons';
 
 type Speed = 0 | 1 | 2 | 3;
 type Preferences = { speed: Speed; scale: number };
@@ -22,22 +23,6 @@ function readPreferences(): Preferences {
 function formatDuration(seconds: number) { const safe = Math.max(0, seconds || 0); return `${String(Math.floor(safe / 60)).padStart(2, '0')}:${String(safe % 60).padStart(2, '0')}`; }
 
 type IconProps = SVGProps<SVGSVGElement>;
-
-function CloseIcon(props: IconProps) {
-  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" {...props}><path d="M6 6l12 12M18 6 6 18" /></svg>;
-}
-
-function FullscreenIcon(props: IconProps) {
-  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M8 3H3v5" /><path d="M16 3h5v5" /><path d="M8 21H3v-5" /><path d="M16 21h5v-5" /></svg>;
-}
-
-function SettingsIcon(props: IconProps) {
-  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56V21h-4v-.08A1.7 1.7 0 0 0 9 19.37a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.63 15a1.7 1.7 0 0 0-1.55-1.03H3v-4h.08A1.7 1.7 0 0 0 4.63 9a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.63a1.7 1.7 0 0 0 1.03-1.55V3h4v.08A1.7 1.7 0 0 0 15 4.63a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.37 9a1.7 1.7 0 0 0 1.55 1.03H21v4h-.08A1.7 1.7 0 0 0 19.4 15Z" /></svg>;
-}
-
-function StopIcon(props: IconProps) {
-  return <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}><rect x="6" y="6" width="12" height="12" rx="1.5" /></svg>;
-}
 
 function SpeedIcon({ count, ...props }: IconProps & { count: 1 | 2 | 3 }) {
   return <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>{count === 1 ? <path d="M7 5.5 18 12 7 18.5Z" /> : count === 2 ? <><path d="M3.5 6 12 12l-8.5 6Z" /><path d="M11.5 6 20 12l-8.5 6Z" /></> : <><path d="M2 7 9 12l-7 5Z" /><path d="M8 7l7 5-7 5Z" /><path d="m14 7 7 5-7 5Z" /></>}</svg>;
@@ -133,7 +118,7 @@ export function PrompterPage() {
 
   if (setlists === undefined || songs === undefined || (setlistId && entries === undefined)) return <div className="flex min-h-[100dvh] items-center justify-center bg-[#08090b] text-sm text-white/60">Chargement du prompteur...</div>;
   return <div className="flex h-[100dvh] flex-col overflow-hidden overscroll-none bg-[var(--fz-bg)] text-white">
-    <header className="sticky top-0 z-20 shrink-0 border-b border-white/10 bg-[var(--fz-bg)]/98 backdrop-blur-sm"><div className="mx-auto w-full max-w-5xl px-4 pb-2 pt-3 sm:px-6"><div className="relative flex h-11 items-center"><button type="button" onClick={() => void closePrompter()} aria-label="Quitter le prompteur" className={`absolute left-0 z-10 ${headerButtonClass}`}><CloseIcon className="h-5 w-5" /></button><div className="pointer-events-none absolute inset-x-0 min-w-0 px-24 text-center"><p className="truncate text-[0.72rem] font-black uppercase tracking-[0.26em] text-[var(--fz-text-muted)]">FaderZero</p><p className="mt-1 truncate text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-white/55">Prompteur - {sourceLabel}</p></div><div className="absolute right-0 z-10 flex items-center"><button type="button" onClick={() => void toggleFullscreen()} aria-label="Plein écran" className={headerButtonClass}><FullscreenIcon className="h-5 w-5" /></button><button type="button" onClick={() => setSettingsOpen((value) => !value)} aria-expanded={settingsOpen} aria-label="Réglages" className={[headerButtonClass, settingsOpen ? 'text-emerald-300' : ''].join(' ')}><SettingsIcon className="h-5 w-5" /></button></div></div></div></header>
+    <header className="sticky top-0 z-20 shrink-0 border-b border-white/10 bg-[var(--fz-bg)]/98 backdrop-blur-sm"><div className="mx-auto w-full max-w-5xl px-4 pb-2 pt-3 sm:px-6"><div className="relative flex h-11 items-center"><button type="button" onClick={() => void closePrompter()} aria-label="Quitter le prompteur" className={`absolute left-0 z-10 ${headerButtonClass}`}><FzIcon name="close" usageId="prompter.header.close" size="md" /></button><div className="pointer-events-none absolute inset-x-0 min-w-0 px-24 text-center"><p className="truncate text-[0.72rem] font-black uppercase tracking-[0.26em] text-[var(--fz-text-muted)]">FaderZero</p><p className="mt-1 truncate text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-white/55">Prompteur - {sourceLabel}</p></div><div className="absolute right-0 z-10 flex items-center"><button type="button" onClick={() => void toggleFullscreen()} aria-label="Plein écran" className={headerButtonClass}><FzIcon name="fullscreen" usageId="prompter.header.fullscreen" size="md" /></button><button type="button" onClick={() => setSettingsOpen((value) => !value)} aria-expanded={settingsOpen} aria-label="Réglages" className={[headerButtonClass, settingsOpen ? 'text-emerald-300' : ''].join(' ')}><FzIcon name="settings" usageId="prompter.header.settings" size="md" /></button></div></div></div></header>
     {settingsOpen ? (
       <section aria-label="Réglages du prompteur" className="sticky top-16 z-10 shrink-0 border-b border-white/10 bg-[#0d0f13] px-3 py-2">
         <div className="mx-auto flex max-w-5xl items-center justify-center gap-2">
@@ -141,7 +126,7 @@ export function PrompterPage() {
             {([0, 1, 2, 3] as const).map((speed) => {
               const isActive = preferences.speed === speed;
               const label = speed === 0 ? 'Arrêter le défilement' : `Vitesse de défilement ${speed}`;
-              return <button key={speed} type="button" onClick={() => savePreferences({ ...preferences, speed })} aria-label={label} title={label} aria-pressed={isActive} className={[settingsOptionClass, isActive ? 'bg-emerald-300 text-[#07100a]' : 'text-white/60 hover:bg-white/8 hover:text-white active:bg-white/12'].join(' ')}>{speed === 0 ? <StopIcon className="h-4 w-4" /> : <SpeedIcon count={speed} className="h-5 w-5" data-icon-audit-id={speed === 1 ? '3d216faaf426162e' : undefined} />}</button>;
+              return <button key={speed} type="button" onClick={() => savePreferences({ ...preferences, speed })} aria-label={label} title={label} aria-pressed={isActive} className={[settingsOptionClass, isActive ? 'bg-emerald-300 text-[#07100a]' : 'text-white/60 hover:bg-white/8 hover:text-white active:bg-white/12'].join(' ')}>{speed === 0 ? <FzIcon name="stop" usageId="prompter.scroll.stop" size="sm" /> : <SpeedIcon count={speed} className="h-5 w-5" data-icon-audit-id={speed === 1 ? '3d216faaf426162e' : undefined} />}</button>;
             })}
           </div>
           <span aria-hidden="true" className="h-6 w-px shrink-0 bg-white/10" />

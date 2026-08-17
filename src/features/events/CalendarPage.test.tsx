@@ -9,6 +9,12 @@ vi.mock('@/db/repositories/eventsRepository', () => ({
   eventsRepository: eventMocks,
 }));
 
+vi.mock('@/db/repositories/bookingRepository', () => ({
+  bookingRepository: {
+    listLeads: vi.fn().mockResolvedValue([]),
+  },
+}));
+
 vi.mock('@/stores/authStore', () => ({
   useAuthStore: () => ({
     workspaces: [],
@@ -68,5 +74,47 @@ describe('CalendarPage scroll collapse', () => {
     fireEvent.wheel(window, { deltaY: 24 });
 
     expect(screen.getByTestId('calendar-month-grid').parentElement!).toHaveAttribute('data-expanded', 'true');
+  });
+
+  it('associe les labels partagés aux champs en lecture seule du détail', async () => {
+    const now = Date.now();
+    eventMocks.listAll.mockResolvedValue([{
+      id: 'event-labels',
+      workspaceId: 'personal',
+      title: 'Répétition test',
+      eventType: 'rehearsal',
+      startAt: now,
+      endAt: now + 60 * 60 * 1000,
+      location: 'Studio',
+      notes: 'Préparer le rappel',
+      createdAt: now,
+      updatedAt: now,
+    }]);
+
+    render(<CalendarPage />);
+    fireEvent.click(await screen.findByText('Répétition test'));
+
+    const labels = [
+      'Titre de l’événement',
+      'Espace / Groupe',
+      'Type',
+      'Lieu',
+      'Date de début',
+      'Heure de début',
+      'Date de fin (optionnelle)',
+      'Heure de fin',
+      'Notes',
+    ];
+
+    labels.forEach((label) => {
+      expect(screen.getByText(label)).toHaveClass('fz-field-label');
+      expect(screen.getByLabelText(label)).toBeInTheDocument();
+    });
+
+    const endFieldsGrid = screen.getByText('Date de fin (optionnelle)').parentElement;
+    expect(endFieldsGrid).toHaveClass('grid', 'grid-cols-2');
+    expect(screen.getByText('Heure de fin').parentElement).toBe(endFieldsGrid);
+    expect(screen.getByLabelText('Date de fin (optionnelle)').parentElement).toBe(endFieldsGrid);
+    expect(screen.getByLabelText('Heure de fin').parentElement).toBe(endFieldsGrid);
   });
 });

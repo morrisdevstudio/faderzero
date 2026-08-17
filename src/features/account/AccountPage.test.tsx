@@ -111,6 +111,7 @@ describe('AccountPage invitations', () => {
 
     const input = await screen.findByRole('textbox', { name: 'Pseudo public' });
     expect(input).toHaveValue('Yann');
+    expect(screen.getByText('Pseudo public')).toHaveClass('fz-field-label');
     expect(screen.getByRole('button', { name: "Changer l'avatar de Yann" })).toHaveTextContent('YA');
     expect(screen.getByText('private@example.test')).toBeInTheDocument();
     expect(screen.getByText('E-mail privé — visible uniquement ici')).toBeInTheDocument();
@@ -181,6 +182,11 @@ describe('AccountPage invitations', () => {
     });
 
     render(<AccountPage />);
+
+    expect(screen.getByText('Nouvelle adresse e-mail')).toHaveClass('fz-field-label');
+    expect(screen.getByText('Mot de passe actuel')).toHaveClass('fz-field-label');
+    expect(screen.getByText('Nouveau mot de passe')).toHaveClass('fz-field-label');
+    expect(screen.getByText('Confirmer le nouveau mot de passe')).toHaveClass('fz-field-label');
 
     fireEvent.change(screen.getByRole('textbox', { name: 'Nouvelle adresse e-mail' }), {
       target: { value: 'Nouvelle@Example.test' },

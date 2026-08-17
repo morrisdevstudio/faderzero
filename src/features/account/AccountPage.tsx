@@ -798,7 +798,7 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
                     disabled={profileLoading || !profile}
                   />
                   <div className="min-w-0 flex-1">
-                    <label htmlFor="profileDisplayName" className="block text-[0.62rem] font-black uppercase tracking-[0.2em] text-white/45">
+                    <label htmlFor="profileDisplayName" className="fz-field-label">
                       Pseudo public
                     </label>
                     <TextField
@@ -843,7 +843,7 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
               {localEmailError && <p className="mt-2 text-xs text-red-400">{localEmailError}</p>}
               <form onSubmit={handleEmailSubmit} className="mt-4 space-y-3">
                 <div>
-                  <label htmlFor="newEmail" className="block text-[0.66rem] font-black uppercase tracking-[0.18em] text-white/55">
+                  <label htmlFor="newEmail" className="fz-field-label">
                     Nouvelle adresse e-mail
                   </label>
                   <TextField
@@ -882,7 +882,7 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
               <form onSubmit={handlePasswordSubmit} className="mt-4 space-y-3">
                 {!isPasswordRecovery ? (
                   <div>
-                    <label htmlFor="currentPassword" className="block text-[0.66rem] font-black uppercase tracking-[0.18em] text-white/55">
+                    <label htmlFor="currentPassword" className="fz-field-label">
                       Mot de passe actuel
                     </label>
                     <PasswordField
@@ -895,7 +895,7 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
                   </div>
                 ) : null}
                 <div>
-                  <label htmlFor="newPassword" className="block text-[0.66rem] font-black uppercase tracking-[0.18em] text-white/55">
+                  <label htmlFor="newPassword" className="fz-field-label">
                     Nouveau mot de passe
                   </label>
                   <PasswordField
@@ -920,7 +920,7 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
                   ))}
                 </ul>
                 <div>
-                  <label htmlFor="confirmNewPassword" className="block text-[0.66rem] font-black uppercase tracking-[0.18em] text-white/55">
+                  <label htmlFor="confirmNewPassword" className="fz-field-label">
                     Confirmer le nouveau mot de passe
                   </label>
                   <PasswordField
@@ -1098,9 +1098,9 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
 
                           {/* Pastille Color Selector */}
                           <div className="space-y-2">
-                            <label className="block text-[0.62rem] font-black uppercase tracking-[0.18em] text-white/50">
+                            <p className="fz-field-label">
                               Couleur de la pastille
-                            </label>
+                            </p>
                             <div className="flex flex-wrap items-center gap-2.5 pt-1">
                               {WORKSPACE_COLOR_OPTIONS.map((colorOption) => {
                                 const isSelected = badgeColor.id === colorOption.id;
@@ -1132,11 +1132,12 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
 
                           {/* Pastille Badge Text Input */}
                           <div className="space-y-1.5 pt-1">
-                            <label className="block text-[0.62rem] font-black uppercase tracking-[0.18em] text-white/50">
+                            <label htmlFor={`workspaceBadgeText-${ws.id}`} className="fz-field-label">
                               Texte du badge (3 lettres max)
                             </label>
                             <div className="max-w-[140px]">
                             <TextField
+                              id={`workspaceBadgeText-${ws.id}`}
                               type="text"
                               maxLength={3}
                               value={getBadgeText(ws.id, ws.name)}
@@ -1174,12 +1175,13 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
 
                               {canAdministerWorkspace(ws.role) && (
                                 <div className="space-y-2 pt-3 border-t border-white/10">
-                                  <label className="block text-[0.62rem] font-black uppercase tracking-[0.18em] text-white/50">
+                                  <label htmlFor={`workspaceName-${ws.id}`} className="fz-field-label">
                                     Nom du groupe
                                   </label>
                                   <div className="flex gap-2">
                                     <div className="min-w-0 flex-1">
                                     <TextField
+                                      id={`workspaceName-${ws.id}`}
                                       type="text"
                                       value={editingWorkspaceId === ws.id ? editingGroupName : ws.name}
                                       onFocus={() => {
@@ -1265,7 +1267,7 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
 
               <form onSubmit={handleJoinWorkspaceWithLink} className="mt-5 pt-5 border-t border-white/10 space-y-3">
                 <div>
-                  <label htmlFor="workspaceInviteLink" className="block text-[0.66rem] font-black uppercase tracking-[0.18em] text-white/55">
+                  <label htmlFor="workspaceInviteLink" className="fz-field-label">
                     Rejoindre un groupe avec un lien
                   </label>
                   <TextField
@@ -1307,10 +1309,10 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
             </p>
 
             <div className="rounded-[1.2rem] border border-orange-500/18 bg-orange-500/8 p-4">
-              <label htmlFor="inviteRole" className="text-[0.64rem] font-black uppercase tracking-[0.18em] text-orange-200/80">
+              <label htmlFor="inviteRole" className="fz-field-label">
                 Rôle attribué
               </label>
-              <div className="mt-3 flex gap-2">
+              <div className="flex gap-2">
                 <div className="min-w-0 flex-1">
                   <SelectField
                     id="inviteRole"

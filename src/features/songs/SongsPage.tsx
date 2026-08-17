@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useState, type FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { FeatureCard } from '@/components/FeatureCard';
 import { FormDialog } from '@/components/FormDialog';
 import { SortMenu, type SortMode } from '@/components/SortMenu';
@@ -10,6 +10,8 @@ import { formatSongDuration, getSongStatusLabel, getSongStatusTone } from '@/fea
 import { useAuthStore } from '@/stores/authStore';
 import { canWriteWorkspace } from '@/services/supabase/workspace';
 import { AddButton } from '@/ui/components/AddButton';
+import { ContentRow } from '@/ui/components/ContentRow';
+import { FieldLabel } from '@/ui/components/FieldLabel';
 import { PageHeader } from '@/ui/components/PageHeader';
 import { TextField } from '@/ui/components/TextField';
 import { FzIcon } from '@/ui/icons';
@@ -150,30 +152,14 @@ export function SongsPage() {
           </FeatureCard>
         ) : (
           sortedSongs?.map((song) => (
-            <Link
+            <ContentRow
               key={song.id}
+              mode="link"
               to={`/songs/${song.id}`}
-              className="fz-card block rounded-[1.2rem] px-4 py-3.5 transition hover:border-[var(--fz-border-strong)]"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div className="min-w-0 flex-1">
-                  <h2 className="truncate text-[1.12rem] font-black tracking-tight text-white">{song.title || 'Sans titre'}</h2>
-                  <p className="mt-2 truncate whitespace-nowrap text-[0.82rem] text-[var(--fz-text-muted)]">
-                    {song.bpm ? `${song.bpm} BPM` : 'BPM --'}
-                    {' · '}
-                    {song.key || 'Ton --'}
-                    {' · '}
-                    {formatSongDuration(song.durationSeconds)}
-                    {' · '}
-                    Modifie le {new Date(song.updatedAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
-                  </p>
-                </div>
-
-                <div className="flex shrink-0 items-start pt-0.5">
-                  <StatusPill label={getSongStatusLabel(song.status)} tone={getSongStatusTone(song.status)} />
-                </div>
-              </div>
-            </Link>
+              title={song.title || 'Sans titre'}
+              metadata={`${song.bpm ? `${song.bpm} BPM` : 'BPM --'} · ${song.key || 'Ton --'} · ${formatSongDuration(song.durationSeconds)} · Modifie le ${new Date(song.updatedAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}`}
+              status={<StatusPill label={getSongStatusLabel(song.status)} tone={getSongStatusTone(song.status)} />}
+            />
           ))
         )}
       </section>
@@ -182,9 +168,7 @@ export function SongsPage() {
         <FormDialog title="Nouvelle chanson" onClose={() => setIsCreateOpen(false)}>
           <form className="space-y-3" onSubmit={handleCreateSong}>
               <label className="block">
-                <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-[var(--fz-text-muted)]">
-                  Titre
-                </span>
+                <FieldLabel>Titre</FieldLabel>
                 <TextField
                   value={newSongTitle}
                   onChange={(event) => setNewSongTitle(event.target.value)}

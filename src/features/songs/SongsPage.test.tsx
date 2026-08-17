@@ -73,4 +73,12 @@ describe('SongsPage header', () => {
     expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();
     expect(screen.getByText('Votre repertoire est vide')).toBeInTheDocument();
   });
+
+  it('utilise le titre de champ partagé dans le formulaire de création', () => {
+    renderPage();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nouvelle chanson' }));
+
+    expect(screen.getByText('Titre')).toHaveClass('fz-field-label');
+  });
 });

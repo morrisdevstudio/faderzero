@@ -244,9 +244,22 @@ body::before {
   color: #fecdd3;
 }
 
+.fz-button-ghost {
+  border-radius: 1rem;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--fz-text-muted);
+}
+
+.fz-button-ghost:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--fz-text);
+}
+
 .fz-button-primary,
 .fz-button-secondary,
-.fz-button-danger {
+.fz-button-danger,
+.fz-button-ghost {
   display: inline-flex;
   max-width: 100%;
   min-width: 0;

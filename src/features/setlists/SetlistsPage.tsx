@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useMemo, useState, type FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { FeatureCard } from '@/components/FeatureCard';
 import { FormDialog } from '@/components/FormDialog';
 import { SortMenu, type SortMode } from '@/components/SortMenu';
@@ -9,6 +9,8 @@ import { formatSetDuration } from '@/features/songs/songPresentation';
 import { useAuthStore } from '@/stores/authStore';
 import { canWriteWorkspace } from '@/services/supabase/workspace';
 import { AddButton } from '@/ui/components/AddButton';
+import { ContentRow } from '@/ui/components/ContentRow';
+import { FieldLabel } from '@/ui/components/FieldLabel';
 import { PageHeader } from '@/ui/components/PageHeader';
 import { FzIcon } from '@/ui/icons';
 import { TextArea } from '@/ui/components/TextArea';
@@ -139,23 +141,13 @@ export function SetlistsPage() {
           />
         ) : (
           filteredSetlists.map((setlist) => (
-            <Link
+            <ContentRow
               key={setlist.id}
+              mode="link"
               to={`/setlists/${setlist.id}`}
-              className="block px-1 py-5 transition first:pt-1 last:pb-1 hover:bg-white/[0.02]"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div className="min-w-0 flex-1">
-                  <h2 className="truncate text-[1.35rem] font-black tracking-tight text-white">{setlist.name}</h2>
-                  <p className="mt-2 truncate whitespace-nowrap text-[0.82rem] text-[var(--fz-text-muted)]">
-                    {setlist.songCount} morceau{setlist.songCount > 1 ? 'x' : ''}
-                    {' · '}
-                    {formatSetDuration(setlist.totalDurationSeconds)}
-                  </p>
-                </div>
-
-              </div>
-            </Link>
+              title={setlist.name}
+              metadata={`${setlist.songCount} morceau${setlist.songCount > 1 ? 'x' : ''} · ${formatSetDuration(setlist.totalDurationSeconds)}`}
+            />
           ))
         )}
       </section>
@@ -164,9 +156,7 @@ export function SetlistsPage() {
         <FormDialog title="Nouvelle setlist" onClose={() => setIsCreateOpen(false)}>
           <form className="space-y-3" onSubmit={handleCreateSetlist}>
             <label className="block">
-              <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-[var(--fz-text-muted)]">
-                Nom
-              </span>
+              <FieldLabel as="span">Nom</FieldLabel>
               <TextField
                 value={name}
                 onChange={(event) => setName(event.target.value)}
@@ -177,9 +167,7 @@ export function SetlistsPage() {
             </label>
 
             <label className="block">
-              <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-[var(--fz-text-muted)]">
-                Notes
-              </span>
+              <FieldLabel as="span">Notes</FieldLabel>
               <TextArea
                 value={notes}
                 onChange={(event) => setNotes(event.target.value)}

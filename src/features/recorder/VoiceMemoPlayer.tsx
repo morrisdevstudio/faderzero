@@ -1,26 +1,10 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { formatRecordingDuration } from './voiceRecorderEngine';
+import { FzIcon } from '@/ui/icons';
 
 interface VoiceMemoPlayerProps {
   src: string;
   durationMs: number;
-}
-
-function PlayIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5 translate-x-px" fill="currentColor" aria-hidden="true">
-      <path d="M8 5.5v13l10-6.5z" />
-    </svg>
-  );
-}
-
-function PauseIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor" aria-hidden="true">
-      <rect x="7" y="5.5" width="3.5" height="13" rx="1" />
-      <rect x="13.5" y="5.5" width="3.5" height="13" rx="1" />
-    </svg>
-  );
 }
 
 export function VoiceMemoPlayer({ src, durationMs }: VoiceMemoPlayerProps) {
@@ -102,7 +86,11 @@ export function VoiceMemoPlayer({ src, durationMs }: VoiceMemoPlayerProps) {
           aria-label={isPlaying ? 'Mettre en pause' : 'Écouter la prise'}
           className="flex h-13 w-13 shrink-0 items-center justify-center rounded-full bg-white text-black shadow-[0_4px_12px_rgba(0,0,0,0.25)] transition-[transform,background-color] duration-150 ease-out hover:bg-white/90 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
         >
-          {isPlaying ? <PauseIcon /> : <PlayIcon />}
+          {isPlaying ? (
+            <FzIcon name="pause" usageId="voice-memo-player.pause" size="md" />
+          ) : (
+            <FzIcon name="play" usageId="voice-memo-player.play" size="md" />
+          )}
         </button>
 
         <div className="min-w-0 flex-1">

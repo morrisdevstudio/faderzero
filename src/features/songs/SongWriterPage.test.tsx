@@ -123,6 +123,7 @@ describe('SongWriterPage draft flow', () => {
     const dialog = screen.getByRole('dialog', { name: 'Enregistrer la chanson ?' });
     expect(dialog.parentElement?.parentElement?.parentElement).toBe(document.body);
     expect(dialog.parentElement?.parentElement).toHaveClass('pt-[max(4rem,env(safe-area-inset-top))]');
+    expect(screen.getByText('Titre')).toHaveClass('fz-field-label');
     expect(screen.getByRole('textbox', { name: 'Titre' })).toHaveFocus();
 
     fireEvent.click(screen.getByRole('button', { name: 'Quitter sans enregistrer' }));

@@ -113,7 +113,7 @@ export function WorkspaceSelectionPage() {
           <div className="space-y-6">
             <form onSubmit={handleCreate} className="space-y-6">
               <div>
-                <label htmlFor="wsName" className="mb-2 block text-[0.68rem] font-black uppercase tracking-[0.18em] text-white/60">
+                <label htmlFor="wsName" className="fz-field-label">
                   Nom du groupe / workspace
                 </label>
                 <TextField
@@ -146,7 +146,7 @@ export function WorkspaceSelectionPage() {
 
             <form onSubmit={handleJoinWithLink} className="space-y-4 rounded-[1.4rem] border border-orange-500/15 bg-orange-500/8 p-4">
               <div>
-                <label htmlFor="workspaceInviteLink" className="mb-2 block text-[0.68rem] font-black uppercase tracking-[0.18em] text-orange-200/80">
+                <label htmlFor="workspaceInviteLink" className="fz-field-label">
                   Rejoindre avec un lien
                 </label>
                 <TextField

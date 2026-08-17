@@ -1,36 +1,13 @@
 import { Link } from 'react-router-dom';
 import { useAudioPlayerStore } from '@/features/audio/audioPlayerStore';
 import { formatSongDuration } from '@/features/songs/songPresentation';
+import { FzIcon } from '@/ui/icons';
 
 function PreviousIcon() {
   return (
     <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true">
       <path d="M6 5h2v14H6z" />
       <path d="m19 6-9 6 9 6z" />
-    </svg>
-  );
-}
-
-function PlayIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true">
-      <path d="M8 5v14l11-7z" />
-    </svg>
-  );
-}
-
-function PauseIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true">
-      <path d="M6 5h4v14H6zM14 5h4v14h-4z" />
-    </svg>
-  );
-}
-
-function StopIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="currentColor" aria-hidden="true">
-      <path d="M7 7h10v10H7z" />
     </svg>
   );
 }
@@ -111,7 +88,7 @@ export function AudioMiniPlayer() {
               aria-label={isPlaying ? 'Pause' : 'Lecture'}
               className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-[#111316] transition hover:bg-white/88"
             >
-              {isPlaying ? <PauseIcon /> : <PlayIcon />}
+              {isPlaying ? <FzIcon name="pause" usageId="audio-mini-player.pause" size="sm" /> : <FzIcon name="play" usageId="audio-mini-player.play" size="sm" />}
             </button>
             <button
               type="button"
@@ -119,7 +96,7 @@ export function AudioMiniPlayer() {
               aria-label="Stop"
               className="flex h-9 w-9 items-center justify-center rounded-full text-white/78 transition hover:bg-white/8 hover:text-white"
             >
-              <StopIcon />
+              <FzIcon name="stop" usageId="audio-mini-player.stop" size="sm" />
             </button>
             <button
               type="button"

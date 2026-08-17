@@ -29,6 +29,28 @@ describe('LoginPage inscription et récupération', () => {
     Object.values(authMocks).forEach((mock) => mock.mockReset());
   });
 
+  it('utilise le logo partagé en blanc dans les dimensions historiques', () => {
+    render(<LoginPage />);
+
+    const brand = screen.getByRole('img', { name: 'FaderZero' });
+    const logo = brand.querySelector('svg');
+
+    expect(logo).toHaveClass('h-[54px]', 'w-[147px]', 'text-white');
+    expect(logo).toHaveAttribute('preserveAspectRatio', 'none');
+    expect(logo).toHaveAttribute('viewBox', '0 0 96 40');
+  });
+
+  it('utilise le style partagé pour les titres de champs', () => {
+    render(<LoginPage />);
+
+    expect(screen.getByText('Adresse e-mail')).toHaveClass('fz-field-label');
+    expect(screen.getByText('Mot de passe')).toHaveClass('fz-field-label');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Inscription' }));
+    expect(screen.getByText('Pseudo')).toHaveClass('fz-field-label');
+    expect(screen.getByText('Confirmer le mot de passe')).toHaveClass('fz-field-label');
+  });
+
   it('valide le pseudo, les règles du mot de passe et sa confirmation', async () => {
     authMocks.signUp.mockResolvedValue({ session: null, needsEmailConfirmation: true });
     render(<LoginPage />);

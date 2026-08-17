@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useEffect, useRef, useState, type ChangeEvent, type SVGProps } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { FeatureCard } from '@/components/FeatureCard';
@@ -26,26 +26,13 @@ import { canWriteWorkspace } from '@/services/supabase/workspace';
 import { CopySongModal } from '@/features/songs/CopySongModal';
 import type { SongStatus } from '@/db/schema';
 import { QuickVoiceRecorder } from '@/features/recorder/QuickVoiceRecorder';
+import { ContentRow } from '@/ui/components/ContentRow';
 import { DetailHeader } from '@/ui/components/DetailHeader';
 import { FzIcon } from '@/ui/icons';
 import { StatusPill } from '@/ui/components/StatusPill';
 import { SelectField } from '@/ui/components/SelectField';
 import { TextArea } from '@/ui/components/TextArea';
 import { TextField } from '@/ui/components/TextField';
-
-type IconProps = SVGProps<SVGSVGElement>;
-
-function TrashIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M4 7h16" />
-      <path d="M10 11v6" />
-      <path d="M14 11v6" />
-      <path d="M6 7l1 12h10l1-12" />
-      <path d="M9 7V5h6v2" />
-    </svg>
-  );
-}
 
 const initialFormValues: SongFormValues = {
   title: '',
@@ -73,68 +60,6 @@ interface DuplicatePromptState {
   renameValue: string;
   reservedFilenames: string[];
   error: string | null;
-}
-
-function PlayIcon() {
-  return (
-    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M8 5v14l11-7z"/>
-    </svg>
-  );
-}
-
-function StopIcon() {
-  return (
-    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <rect x="6" y="6" width="12" height="12" rx="1" />
-    </svg>
-  );
-}
-
-function DotsIcon() {
-  return (
-    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <circle cx="5" cy="12" r="1.5" />
-      <circle cx="12" cy="12" r="1.5" />
-      <circle cx="19" cy="12" r="1.5" />
-    </svg>
-  );
-}
-
-function UploadAudioIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
-      <path d="M12 16V4" />
-      <path d="m7 9 5-5 5 5" />
-      <path d="M5 20h14" />
-    </svg>
-  );
-}
-
-function LinkAudioIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
-      <path d="M10 13a5 5 0 0 0 7.1.1l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1" />
-      <path d="M14 11a5 5 0 0 0-7.1-.1l-2 2A5 5 0 0 0 12 20l1.1-1.1" />
-    </svg>
-  );
-}
-
-function RecordAudioIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
-      <rect x="9" y="3" width="6" height="12" rx="3" />
-      <path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7" />
-    </svg>
-  );
-}
-
-function PrimaryAudioIcon({ active, ...props }: IconProps & { active: boolean }) {
-  return (
-    <svg viewBox="0 0 24 24" fill={active ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
-      <path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-2.9-5.6 2.9 1.1-6.2L3 9.6l6.2-.9L12 3Z" />
-    </svg>
-  );
 }
 
 function getPrimaryTrackStorageKey(songId: string) {
@@ -683,7 +608,7 @@ export function SongDetailPage() {
                 disabled={isSaving}
                 aria-label="Supprimer la chanson"
                 title="Supprimer la chanson"
-                className="text-rose-400 hover:text-rose-300 disabled:opacity-60"
+                className="disabled:opacity-60"
               >
                 <FzIcon name="delete" usageId="song-detail.delete" size="md" />
               </button>
@@ -695,7 +620,6 @@ export function SongDetailPage() {
                 onClick={() => setIsCopyModalOpen(true)}
                 aria-label="Copier vers un autre espace"
                 title="Copier vers un autre espace"
-                className="text-amber-300 hover:text-amber-200"
               >
                 <svg className="h-4.5 w-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
@@ -708,7 +632,6 @@ export function SongDetailPage() {
               <Link
                 to={`/prompter/play?songId=${encodeURIComponent(currentSong.id)}`}
                 aria-label="Ouvrir cette chanson dans le prompteur"
-                className="text-emerald-300 hover:text-emerald-200"
               >
                 <FzIcon name="prompter" usageId="song-detail.prompter" size="md" />
               </Link>
@@ -720,7 +643,6 @@ export function SongDetailPage() {
                 onClick={() => handleCloseEdit()}
                 aria-label="Terminer la modification"
                 title="Terminer"
-                className="text-white hover:text-white/75"
               >
                 <FzIcon name="check" usageId="song-detail.finish-edit" size="md" />
               </button>
@@ -751,7 +673,7 @@ export function SongDetailPage() {
                   ].join(' ')}
                   aria-label={isPrimaryAudioPlaying ? 'Arreter la chanson' : 'Lire la chanson'}
                 >
-                  {isPrimaryAudioPlaying ? <StopIcon /> : <PlayIcon />}
+                  {isPrimaryAudioPlaying ? <FzIcon name="stop" usageId="song-detail.primary-audio.stop" size="sm" /> : <FzIcon name="play" usageId="song-detail.primary-audio.play" size="sm" />}
                 </button>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-black leading-tight text-white">{primaryAudioAsset?.filename || 'Aucun fichier audio'}</p>
@@ -762,7 +684,7 @@ export function SongDetailPage() {
                   aria-label="Actions du fichier audio"
                   className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/6 text-white/75 transition hover:bg-white/10 hover:text-white"
                 >
-                  <DotsIcon />
+                  <FzIcon name="menu" usageId="song-detail.primary-audio.menu" size="sm" />
                 </button>
               </div>
               <input
@@ -872,48 +794,55 @@ export function SongDetailPage() {
             {assets === undefined ? (
               <p className="rounded-xl border border-white/8 bg-white/5 p-3 text-sm text-white/50">Chargement des pistes...</p>
             ) : assets.length > 0 ? (
-              <div className="space-y-2">
+              <div className="divide-y divide-white/10">
                 {assets.map((asset) => {
                   const isThisPlaying = currentTrack?.assetId === asset.id && status === 'playing';
                   const isCached = cachedAssetIds.has(asset.id);
                   const isPrimary = primaryAudioAsset?.id === asset.id;
 
                   return (
-                    <div
+                    <ContentRow
                       key={asset.id}
-                      className={["flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition", isThisPlaying ? 'border-white/30 bg-white/10' : 'border-white/8 bg-white/5 hover:bg-white/10'].join(' ')}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsAudioActionsOpen(false);
-                          handlePlayAsset(asset.id, isCached);
-                        }}
-                        aria-label={isThisPlaying ? `Arreter ${asset.filename}` : `Lire ${asset.filename}`}
-                        className={["flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition", isThisPlaying ? 'bg-white text-[#111319]' : 'bg-white/20 text-white hover:bg-white/30'].join(' ')}
-                      >
-                        {isThisPlaying ? <StopIcon /> : <PlayIcon />}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsAudioActionsOpen(false);
-                          handlePlayAsset(asset.id, isCached);
-                        }}
-                        className="min-w-0 flex-1 truncate text-left text-sm font-semibold text-white"
-                      >
-                        {asset.filename}
-                      </button>
-                      {canWrite ? <button
-                        type="button"
-                        onClick={() => handleSetPrimaryAudio(asset.id)}
-                        aria-label={isPrimary ? `${asset.filename} est la piste principale` : `Définir ${asset.filename} comme piste principale`}
-                        title={isPrimary ? 'Piste principale' : 'Définir comme principale'}
-                        className={["flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition", isPrimary ? 'border-white/40 bg-white/20 text-white' : 'border-white/8 bg-white/5 text-white/55 hover:bg-white/10 hover:text-white'].join(' ')}
-                      >
-                        <PrimaryAudioIcon active={isPrimary} className="h-4 w-4" data-icon-audit-id="40b3ed90385e3285" />
-                      </button> : null}
-                    </div>
+                      mode="controls"
+                      leading={
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsAudioActionsOpen(false);
+                            handlePlayAsset(asset.id, isCached);
+                          }}
+                          aria-label={isThisPlaying ? `Arreter ${asset.filename}` : `Lire ${asset.filename}`}
+                          className={["flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition", isThisPlaying ? 'bg-white text-[#111319]' : 'bg-white/20 text-white hover:bg-white/30'].join(' ')}
+                        >
+                          {isThisPlaying ? <FzIcon name="stop" usageId="song-detail.track.stop" size="sm" /> : <FzIcon name="play" usageId="song-detail.track.play" size="sm" />}
+                        </button>
+                      }
+                      title={
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsAudioActionsOpen(false);
+                            handlePlayAsset(asset.id, isCached);
+                          }}
+                          className="truncate text-left text-sm font-semibold text-white hover:underline"
+                        >
+                          {asset.filename}
+                        </button>
+                      }
+                      trailing={
+                        canWrite ? (
+                          <button
+                            type="button"
+                            onClick={() => handleSetPrimaryAudio(asset.id)}
+                            aria-label={isPrimary ? `${asset.filename} est la piste principale` : `Définir ${asset.filename} comme piste principale`}
+                            title={isPrimary ? 'Piste principale' : 'Définir comme principale'}
+                            className={["flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition", isPrimary ? 'border-white/40 bg-white/20 text-white' : 'border-white/8 bg-white/5 text-white/55 hover:bg-white/10 hover:text-white'].join(' ')}
+                          >
+                            <FzIcon name="check" usageId="song-detail.track.primary" size="sm" />
+                          </button>
+                        ) : null
+                      }
+                    />
                   );
                 })}
               </div>
@@ -960,7 +889,7 @@ export function SongDetailPage() {
                       aria-label={`Annuler l'envoi de ${pendingUpload.filename}`}
                       className="flex h-8 w-8 items-center justify-center rounded-full bg-white/6 text-rose-300 disabled:opacity-30"
                     >
-                      <TrashIcon className="h-4 w-4" />
+                      <FzIcon name="delete" usageId="song-detail.pending-upload.remove" size="sm" />
                     </button>
                   </div>
                 ))}
@@ -978,7 +907,7 @@ export function SongDetailPage() {
                 }}
                 className="fz-button-primary flex items-center justify-center gap-2 px-4 py-3 text-sm font-black uppercase leading-5 tracking-[0.12em] disabled:opacity-60"
               >
-                <RecordAudioIcon className="h-5 w-5 shrink-0" />
+                <FzIcon name="record" usageId="song-detail.audio.record" size="md" className="shrink-0" />
                 <span>Enregistrer un audio</span>
               </button>
               <button
@@ -990,7 +919,7 @@ export function SongDetailPage() {
                 }}
                 className="fz-button-secondary flex items-center justify-center gap-2 px-4 py-3 text-sm font-black uppercase leading-5 tracking-[0.12em] text-white disabled:opacity-60"
               >
-                <UploadAudioIcon className="h-5 w-5 shrink-0 text-white/75" />
+                <FzIcon name="upload" usageId="song-detail.audio.upload" size="md" className="shrink-0 text-white/75" />
                 <span>{isUploadingAudio ? 'Import en cours...' : 'Importer un audio'}</span>
               </button>
               <button
@@ -1002,7 +931,7 @@ export function SongDetailPage() {
                 }}
                 className="fz-button-secondary flex items-center justify-center gap-2 px-4 py-3 text-sm font-black uppercase leading-5 tracking-[0.12em] text-white"
               >
-                <LinkAudioIcon className="h-5 w-5 shrink-0 text-white/75" />
+                <FzIcon name="edit" usageId="song-detail.audio.link" size="md" className="shrink-0 text-white/75" />
                 <span>Associer un audio</span>
               </button>
             </div> : null}
@@ -1041,7 +970,7 @@ export function SongDetailPage() {
           <div className="space-y-4">
             {unlinkedAssets && unlinkedAssets.length > 0 ? (
               <label className="block">
-                <span className="mb-2 block text-xs font-black uppercase tracking-[0.18em] text-[var(--fz-text-muted)]">
+                <span className="fz-field-label mb-2 block">
                   Fichier importe
                 </span>
                 <SelectField
@@ -1107,7 +1036,7 @@ export function SongDetailPage() {
             </p>
 
             <label className="block">
-              <span className="mb-2 block text-xs font-black uppercase tracking-[0.18em] text-[var(--fz-text-muted)]">
+              <span className="fz-field-label mb-2 block">
                 Nouveau nom
               </span>
               <TextField

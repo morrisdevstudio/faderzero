@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type SVGProps } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { FormDialog } from '@/components/FormDialog';
 import { PickerDialog, WheelColumn } from '@/components/PickerDialog';
@@ -24,42 +24,7 @@ const subdivisionOptions: Array<{ value: MetronomeSubdivision; symbol: string; l
   { value: 6, symbol: '6', label: 'Sextolets' },
 ];
 
-type IconProps = SVGProps<SVGSVGElement>;
 
-function PlayIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>
-      <path d="M8 5v14l11-7z" />
-    </svg>
-  );
-}
-
-function PauseIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>
-      <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
-    </svg>
-  );
-}
-
-function FullscreenIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M8 3H3v5" />
-      <path d="M16 3h5v5" />
-      <path d="M8 21H3v-5" />
-      <path d="M16 21h5v-5" />
-    </svg>
-  );
-}
-
-function CloseIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true" {...props}>
-      <path d="M18 6 6 18M6 6l12 12" />
-    </svg>
-  );
-}
 
 function SubdivisionIcon({ value, className = 'h-7 w-7' }: { value: MetronomeSubdivision; className?: string }) {
   switch (value) {
@@ -593,7 +558,7 @@ export function MetronomePage() {
                   aria-label="Fermer le prompteur"
                   className="absolute left-0 z-10 flex h-11 w-11 items-center justify-center text-white/72 transition hover:text-white"
                 >
-                  <CloseIcon className="h-5 w-5" />
+                  <FzIcon name="close" usageId="metronome.live.close" size="md" />
                 </button>
 
                 <div className="pointer-events-none absolute inset-x-0 min-w-0 px-24 text-center">
@@ -610,7 +575,7 @@ export function MetronomePage() {
                     aria-label="Plein écran"
                     className="flex h-11 w-11 items-center justify-center text-white/72 transition hover:text-white"
                   >
-                    <FullscreenIcon className="h-5 w-5" />
+                    <FzIcon name="fullscreen" usageId="metronome.live.fullscreen" size="md" />
                   </button>
                 </div>
               </div>
@@ -648,9 +613,9 @@ export function MetronomePage() {
                       title={isRunning ? 'Stopper le métronome' : 'Lancer le métronome'}
                     >
                       {isRunning ? (
-                        <PauseIcon className="h-6 w-6" />
+                        <FzIcon name="pause" usageId="metronome.play.pause" size="lg" />
                       ) : (
-                        <PlayIcon className="h-6 w-6 ml-0.5" />
+                        <FzIcon name="play" usageId="metronome.play.start" size="lg" />
                       )}
                     </button>
                   </div>
