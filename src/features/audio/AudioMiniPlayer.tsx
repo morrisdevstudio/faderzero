@@ -86,7 +86,12 @@ export function AudioMiniPlayer() {
               type="button"
               onClick={() => void togglePlayPause()}
               aria-label={isPlaying ? 'Pause' : 'Lecture'}
-              className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-[#111316] transition hover:bg-white/88"
+              className={[
+                'flex h-11 w-11 items-center justify-center rounded-2xl transition-all duration-150 active:scale-95',
+                isPlaying
+                  ? 'bg-[var(--fz-accent)] text-white shadow-md'
+                  : 'bg-white/10 text-white hover:bg-white/15',
+              ].join(' ')}
             >
               {isPlaying ? <FzIcon name="pause" usageId="audio-mini-player.pause" size="sm" /> : <FzIcon name="play" usageId="audio-mini-player.play" size="sm" />}
             </button>

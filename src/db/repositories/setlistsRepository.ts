@@ -268,6 +268,65 @@ export class SetlistsRepository {
 
     return deletedSetlist;
   }
+
+  async restore(id: string) {
+    const existingSetlist = await this.database.setlists.get(id);
+    if (!existingSetlist) {
+      throw new Error(`Setlist not found: ${id}`);
+    }
+
+    const timestamp = now();
+    const { deletedAt, ...setlistRest } = existingSetlist;
+    const restoredSetlist: SetlistRecord = {
+      ...setlistRest,
+      updatedAt: timestamp,
+      syncStatus: 'pending',
+    };
+
+    await this.database.transaction(
+      'rw',
+      this.database.setlists,
+      this.database.setlistSongs,
+      this.database.syncQueue,
+      async () => {
+        // 1. Restaurer la setlist
+        await this.database.setlists.put(restoredSetlist);
+        await enqueueMutation(
+          this.database,
+          restoredSetlist.workspaceId,
+          'setlist',
+          restoredSetlist.id,
+          'update',
+          { deleted_at: null, updated_at: new Date(timestamp).toISOString() },
+          existingSetlist.serverVersion
+        );
+
+        // 2. Restaurer les liaisons setlistSongs associées
+        const relatedEntries = await this.database.setlistSongs.where('setlistId').equals(id).toArray();
+        for (const entry of relatedEntries) {
+          if (entry.deletedAt !== undefined) {
+            const { deletedAt: entryDeletedAt, ...entryRest } = entry;
+            await this.database.setlistSongs.put({
+              ...entryRest,
+              syncStatus: 'pending',
+              updatedAt: timestamp,
+            });
+            await enqueueMutation(
+              this.database,
+              entry.workspaceId,
+              'setlistSong',
+              entry.id,
+              'update',
+              { deleted_at: null, updated_at: new Date(timestamp).toISOString() },
+              entry.serverVersion
+            );
+          }
+        }
+      }
+    );
+
+    return restoredSetlist;
+  }
 }
 
 export const setlistsRepository = new SetlistsRepository();

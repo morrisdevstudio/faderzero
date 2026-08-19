@@ -1,6 +1,6 @@
 import { forwardRef, type InputHTMLAttributes } from 'react';
 
-type TextFieldType = 'text' | 'email' | 'tel' | 'url';
+type TextFieldType = 'text' | 'email' | 'tel' | 'url' | 'number';
 
 export interface TextFieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'className' | 'style' | 'type' | 'size'> {
   type?: TextFieldType;

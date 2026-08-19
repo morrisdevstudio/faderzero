@@ -23,4 +23,23 @@ describe('FzIcon', () => {
     expect(container.querySelector('svg')).toHaveClass('lucide-eye');
     delete publishedIconUsageOverrides['login.password.visibility'];
   });
+
+  it('renders play, pause, and stop with fill currentColor by default', () => {
+    const { container: playContainer } = render(<FzIcon name="play" usageId="test.play" />);
+    expect(playContainer.querySelector('svg')).toHaveAttribute('fill', 'currentColor');
+
+    const { container: pauseContainer } = render(<FzIcon name="pause" usageId="test.pause" />);
+    expect(pauseContainer.querySelector('svg')).toHaveAttribute('fill', 'currentColor');
+
+    const { container: stopContainer } = render(<FzIcon name="stop" usageId="test.stop" />);
+    expect(stopContainer.querySelector('svg')).toHaveAttribute('fill', 'currentColor');
+  });
+
+  it('keeps fill none for other standard icons', () => {
+    const { container: recordContainer } = render(<FzIcon name="record" usageId="test.record" />);
+    expect(recordContainer.querySelector('svg')).toHaveAttribute('fill', 'none');
+
+    const { container: editContainer } = render(<FzIcon name="edit" usageId="test.edit" />);
+    expect(editContainer.querySelector('svg')).toHaveAttribute('fill', 'none');
+  });
 });

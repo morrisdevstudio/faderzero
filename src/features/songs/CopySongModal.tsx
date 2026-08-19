@@ -93,7 +93,7 @@ export const CopySongModal: React.FC<CopySongModalProps> = ({
           )}
         </div>
 
-        <div className="flex min-h-11 items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-950/60 p-3.5">
+        <div className="flex min-h-11 items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3.5">
           <input
             id="includeAudioOption"
             type="checkbox"
@@ -102,18 +102,18 @@ export const CopySongModal: React.FC<CopySongModalProps> = ({
             disabled={loading || targetWorkspaces.length === 0}
             className="h-5 w-5 shrink-0 accent-[var(--fz-accent)]"
           />
-          <label htmlFor="includeAudioOption" className="cursor-pointer text-sm leading-5 text-zinc-300">
+          <label htmlFor="includeAudioOption" className="cursor-pointer text-sm leading-5 text-white/80">
             Inclure les fichiers audio (référence partagée sans duplication R2)
           </label>
         </div>
       </div>
 
-      <div className="mt-6 grid grid-cols-2 gap-3 border-t border-zinc-800 pt-4">
+      <div className="mt-6 grid grid-cols-2 gap-3 border-t border-white/10 pt-4">
         <button
           type="button"
           onClick={onClose}
           disabled={loading}
-          className="fz-button-secondary min-h-11 px-4 text-xs font-semibold text-zinc-300 disabled:opacity-30"
+          className="fz-button-secondary min-h-11 px-4 text-xs font-semibold text-white/80 disabled:opacity-30"
         >
           Annuler
         </button>

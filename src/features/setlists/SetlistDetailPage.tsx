@@ -17,17 +17,9 @@ import { DateField } from '@/ui/components/DateField';
 import { DetailHeader } from '@/ui/components/DetailHeader';
 import { TextArea } from '@/ui/components/TextArea';
 import { TextField } from '@/ui/components/TextField';
+import { useUndoToastStore } from '@/stores/undoToastStore';
 
 type IconProps = SVGProps<SVGSVGElement>;
-
-function PlusIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M12 5v14" />
-      <path d="M5 12h14" />
-    </svg>
-  );
-}
 
 function ArrowUpIcon(props: IconProps) {
   return (
@@ -54,15 +46,6 @@ function DirectSegueIcon(props: IconProps) {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
       <path d="M12 4v14" />
       <path d="m7 13 5 5 5-5" />
-    </svg>
-  );
-}
-
-function EditLineIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="m4 20 4.5-1 9-9a2.1 2.1 0 0 0-3-3l-9 9L4 20Z" />
-      <path d="M13.5 6.5 17.5 10.5" />
     </svg>
   );
 }
@@ -140,6 +123,8 @@ export function SetlistDetailPage() {
   const [isEndingNotesOpen, setIsEndingNotesOpen] = useState(false);
   const [endingAnnotation, setEndingAnnotation] = useState('');
   const [isSavingTransition, setIsSavingTransition] = useState(false);
+  const [isPdfExportDialogOpen, setIsPdfExportDialogOpen] = useState(false);
+  const [pdfSongsPerPage, setPdfSongsPerPage] = useState(12);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -284,9 +269,16 @@ export function SetlistDetailPage() {
     setError(null);
 
     try {
-      await setlistsRepository.softDelete(currentSetlist.id);
+      const setlistToDelete = currentSetlist;
+      await setlistsRepository.softDelete(setlistToDelete.id);
       setIsDeleteDialogOpen(false);
       navigate('/setlists');
+      useUndoToastStore.getState().showUndoToast({
+        message: `Setlist « ${setlistToDelete.name} » supprimée`,
+        onUndo: async () => {
+          await setlistsRepository.restore(setlistToDelete.id);
+        },
+      });
     } catch {
       setError('Impossible de supprimer la setlist.');
       setIsDeleteDialogOpen(false);
@@ -394,18 +386,33 @@ export function SetlistDetailPage() {
     }
   }
 
-  function handleExportPdf() {
+  function handleOpenPdfExportDialog() {
     setError(null);
+    if (!entries || entries.length === 0) {
+      setError("Ajoutez des chansons a la setlist avant d'exporter le PDF.");
+      return;
+    }
+    const count = entries.length;
+    setPdfSongsPerPage(count > 12 ? 12 : count);
+    setIsPdfExportDialogOpen(true);
+  }
+
+  function handleConfirmExportPdf(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setIsPdfExportDialogOpen(false);
 
     try {
-      downloadSetlistPdf(currentSetlist, entries ?? [], songDurationsById);
+      downloadSetlistPdf(currentSetlist, entries ?? [], songDurationsById, {
+        songsPerPage: pdfSongsPerPage,
+      });
     } catch (pdfError) {
       if (pdfError instanceof Error && pdfError.message === 'EMPTY_SETLIST') {
         setError("Ajoutez des chansons a la setlist avant d'exporter le PDF.");
         return;
       }
 
-      setError("Impossible d'ouvrir l'export PDF.");
+      setError("Impossible d'exporter le PDF.");
     }
   }
 
@@ -450,7 +457,7 @@ export function SetlistDetailPage() {
             </Link>
             <button
               type="button"
-              onClick={handleExportPdf}
+              onClick={handleOpenPdfExportDialog}
               aria-label="Exporter en PDF"
             >
               <FzIcon name="export-pdf" usageId="setlist.export-pdf" className="h-4.5 w-4.5" />
@@ -549,7 +556,7 @@ export function SetlistDetailPage() {
             }}
             className="fz-button-primary flex w-full items-center justify-center gap-2 px-4 py-4 text-[0.98rem] font-black tracking-[0.01em]"
           >
-            <PlusIcon className="h-5 w-5" />
+            <FzIcon name="add" usageId="setlist-detail.add-songs" size="sm" />
             Ajouter des chansons
           </button> : null}
 
@@ -579,11 +586,11 @@ export function SetlistDetailPage() {
                       entryElementsRef.current.delete(entry.id);
                     }
                   }}
-                  className="relative space-y-2"
+                  className="space-y-1.5"
                 >
-                  <div className="flex items-start gap-3 pl-7 pr-1">
+                  <div className="flex items-center gap-3 pl-7 pr-3 py-1">
                     {index === 0 ? (
-                      <div className="mt-0.5 flex w-6 shrink-0 justify-center text-white/28">
+                      <div className="flex w-6 shrink-0 justify-center text-white/28">
                         <div className="h-7 w-[2px] rounded bg-current" />
                       </div>
                     ) : (
@@ -593,7 +600,7 @@ export function SetlistDetailPage() {
                         disabled={!canWrite}
                         aria-label={entry.isDirectSegue ? `Retirer l'enchainement avant ${entry.songTitle}` : `Activer l'enchainement avant ${entry.songTitle}`}
                         className={[
-                          'mt-0.5 flex w-6 shrink-0 justify-center transition',
+                          'flex w-6 shrink-0 justify-center transition',
                           entry.isDirectSegue ? 'text-indigo-300' : 'text-white/28 hover:text-white/52',
                         ].join(' ')}
                       >
@@ -604,38 +611,26 @@ export function SetlistDetailPage() {
                         )}
                       </button>
                     )}
-                    <div className="flex min-w-0 flex-1 items-start gap-3 text-left">
-                    <div className="flex-1 pt-0.5">
-                      {transitionParts.length > 0 ? (
-                        <p className="truncate text-[0.8rem] font-semibold italic text-[var(--fz-text-muted)]">
-                          {transitionParts.join(' · ')}
-                        </p>
-                      ) : (
-                        <p className="text-[0.74rem] font-black uppercase tracking-[0.14em] text-white/20">Ajouter une transition...</p>
-                      )}
-                    </div>
-                      <div className="flex shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => handleOpenTransitionEditor(entry)}
-                          disabled={!canWrite}
-                          aria-label={`Modifier la note avant ${entry.songTitle}`}
-                          className="flex h-11 w-11 items-center justify-center text-white/28 transition hover:text-white/60 disabled:opacity-40"
-                        >
-                          <EditLineIcon className="h-3.5 w-3.5" />
-                        </button>
-                        {canWrite ? (
-                          <button
-                            type="button"
-                            onClick={() => setEntryToRemove(entry)}
-                            disabled={isRemovingEntry}
-                            aria-label={`Retirer ${entry.songTitle} de la setlist`}
-                            className="flex h-11 w-11 items-center justify-center text-white/28 transition hover:text-rose-300 disabled:opacity-40"
-                          >
-                            <FzIcon name="delete" usageId="setlist-entry.remove" size="md" />
-                          </button>
-                        ) : null}
+                    <div className="flex min-w-0 flex-1 items-center justify-between gap-3 text-left">
+                      <div className="min-w-0 flex-1">
+                        {transitionParts.length > 0 ? (
+                          <p className="truncate text-[0.8rem] font-semibold italic text-[var(--fz-text-muted)]">
+                            {transitionParts.join(' · ')}
+                          </p>
+                        ) : (
+                          <p className="text-[0.74rem] font-black uppercase tracking-[0.14em] text-white/20">Ajouter une transition...</p>
+                        )}
                       </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleOpenTransitionEditor(entry)}
+                        disabled={!canWrite}
+                        aria-label={`Modifier la note avant ${entry.songTitle}`}
+                        className="flex h-8 w-8 shrink-0 items-center justify-center text-white/28 transition hover:text-white/60 disabled:opacity-40"
+                      >
+                        <FzIcon name="edit" usageId="setlist-detail.edit-transition" size="sm" />
+                      </button>
                     </div>
                   </div>
 
@@ -649,13 +644,13 @@ export function SetlistDetailPage() {
                       <p className="mt-1 truncate text-[0.76rem] text-[var(--fz-text-muted)]">{songMeta}</p>
                     </div>
 
-                    <div className="flex shrink-0 gap-2">
+                    <div className="flex shrink-0 items-center gap-1.5">
                       <button
                         type="button"
                         onClick={() => handleMoveEntry(entry.id, -1)}
                         disabled={!canWrite || index === 0}
                         aria-label={`Monter ${entry.songTitle}`}
-                        className="flex h-10 w-10 items-center justify-center text-white/85 transition hover:text-white disabled:opacity-25"
+                        className="flex h-9 w-9 items-center justify-center text-white/85 transition hover:text-white disabled:opacity-25"
                       >
                         <ArrowUpIcon className="h-4.5 w-4.5" />
                       </button>
@@ -664,10 +659,21 @@ export function SetlistDetailPage() {
                         onClick={() => handleMoveEntry(entry.id, 1)}
                         disabled={!canWrite || index === entries.length - 1}
                         aria-label={`Descendre ${entry.songTitle}`}
-                        className="flex h-10 w-10 items-center justify-center text-white/85 transition hover:text-white disabled:opacity-25"
+                        className="flex h-9 w-9 items-center justify-center text-white/85 transition hover:text-white disabled:opacity-25"
                       >
                         <ArrowDownIcon className="h-4.5 w-4.5" />
                       </button>
+                      {canWrite ? (
+                        <button
+                          type="button"
+                          onClick={() => setEntryToRemove(entry)}
+                          disabled={isRemovingEntry}
+                          aria-label={`Retirer ${entry.songTitle} de la setlist`}
+                          className="flex h-9 w-9 items-center justify-center text-white/35 transition hover:text-rose-400 disabled:opacity-25"
+                        >
+                          <FzIcon name="delete" usageId="setlist-entry.remove" size="md" />
+                        </button>
+                      ) : null}
                     </div>
                   </div>
                 </div>
@@ -676,12 +682,12 @@ export function SetlistDetailPage() {
           )}
 
           {entries.length > 0 ? (
-            <div className="flex items-start gap-3 pl-7 pr-1">
-              <div className="mt-0.5 flex w-6 shrink-0 justify-center text-white/28">
+            <div className="flex items-center gap-3 pl-7 pr-3 py-1">
+              <div className="flex w-6 shrink-0 justify-center text-white/28">
                 <div className="h-7 w-[2px] rounded bg-current" />
               </div>
-              <div className="flex min-w-0 flex-1 items-start gap-3 text-left">
-                <div className="flex-1 pt-0.5">
+              <div className="flex min-w-0 flex-1 items-center justify-between gap-3 text-left">
+                <div className="min-w-0 flex-1">
                   {currentSetlist.closingAnnotation?.trim() ? (
                     <p className="truncate text-[0.8rem] font-semibold italic text-[var(--fz-text-muted)]">
                       [{currentSetlist.closingAnnotation.trim()}]
@@ -695,9 +701,9 @@ export function SetlistDetailPage() {
                   onClick={handleOpenEndingNotesEditor}
                   disabled={!canWrite}
                   aria-label="Modifier la note de fin"
-                  className="flex h-8 w-8 items-center justify-center text-white/28 transition hover:text-white/60"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center text-white/28 transition hover:text-white/60 disabled:opacity-40"
                 >
-                  <EditLineIcon className="h-3.5 w-3.5" />
+                  <FzIcon name="edit" usageId="setlist-detail.edit-ending" size="sm" />
                 </button>
               </div>
             </div>
@@ -868,6 +874,101 @@ export function SetlistDetailPage() {
             >
               {isSavingTransition ? 'Enregistrement...' : 'Enregistrer'}
             </button>
+          </form>
+        </FormDialog>
+      ) : null}
+
+      {isPdfExportDialogOpen ? (
+        <FormDialog title="Export PDF" onClose={() => setIsPdfExportDialogOpen(false)}>
+          <form className="space-y-4" onSubmit={handleConfirmExportPdf}>
+            <div className="rounded-[1rem] border border-white/8 bg-black/20 p-4 space-y-2">
+              <div className="flex items-center justify-between text-xs font-bold text-white/70">
+                <span>Morceaux dans la setlist :</span>
+                <span className="rounded-md bg-indigo-500/20 px-2.5 py-0.5 text-indigo-300 font-black">
+                  {songCount} {songCount > 1 ? 'chansons' : 'chanson'}
+                </span>
+              </div>
+              <p className="text-[0.72rem] text-white/50">
+                Choisissez le nombre de chansons par page. La hauteur du texte s'adapte automatiquement.
+              </p>
+            </div>
+
+            <label className="block space-y-1.5">
+              <span className="fz-field-label">Chansons par page</span>
+              <TextField
+                type="number"
+                min={1}
+                max={Math.max(1, songCount)}
+                value={pdfSongsPerPage}
+                onChange={(event) => {
+                  const val = parseInt(event.target.value, 10);
+                  if (!isNaN(val)) {
+                    setPdfSongsPerPage(Math.max(1, Math.min(songCount, val)));
+                  }
+                }}
+                required
+              />
+            </label>
+
+            {songCount >= 10 ? (
+              (function () {
+                const halfCount = Math.ceil(songCount / 2);
+                const candidates = [
+                  { value: halfCount, label: `${halfCount} / page` },
+                  { value: 10, label: '10 / page' },
+                  { value: songCount, label: 'Tout' },
+                ];
+                const presets = candidates
+                  .filter((opt, idx, self) => opt.value > 0 && opt.value <= songCount && self.findIndex((o) => o.value === opt.value) === idx)
+                  .sort((a, b) => a.value - b.value);
+
+                const gridColsClass = presets.length === 1 ? 'grid-cols-1' : presets.length === 2 ? 'grid-cols-2' : 'grid-cols-3';
+
+                return (
+                  <div className={`grid ${gridColsClass} gap-1.5 w-full`}>
+                    {presets.map((preset) => (
+                      <button
+                        key={preset.value}
+                        type="button"
+                        onClick={() => setPdfSongsPerPage(preset.value)}
+                        className={[
+                          'rounded-lg px-2 py-2 text-xs font-bold transition text-center truncate w-full',
+                          pdfSongsPerPage === preset.value
+                            ? 'bg-indigo-500 text-white'
+                            : 'bg-white/10 text-white/70 hover:bg-white/15',
+                        ].join(' ')}
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
+                );
+              })()
+            ) : null}
+
+            <div className="rounded-[1rem] border border-indigo-500/20 bg-indigo-500/10 px-4 py-3 text-xs text-indigo-200 font-medium">
+              <span className="font-bold">Rendu : </span>
+              {(() => {
+                const pages = Math.ceil(songCount / Math.max(1, pdfSongsPerPage));
+                return `${pages} page${pages > 1 ? 's' : ''} au total (${pdfSongsPerPage} chanson${pdfSongsPerPage > 1 ? 's' : ''} par page)`;
+              })()}
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setIsPdfExportDialogOpen(false)}
+                className="fz-button-secondary w-1/2 py-3 text-xs font-black uppercase tracking-[0.14em]"
+              >
+                Annuler
+              </button>
+              <button
+                type="submit"
+                className="fz-button-primary w-1/2 py-3 text-xs font-black uppercase tracking-[0.14em]"
+              >
+                Exporter PDF
+              </button>
+            </div>
           </form>
         </FormDialog>
       ) : null}

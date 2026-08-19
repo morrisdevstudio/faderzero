@@ -28,6 +28,7 @@ import type { SongStatus } from '@/db/schema';
 import { QuickVoiceRecorder } from '@/features/recorder/QuickVoiceRecorder';
 import { ContentRow } from '@/ui/components/ContentRow';
 import { DetailHeader } from '@/ui/components/DetailHeader';
+import { useUndoToastStore } from '@/stores/undoToastStore';
 import { FzIcon } from '@/ui/icons';
 import { StatusPill } from '@/ui/components/StatusPill';
 import { SelectField } from '@/ui/components/SelectField';
@@ -533,9 +534,16 @@ export function SongDetailPage() {
     setError(null);
 
     try {
-      await songsRepository.softDelete(currentSong.id);
+      const songToDelete = currentSong;
+      await songsRepository.softDelete(songToDelete.id);
       setIsDeleteDialogOpen(false);
       navigate('/songs');
+      useUndoToastStore.getState().showUndoToast({
+        message: `Morceau « ${songToDelete.title} » supprimé`,
+        onUndo: async () => {
+          await songsRepository.restore(songToDelete.id);
+        },
+      });
     } catch {
       setError('Impossible de supprimer cette chanson.');
       setIsSaving(false);
@@ -668,8 +676,8 @@ export function SongDetailPage() {
                   onClick={() => primaryAudioAsset && handlePlayAsset(primaryAudioAsset.id, cachedAssetIds.has(primaryAudioAsset.id))}
                   disabled={!primaryAudioAsset}
                   className={[
-                    'flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-all disabled:cursor-not-allowed disabled:opacity-40',
-                    isPrimaryAudioPlaying ? 'bg-white text-[#111319]' : 'bg-white/8 text-white hover:bg-white/14',
+                    'flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-40',
+                    isPrimaryAudioPlaying ? 'bg-[var(--fz-accent)] text-white shadow-md' : 'bg-white/10 text-white hover:bg-white/15 active:scale-95',
                   ].join(' ')}
                   aria-label={isPrimaryAudioPlaying ? 'Arreter la chanson' : 'Lire la chanson'}
                 >
@@ -812,7 +820,7 @@ export function SongDetailPage() {
                             handlePlayAsset(asset.id, isCached);
                           }}
                           aria-label={isThisPlaying ? `Arreter ${asset.filename}` : `Lire ${asset.filename}`}
-                          className={["flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition", isThisPlaying ? 'bg-white text-[#111319]' : 'bg-white/20 text-white hover:bg-white/30'].join(' ')}
+                          className={["flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition", isThisPlaying ? 'bg-[var(--fz-accent)] text-white' : 'bg-white/10 text-white hover:bg-white/15 active:scale-95'].join(' ')}
                         >
                           {isThisPlaying ? <FzIcon name="stop" usageId="song-detail.track.stop" size="sm" /> : <FzIcon name="play" usageId="song-detail.track.play" size="sm" />}
                         </button>

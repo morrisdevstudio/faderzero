@@ -85,7 +85,7 @@ describe('AccountPage invitations', () => {
     workspaceMocks.checkWorkspaceNameAvailable.mockReset().mockResolvedValue(true);
     workspaceMocks.listWorkspaceMembersWithProfiles.mockReset().mockResolvedValue([]);
     workspaceMocks.removeWorkspaceMember.mockReset();
-    profileMocks.getCurrentProfile.mockReset();
+    profileMocks.getCurrentProfile.mockReset().mockResolvedValue(profile);
     profileMocks.updateCurrentProfileDisplayName.mockReset();
     profileMocks.getProfileAvatarUrl.mockReset();
     profileMocks.uploadCurrentProfileAvatar.mockReset();
@@ -324,5 +324,28 @@ describe('AccountPage invitations', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Sync/i }));
     expect(screen.getByText('Synchronisation Cloud')).toBeInTheDocument();
+  });
+
+  it('affiche le bouton Corbeille pour l’espace personnel', async () => {
+    const personalWorkspace: Workspace = {
+      id: 'ws-personal',
+      name: 'Mon Espace',
+      createdBy: 'user-test',
+      createdAt: '2026-07-20T20:00:00.000Z',
+      updatedAt: '2026-07-20T20:00:00.000Z',
+      role: 'admin',
+      type: 'personal',
+    };
+
+    useAuthStore.setState({
+      session: userSession,
+      activeWorkspace: personalWorkspace,
+      workspaces: [personalWorkspace],
+    });
+
+    render(<AccountPage defaultTab="groupe" />);
+
+    expect(screen.getByText('Mon Espace')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Corbeille' })).toBeInTheDocument();
   });
 });

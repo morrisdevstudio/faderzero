@@ -1,6 +1,6 @@
 import {
-  ArrowLeft, AudioWaveform, CalendarDays, Check, CloudDownload, Ellipsis, Eye, EyeOff, FileDown,
-  House, Library, ListMusic, Maximize, Mic, MonitorUp, Pause, Pencil, Play,
+  ArrowLeft, CalendarDays, Check, CloudDownload, Ellipsis, Eye, EyeOff, FileDown,
+  House, Library, ListMusic, Maximize, Metronome, Mic, Monitor, Pause, Pencil, Play,
   Plus, Settings, Square, Trash2, Upload, X,
   type LucideIcon,
 } from 'lucide-react';
@@ -18,10 +18,10 @@ export const publishedIconComponents: Record<string, LucideIcon> = {
   fullscreen: Maximize,
   home: House,
   menu: Ellipsis,
-  metronome: AudioWaveform,
+  metronome: Metronome,
   pause: Pause,
   play: Play,
-  prompter: MonitorUp,
+  prompter: Monitor,
   record: Mic,
   setlist: ListMusic,
   settings: Settings,

@@ -147,4 +147,34 @@ export const eventsRepository = {
   async softDelete(id: string): Promise<void> {
     await this.update(id, { deletedAt: now() });
   },
+
+  async restore(id: string): Promise<EventRecord> {
+    const existing = await db.events.get(id);
+    if (!existing) {
+      throw new Error('Événement introuvable');
+    }
+
+    const timestamp = now();
+    const { deletedAt, ...rest } = existing;
+    const restored: EventRecord = {
+      ...rest,
+      updatedAt: timestamp,
+      syncStatus: 'pending',
+    };
+
+    await db.transaction('rw', db.events, db.syncQueue, async () => {
+      await db.events.put(restored);
+      await enqueueMutation(
+        db,
+        restored.workspaceId,
+        'event',
+        restored.id,
+        'update',
+        { ...restored, deleted_at: null },
+        existing.serverVersion,
+      );
+    });
+
+    return restored;
+  },
 };

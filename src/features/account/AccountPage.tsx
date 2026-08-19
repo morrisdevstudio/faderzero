@@ -115,7 +115,7 @@ function WorkspaceMemberList({
       {members.map((m) => (
         <div key={m.id} className="flex items-center justify-between rounded-xl border border-white/8 bg-black/20 p-2.5">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-xs font-bold text-white">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-xs font-bold text-white">
               {m.pseudo?.charAt(0).toUpperCase() || 'M'}
             </div>
             <div className="min-w-0">
@@ -330,6 +330,7 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
   const [editingGroupName, setEditingGroupName] = useState('');
   const [groupNameDuplicateWarning, setGroupNameDuplicateWarning] = useState<string | null>(null);
   const [isTrashOpen, setIsTrashOpen] = useState(false);
+  const [trashWorkspaceId, setTrashWorkspaceId] = useState<string | null>(null);
   const [groupActionError, setGroupActionError] = useState<string | null>(null);
   const [workspaceToSoftDelete, setWorkspaceToSoftDelete] = useState<Workspace | null>(null);
 
@@ -1147,91 +1148,99 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
                             </div>
                           </div>
 
-                          {/* Group Administration */}
-                          {ws.type === 'group' && (
-                            <div className="space-y-3 pt-2 border-t border-white/10">
-                              <div className="flex items-center justify-between">
-                                <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-300">Administration</h4>
-                                <div className="flex gap-2">
-                                  {canAdministerWorkspace(ws.role) && (
-                                    <button
-                                      type="button"
-                                      aria-label={`Partager le groupe ${ws.name}`}
-                                      onClick={() => void handleOpenShareDialog(ws)}
-                                      className="flex items-center gap-1.5 rounded-lg border border-orange-500/30 bg-orange-500/10 px-2.5 py-1 text-[0.68rem] font-semibold text-orange-300 hover:bg-orange-500/20 transition"
-                                    >
-                                      <ShareIcon />
-                                      Partager
-                                    </button>
-                                  )}
+                          {/* Workspace Administration & Tools (Accessible to all workspaces) */}
+                          <div className="space-y-3 pt-2 border-t border-white/10">
+                            <div className="flex items-center justify-between">
+                              <h4 className="text-xs font-bold uppercase tracking-wider text-white/80">
+                                {ws.type === 'group' ? 'Administration' : 'Contenus'}
+                              </h4>
+                              <div className="flex gap-2">
+                                {ws.type === 'group' && canAdministerWorkspace(ws.role) && (
                                   <button
-                                    onClick={() => setIsTrashOpen(true)}
-                                    className="flex items-center gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[0.68rem] font-semibold text-amber-300 hover:bg-amber-500/20 transition"
+                                    type="button"
+                                    aria-label={`Partager le groupe ${ws.name}`}
+                                    onClick={() => void handleOpenShareDialog(ws)}
+                                    className="flex items-center gap-1.5 rounded-lg border border-orange-500/30 bg-orange-500/10 px-2.5 py-1 text-[0.68rem] font-semibold text-orange-300 hover:bg-orange-500/20 transition"
                                   >
-                                    Corbeille
-                                  </button>
-                                </div>
-                              </div>
-
-                              {canAdministerWorkspace(ws.role) && (
-                                <div className="space-y-2 pt-3 border-t border-white/10">
-                                  <label htmlFor={`workspaceName-${ws.id}`} className="fz-field-label">
-                                    Nom du groupe
-                                  </label>
-                                  <div className="flex gap-2">
-                                    <div className="min-w-0 flex-1">
-                                    <TextField
-                                      id={`workspaceName-${ws.id}`}
-                                      type="text"
-                                      value={editingWorkspaceId === ws.id ? editingGroupName : ws.name}
-                                      onFocus={() => {
-                                        setEditingWorkspaceId(ws.id);
-                                        setEditingGroupName(ws.name);
-                                      }}
-                                      onChange={(e) => {
-                                        setEditingWorkspaceId(ws.id);
-                                        setEditingGroupName(e.target.value);
-                                      }}
-                                    />
-                                    </div>
-                                    <button
-                                      onClick={() => void handleUpdateGroupName(ws.id, editingGroupName)}
-                                      className="rounded-lg bg-orange-500 px-3 py-1.5 text-xs font-bold text-white hover:bg-orange-400 transition"
-                                    >
-                                      Enregistrer
-                                    </button>
-                                  </div>
-                                  {groupNameDuplicateWarning && editingWorkspaceId === ws.id && (
-                                    <p className="text-xs text-amber-400">{groupNameDuplicateWarning}</p>
-                                  )}
-                                </div>
-                              )}
-
-                              <WorkspaceMemberList
-                                workspace={ws}
-                                canAdmin={canAdministerWorkspace(ws.role)}
-                                onMemberRoleChange={(userId, role) => void handleMemberRoleChange(ws.id, userId, role)}
-                                onRemoveMember={(m) => setMemberToRemove({ member: m, workspaceId: ws.id })}
-                              />
-
-                              <div className="flex gap-2 pt-2">
-                                <button
-                                  onClick={() => void handleLeaveGroup(ws.id)}
-                                  className="flex-1 rounded-xl border border-white/10 bg-white/5 py-2 text-xs font-bold text-white/70 hover:bg-white/10 transition"
-                                >
-                                  Quitter le groupe
-                                </button>
-                                {canAdministerWorkspace(ws.role) && (
-                                  <button
-                                    onClick={() => setWorkspaceToSoftDelete(ws)}
-                                    className="flex-1 rounded-xl border border-red-500/30 bg-red-500/10 py-2 text-xs font-bold text-red-400 hover:bg-red-500/20 transition"
-                                  >
-                                    Placer en corbeille
+                                    <ShareIcon />
+                                    Partager
                                   </button>
                                 )}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setTrashWorkspaceId(ws.id);
+                                    setIsTrashOpen(true);
+                                  }}
+                                  className="flex items-center gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[0.68rem] font-semibold text-amber-300 hover:bg-amber-500/20 transition"
+                                >
+                                  Corbeille
+                                </button>
                               </div>
                             </div>
-                          )}
+
+                            {ws.type === 'group' && (
+                              <>
+                                {canAdministerWorkspace(ws.role) && (
+                                  <div className="space-y-2 pt-3 border-t border-white/10">
+                                    <label htmlFor={`workspaceName-${ws.id}`} className="fz-field-label">
+                                      Nom du groupe
+                                    </label>
+                                    <div className="flex gap-2">
+                                      <div className="min-w-0 flex-1">
+                                      <TextField
+                                        id={`workspaceName-${ws.id}`}
+                                        type="text"
+                                        value={editingWorkspaceId === ws.id ? editingGroupName : ws.name}
+                                        onFocus={() => {
+                                          setEditingWorkspaceId(ws.id);
+                                          setEditingGroupName(ws.name);
+                                        }}
+                                        onChange={(e) => {
+                                          setEditingWorkspaceId(ws.id);
+                                          setEditingGroupName(e.target.value);
+                                        }}
+                                      />
+                                      </div>
+                                      <button
+                                        onClick={() => void handleUpdateGroupName(ws.id, editingGroupName)}
+                                        className="rounded-lg bg-orange-500 px-3 py-1.5 text-xs font-bold text-white hover:bg-orange-400 transition"
+                                      >
+                                        Enregistrer
+                                      </button>
+                                    </div>
+                                    {groupNameDuplicateWarning && editingWorkspaceId === ws.id && (
+                                      <p className="text-xs text-amber-400">{groupNameDuplicateWarning}</p>
+                                    )}
+                                  </div>
+                                )}
+
+                                <WorkspaceMemberList
+                                  workspace={ws}
+                                  canAdmin={canAdministerWorkspace(ws.role)}
+                                  onMemberRoleChange={(userId, role) => void handleMemberRoleChange(ws.id, userId, role)}
+                                  onRemoveMember={(m) => setMemberToRemove({ member: m, workspaceId: ws.id })}
+                                />
+
+                                <div className="flex gap-2 pt-2">
+                                  <button
+                                    onClick={() => void handleLeaveGroup(ws.id)}
+                                    className="flex-1 rounded-xl border border-white/10 bg-white/5 py-2 text-xs font-bold text-white/70 hover:bg-white/10 transition"
+                                  >
+                                    Quitter le groupe
+                                  </button>
+                                  {canAdministerWorkspace(ws.role) && (
+                                    <button
+                                      onClick={() => setWorkspaceToSoftDelete(ws)}
+                                      className="flex-1 rounded-xl border border-red-500/30 bg-red-500/10 py-2 text-xs font-bold text-red-400 hover:bg-red-500/20 transition"
+                                    >
+                                      Placer en corbeille
+                                    </button>
+                                  )}
+                                </div>
+                              </>
+                            )}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -1484,11 +1493,14 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
       />
 
       {/* Trash Modal */}
-      {activeWorkspace && (
+      {(trashWorkspaceId || activeWorkspace?.id) && (
         <TrashModal
-          workspaceId={activeWorkspace.id}
+          workspaceId={trashWorkspaceId || activeWorkspace?.id || 'personal'}
           isOpen={isTrashOpen}
-          onClose={() => setIsTrashOpen(false)}
+          onClose={() => {
+            setIsTrashOpen(false);
+            setTrashWorkspaceId(null);
+          }}
         />
       )}
     </div>

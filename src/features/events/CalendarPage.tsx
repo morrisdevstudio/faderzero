@@ -11,6 +11,7 @@ import { AddButton } from '@/ui/components/AddButton';
 import { ContentRow } from '@/ui/components/ContentRow';
 import { PageHeader } from '@/ui/components/PageHeader';
 import { SelectField } from '@/ui/components/SelectField';
+import { useUndoToastStore } from '@/stores/undoToastStore';
 import { FzIcon } from '@/ui/icons';
 
 import { getWorkspaceColorOption, useWorkspaceBadgeColors } from '@/services/workspaceColors';
@@ -331,6 +332,22 @@ export function CalendarPage() {
     navigateToMonth(new Date(year, month + 1, 1));
   };
 
+  const navigateToWeek = (direction: 'previous' | 'next') => {
+    const deltaDays = direction === 'next' ? 7 : -7;
+    const newSelectedDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate() + deltaDays);
+    setMonthTransitionDirection(direction);
+    setSelectedDate(newSelectedDate);
+    setCurrentDate(newSelectedDate);
+  };
+
+  const handlePrevWeek = () => {
+    navigateToWeek('previous');
+  };
+
+  const handleNextWeek = () => {
+    navigateToWeek('next');
+  };
+
   const handleCalendarTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
     const touch = event.touches[0];
     if (!touch) return;
@@ -348,8 +365,13 @@ export function CalendarPage() {
     const swipeThreshold = 48;
     if (Math.abs(deltaX) < swipeThreshold || Math.abs(deltaX) <= Math.abs(deltaY)) return;
 
-    if (deltaX < 0) handleNextMonth();
-    else handlePrevMonth();
+    if (isMonthView) {
+      if (deltaX < 0) handleNextMonth();
+      else handlePrevMonth();
+    } else {
+      if (deltaX < 0) handleNextWeek();
+      else handlePrevWeek();
+    }
   };
 
   const handleTodayMonth = () => {
@@ -537,7 +559,7 @@ export function CalendarPage() {
   }, []);
 
   return (
-    <div className="w-full space-y-4 pb-24 text-slate-200">
+    <div className="w-full space-y-4 pb-24 text-[#f5f0ea]">
       <PageHeader
         icon={<FzIcon name="calendar" usageId="page-header.calendar" size="xl" />}
         title="Événements"
@@ -724,36 +746,32 @@ export function CalendarPage() {
             <div className="flex items-center justify-center min-w-0 flex-1">
               <div className="flex items-center justify-between w-[200px] shrink-0">
                 <div className="w-8 shrink-0 flex justify-center">
-                  {isMonthView && (
-                    <button
-                      type="button"
-                      onClick={handlePrevMonth}
-                      aria-label="Mois précédent"
-                      title="Mois précédent"
-                      className="flex h-8 w-8 items-center justify-center rounded-xl text-white/70 hover:bg-white/10 hover:text-white transition-colors"
-                    >
-                      <ChevronLeftIcon />
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={isMonthView ? handlePrevMonth : handlePrevWeek}
+                    aria-label={isMonthView ? "Mois précédent" : "Semaine précédente"}
+                    title={isMonthView ? "Mois précédent" : "Semaine précédente"}
+                    className="flex h-8 w-8 items-center justify-center rounded-xl text-white/70 hover:bg-white/10 hover:text-white transition-colors"
+                  >
+                    <ChevronLeftIcon />
+                  </button>
                 </div>
                 <h2
-                  key={`month-title-${monthTransitionKey}`}
+                  key={`month-title-${isMonthView ? monthTransitionKey : `${selectedDate.getFullYear()}-${selectedDate.getMonth()}-${selectedDate.getDate()}`}`}
                   className={`text-base font-black text-white tracking-tight truncate text-center flex-1 px-1 ${monthTransitionClass}`}
                 >
                   {monthName}
                 </h2>
                 <div className="w-8 shrink-0 flex justify-center">
-                  {isMonthView && (
-                    <button
-                      type="button"
-                      onClick={handleNextMonth}
-                      aria-label="Mois suivant"
-                      title="Mois suivant"
-                      className="flex h-8 w-8 items-center justify-center rounded-xl text-white/70 hover:bg-white/10 hover:text-white transition-colors"
-                    >
-                      <ChevronRightIcon />
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={isMonthView ? handleNextMonth : handleNextWeek}
+                    aria-label={isMonthView ? "Mois suivant" : "Semaine suivante"}
+                    title={isMonthView ? "Mois suivant" : "Semaine suivante"}
+                    className="flex h-8 w-8 items-center justify-center rounded-xl text-white/70 hover:bg-white/10 hover:text-white transition-colors"
+                  >
+                    <ChevronRightIcon />
+                  </button>
                 </div>
               </div>
             </div>
@@ -773,7 +791,7 @@ export function CalendarPage() {
           </div>
 
           {/* Days of Week Header */}
-          <div className="grid grid-cols-7 text-center text-xs font-bold text-zinc-400 mb-2 uppercase tracking-wider">
+          <div className="grid grid-cols-7 text-center text-xs font-bold text-white/45 mb-2 uppercase tracking-wider">
             {WEEKDAYS.map((day, idx) => (
               <div key={idx}>{day}</div>
             ))}
@@ -804,7 +822,7 @@ export function CalendarPage() {
                     onClick={() => handleSelectDate(item.date)}
                     className={[
                       'aspect-square rounded-xl hover:bg-[#1B1E2B] flex flex-col items-center justify-center relative transition-all duration-150 p-1',
-                      item.isCurrentMonth ? 'text-zinc-200' : 'text-zinc-600 opacity-40',
+                      item.isCurrentMonth ? 'text-white' : 'text-white/20',
                       isSelected
                         ? 'bg-purple-600/25 border-2 border-purple-500 text-white font-bold shadow-[0_0_12px_rgba(124,58,237,0.4)] scale-105 z-10'
                         : 'border border-transparent',
@@ -855,7 +873,12 @@ export function CalendarPage() {
               !isMonthView ? 'fz-calendar-view-expanded' : 'pointer-events-none',
             ].join(' ')}
           >
-            <div className="grid grid-cols-7 gap-1 text-sm p-1">
+            <div
+              key={`week-grid-${selectedDate.getFullYear()}-${selectedDate.getMonth()}-${selectedDate.getDate()}`}
+              data-testid="calendar-week-grid"
+              data-transition-direction={monthTransitionDirection ?? undefined}
+              className={`grid grid-cols-7 gap-1 text-sm p-1 ${monthTransitionClass}`}
+            >
               {activeWeekDays.map((item, idx) => {
                 const dayEvents = eventsByDayString.get(item.date.toDateString()) || [];
                 const isSelected = selectedDate.toDateString() === item.date.toDateString();
@@ -869,7 +892,7 @@ export function CalendarPage() {
                       'aspect-square rounded-xl hover:bg-[#1B1E2B] flex flex-col items-center justify-center relative transition-all duration-150 p-1',
                       isSelected
                         ? 'bg-purple-600/25 border-2 border-purple-500 text-white font-bold shadow-[0_0_12px_rgba(124,58,237,0.4)] scale-105 z-10'
-                        : 'border border-transparent text-zinc-300',
+                        : 'border border-transparent text-white',
                       item.isToday && !isSelected ? 'bg-[#1B1E2B] border border-[#222636]' : '',
                     ].join(' ')}
                   >
@@ -913,10 +936,10 @@ export function CalendarPage() {
       {/* FEED LIST AREA */}
       <div className="space-y-3 pt-1">
         {loading ? (
-          <div className="py-12 text-center text-sm text-zinc-500">Chargement des événements...</div>
+          <div className="py-12 text-center text-sm text-[var(--fz-text-muted)]">Chargement des événements...</div>
         ) : groupedEvents.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-white/10 p-8 text-center bg-[#13151F]/40 backdrop-blur-sm">
-            <p className="text-sm text-zinc-500">
+            <p className="text-sm text-[var(--fz-text-muted)]">
               {searchQuery || disabledWorkspaceIds.size > 0
                 ? 'Aucun événement ne correspond à vos filtres.'
                 : 'Aucun événement prévu pour le moment.'}
@@ -1225,7 +1248,7 @@ export function CalendarPage() {
                 <button
                   type="button"
                   onClick={() => setActiveBottomSheetEvent(null)}
-                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-zinc-300 hover:bg-white/10"
+                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-white/80 hover:bg-white/10"
                 >
                   Annuler
                 </button>
@@ -1265,12 +1288,20 @@ export function CalendarPage() {
         isBusy={isDeletingEvent}
         onConfirm={async () => {
           if (!eventToDelete) return;
+          const target = eventToDelete;
           setIsDeletingEvent(true);
           try {
-            await eventsRepository.softDelete(eventToDelete.id);
+            await eventsRepository.softDelete(target.id);
             setEventToDelete(null);
             setActiveBottomSheetEvent(null);
             await loadEvents();
+            useUndoToastStore.getState().showUndoToast({
+              message: `Événement « ${target.title} » supprimé`,
+              onUndo: async () => {
+                await eventsRepository.restore(target.id);
+                await loadEvents();
+              },
+            });
           } finally {
             setIsDeletingEvent(false);
           }

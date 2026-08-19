@@ -133,4 +133,21 @@ describe('SongsRepository', () => {
 
     await destroyTestDatabase(database);
   });
+
+  it('restores a soft-deleted song', async () => {
+    const database = await createTestDatabase('songs-repository-restore');
+    const repository = new SongsRepository(database);
+
+    const song = await repository.create({ title: 'Song to restore' });
+    await repository.softDelete(song.id);
+    expect(await repository.list()).toHaveLength(0);
+
+    const restored = await repository.restore(song.id);
+    expect(restored.deletedAt).toBeUndefined();
+    const active = await repository.list();
+    expect(active).toHaveLength(1);
+    expect(active[0]?.id).toBe(song.id);
+
+    await destroyTestDatabase(database);
+  });
 });

@@ -315,6 +315,65 @@ export class SongsRepository {
     return deletedSong;
   }
 
+  async restore(id: string) {
+    const existingSong = await this.database.songs.get(id);
+    if (!existingSong) {
+      throw new Error(`Song not found: ${id}`);
+    }
+
+    const timestamp = now();
+    const { deletedAt, ...songRest } = existingSong;
+    const restoredSong: SongRecord = {
+      ...songRest,
+      updatedAt: timestamp,
+      syncStatus: 'pending',
+    };
+
+    await this.database.transaction(
+      'rw',
+      this.database.songs,
+      this.database.setlistSongs,
+      this.database.syncQueue,
+      async () => {
+        // 1. Restaurer le morceau
+        await this.database.songs.put(restoredSong);
+        await enqueueMutation(
+          this.database,
+          restoredSong.workspaceId,
+          'song',
+          restoredSong.id,
+          'update',
+          { deleted_at: null, updated_at: new Date(timestamp).toISOString() },
+          existingSong.serverVersion
+        );
+
+        // 2. Restaurer les liaisons setlistSongs associées
+        const relatedEntries = await this.database.setlistSongs.where('songId').equals(id).toArray();
+        for (const entry of relatedEntries) {
+          if (entry.deletedAt !== undefined) {
+            const { deletedAt: entryDeletedAt, ...entryRest } = entry;
+            await this.database.setlistSongs.put({
+              ...entryRest,
+              syncStatus: 'pending',
+              updatedAt: timestamp,
+            });
+            await enqueueMutation(
+              this.database,
+              entry.workspaceId,
+              'setlistSong',
+              entry.id,
+              'update',
+              { deleted_at: null, updated_at: new Date(timestamp).toISOString() },
+              entry.serverVersion
+            );
+          }
+        }
+      }
+    );
+
+    return restoredSong;
+  }
+
   async countActive() {
     const songs = await this.list();
     return songs.length;

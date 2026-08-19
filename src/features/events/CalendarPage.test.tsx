@@ -68,6 +68,37 @@ describe('CalendarPage scroll collapse', () => {
     expect(screen.getByTestId('calendar-month-grid')).toHaveAttribute('data-transition-direction', 'previous');
   });
 
+  it('navigates weeks with arrows and swipe when calendar is collapsed', () => {
+    render(<CalendarPage />);
+
+    // Collapse calendar to week view
+    fireEvent.click(screen.getByRole('button', { name: 'Réduire le calendrier' }));
+    expect(screen.getByRole('button', { name: 'Déplier le calendrier' })).toBeInTheDocument();
+
+    const prevWeekButton = screen.getByRole('button', { name: 'Semaine précédente' });
+    const nextWeekButton = screen.getByRole('button', { name: 'Semaine suivante' });
+    expect(prevWeekButton).toBeInTheDocument();
+    expect(nextWeekButton).toBeInTheDocument();
+
+    // Click next week
+    fireEvent.click(nextWeekButton);
+    expect(screen.getByTestId('calendar-week-grid')).toHaveAttribute('data-transition-direction', 'next');
+
+    // Click previous week
+    fireEvent.click(prevWeekButton);
+    expect(screen.getByTestId('calendar-week-grid')).toHaveAttribute('data-transition-direction', 'previous');
+
+    // Swipe horizontally on week view
+    const calendar = screen.getByTestId('calendar-card');
+    fireEvent.touchStart(calendar, { touches: [{ clientX: 240, clientY: 100 }] });
+    fireEvent.touchEnd(calendar, { changedTouches: [{ clientX: 120, clientY: 105 }] });
+    expect(screen.getByTestId('calendar-week-grid')).toHaveAttribute('data-transition-direction', 'next');
+
+    fireEvent.touchStart(calendar, { touches: [{ clientX: 120, clientY: 100 }] });
+    fireEvent.touchEnd(calendar, { changedTouches: [{ clientX: 240, clientY: 105 }] });
+    expect(screen.getByTestId('calendar-week-grid')).toHaveAttribute('data-transition-direction', 'previous');
+  });
+
   it('keeps the month view open for a small wheel gesture', () => {
     render(<CalendarPage />);
 

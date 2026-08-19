@@ -3,7 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { AppShell } from '@/components/AppShell';
 
 const AccountPage = lazy(async () => ({ default: (await import('@/features/account/AccountPage')).AccountPage }));
-const ImportsPage = lazy(async () => ({ default: (await import('@/features/imports/ImportsPage')).ImportsPage }));
+const SongsPage = lazy(async () => ({ default: (await import('@/features/songs/SongsPage')).SongsPage }));
 const MetronomePage = lazy(async () => ({ default: (await import('@/features/metronome/MetronomePage')).MetronomePage }));
 const PrompterLibraryPage = lazy(async () => ({ default: (await import('@/features/prompter/PrompterLibraryPage')).PrompterLibraryPage }));
 const PrompterPage = lazy(async () => ({ default: (await import('@/features/prompter/PrompterPage')).PrompterPage }));
@@ -34,7 +34,7 @@ export function AppRouter() {
         <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/booking" element={<BookingPage />} />
         <Route path="/booking/:bookingId" element={<BookingPage />} />
-        <Route path="/songs" element={<ImportsPage />} />
+        <Route path="/songs" element={<SongsPage />} />
         <Route path="/songs/:songId" element={<SongDetailPage />} />
         <Route path="/imports" element={<Navigate to="/songs" replace />} />
         <Route path="/musiques" element={<Navigate to="/songs" replace />} />

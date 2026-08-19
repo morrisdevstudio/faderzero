@@ -102,4 +102,21 @@ describe('SetlistsRepository', () => {
 
     await destroyTestDatabase(database);
   });
+
+  it('restores a soft-deleted setlist', async () => {
+    const database = await createTestDatabase('setlists-repository-restore');
+    const repository = new SetlistsRepository(database);
+
+    const setlist = await repository.create({ name: 'Setlist to restore' });
+    await repository.softDelete(setlist.id);
+    expect(await repository.list()).toHaveLength(0);
+
+    const restored = await repository.restore(setlist.id);
+    expect(restored.deletedAt).toBeUndefined();
+    const active = await repository.list();
+    expect(active).toHaveLength(1);
+    expect(active[0]?.id).toBe(setlist.id);
+
+    await destroyTestDatabase(database);
+  });
 });

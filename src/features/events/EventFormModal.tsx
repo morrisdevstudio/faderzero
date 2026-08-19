@@ -374,7 +374,7 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
                 type="button"
                 onClick={onClose}
                 disabled={loading}
-                className="fz-button-secondary min-h-11 px-4 text-xs font-semibold text-zinc-300"
+                className="fz-button-secondary min-h-11 px-4 text-xs font-semibold text-white/80"
               >
                 Annuler
               </button>

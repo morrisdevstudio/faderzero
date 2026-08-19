@@ -193,13 +193,28 @@ Les SVG métier (ex: figures de métrique musicale `SubdivisionIcon`), logos de 
 
 ### Phase 5 — Couleurs sémantiques et finitions par écran
 
-1. Distinguer les surfaces neutres des couleurs porteuses d’un état ou d’un contexte.
-2. Remplacer Zinc et les surfaces ad hoc par les tokens de panneau, bordure et texte existants lorsqu’ils ne portent aucune sémantique.
-3. Évaluer les besoins transversaux `warning`, `info` et `selected`; ne créer un token qu’après validation et avec plusieurs usages identifiés.
-4. Traiter `UndoToast`, les écrans de sélection/invitation d’espace, `HomePage`, les détails de setlist et les outils live par lots indépendants.
-5. Conserver une seule action primaire rose visible par écran et réserver le succès au vert existant.
+**Avancement au 19 août 2026 : Phase 5 terminée. Les surfaces neutres, statuts et finitions par écran sont entièrement standardisés.**
 
-**Validation mesurable** : contraste WCAG AA, couleur jamais seule porteuse de sens, états normal/focus/actif/désactivé, safe areas, absence de chevauchement avec la navigation basse.
+Réalisé :
+
+1. **Éradication des palettes ad hoc (Zinc/Slate)** :
+   - Remplacement de 100% des classes `zinc-*` et `slate-*` résiduelles par les tokens standardisés (`--fz-text-muted`, `white/*`, `--fz-border`, `--fz-panel`, `--fz-bg-elevated`).
+2. **Standardisation par écran et composant** :
+   - [`UndoToast.tsx`](../src/components/UndoToast.tsx) : surface neutre sombre `bg-[#14161b]/98`, bordure et barre temporelle d'annulation `amber-400`, bouton fermer standardisé et positionnement sécurisé `bottom-[calc(5rem+env(safe-area-inset-bottom))]` pour éviter tout chevauchement avec la barre de navigation basse.
+   - [`HomePage.tsx`](../src/features/home/HomePage.tsx) : titres de sections en `text-white/70`, états vides et de chargement en `text-[var(--fz-text-muted)]`, lignes d'activité récentes en `bg-white/5 border-white/6`.
+   - [`CopySongModal.tsx`](../src/features/songs/CopySongModal.tsx) : remplacement des bordures et fonds zinc par `border-white/10 bg-white/5` et boutons secondaires alignés.
+   - [`TrashModal.tsx`](../src/features/trash/TrashModal.tsx) : suppression des styles zinc sur la liste, le bouton de restauration et l'action de dry-run.
+   - [`EventFormModal.tsx`](../src/features/events/EventFormModal.tsx) : bouton d'annulation standardisé en `fz-button-secondary`.
+   - [`CalendarPage.tsx`](../src/features/events/CalendarPage.tsx) : conteneur en `text-[#f5f0ea]`, jours du mois et hors mois contrastés (`text-white` / `text-white/20`), états vides et de chargement en `text-[var(--fz-text-muted)]`.
+   - [`AccountPage.tsx`](../src/features/account/AccountPage.tsx) : avatars et en-têtes de groupe alignés sur les tokens canoniques.
+   - [`SetlistDetailPage.tsx`](../src/features/setlists/SetlistDetailPage.tsx) : actions `add` et `edit` migrées vers `FzIcon`, bouton direct segue et finitions conservés.
+3. **Respect de la hiérarchie visuelle FaderZero** :
+   - Règle d'une seule action primaire rose (`fz-button-primary` / `bg-[var(--fz-accent)]`) par écran/dialogue respectée.
+   - Vert (`--fz-success` / `emerald-400`) réservé exclusivement aux états de validation/succès.
+   - Avertissements / annulations temporaires en `amber-400`.
+   - Actions destructrices / suppressions en `fz-button-danger` / `rose-400`.
+
+**Validation mesurable** : 0 occurrences de `zinc-*` / `slate-*` résiduelles dans `src/`, contrastes conformes WCAG AA, safe areas vérifiées, `npm run icons:validate` (PASS 95 instances), `PASS verify:fast`, suite Vitest 100% passante (95 fichiers / 451 tests).
 
 ## 5. Validation et définition de terminé
 

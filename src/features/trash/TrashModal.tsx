@@ -89,9 +89,9 @@ export const TrashModal: React.FC<TrashModalProps> = ({
 
       <div className="mt-4 max-h-80 overflow-y-auto pr-1">
         {loading ? (
-          <div className="py-8 text-center text-sm text-zinc-400">Chargement de la corbeille...</div>
+          <div className="py-8 text-center text-sm text-[var(--fz-text-muted)]">Chargement de la corbeille...</div>
         ) : items.length === 0 ? (
-          <div className="py-8 text-center text-sm text-zinc-500">Aucun élément dans la corbeille.</div>
+          <div className="py-8 text-center text-sm text-[var(--fz-text-muted)]">Aucun élément dans la corbeille.</div>
         ) : (
           <div className="divide-y divide-white/10">
             {items.map((item) => {
@@ -119,7 +119,7 @@ export const TrashModal: React.FC<TrashModalProps> = ({
                     <button
                       type="button"
                       onClick={() => handleRestore(item)}
-                      className="flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-zinc-800 px-3 text-xs font-medium text-zinc-200 transition-colors hover:bg-zinc-700 hover:text-white"
+                      className="flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-white/10 px-3 text-xs font-medium text-white transition-colors hover:bg-white/15"
                     >
                       <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
@@ -135,18 +135,18 @@ export const TrashModal: React.FC<TrashModalProps> = ({
         )}
       </div>
 
-      <div className="mt-6 flex flex-col gap-3 border-t border-zinc-800 pt-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mt-6 flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
         <button
           type="button"
           onClick={handlePurgeDryRun}
-          className="min-h-11 text-left text-xs text-zinc-300 underline transition-colors hover:text-amber-300"
+          className="min-h-11 text-left text-xs text-white/70 underline transition-colors hover:text-white"
         >
           Simuler la purge des contenus expirés (Dry-Run)
         </button>
         <button
           type="button"
           onClick={onClose}
-          className="fz-button-secondary min-h-11 px-4 text-xs font-semibold text-zinc-200"
+          className="fz-button-secondary min-h-11 px-4 text-xs font-semibold text-white/80"
         >
           Fermer
         </button>

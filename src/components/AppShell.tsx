@@ -11,6 +11,8 @@ import { canWriteWorkspace } from '@/services/supabase/workspace';
 import { FzIcon } from '@/ui/icons';
 import { AppHeader } from '@/ui/components/AppHeader';
 import { FaderLogo } from '@/ui/components/FaderLogo';
+import { UndoToast } from '@/components/UndoToast';
+import { useUndoToastStore } from '@/stores/undoToastStore';
 
 const scrollPositions = new Map<string, number>();
 
@@ -73,6 +75,8 @@ export function AppShell() {
   const workspaces = useAuthStore((state) => state.workspaces);
   const clearFeedback = useAuthStore((state) => state.clearFeedback);
   const setActiveWorkspace = useAuthStore((state) => state.setActiveWorkspace);
+  const undoToast = useUndoToastStore((state) => state.toast);
+  const dismissUndoToast = useUndoToastStore((state) => state.dismissUndoToast);
   const [isWorkspacePickerOpen, setIsWorkspacePickerOpen] = useState(false);
   const [isLiveMenuOpen, setIsLiveMenuOpen] = useState(false);
   const [isVoiceRecorderOpen, setIsVoiceRecorderOpen] = useState(false);
@@ -470,6 +474,20 @@ export function AppShell() {
         >
           {voiceRecorderMessage}
         </div>
+      ) : null}
+
+      {undoToast ? (
+        <UndoToast
+          key={undoToast.id}
+          message={undoToast.message}
+          onUndo={async () => {
+            const undoFn = undoToast.onUndo;
+            dismissUndoToast();
+            await undoFn();
+          }}
+          onDismiss={dismissUndoToast}
+          durationMs={undoToast.durationMs ?? 5000}
+        />
       ) : null}
     </div>
   );

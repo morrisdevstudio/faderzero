@@ -4,6 +4,7 @@ import { publishedIconComponents, publishedIconUsageOverrides } from './publishe
 import type { IconRoleKey, IconSize } from './contracts';
 
 const sizes: Record<IconSize, number> = { sm: 16, md: 20, lg: 24, xl: 28 };
+const filledRoles = new Set<string>(['play', 'pause', 'stop']);
 
 type CommonProps = Omit<ComponentPropsWithoutRef<'svg'>, 'children'> & {
   name: IconRoleKey;
@@ -16,10 +17,12 @@ type FzIconProps = CommonProps & (
   | { decorative: false; 'aria-label': string }
 );
 
-export function FzIcon({ name, usageId, size = 'md', decorative = true, ...props }: FzIconProps) {
+export function FzIcon({ name, usageId, size = 'md', decorative = true, fill, ...props }: FzIconProps) {
   const Icon = publishedIconUsageOverrides[usageId] ?? publishedIconComponents[name] ?? CircleHelp;
+  const resolvedFill = fill ?? (filledRoles.has(name) ? 'currentColor' : undefined);
   return (
     <Icon
+      {...(resolvedFill ? { fill: resolvedFill } : {})}
       {...props}
       size={sizes[size]}
       strokeWidth={2}

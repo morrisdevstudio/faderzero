@@ -16,9 +16,6 @@ const PDF_SONG_META_LINE_HEIGHT = 9;
 const PDF_SONG_ENTRY_HEIGHT = 32;
 const PDF_SONGS_LIST_LEFT_PADDING = 20;
 const PDF_TRANSITION_ARROW_LANE_WIDTH = 20;
-const PDF_MIN_CONTENT_SCALE = 1.85;
-const PDF_MEDIUM_CONTENT_SCALE = 2.1;
-const PDF_MAX_CONTENT_SCALE = 2.35;
 const PDF_HEADER_HEIGHT_PX = PDF_TITLE_LINE_HEIGHT + PDF_HEADER_BOTTOM_MARGIN;
 
 type SongPdfEntry = {
@@ -43,11 +40,65 @@ function clampText(value: string, maxLength: number) {
     return normalized;
   }
 
-  return `${normalized.slice(0, Math.max(0, maxLength - 1)).trimEnd()}…`;
+  return `${normalized.slice(0, Math.max(0, maxLength - 3)).trimEnd()}...`;
+}
+
+const WIN_ANSI_MAP: Record<string, number> = {
+  '\u20AC': 0x80, // €
+  '\u201A': 0x82, // ‚
+  '\u0192': 0x83, // ƒ
+  '\u201E': 0x84, // „
+  '\u2026': 0x85, // …
+  '\u2020': 0x86, // †
+  '\u2021': 0x87, // ‡
+  '\u02C6': 0x88, // ˆ
+  '\u2030': 0x89, // ‰
+  '\u0160': 0x8A, // Š
+  '\u2039': 0x8B, // ‹
+  '\u0152': 0x8C, // Œ
+  '\u017D': 0x8E, // Ž
+  '\u2018': 0x91, // ‘
+  '\u2019': 0x92, // ’
+  '\u201C': 0x93, // “
+  '\u201D': 0x94, // ”
+  '\u2022': 0x95, // •
+  '\u2013': 0x96, // –
+  '\u2014': 0x97, // —
+  '\u02DC': 0x98, // ˜
+  '\u2122': 0x99, // ™
+  '\u0161': 0x9A, // š
+  '\u203A': 0x9B, // ›
+  '\u0153': 0x9C, // œ
+  '\u017E': 0x9E, // ž
+  '\u0178': 0x9F, // Ÿ
+};
+
+function encodeWinAnsiString(value: string): string {
+  let result = '';
+  for (const char of value) {
+    const mappedCode = WIN_ANSI_MAP[char];
+    if (mappedCode !== undefined) {
+      result += String.fromCharCode(mappedCode);
+    } else {
+      const code = char.charCodeAt(0);
+      if (code <= 0xff) {
+        result += char;
+      } else {
+        const normalized = char.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        if (normalized.length > 0 && normalized.charCodeAt(0) <= 0xff) {
+          result += normalized;
+        } else {
+          result += '?';
+        }
+      }
+    }
+  }
+  return result;
 }
 
 function escapePdfText(value: string) {
-  return value
+  const winAnsi = encodeWinAnsiString(value);
+  return winAnsi
     .replaceAll('\\', '\\\\')
     .replaceAll('(', '\\(')
     .replaceAll(')', '\\)')
@@ -56,7 +107,11 @@ function escapePdfText(value: string) {
 }
 
 function toPdfByteArray(value: string) {
-  return Uint8Array.from([...value].map((character) => character.charCodeAt(0) & 0xff));
+  const bytes = new Uint8Array(value.length);
+  for (let i = 0; i < value.length; i += 1) {
+    bytes[i] = value.charCodeAt(i) & 0xff;
+  }
+  return bytes;
 }
 
 function sanitizePdfFileName(value: string) {
@@ -74,10 +129,16 @@ function formatPdfDate(date: Date) {
   return `${day}-${month}-${year}`;
 }
 
-function getPdfContentScale(songCount: number) {
-  if (songCount <= 8) return PDF_MAX_CONTENT_SCALE;
-  if (songCount <= 12) return PDF_MEDIUM_CONTENT_SCALE;
-  return PDF_MIN_CONTENT_SCALE;
+export interface SetlistPdfOptions {
+  songsPerPage?: number;
+}
+
+function getPdfContentScale(songsPerPage: number) {
+  // La hauteur de texte maximale est plafonnée à la taille d'un rendu à 10 chansons par page (scale = 3.362).
+  // À partir de 10 chansons, la hauteur de texte s'adapte dynamiquement pour remplir la page A4.
+  const count = Math.max(10, songsPerPage);
+  const targetScale = 33.62 / count;
+  return Math.max(1.0, Math.min(3.362, targetScale));
 }
 
 function uppercase(value: string) {
@@ -106,16 +167,30 @@ function buildTransitionMeta(entry: SetlistSongDetail, setlist: SetlistRecord, d
   return uppercase(parts.join(' · '));
 }
 
+function getPdfTitleMaxLength(scale: number) {
+  const maxLen = Math.floor((578.28 - 15 * scale) / (8.16 * scale));
+  return Math.max(12, maxLen);
+}
+
+function getPdfMetaMaxLength(scale: number) {
+  const maxLen = Math.floor((578.28 - 15 * scale) / (3.5 * scale));
+  return Math.max(30, maxLen);
+}
+
 function buildPdfEntries(
   setlist: SetlistRecord,
   entries: SetlistSongDetail[],
   songDurationsById: Map<string, number>,
+  contentScale: number,
 ) {
+  const titleMaxLength = getPdfTitleMaxLength(contentScale);
+  const metaMaxLength = getPdfMetaMaxLength(contentScale);
+
   const pdfEntries: PdfEntry[] = entries.map((entry, index) => ({
     kind: 'song',
     id: entry.id,
-    title: clampText(uppercase(entry.songTitle || 'Sans titre'), 44),
-    metaText: clampText(buildTransitionMeta(entry, setlist, songDurationsById.get(entry.songId) ?? 0), 76),
+    title: clampText(uppercase(entry.songTitle || 'Sans titre'), titleMaxLength),
+    metaText: clampText(buildTransitionMeta(entry, setlist, songDurationsById.get(entry.songId) ?? 0), metaMaxLength),
     showArrow: index > 0 && (entry.isDirectSegue ?? false),
   }));
 
@@ -124,7 +199,7 @@ function buildPdfEntries(
     pdfEntries.push({
       kind: 'ending',
       id: 'ending-note',
-      metaText: clampText(uppercase(`[${closingAnnotation}]`), 76),
+      metaText: clampText(uppercase(`[${closingAnnotation}]`), metaMaxLength),
     });
   }
 
@@ -265,16 +340,40 @@ export function generateSetlistPdfBytes(
   setlist: SetlistRecord,
   entries: SetlistSongDetail[],
   songDurationsById: Map<string, number>,
+  options?: SetlistPdfOptions,
 ) {
-  const pdfEntries = buildPdfEntries(setlist, entries, songDurationsById);
-  const contentScale = getPdfContentScale(entries.length);
-  const innerPageHeightPx = (PAGE_HEIGHT_PT - PAGE_MARGIN_PT * 2) / PX_TO_PT;
-  const scaledContentHeightPx = Math.max(0, (innerPageHeightPx - PDF_HEADER_HEIGHT_PX) / contentScale);
-  const rowsPerPage = Math.max(1, Math.floor(scaledContentHeightPx / PDF_SONG_ENTRY_HEIGHT));
+  const hasEndingNote = Boolean(setlist.closingAnnotation?.trim());
+  const requestedSongsPerPage = options?.songsPerPage;
+  const songsPerPageChoice = requestedSongsPerPage && requestedSongsPerPage > 0
+    ? requestedSongsPerPage
+    : (entries.length <= 12 ? entries.length : 12);
+
+  const isAllSongsOnOnePage = songsPerPageChoice >= entries.length;
+  const effectiveItemsPerPage = isAllSongsOnOnePage && hasEndingNote
+    ? entries.length + 1
+    : songsPerPageChoice;
+
+  const contentScale = getPdfContentScale(effectiveItemsPerPage);
+  const pdfEntries = buildPdfEntries(setlist, entries, songDurationsById, contentScale);
+  const rowsPerPage = isAllSongsOnOnePage ? pdfEntries.length : Math.max(1, songsPerPageChoice);
   const pagedEntries: PdfEntry[][] = [];
 
   for (let index = 0; index < pdfEntries.length; index += rowsPerPage) {
     pagedEntries.push(pdfEntries.slice(index, index + rowsPerPage));
+  }
+
+  if (pagedEntries.length > 1) {
+    const lastPageIndex = pagedEntries.length - 1;
+    const lastPage = pagedEntries[lastPageIndex];
+    const prevPage = pagedEntries[lastPageIndex - 1];
+
+    if (lastPage && prevPage && lastPage.length === 1) {
+      const singleItem = lastPage[0];
+      if (singleItem && singleItem.kind === 'ending') {
+        prevPage.push(singleItem);
+        pagedEntries.pop();
+      }
+    }
   }
 
   const objects: string[] = [];
@@ -289,9 +388,9 @@ export function generateSetlistPdfBytes(
   }
 
   objects.push(`<< /Type /Pages /Count ${pagedEntries.length} /Kids [${pageObjectIds.map((id) => `${id} 0 R`).join(' ')}] >>`);
-  objects.push('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
-  objects.push('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>');
-  objects.push('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-BoldOblique >>');
+  objects.push('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>');
+  objects.push('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>');
+  objects.push('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-BoldOblique /Encoding /WinAnsiEncoding >>');
 
   pagedEntries.forEach((pageEntries, pageIndex) => {
     const content = buildPageContent(setlist, pageEntries, contentScale);
@@ -308,12 +407,13 @@ export function downloadSetlistPdf(
   setlist: SetlistRecord,
   entries: SetlistSongDetail[],
   songDurationsById: Map<string, number>,
+  options?: SetlistPdfOptions,
 ) {
   if (entries.length === 0) {
     throw new Error('EMPTY_SETLIST');
   }
 
-  const bytes = generateSetlistPdfBytes(setlist, entries, songDurationsById);
+  const bytes = generateSetlistPdfBytes(setlist, entries, songDurationsById, options);
   const blob = new Blob([bytes], { type: 'application/pdf' });
   const downloadUrl = URL.createObjectURL(blob);
   const exportDate = formatPdfDate(new Date());
