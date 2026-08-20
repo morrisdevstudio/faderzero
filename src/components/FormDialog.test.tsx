@@ -17,6 +17,7 @@ describe('FormDialog', () => {
 
     expect(screen.getByRole('dialog', { name: 'Nouveau morceau' })).toBeInTheDocument();
     expect(screen.getByRole('dialog', { name: 'Nouveau morceau' })).toHaveClass('fz-dialog-panel');
+    expect(screen.getByRole('dialog', { name: 'Nouveau morceau' }).parentElement?.parentElement).toHaveClass('z-[60]');
     expect(screen.getByRole('button', { name: 'Fermer' })).toHaveFocus();
     expect(document.body).toHaveStyle({ overflow: 'hidden' });
 

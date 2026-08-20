@@ -6,6 +6,8 @@ import { useAuthStore } from '@/stores/authStore';
 import { pushPendingMutations, pullRemoteChanges, resolveConflict } from '@/services/supabase/sync';
 import { FeatureCard } from '@/components/FeatureCard';
 import { StatusPill } from '@/ui/components/StatusPill';
+import { Button } from '@/ui/components/Button';
+import { SearchField } from '@/ui/components/SearchField';
 import {
   applySyncImport,
   deserializeSyncQrFragment,
@@ -21,6 +23,7 @@ import {
 import type { Html5Qrcode } from 'html5-qrcode';
 import { canWriteWorkspace } from '@/services/supabase/workspace';
 import { recoverPendingItems } from '@/db/userDataMigration';
+import { FzIcon } from '@/ui/icons';
 
 const QR_ROTATION_INTERVAL_MS = 1200;
 const SCANNER_ELEMENT_ID = 'faderzero-sync-scanner';
@@ -58,11 +61,11 @@ function getScannerStartError() {
 }
 
 export function SyncTab() {
-  const [transfer, setTransfer] = useState<PreparedSyncTransfer | null>(null);
-  
-  // États et hooks pour la synchronisation Supabase
   const { session, activeWorkspace, workspaces, refreshWorkspaceAccess } = useAuthStore();
   const canWrite = canWriteWorkspace(activeWorkspace?.role);
+  const currentWorkspaceId = activeWorkspace?.id ?? 'default-workspace';
+
+  // Synchronisation Cloud
   const [isCloudSyncing, setIsCloudSyncing] = useState(false);
   const [cloudSyncError, setCloudSyncError] = useState<string | null>(null);
   const [cloudSyncSuccess, setCloudSyncSuccess] = useState<boolean>(false);
@@ -82,9 +85,9 @@ export function SyncTab() {
     setRecoveryMessage(null);
     try {
       const recoveredCount = await recoverPendingItems(personalWorkspace.id);
-      setRecoveryMessage(`${recoveredCount} element(s) rattache(s) a Mon espace et places dans la file de synchronisation.`);
+      setRecoveryMessage(`${recoveredCount} élément(s) rattaché(s) à Mon espace et placés dans la file de synchronisation.`);
     } catch (error) {
-      setRecoveryMessage(error instanceof Error ? error.message : 'La recuperation locale a echoue.');
+      setRecoveryMessage(error instanceof Error ? error.message : 'La récupération locale a échoué.');
     } finally {
       setIsRecovering(false);
     }
@@ -108,7 +111,7 @@ export function SyncTab() {
       const verifiedWorkspaces = await refreshWorkspaceAccess();
       const verifiedWorkspace = verifiedWorkspaces.find(({ id }) => id === activeWorkspace.id);
       if (!verifiedWorkspace) {
-        setCloudSyncError('Vous n avez plus acces a cet espace. Ses donnees locales ont ete retirees.');
+        setCloudSyncError('Vous n avez plus accès à cet espace. Ses données locales ont été retirées.');
         return;
       }
       const pushReport = canWriteWorkspace(verifiedWorkspace.role)
@@ -117,7 +120,7 @@ export function SyncTab() {
       await pullRemoteChanges(activeWorkspace.id);
 
       if (pushReport.failedCount > 0) {
-        setCloudSyncError('Certaines modifications n ont pas pu etre synchronisees. Reessayez.');
+        setCloudSyncError('Certaines modifications n ont pas pu être synchronisées. Réessayez.');
       } else {
         setCloudSyncSuccess(true);
       }
@@ -139,10 +142,106 @@ export function SyncTab() {
     }
   }
 
-  const [isLoading, setIsLoading] = useState(true);
+  // Données de l'espace pour l'exportation
+  const allWorkspaceSongs = useLiveQuery(
+    () => db.songs.where('workspaceId').equals(currentWorkspaceId).filter((s) => s.deletedAt === undefined).toArray(),
+    [currentWorkspaceId],
+    [],
+  );
+
+  const allWorkspaceSetlists = useLiveQuery(
+    () => db.setlists.where('workspaceId').equals(currentWorkspaceId).filter((s) => s.deletedAt === undefined).toArray(),
+    [currentWorkspaceId],
+    [],
+  );
+
+  const allWorkspaceSetlistSongs = useLiveQuery(
+    () => db.setlistSongs.where('workspaceId').equals(currentWorkspaceId).filter((s) => s.deletedAt === undefined).toArray(),
+    [currentWorkspaceId],
+    [],
+  );
+
+  // États de sélection pour l'export QR
+  const [selectedSetlistIds, setSelectedSetlistIds] = useState<string[]>([]);
+  const [selectedSongIds, setSelectedSongIds] = useState<string[]>([]);
+  const [songSearchQuery, setSongSearchQuery] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  // Calcul des morceaux automatiquement inclus via les setlists cochées
+  const songsInSelectedSetlists = useMemo(() => {
+    const selectedSetlistSet = new Set(selectedSetlistIds);
+    const songIds = new Set<string>();
+    for (const entry of allWorkspaceSetlistSongs) {
+      if (selectedSetlistSet.has(entry.setlistId) && entry.deletedAt === undefined) {
+        songIds.add(entry.songId);
+      }
+    }
+    return songIds;
+  }, [selectedSetlistIds, allWorkspaceSetlistSongs]);
+
+  // Tous les morceaux distincts exportés
+  const allIncludedSongIds = useMemo(() => {
+    const set = new Set(songsInSelectedSetlists);
+    for (const id of selectedSongIds) {
+      set.add(id);
+    }
+    return set;
+  }, [songsInSelectedSetlists, selectedSongIds]);
+
+  // Map du nombre de morceaux par setlist
+  const songCountBySetlist = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const entry of allWorkspaceSetlistSongs) {
+      if (entry.deletedAt === undefined) {
+        counts.set(entry.setlistId, (counts.get(entry.setlistId) ?? 0) + 1);
+      }
+    }
+    return counts;
+  }, [allWorkspaceSetlistSongs]);
+
+  // Filtrage de la liste de morceaux pour l'affichage
+  const filteredSongs = useMemo(() => {
+    const query = songSearchQuery.trim().toLocaleLowerCase();
+    if (!query) {
+      return allWorkspaceSongs;
+    }
+    return allWorkspaceSongs.filter(
+      (song) =>
+        song.title.toLocaleLowerCase().includes(query) ||
+        (song.artist && song.artist.toLocaleLowerCase().includes(query)),
+    );
+  }, [allWorkspaceSongs, songSearchQuery]);
+
+  // Bascule de sélection
+  function toggleSetlist(id: string) {
+    setSelectedSetlistIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
+    );
+  }
+
+  function toggleSong(id: string) {
+    setSelectedSongIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
+    );
+  }
+
+  function selectAll() {
+    setSelectedSetlistIds(allWorkspaceSetlists.map((s) => s.id));
+    setSelectedSongIds(allWorkspaceSongs.map((s) => s.id));
+  }
+
+  function deselectAll() {
+    setSelectedSetlistIds([]);
+    setSelectedSongIds([]);
+  }
+
+  // États du transfert QR actif
+  const [transfer, setTransfer] = useState<PreparedSyncTransfer | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [currentQrDataUrl, setCurrentQrDataUrl] = useState<string | null>(null);
+
+  // États de réception
   const [isScannerActive, setIsScannerActive] = useState(false);
   const [receiveState, setReceiveState] = useState<ReceiveState | null>(null);
   const [receiveError, setReceiveError] = useState<string | null>(null);
@@ -153,40 +252,39 @@ export function SyncTab() {
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const isImportingRef = useRef(false);
 
-  useEffect(() => {
-    let isMounted = true;
-
-    async function loadTransfer() {
-      try {
-        const nextTransfer = await prepareSyncTransfer();
-        if (!isMounted) {
-          return;
-        }
-
-        setTransfer(nextTransfer);
-        setCurrentIndex(0);
-        setError(null);
-      } catch (nextError) {
-        if (!isMounted) {
-          return;
-        }
-
-        console.error('[SyncPage] Unable to prepare sync transfer', nextError);
-        setError('Impossible de preparer le transfert QR.');
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
+  // Génération du transfert ciblé
+  async function handleGenerateTransfer() {
+    if (selectedSetlistIds.length === 0 && selectedSongIds.length === 0) {
+      return;
     }
 
-    loadTransfer();
+    setIsGenerating(true);
+    setError(null);
 
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+    try {
+      const nextTransfer = await prepareSyncTransfer(db, {
+        workspaceId: currentWorkspaceId,
+        setlistIds: selectedSetlistIds,
+        songIds: selectedSongIds,
+      });
 
+      setTransfer(nextTransfer);
+      setCurrentIndex(0);
+    } catch (nextError: any) {
+      console.error('[SyncPage] Unable to prepare sync transfer', nextError);
+      setError(nextError?.message || 'Impossible de préparer le transfert QR.');
+    } finally {
+      setIsGenerating(false);
+    }
+  }
+
+  function handleModifySelection() {
+    setTransfer(null);
+    setCurrentQrDataUrl(null);
+    setCurrentIndex(0);
+  }
+
+  // Rotation automatique du QR code
   useEffect(() => {
     if (!transfer || transfer.qrValues.length <= 1) {
       return;
@@ -201,6 +299,7 @@ export function SyncTab() {
     };
   }, [transfer]);
 
+  // Rendu de l'image QR
   useEffect(() => {
     let isMounted = true;
 
@@ -229,18 +328,19 @@ export function SyncTab() {
       } catch (nextError) {
         console.error('[SyncPage] Unable to generate QR image', nextError);
         if (isMounted) {
-          setError('Impossible de generer le QR code.');
+          setError('Impossible de générer le QR code.');
         }
       }
     }
 
-    generateQrImage();
+    void generateQrImage();
 
     return () => {
       isMounted = false;
     };
   }, [currentIndex, transfer]);
 
+  // Scanner de réception
   useEffect(() => {
     let cancelled = false;
 
@@ -290,7 +390,7 @@ export function SyncTab() {
         );
       } catch (scannerError) {
         console.error('[SyncPage] Unable to start scanner', scannerError);
-        setReceiveError('Impossible de demarrer la camera pour le scan QR.');
+        setReceiveError('Impossible de démarrer la caméra pour le scan QR.');
         setIsScannerActive(false);
         await stopScanner();
       }
@@ -308,42 +408,21 @@ export function SyncTab() {
     };
   }, [isScannerActive]);
 
-  const summary = useMemo(() => {
-    if (!transfer) {
-      return null;
-    }
-
-    return {
-      songs: transfer.exportPayload.payload.songs.length,
-      setlists: transfer.exportPayload.payload.setlists.length,
-      setlistSongs: transfer.exportPayload.payload.setlistSongs.length,
-      fragments: transfer.fragments.length,
-    };
-  }, [transfer]);
-
   const receivedCount = receiveState ? Object.keys(receiveState.fragments).length : 0;
   const isSecureContextAvailable = typeof window === 'undefined' ? true : window.isSecureContext;
 
   function goToPreviousQr() {
-    if (!transfer) {
-      return;
-    }
-
+    if (!transfer) return;
     setCurrentIndex((previousIndex) => (previousIndex - 1 + transfer.qrValues.length) % transfer.qrValues.length);
   }
 
   function goToNextQr() {
-    if (!transfer) {
-      return;
-    }
-
+    if (!transfer) return;
     setCurrentIndex((previousIndex) => (previousIndex + 1) % transfer.qrValues.length);
   }
 
   async function handleCompletedTransfer(nextState: ReceiveState) {
-    if (isImportingRef.current) {
-      return;
-    }
+    if (isImportingRef.current) return;
 
     isImportingRef.current = true;
     setReceiveError(null);
@@ -351,11 +430,11 @@ export function SyncTab() {
 
     try {
       const exportPayload = await reconstructSyncExportPayload(Object.values(nextState.fragments));
-      const nextImportPreview = await previewSyncImport(exportPayload);
+      const nextImportPreview = await previewSyncImport(exportPayload, db, currentWorkspaceId);
       setPendingImportPayload(exportPayload);
       setImportPreview(nextImportPreview);
       setImportResult(null);
-      setReceiveSuccess('Transfert reconstitue. Verifiez le resume avant import.');
+      setReceiveSuccess('Transfert reconstitué. Vérifiez le résumé avant import.');
       setIsScannerActive(false);
     } catch (nextError) {
       console.error('[SyncPage] Unable to import transfer', nextError);
@@ -396,7 +475,7 @@ export function SyncTab() {
           previousState.total !== fragment.total ||
           previousState.payloadHash !== fragment.payloadHash
         ) {
-          setReceiveError('Le fragment scanne ne correspond pas au transfert en cours.');
+          setReceiveError('Le fragment scanné ne correspond pas au transfert en cours.');
           return previousState;
         }
 
@@ -440,15 +519,15 @@ export function SyncTab() {
 
     isImportingRef.current = true;
     setReceiveError(null);
-    setReceiveSuccess("Import en cours...");
+    setReceiveSuccess('Import en cours...');
 
     try {
-      const nextImportResult = await applySyncImport(pendingImportPayload);
+      const nextImportResult = await applySyncImport(pendingImportPayload, db, currentWorkspaceId);
       setImportResult(nextImportResult);
       setPendingImportPayload(null);
       setImportPreview(null);
       setReceiveSuccess(
-        `Import termine: ${nextImportResult.songsImported} songs, ${nextImportResult.setlistsImported} setlists, ${nextImportResult.setlistSongsImported} setlistSongs.`,
+        `Import réussi : ${nextImportResult.songsImported} morceau(x), ${nextImportResult.setlistsImported} setlist(s).`,
       );
     } catch (nextError) {
       console.error('[SyncPage] Unable to confirm import', nextError);
@@ -485,14 +564,15 @@ export function SyncTab() {
             <p className="text-sm leading-6 text-white/70">
               Vous pouvez les rattacher à Mon espace. Les identifiants et relations sont conservés, puis chaque élément est synchronisé comme une nouvelle création.
             </p>
-            <button
-              type="button"
+            <Button
+              variant="primary"
+              fullWidth
               onClick={() => void handleRecovery()}
               disabled={!personalWorkspace || isRecovering}
-              className="fz-button-primary w-full px-4 py-3 text-sm font-black uppercase tracking-[0.14em] disabled:opacity-50"
+              loading={isRecovering}
             >
-              {isRecovering ? 'Récupération...' : 'Rattacher à Mon espace'}
-            </button>
+              Rattacher à Mon espace
+            </Button>
             {!personalWorkspace ? (
               <p className="text-sm font-semibold text-amber-300">Mon espace est requis pour terminer la récupération.</p>
             ) : null}
@@ -510,14 +590,15 @@ export function SyncTab() {
             <p className="text-xs text-[var(--fz-text-muted)] truncate">Toutes les données locales sont synchronisées.</p>
           </div>
         </div>
-        <button
-          type="button"
+        <Button
+          variant="secondary"
+          size="sm"
           onClick={() => void handleCloudSync()}
           disabled={isCloudSyncing || !session}
-          className="fz-button-secondary shrink-0 px-4 py-2.5 text-xs font-black uppercase tracking-[0.14em] text-white disabled:opacity-40"
+          loading={isCloudSyncing}
         >
-          {isCloudSyncing ? 'En cours...' : 'Forcer'}
-        </button>
+          Forcer
+        </Button>
       </div>
 
       {/* LISTE DES CONFLITS */}
@@ -536,14 +617,14 @@ export function SyncTab() {
                 <div className="flex gap-2">
                   <button
                     type="button"
-                    onClick={() => handleResolveConflict(conflict.id, 'local')}
+                    onClick={() => void handleResolveConflict(conflict.id, 'local')}
                     className="flex-1 rounded-lg border border-white/20 bg-white/10 py-2 text-[0.65rem] font-bold uppercase tracking-[0.1em] text-white hover:bg-white/15 transition"
                   >
                     Garder ma version
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleResolveConflict(conflict.id, 'remote')}
+                    onClick={() => void handleResolveConflict(conflict.id, 'remote')}
                     className="flex-1 rounded-lg border border-white/10 bg-white/5 py-2 text-[0.65rem] font-bold uppercase tracking-[0.1em] text-white/80 hover:bg-white/10 transition"
                   >
                     Garder version groupe
@@ -572,78 +653,270 @@ export function SyncTab() {
 
       {/* SECTION HORS LIGNE (QR CODES) */}
       {canWrite ? (
-        <section className="space-y-3 pt-4 border-t border-white/10">
+        <section className="space-y-4 pt-4 border-t border-white/10">
           <div>
             <h2 className="text-[1.45rem] font-black uppercase tracking-[0.18em] text-white">Synchronisation hors ligne</h2>
             <p className="mt-1 text-sm leading-relaxed text-[var(--fz-text-muted)]">
-              Échangez des setlists et morceaux entre appareils sans réseau grâce aux QR codes animés.
+              Échangez des setlists et morceaux ciblés entre appareils sans réseau grâce aux QR codes animés.
             </p>
           </div>
 
           <div className="space-y-5 rounded-[1.6rem] border border-white/10 bg-white/[0.045] p-5 shadow-[0_24px_48px_rgba(0,0,0,0.18)]">
-            <div className="rounded-[1.4rem] border border-white/8 bg-black/20 p-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-[0.62rem] font-black uppercase tracking-[0.2em] text-white/45">Données locales</p>
-                  <p className="mt-1 text-sm font-semibold text-white">
-                    {summary ? `${summary.songs} morceaux, ${summary.setlists} setlists` : 'Chargement du contenu...'}
+
+            {/* VUE 1 : QR CODE EN COURS DE DIFFUSION */}
+            {transfer && currentQrDataUrl ? (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-400 animate-ping" />
+                    <p className="text-xs font-black uppercase tracking-[0.14em] text-emerald-300">Transfert QR en cours</p>
+                  </div>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    leadingIcon={<FzIcon name="back" usageId="sync.back-top" size="sm" />}
+                    onClick={handleModifySelection}
+                  >
+                    Retour
+                  </Button>
+                </div>
+
+                <div className="rounded-[1.4rem] border border-white/8 bg-black/20 p-3.5 text-xs text-white/80 flex items-center justify-between">
+                  <span>
+                    {transfer.exportPayload.payload.setlists.length} setlist(s) · {transfer.exportPayload.payload.songs.length} morceau(x)
+                  </span>
+                  <span className="font-bold text-white">
+                    {transfer.fragments.length} QR frame(s)
+                  </span>
+                </div>
+
+                <div className="space-y-4 rounded-[1.4rem] border border-white/8 bg-white/4 p-4">
+                  <div className="flex flex-col items-center justify-center rounded-[1.2rem] bg-white p-4">
+                    <img src={currentQrDataUrl} alt="QR code de transfert" className="h-64 w-64 object-contain" />
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs font-bold uppercase tracking-[0.14em] text-[var(--fz-text-muted)]">
+                    <span>{`Code ${currentIndex + 1} / ${transfer.qrValues.length}`}</span>
+                    <span>{`Rotation ${QR_ROTATION_INTERVAL_MS}ms`}</span>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button variant="secondary" fullWidth size="sm" onClick={goToPreviousQr}>
+                      Précédente
+                    </Button>
+                    <Button variant="secondary" fullWidth size="sm" onClick={goToNextQr}>
+                      Suivante
+                    </Button>
+                  </div>
+
+                  <Button
+                    variant="secondary"
+                    fullWidth
+                    leadingIcon={<FzIcon name="back" usageId="sync.back-bottom" size="sm" />}
+                    onClick={handleModifySelection}
+                  >
+                    Retour à la sélection
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              /* VUE 2 : SÉLECTEUR DE DONNÉES À EXPORTER */
+              <div className="space-y-5">
+                {/* Actions globales de sélection */}
+                <div className="flex items-center justify-between border-b border-white/8 pb-3">
+                  <p className="text-[0.68rem] font-black uppercase tracking-[0.18em] text-white/70">
+                    Sélectionner le contenu
                   </p>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={selectAll}
+                      className="text-xs font-bold text-rose-400 hover:text-rose-300 transition"
+                    >
+                      Tout sélectionner
+                    </button>
+                    <span className="text-white/20">·</span>
+                    <button
+                      type="button"
+                      onClick={deselectAll}
+                      className="text-xs font-bold text-white/50 hover:text-white/80 transition"
+                    >
+                      Tout désélectionner
+                    </button>
+                  </div>
                 </div>
-                <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-black uppercase tracking-[0.16em] text-white">
-                  {summary ? `${summary.fragments} QR` : '...'}
-                </span>
+
+                {/* GROUPE 1 : SETLISTS */}
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-black uppercase tracking-[0.14em] text-fuchsia-400 flex items-center gap-1.5">
+                      <FzIcon name="setlist" usageId="sync.setlists" size="sm" />
+                      Setlists ({allWorkspaceSetlists.length})
+                    </label>
+                    <span className="text-[0.7rem] text-white/40">
+                      {selectedSetlistIds.length} sélectionnée(s)
+                    </span>
+                  </div>
+
+                  {allWorkspaceSetlists.length === 0 ? (
+                    <p className="text-xs text-[var(--fz-text-muted)] italic py-2">
+                      Aucune setlist dans cet espace.
+                    </p>
+                  ) : (
+                    <div className="grid gap-2 max-h-48 overflow-y-auto pr-1">
+                      {allWorkspaceSetlists.map((setlist) => {
+                        const isChecked = selectedSetlistIds.includes(setlist.id);
+                        const count = songCountBySetlist.get(setlist.id) ?? 0;
+                        return (
+                          <label
+                            key={setlist.id}
+                            className={`flex items-center justify-between gap-3 p-3 rounded-xl border transition cursor-pointer select-none ${
+                              isChecked
+                                ? 'border-fuchsia-500/50 bg-fuchsia-500/10'
+                                : 'border-white/8 bg-white/2 hover:bg-white/5'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => toggleSetlist(setlist.id)}
+                                className="h-4 w-4 rounded border-white/20 bg-black/40 text-fuchsia-500 focus:ring-fuchsia-400 shrink-0"
+                              />
+                              <div className="min-w-0">
+                                <p className="text-sm font-semibold text-white truncate">{setlist.name}</p>
+                                {setlist.date ? (
+                                  <p className="text-[0.68rem] text-white/45">{setlist.date}</p>
+                                ) : null}
+                              </div>
+                            </div>
+                            <span className="shrink-0 text-[0.68rem] font-bold text-fuchsia-300 bg-fuchsia-500/20 px-2 py-0.5 rounded-md">
+                              {count} morceau{count > 1 ? 'x' : ''}
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* GROUPE 2 : MORCEAUX INDIVIDUELS */}
+                <div className="space-y-2.5 pt-2 border-t border-white/8">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-black uppercase tracking-[0.14em] text-indigo-400 flex items-center gap-1.5">
+                      <FzIcon name="songs" usageId="sync.songs" size="sm" />
+                      Morceaux individuels ({allWorkspaceSongs.length})
+                    </label>
+                    <span className="text-[0.7rem] text-white/40">
+                      {allIncludedSongIds.size} inclus au total
+                    </span>
+                  </div>
+
+                  <SearchField
+                    value={songSearchQuery}
+                    onChange={(event) => setSongSearchQuery(event.target.value)}
+                    placeholder="Rechercher un morceau..."
+                    aria-label="Rechercher un morceau pour le transfert"
+                  />
+
+                  {filteredSongs.length === 0 ? (
+                    <p className="text-xs text-[var(--fz-text-muted)] italic py-2">
+                      Aucun morceau correspondant.
+                    </p>
+                  ) : (
+                    <div className="grid gap-1.5 max-h-56 overflow-y-auto pr-1">
+                      {filteredSongs.map((song) => {
+                        const isInSetlist = songsInSelectedSetlists.has(song.id);
+                        const isExplicitlyChecked = selectedSongIds.includes(song.id);
+                        const isChecked = isInSetlist || isExplicitlyChecked;
+
+                        return (
+                          <label
+                            key={song.id}
+                            className={`flex items-center justify-between gap-3 p-2.5 rounded-xl border transition cursor-pointer select-none ${
+                              isChecked
+                                ? 'border-indigo-500/40 bg-indigo-500/10'
+                                : 'border-white/6 bg-white/2 hover:bg-white/5'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                disabled={isInSetlist}
+                                onChange={() => toggleSong(song.id)}
+                                className="h-4 w-4 rounded border-white/20 bg-black/40 text-indigo-500 focus:ring-indigo-400 shrink-0 disabled:opacity-50"
+                              />
+                              <div className="min-w-0">
+                                <p className="text-xs font-semibold text-white truncate">{song.title}</p>
+                                {song.artist ? (
+                                  <p className="text-[0.62rem] text-white/45 truncate">{song.artist}</p>
+                                ) : null}
+                              </div>
+                            </div>
+                            {isInSetlist ? (
+                              <span className="shrink-0 text-[0.62rem] font-semibold text-fuchsia-300 bg-fuchsia-500/15 px-1.5 py-0.5 rounded">
+                                via setlist
+                              </span>
+                            ) : song.bpm || song.key ? (
+                              <span className="shrink-0 text-[0.62rem] text-white/40">
+                                {[song.bpm ? `${song.bpm} BPM` : null, song.key].filter(Boolean).join(' · ')}
+                              </span>
+                            ) : null}
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* SIZING ESTIMATION & AVERTISSEMENTS */}
+                <div className="rounded-[1.2rem] border border-white/8 bg-black/30 p-3.5 space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-white/60">Éléments sélectionnés :</span>
+                    <span className="font-bold text-white">
+                      {selectedSetlistIds.length} setlist(s) · {allIncludedSongIds.size} morceau(x)
+                    </span>
+                  </div>
+
+                  {allIncludedSongIds.size > 20 ? (
+                    <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/25 text-amber-200 text-xs leading-relaxed">
+                      ⚠️ <strong>Volume important ({allIncludedSongIds.size} morceaux)</strong>. Le scan du QR animé peut prendre plusieurs dizaines de secondes. Pour une transmission optimale, privilégiez l'export setlist par setlist.
+                    </div>
+                  ) : null}
+                </div>
+
+                {error ? <p className="text-sm font-semibold text-rose-400">{error}</p> : null}
+
+                {/* BOUTON D'ACTION PRINCIPALE */}
+                <Button
+                  variant="primary"
+                  fullWidth
+                  onClick={() => void handleGenerateTransfer()}
+                  disabled={allIncludedSongIds.size === 0 && selectedSetlistIds.length === 0}
+                  loading={isGenerating}
+                >
+                  {allIncludedSongIds.size === 0 && selectedSetlistIds.length === 0
+                    ? 'Sélectionnez des éléments à transférer'
+                    : `Générer le QR code (${allIncludedSongIds.size} morceau${allIncludedSongIds.size > 1 ? 'x' : ''})`}
+                </Button>
               </div>
-            </div>
+            )}
 
-            {error ? <p className="text-sm font-semibold text-rose-400">{error}</p> : null}
-
-            {isLoading ? (
-              <div className="rounded-[1.4rem] border border-white/8 bg-white/4 p-6 text-center text-sm font-semibold text-[var(--fz-text-muted)]">
-                Préparation du transfert local...
-              </div>
-            ) : currentQrDataUrl && transfer ? (
-              <div className="space-y-4 rounded-[1.4rem] border border-white/8 bg-white/4 p-4">
-                <div className="flex flex-col items-center justify-center rounded-[1.2rem] bg-white p-4">
-                  <img src={currentQrDataUrl} alt="QR code de transfert" className="h-64 w-64 object-contain" />
-                </div>
-
-                <div className="flex items-center justify-between text-xs font-bold uppercase tracking-[0.14em] text-[var(--fz-text-muted)]">
-                  <span>{`Code ${currentIndex + 1} / ${transfer.qrValues.length}`}</span>
-                  <span>{`Rotation ${QR_ROTATION_INTERVAL_MS}ms`}</span>
-                </div>
-
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={goToPreviousQr}
-                    className="fz-button-secondary flex-1 px-3 py-2.5 text-xs font-black uppercase tracking-[0.14em] text-white"
-                  >
-                    Précédente
-                  </button>
-                  <button
-                    type="button"
-                    onClick={goToNextQr}
-                    className="fz-button-secondary flex-1 px-3 py-2.5 text-xs font-black uppercase tracking-[0.14em] text-white"
-                  >
-                    Suivante
-                  </button>
-                </div>
-              </div>
-            ) : null}
-
+            {/* SECTION RÉCEPTION / SCANNER */}
             <div className="border-t border-white/8 pt-4 space-y-3">
               <p className="text-[0.62rem] font-black uppercase tracking-[0.2em] text-white/45">Recevoir un transfert</p>
 
               {getScannerStartError() ? (
                 <p className="text-sm text-amber-300">{getScannerStartError()}</p>
               ) : isSecureContextAvailable ? (
-                <button
-                  type="button"
+                <Button
+                  variant={isScannerActive ? 'secondary' : 'primary'}
+                  fullWidth
                   onClick={() => setIsScannerActive((previous) => !previous)}
-                  className="fz-button-primary w-full px-4 py-3.5 text-xs font-black uppercase tracking-[0.16em]"
                 >
                   {isScannerActive ? 'Fermer le scanner' : 'Démarrer la caméra / Scanner'}
-                </button>
+                </Button>
               ) : null}
 
               <div
@@ -658,70 +931,42 @@ export function SyncTab() {
               ) : null}
             </div>
 
-
-
             {receiveError ? <p className="text-sm font-semibold text-rose-400">{receiveError}</p> : null}
             {receiveSuccess ? <p className="text-sm font-semibold text-emerald-400">{receiveSuccess}</p> : null}
 
+            {/* REVUE AVANT CONFIRMATION DE L'IMPORT */}
             {importPreview ? (
-              <div className="rounded-[1.2rem] border border-white/8 bg-white/4 px-4 py-4">
+              <div className="rounded-[1.2rem] border border-white/8 bg-white/4 px-4 py-4 space-y-3">
                 <p className="text-[0.62rem] font-black uppercase tracking-[0.2em] text-white/45">Revue avant import</p>
-                <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                <div className="grid gap-3 sm:grid-cols-3">
                   <div className="rounded-[1rem] border border-white/8 bg-black/20 px-3 py-3 text-sm text-white/90">
-                    {`${importPreview.songsToCreate} morceaux à créer`}
-                    <br />
-                    {`${importPreview.songsToUpdate} morceaux à mettre à jour`}
-                    <br />
-                    {`${importPreview.songsToSkip} morceaux ignorés`}
+                    {`${importPreview.songsToCreate} morceaux à importer`}
                   </div>
                   <div className="rounded-[1rem] border border-white/8 bg-black/20 px-3 py-3 text-sm text-white/90">
-                    {`${importPreview.setlistsToCreate} setlists à créer`}
-                    <br />
-                    {`${importPreview.setlistsToUpdate} setlists à mettre à jour`}
-                    <br />
-                    {`${importPreview.setlistsToSkip} setlists ignorées`}
+                    {`${importPreview.setlistsToCreate} setlists à importer`}
                   </div>
                   <div className="rounded-[1rem] border border-white/8 bg-black/20 px-3 py-3 text-sm text-white/90">
-                    {`${importPreview.setlistSongsToCreate} éléments de setlist à créer`}
-                    <br />
-                    {`${importPreview.setlistSongsToUpdate} éléments de setlist à mettre à jour`}
-                    <br />
-                    {`${importPreview.setlistSongsToSkip} éléments de setlist ignorés`}
+                    {`${importPreview.setlistSongsToCreate} liaisons de setlist`}
                   </div>
                 </div>
 
-                <p className="mt-3 text-sm font-semibold text-amber-200">
-                  {`${importPreview.idsRegenerated} identifiants seront régénérés. ${importPreview.songIdCollisions + importPreview.setlistIdCollisions + importPreview.setlistSongIdCollisions} collision(s) détectée(s) : aucun contenu local ne sera écrasé.`}
+                {importPreview.duplicateTitles && importPreview.duplicateTitles.length > 0 ? (
+                  <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 text-xs text-amber-200 leading-relaxed">
+                    💡 <strong>{importPreview.duplicateTitles.length} titre(s) déjà présent(s) en local</strong> ({importPreview.duplicateTitles.slice(0, 3).join(', ')}{importPreview.duplicateTitles.length > 3 ? '...' : ''}) : ils seront importés en tant que nouvelles versions indépendantes avec de nouveaux identifiants uniques.
+                  </div>
+                ) : null}
+
+                <p className="text-xs text-emerald-300 font-medium">
+                  {`${importPreview.idsRegenerated} identifiants régénérés automatiquement pour garantir l'intégrité de vos données locales.`}
                 </p>
 
                 <div className="mt-4 flex flex-wrap gap-3">
-                  <button
-                    type="button"
-                    onClick={() => void confirmImport()}
-                    className="fz-button-primary px-4 py-3 text-sm font-black uppercase tracking-[0.16em]"
-                  >
+                  <Button variant="primary" onClick={() => void confirmImport()}>
                     Confirmer l'import
-                  </button>
-                  <button
-                    type="button"
-                    onClick={resetReceiveState}
-                    className="fz-button-secondary px-4 py-3 text-sm font-black uppercase tracking-[0.16em] text-white"
-                  >
+                  </Button>
+                  <Button variant="secondary" onClick={resetReceiveState}>
                     Annuler ce transfert
-                  </button>
-                </div>
-              </div>
-            ) : null}
-
-            {receiveState ? (
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-[1.2rem] border border-white/8 bg-white/4 px-4 py-3">
-                  <p className="text-[0.62rem] font-black uppercase tracking-[0.2em] text-white/45">Transfer ID</p>
-                  <p className="mt-2 break-all text-sm text-white/88">{receiveState.transferId}</p>
-                </div>
-                <div className="rounded-[1.2rem] border border-white/8 bg-white/4 px-4 py-3">
-                  <p className="text-[0.62rem] font-black uppercase tracking-[0.2em] text-white/45">Payload hash</p>
-                  <p className="mt-2 break-all text-sm text-white/88">{receiveState.payloadHash}</p>
+                  </Button>
                 </div>
               </div>
             ) : null}

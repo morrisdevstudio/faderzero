@@ -151,17 +151,17 @@ export async function getProfileAvatarUrl(avatarPath: string | null): Promise<st
     return avatarPath;
   }
 
-  const { data: publicData } = supabase.storage.from(AVATAR_BUCKET).getPublicUrl(avatarPath);
-  if (publicData?.publicUrl) {
-    return publicData.publicUrl;
-  }
-
   try {
-    const { data, error } = await supabase.storage.from(AVATAR_BUCKET).createSignedUrl(avatarPath, 3600);
+    const { data, error } = await supabase.storage.from(AVATAR_BUCKET).createSignedUrl(avatarPath, 86400);
     if (!error && data?.signedUrl) {
       return data.signedUrl;
     }
   } catch {}
+
+  const { data: publicData } = supabase.storage.from(AVATAR_BUCKET).getPublicUrl(avatarPath);
+  if (publicData?.publicUrl) {
+    return publicData.publicUrl;
+  }
 
   return null;
 }

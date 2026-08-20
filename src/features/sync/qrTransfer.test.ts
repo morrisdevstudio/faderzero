@@ -195,4 +195,59 @@ describe('qrTransfer', () => {
 
     await expect(reconstructSyncExportPayload(fragments)).rejects.toThrow('duplicate identifiers');
   });
+
+  it('preserves rich setlist and setlistSong metadata in sync payload', async () => {
+    const exportPayload = await buildSyncExportPayload({
+      songs: [
+        {
+          id: 'song-1',
+          title: 'Song 1',
+          lyrics: 'Lyrics',
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      ],
+      setlists: [
+        {
+          id: 'set-1',
+          name: 'Concert Setlist',
+          closingAnnotation: 'Remercier le public',
+          bpmDisplayMode: 'all',
+          keyDisplayMode: 'per-song',
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      ],
+      setlistSongs: [
+        {
+          id: 'entry-1',
+          setlistId: 'set-1',
+          songId: 'song-1',
+          position: 0,
+          annotation: 'Solo guitare 2x',
+          noteShowBpm: true,
+          noteShowKey: false,
+          isDirectSegue: true,
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      ],
+    });
+
+    const compressedPayload = LZString.compressToEncodedURIComponent(JSON.stringify(exportPayload));
+    const fragments = fragmentCompressedPayload(compressedPayload, exportPayload.payloadHash);
+    const rebuilt = await reconstructSyncExportPayload(fragments);
+
+    expect(rebuilt.payload.setlists[0]).toMatchObject({
+      closingAnnotation: 'Remercier le public',
+      bpmDisplayMode: 'all',
+      keyDisplayMode: 'per-song',
+    });
+    expect(rebuilt.payload.setlistSongs[0]).toMatchObject({
+      annotation: 'Solo guitare 2x',
+      noteShowBpm: true,
+      noteShowKey: false,
+      isDirectSegue: true,
+    });
+  });
 });

@@ -72,7 +72,7 @@ export function SortMenu({ value, onChange, label = 'Trier', filter }: SortMenuP
       </button>
       {isOpen ? (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 px-4 pb-4 pt-16"
+          className="fixed inset-0 z-[60] flex items-end justify-center bg-black/70 px-4 pb-4 pt-16"
           onClick={(event) => {
             if (event.target === event.currentTarget) {
               setIsOpen(false);

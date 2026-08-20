@@ -3,7 +3,8 @@ import { EditorContent, useEditor, useEditorState } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import UniqueID from '@tiptap/extension-unique-id';
-import { useEffect, useState, type CSSProperties, type SVGProps } from 'react';
+import { useEffect, useState, type CSSProperties, type FormEvent, type SVGProps } from 'react';
+import { FormDialog } from '@/components/FormDialog';
 import {
   createSongSection,
   getDefaultSectionLabel,
@@ -12,6 +13,8 @@ import {
   type SongSectionType,
 } from '@/db/songDocument';
 import { createId } from '@/lib/createId';
+import { Button } from '@/ui/components/Button';
+import { TextField } from '@/ui/components/TextField';
 import './songEditor.css';
 
 type IconProps = SVGProps<SVGSVGElement>;
@@ -118,6 +121,8 @@ interface SongEditorProps {
 export function SongEditor({ initialDocument, onChange, autoFocus = true }: SongEditorProps) {
   const [isSectionMenuOpen, setIsSectionMenuOpen] = useState(false);
   const [isSettingsMenuOpen, setIsSettingsMenuOpen] = useState(false);
+  const [isCustomSectionDialogOpen, setIsCustomSectionDialogOpen] = useState(false);
+  const [customSectionLabel, setCustomSectionLabel] = useState('');
   const [sectionLabelColor, setSectionLabelColor] = useState(() => {
     try {
       return localStorage.getItem(sectionLabelColorStorageKey) || defaultSectionLabelColor;
@@ -181,13 +186,13 @@ export function SongEditor({ initialDocument, onChange, autoFocus = true }: Song
     editor.chain().focus().setTextSelection(nextPosition).scrollIntoView().run();
   }
 
-  function insertSection(sectionType: Exclude<SongSectionType, 'free'>) {
+  function insertSection(sectionType: Exclude<SongSectionType, 'free'>, label = getDefaultSectionLabel(sectionType)) {
     if (!editor) {
       return;
     }
 
     const insertionPosition = editor.state.selection.from;
-    const section = createSongSection(sectionType);
+    const section = createSongSection(sectionType, label);
     editor
       .chain()
       .focus()
@@ -196,6 +201,28 @@ export function SongEditor({ initialDocument, onChange, autoFocus = true }: Song
       .scrollIntoView()
       .run();
     setIsSectionMenuOpen(false);
+  }
+
+  function openCustomSectionDialog() {
+    setIsSectionMenuOpen(false);
+    setCustomSectionLabel('');
+    setIsCustomSectionDialogOpen(true);
+  }
+
+  function closeCustomSectionDialog() {
+    setIsCustomSectionDialogOpen(false);
+    setCustomSectionLabel('');
+  }
+
+  function handleCustomSectionSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const label = customSectionLabel.trim();
+    if (!label) {
+      return;
+    }
+
+    insertSection('custom', label);
+    closeCustomSectionDialog();
   }
 
   function setSectionLabelColorPreference(color: string) {
@@ -224,13 +251,35 @@ export function SongEditor({ initialDocument, onChange, autoFocus = true }: Song
                 key={sectionType}
                 type="button"
                 onPointerDown={(event) => event.preventDefault()}
-                onClick={() => insertSection(sectionType)}
+                onClick={() => sectionType === 'custom' ? openCustomSectionDialog() : insertSection(sectionType)}
               >
                 {getDefaultSectionLabel(sectionType) || 'Personnalisée'}
               </button>
             ))}
           </div>
         </div>
+      ) : null}
+
+      {isCustomSectionDialogOpen ? (
+        <FormDialog title="Nouvelle section personnalisée" onClose={closeCustomSectionDialog}>
+          <form className="space-y-4" onSubmit={handleCustomSectionSubmit}>
+            <label className="block" htmlFor="custom-section-label">
+              <span className="fz-field-label">Nom de la section</span>
+              <TextField
+                id="custom-section-label"
+                aria-label="Nom de la section"
+                autoFocus
+                value={customSectionLabel}
+                onChange={(event) => setCustomSectionLabel(event.target.value)}
+                placeholder="Ex. Interlude"
+              />
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <Button variant="secondary" onClick={closeCustomSectionDialog}>Annuler</Button>
+              <Button variant="primary" type="submit" disabled={!customSectionLabel.trim()}>Ajouter</Button>
+            </div>
+          </form>
+        </FormDialog>
       ) : null}
 
       {isSettingsMenuOpen ? (

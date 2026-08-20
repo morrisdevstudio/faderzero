@@ -96,16 +96,30 @@ describe('profile service', () => {
 
   it('crée une URL signée pour un avatar privé', async () => {
     const createSignedUrl = vi.fn().mockResolvedValue({
-      data: { signedUrl: 'https://storage.test/avatar.webp' },
+      data: { signedUrl: 'https://storage.test/avatar.webp?token=test' },
       error: null,
     });
     const getPublicUrl = vi.fn().mockReturnValue({
-      data: { publicUrl: 'https://storage.test/avatar.webp' },
+      data: { publicUrl: 'https://storage.test/avatar-public.webp' },
     });
     supabaseMocks.storageFrom.mockReturnValue({ createSignedUrl, getPublicUrl });
 
-    await expect(getProfileAvatarUrl('profile-1/avatar.webp')).resolves.toBe('https://storage.test/avatar.webp');
+    await expect(getProfileAvatarUrl('profile-1/avatar.webp')).resolves.toBe('https://storage.test/avatar.webp?token=test');
     expect(supabaseMocks.storageFrom).toHaveBeenCalledWith('avatars');
+    expect(createSignedUrl).toHaveBeenCalledWith('profile-1/avatar.webp', 86400);
+  });
+
+  it("utilise l'URL publique si la création d'URL signée échoue", async () => {
+    const createSignedUrl = vi.fn().mockResolvedValue({
+      data: null,
+      error: new Error('Failed to sign'),
+    });
+    const getPublicUrl = vi.fn().mockReturnValue({
+      data: { publicUrl: 'https://storage.test/avatar-public.webp' },
+    });
+    supabaseMocks.storageFrom.mockReturnValue({ createSignedUrl, getPublicUrl });
+
+    await expect(getProfileAvatarUrl('profile-1/avatar.webp')).resolves.toBe('https://storage.test/avatar-public.webp');
   });
 
   it('refuse un fichier avatar non-image avant tout téléversement', async () => {

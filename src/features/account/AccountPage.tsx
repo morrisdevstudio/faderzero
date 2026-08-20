@@ -59,6 +59,50 @@ function getWorkspaceInitials(name?: string): string {
   return trimmed.slice(0, 2).toUpperCase();
 }
 
+function MemberAvatar({ member }: { member: WorkspaceMember }) {
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarError, setAvatarError] = useState(false);
+  const generated = getGeneratedAvatar(member.pseudo || 'Membre', member.userId);
+
+  useEffect(() => {
+    let active = true;
+    setAvatarUrl(null);
+    setAvatarError(false);
+    if (!member.avatarUrl) return () => { active = false; };
+
+    void getProfileAvatarUrl(member.avatarUrl)
+      .then((url) => {
+        if (active && url) {
+          setAvatarUrl(url);
+          setAvatarError(false);
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      active = false;
+    };
+  }, [member.avatarUrl]);
+
+  return (
+    <div
+      className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/10 text-xs font-bold text-white shadow-sm"
+      style={{ backgroundColor: `hsl(${generated.hue} 72% 42%)` }}
+    >
+      {avatarUrl && !avatarError ? (
+        <img
+          src={avatarUrl}
+          alt=""
+          className="h-full w-full object-cover"
+          onError={() => setAvatarError(true)}
+        />
+      ) : (
+        generated.initials
+      )}
+    </div>
+  );
+}
+
 function WorkspaceMemberList({
   workspace,
   canAdmin,
@@ -115,9 +159,7 @@ function WorkspaceMemberList({
       {members.map((m) => (
         <div key={m.id} className="flex items-center justify-between rounded-xl border border-white/8 bg-black/20 p-2.5">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-xs font-bold text-white">
-              {m.pseudo?.charAt(0).toUpperCase() || 'M'}
-            </div>
+            <MemberAvatar member={m} />
             <div className="min-w-0">
               <p className="text-xs font-semibold text-white truncate">{m.pseudo}</p>
               <span className="text-[9px] uppercase font-bold text-amber-400/90">{INVITE_ROLE_LABELS[m.role]}</span>
@@ -328,6 +370,11 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
   const [memberToRemove, setMemberToRemove] = useState<{ member: WorkspaceMember; workspaceId: string } | null>(null);
   const [memberRemovalLoading, setMemberRemovalLoading] = useState(false);
   const [editingGroupName, setEditingGroupName] = useState('');
+  const [editingBadgeText, setEditingBadgeText] = useState<{
+    workspaceId: string;
+    value: string;
+    previousValue: string;
+  } | null>(null);
   const [groupNameDuplicateWarning, setGroupNameDuplicateWarning] = useState<string | null>(null);
   const [isTrashOpen, setIsTrashOpen] = useState(false);
   const [trashWorkspaceId, setTrashWorkspaceId] = useState<string | null>(null);
@@ -369,11 +416,15 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
   useEffect(() => {
     let active = true;
     setAvatarUrl(null);
+    setAvatarLoadError(false);
     if (!profile?.avatarPath) return () => { active = false; };
 
     void getProfileAvatarUrl(profile.avatarPath)
       .then((signedUrl) => {
-        if (active) setAvatarUrl(signedUrl);
+        if (active) {
+          setAvatarUrl(signedUrl);
+          setAvatarLoadError(false);
+        }
       })
       .catch((avatarError: unknown) => {
         if (active) {
@@ -431,10 +482,12 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
     if (!file || profileLoading) return;
     setLocalProfileError(null);
     setProfileFeedback(null);
+    setAvatarLoadError(false);
     setProfileLoading(true);
     try {
       const updatedProfile = await uploadCurrentProfileAvatar(file);
       setProfile(updatedProfile);
+      setAvatarLoadError(false);
       setProfileFeedback('Avatar mis à jour.');
     } catch (avatarError) {
       setLocalProfileError(avatarError instanceof Error ? avatarError.message : "Impossible de modifier l'avatar.");
@@ -787,7 +840,6 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
                     ) : (
                       generatedAvatar?.initials ?? '…'
                     )}
-                    <span className="absolute inset-x-0 bottom-0 bg-black/65 py-0.5 text-[0.5rem] uppercase tracking-wide">Photo</span>
                   </button>
                   <input
                     ref={avatarInputRef}
@@ -1141,8 +1193,22 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
                               id={`workspaceBadgeText-${ws.id}`}
                               type="text"
                               maxLength={3}
-                              value={getBadgeText(ws.id, ws.name)}
-                              onChange={(e) => setBadgeText(ws.id, e.target.value.toUpperCase().slice(0, 3))}
+                              value={editingBadgeText?.workspaceId === ws.id
+                                ? editingBadgeText.value
+                                : getBadgeText(ws.id, ws.name)}
+                              onFocus={() => {
+                                const previousValue = getBadgeText(ws.id, ws.name);
+                                setEditingBadgeText({ workspaceId: ws.id, value: previousValue, previousValue });
+                              }}
+                              onChange={(event) => setEditingBadgeText((current) => current?.workspaceId === ws.id
+                                ? { ...current, value: event.target.value.toUpperCase().slice(0, 3) }
+                                : current)}
+                              onBlur={() => {
+                                const current = editingBadgeText;
+                                if (current?.workspaceId !== ws.id) return;
+                                setBadgeText(ws.id, current.value.trim() || current.previousValue);
+                                setEditingBadgeText(null);
+                              }}
                               placeholder={getWorkspaceInitials(ws.name)}
                             />
                             </div>

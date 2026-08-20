@@ -1345,7 +1345,7 @@ export function SongsPage() {
 
       {audioPicker ? (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 px-4 pb-4 pt-16 sm:items-center"
+          className="fixed inset-0 z-[60] flex items-end justify-center bg-black/70 px-4 pb-4 pt-16 sm:items-center"
           onClick={(event) => {
             if (event.target === event.currentTarget) setAudioPicker(null);
           }}
@@ -1408,7 +1408,7 @@ export function SongsPage() {
 
       {openTrackMenu ? (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 px-4 pb-4 pt-16 sm:items-center"
+          className="fixed inset-0 z-[60] flex items-end justify-center bg-black/70 px-4 pb-4 pt-16 sm:items-center"
           onClick={(event) => {
             if (event.target === event.currentTarget) setOpenTrackMenu(null);
           }}

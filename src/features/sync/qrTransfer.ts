@@ -26,6 +26,8 @@ const MAX_LONG_TEXT_LENGTH = 500_000;
 const PAYLOAD_HASH_PATTERN = /^[a-f0-9]{64}$/;
 const SONG_STATUSES = new Set<SongStatus>(['Idee', 'En cours', 'Pret']);
 
+import { enqueueMutation } from '@/db/syncQueueHelper';
+
 export interface SyncSongPayload {
   id: string;
   title: string;
@@ -47,6 +49,9 @@ export interface SyncSetlistPayload {
   name: string;
   date?: string;
   notes?: string;
+  closingAnnotation?: string;
+  bpmDisplayMode?: 'all' | 'none' | 'per-song';
+  keyDisplayMode?: 'all' | 'none' | 'per-song';
   createdAt: number;
   updatedAt: number;
 }
@@ -56,8 +61,18 @@ export interface SyncSetlistSongPayload {
   setlistId: string;
   songId: string;
   position: number;
+  annotation?: string;
+  noteShowBpm?: boolean;
+  noteShowKey?: boolean;
+  isDirectSegue?: boolean;
   createdAt: number;
   updatedAt: number;
+}
+
+export interface SyncExportSelection {
+  workspaceId?: string;
+  setlistIds?: string[];
+  songIds?: string[];
 }
 
 export interface SyncExportPayload {
@@ -116,6 +131,7 @@ export interface SyncImportPreview {
   setlistIdCollisions: number;
   setlistSongIdCollisions: number;
   idsRegenerated: number;
+  duplicateTitles?: string[];
 }
 
 function compareNumbers(left: number, right: number) {
@@ -193,14 +209,23 @@ function validateSongPayload(value: unknown, index: number): asserts value is Sy
   assertFiniteNumber(value.updatedAt, `${label}.updatedAt`);
 }
 
+const SETLIST_DISPLAY_MODES = new Set<string>(['all', 'none', 'per-song']);
+
 function validateSetlistPayload(value: unknown, index: number): asserts value is SyncSetlistPayload {
   const label = `payload.setlists[${index}]`;
   assertRecord(value, label);
-  assertExactKeys(value, ['id', 'name', 'date', 'notes', 'createdAt', 'updatedAt'], label);
+  assertExactKeys(value, ['id', 'name', 'date', 'notes', 'closingAnnotation', 'bpmDisplayMode', 'keyDisplayMode', 'createdAt', 'updatedAt'], label);
   assertIdentifier(value.id, `${label}.id`);
   assertString(value.name, `${label}.name`, MAX_SHORT_TEXT_LENGTH);
   assertOptionalString(value.date, `${label}.date`, 64);
   assertOptionalString(value.notes, `${label}.notes`, MAX_LONG_TEXT_LENGTH);
+  assertOptionalString(value.closingAnnotation, `${label}.closingAnnotation`, MAX_LONG_TEXT_LENGTH);
+  if (value.bpmDisplayMode !== undefined && (typeof value.bpmDisplayMode !== 'string' || !SETLIST_DISPLAY_MODES.has(value.bpmDisplayMode))) {
+    throw new Error(`${label}.bpmDisplayMode is invalid.`);
+  }
+  if (value.keyDisplayMode !== undefined && (typeof value.keyDisplayMode !== 'string' || !SETLIST_DISPLAY_MODES.has(value.keyDisplayMode))) {
+    throw new Error(`${label}.keyDisplayMode is invalid.`);
+  }
   assertFiniteNumber(value.createdAt, `${label}.createdAt`);
   assertFiniteNumber(value.updatedAt, `${label}.updatedAt`);
 }
@@ -208,11 +233,21 @@ function validateSetlistPayload(value: unknown, index: number): asserts value is
 function validateSetlistSongPayload(value: unknown, index: number): asserts value is SyncSetlistSongPayload {
   const label = `payload.setlistSongs[${index}]`;
   assertRecord(value, label);
-  assertExactKeys(value, ['id', 'setlistId', 'songId', 'position', 'createdAt', 'updatedAt'], label);
+  assertExactKeys(value, ['id', 'setlistId', 'songId', 'position', 'annotation', 'noteShowBpm', 'noteShowKey', 'isDirectSegue', 'createdAt', 'updatedAt'], label);
   assertIdentifier(value.id, `${label}.id`);
   assertIdentifier(value.setlistId, `${label}.setlistId`);
   assertIdentifier(value.songId, `${label}.songId`);
   assertInteger(value.position, `${label}.position`, 0, MAX_QR_RECORDS_PER_TYPE - 1);
+  assertOptionalString(value.annotation, `${label}.annotation`, MAX_LONG_TEXT_LENGTH);
+  if (value.noteShowBpm !== undefined && typeof value.noteShowBpm !== 'boolean') {
+    throw new Error(`${label}.noteShowBpm is invalid.`);
+  }
+  if (value.noteShowKey !== undefined && typeof value.noteShowKey !== 'boolean') {
+    throw new Error(`${label}.noteShowKey is invalid.`);
+  }
+  if (value.isDirectSegue !== undefined && typeof value.isDirectSegue !== 'boolean') {
+    throw new Error(`${label}.isDirectSegue is invalid.`);
+  }
   assertFiniteNumber(value.createdAt, `${label}.createdAt`);
   assertFiniteNumber(value.updatedAt, `${label}.updatedAt`);
 }
@@ -305,6 +340,9 @@ function toSyncSetlist(setlist: SetlistRecord): SyncSetlistPayload {
     updatedAt: setlist.updatedAt,
     ...(setlist.date ? { date: setlist.date } : {}),
     ...(setlist.notes ? { notes: setlist.notes } : {}),
+    ...(setlist.closingAnnotation ? { closingAnnotation: setlist.closingAnnotation } : {}),
+    ...(setlist.bpmDisplayMode ? { bpmDisplayMode: setlist.bpmDisplayMode } : {}),
+    ...(setlist.keyDisplayMode ? { keyDisplayMode: setlist.keyDisplayMode } : {}),
   };
 }
 
@@ -316,23 +354,55 @@ function toSyncSetlistSong(setlistSong: SetlistSongRecord): SyncSetlistSongPaylo
     position: setlistSong.position,
     createdAt: setlistSong.createdAt,
     updatedAt: setlistSong.updatedAt,
+    ...(setlistSong.annotation ? { annotation: setlistSong.annotation } : {}),
+    ...(setlistSong.noteShowBpm !== undefined ? { noteShowBpm: setlistSong.noteShowBpm } : {}),
+    ...(setlistSong.noteShowKey !== undefined ? { noteShowKey: setlistSong.noteShowKey } : {}),
+    ...(setlistSong.isDirectSegue !== undefined ? { isDirectSegue: setlistSong.isDirectSegue } : {}),
   };
 }
 
-export async function collectSyncExportData(database: FaderZeroDatabase = db) {
-  const [allSongs, allSetlists, setlistSongs] = await Promise.all([
+export async function collectSyncExportData(
+  database: FaderZeroDatabase = db,
+  selection?: SyncExportSelection,
+) {
+  let [allSongs, allSetlists, setlistSongs] = await Promise.all([
     database.songs.toArray(),
     database.setlists.toArray(),
     database.setlistSongs.toArray(),
   ]);
-  const songs = allSongs.filter((song) => song.deletedAt === undefined);
-  const setlists = allSetlists.filter((setlist) => setlist.deletedAt === undefined);
+
+  if (selection?.workspaceId) {
+    allSongs = allSongs.filter((song) => song.workspaceId === selection.workspaceId);
+    allSetlists = allSetlists.filter((setlist) => setlist.workspaceId === selection.workspaceId);
+    setlistSongs = setlistSongs.filter((entry) => entry.workspaceId === selection.workspaceId);
+  }
+
+  let songs = allSongs.filter((song) => song.deletedAt === undefined);
+  let setlists = allSetlists.filter((setlist) => setlist.deletedAt === undefined);
+
+  if (selection?.setlistIds || selection?.songIds) {
+    const selectedSetlistIds = new Set(selection.setlistIds ?? []);
+    const selectedExplicitSongIds = new Set(selection.songIds ?? []);
+
+    setlists = setlists.filter((setlist) => selectedSetlistIds.has(setlist.id));
+
+    // Récupérer les identifiants de morceaux appartenant aux setlists sélectionnées
+    const songsInSelectedSetlists = new Set(
+      setlistSongs
+        .filter((entry) => selectedSetlistIds.has(entry.setlistId) && entry.deletedAt === undefined)
+        .map((entry) => entry.songId),
+    );
+
+    // Morceaux totaux = morceaux des setlists sélectionnées + morceaux cochés individuellement
+    const combinedSongIds = new Set([...songsInSelectedSetlists, ...selectedExplicitSongIds]);
+    songs = songs.filter((song) => combinedSongIds.has(song.id));
+  }
 
   const activeSongIds = new Set(songs.map((song) => song.id));
   const activeSetlistIds = new Set(setlists.map((setlist) => setlist.id));
 
   const filteredSetlistSongs = setlistSongs.filter(
-    (entry) => activeSongIds.has(entry.songId) && activeSetlistIds.has(entry.setlistId),
+    (entry) => entry.deletedAt === undefined && activeSongIds.has(entry.songId) && activeSetlistIds.has(entry.setlistId),
   );
 
   return {
@@ -416,8 +486,11 @@ export function deserializeSyncQrFragment(value: string) {
   return validateQrFragment(JSON.parse(value) as unknown);
 }
 
-export async function prepareSyncTransfer() {
-  const payload = await collectSyncExportData();
+export async function prepareSyncTransfer(
+  database: FaderZeroDatabase = db,
+  selection?: SyncExportSelection,
+) {
+  const payload = await collectSyncExportData(database, selection);
   const exportPayload = await buildSyncExportPayload(payload);
   const compressedPayload = LZString.compressToEncodedURIComponent(JSON.stringify(exportPayload));
   const fragments = fragmentCompressedPayload(compressedPayload, exportPayload.payloadHash);
@@ -517,6 +590,7 @@ function createUniqueImportId(usedIds: Set<string>) {
 export async function applySyncImport(
   exportPayload: SyncExportPayload,
   database: FaderZeroDatabase = db,
+  targetWorkspaceId = 'default-workspace',
 ): Promise<SyncImportResult> {
   const result: SyncImportResult = {
     songsImported: 0,
@@ -527,7 +601,7 @@ export async function applySyncImport(
     setlistSongsSkipped: 0,
   };
 
-  await database.transaction('rw', database.songs, database.setlists, database.setlistSongs, async () => {
+  await database.transaction('rw', database.songs, database.setlists, database.setlistSongs, database.syncQueue, async () => {
     const existingSongIds = new Set(await database.songs.toCollection().primaryKeys() as string[]);
     const existingSetlistIds = new Set(await database.setlists.toCollection().primaryKeys() as string[]);
     const existingSetlistSongIds = new Set(await database.setlistSongs.toCollection().primaryKeys() as string[]);
@@ -540,11 +614,12 @@ export async function applySyncImport(
       return {
         ...song,
         id,
-        workspaceId: 'default-workspace',
+        workspaceId: targetWorkspaceId,
         lyricsDocument: normalizeSongDocument(song.lyricsDocument, song.lyrics),
         lyricsDocumentVersion: SONG_DOCUMENT_VERSION,
         status: song.status ?? 'Idee',
         durationSeconds: song.durationSeconds ?? 0,
+        syncStatus: 'pending',
       };
     });
 
@@ -554,7 +629,8 @@ export async function applySyncImport(
       return {
         ...setlist,
         id,
-        workspaceId: 'default-workspace',
+        workspaceId: targetWorkspaceId,
+        syncStatus: 'pending',
       };
     });
 
@@ -570,18 +646,83 @@ export async function applySyncImport(
         id: createUniqueImportId(existingSetlistSongIds),
         songId,
         setlistId,
-        workspaceId: 'default-workspace',
+        workspaceId: targetWorkspaceId,
+        syncStatus: 'pending',
       };
     });
 
     if (songsToAdd.length > 0) {
       await database.songs.bulkAdd(songsToAdd);
+      for (const song of songsToAdd) {
+        await enqueueMutation(
+          database,
+          targetWorkspaceId,
+          'song',
+          song.id,
+          'create',
+          {
+            title: song.title,
+            lyrics: song.lyrics,
+            lyricsDocument: song.lyricsDocument,
+            lyricsDocumentVersion: song.lyricsDocumentVersion,
+            status: song.status,
+            durationSeconds: song.durationSeconds,
+            artist: song.artist,
+            key: song.key,
+            bpm: song.bpm,
+            notes: song.notes,
+            createdAt: song.createdAt,
+            updatedAt: song.updatedAt,
+          },
+        );
+      }
     }
+
     if (setlistsToAdd.length > 0) {
       await database.setlists.bulkAdd(setlistsToAdd);
+      for (const setlist of setlistsToAdd) {
+        await enqueueMutation(
+          database,
+          targetWorkspaceId,
+          'setlist',
+          setlist.id,
+          'create',
+          {
+            name: setlist.name,
+            date: setlist.date,
+            notes: setlist.notes,
+            closingAnnotation: setlist.closingAnnotation,
+            bpmDisplayMode: setlist.bpmDisplayMode,
+            keyDisplayMode: setlist.keyDisplayMode,
+            createdAt: setlist.createdAt,
+            updatedAt: setlist.updatedAt,
+          },
+        );
+      }
     }
+
     if (setlistSongsToAdd.length > 0) {
       await database.setlistSongs.bulkAdd(setlistSongsToAdd);
+      for (const item of setlistSongsToAdd) {
+        await enqueueMutation(
+          database,
+          targetWorkspaceId,
+          'setlistSong',
+          item.id,
+          'create',
+          {
+            setlistId: item.setlistId,
+            songId: item.songId,
+            position: item.position,
+            annotation: item.annotation,
+            noteShowBpm: item.noteShowBpm,
+            noteShowKey: item.noteShowKey,
+            isDirectSegue: item.isDirectSegue,
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt,
+          },
+        );
+      }
     }
 
     result.songsImported = songsToAdd.length;
@@ -595,10 +736,22 @@ export async function applySyncImport(
 export async function previewSyncImport(
   exportPayload: SyncExportPayload,
   database: FaderZeroDatabase = db,
+  targetWorkspaceId?: string,
 ): Promise<SyncImportPreview> {
   const existingSongIds = new Set(await database.songs.toCollection().primaryKeys() as string[]);
   const existingSetlistIds = new Set(await database.setlists.toCollection().primaryKeys() as string[]);
   const existingSetlistSongIds = new Set(await database.setlistSongs.toCollection().primaryKeys() as string[]);
+
+  let duplicateTitles: string[] = [];
+  if (targetWorkspaceId) {
+    const localSongs = await database.songs.where('workspaceId').equals(targetWorkspaceId).toArray();
+    const localSongTitles = new Set(
+      localSongs.filter((s) => s.deletedAt === undefined).map((s) => s.title.trim().toLocaleLowerCase()),
+    );
+    duplicateTitles = exportPayload.payload.songs
+      .map((s) => s.title.trim())
+      .filter((title) => localSongTitles.has(title.toLocaleLowerCase()));
+  }
 
   const preview: SyncImportPreview = {
     songsToCreate: exportPayload.payload.songs.length,
@@ -614,6 +767,7 @@ export async function previewSyncImport(
     setlistIdCollisions: exportPayload.payload.setlists.filter((setlist) => existingSetlistIds.has(setlist.id)).length,
     setlistSongIdCollisions: exportPayload.payload.setlistSongs.filter((entry) => existingSetlistSongIds.has(entry.id)).length,
     idsRegenerated: exportPayload.payload.songs.length + exportPayload.payload.setlists.length + exportPayload.payload.setlistSongs.length,
+    ...(duplicateTitles.length > 0 ? { duplicateTitles } : {}),
   };
 
   return preview;

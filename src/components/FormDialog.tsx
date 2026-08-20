@@ -32,7 +32,7 @@ export function FormDialog({
     (
     <div
       className={[
-        'fixed inset-0 z-50 flex justify-center bg-black/70 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-[max(4rem,env(safe-area-inset-top))]',
+        'fixed inset-0 z-[60] flex justify-center bg-black/70 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-[max(4rem,env(safe-area-inset-top))]',
         isBottomSheet
           ? 'items-end pb-[max(1rem,env(safe-area-inset-bottom))]'
           : 'items-start overflow-y-auto pb-[max(1.25rem,env(safe-area-inset-bottom))]',

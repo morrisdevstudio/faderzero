@@ -284,6 +284,28 @@ describe('AccountPage invitations', () => {
     expect(input).toHaveValue('');
   });
 
+  it('affiche la photo d’un membre de groupe ou ses initiales générées', async () => {
+    window.history.replaceState({}, '', '/account?tab=groupe');
+    profileMocks.getProfileAvatarUrl.mockResolvedValue('https://storage.test/avatar-member.webp');
+    workspaceMocks.listWorkspaceMembersWithProfiles.mockResolvedValue([{
+      id: 'membership-yann',
+      workspaceId: adminWorkspace.id,
+      userId: 'user-yann',
+      pseudo: 'Yann',
+      role: 'admin',
+      avatarUrl: 'user-yann/avatar.webp',
+      createdAt: '2026-07-22T10:00:00.000Z',
+      updatedAt: '2026-07-22T10:00:00.000Z',
+    }]);
+
+    render(<AccountPage />);
+
+    await waitFor(() => {
+      expect(profileMocks.getProfileAvatarUrl).toHaveBeenCalledWith('user-yann/avatar.webp');
+      expect(document.querySelector('img[src="https://storage.test/avatar-member.webp"]')).toBeInTheDocument();
+    });
+  });
+
   it('demande une confirmation avant de retirer un membre du groupe', async () => {
     window.history.replaceState({}, '', '/account?tab=groupe');
     workspaceMocks.listWorkspaceMembersWithProfiles.mockResolvedValue([{

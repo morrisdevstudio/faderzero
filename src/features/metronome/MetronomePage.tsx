@@ -221,6 +221,9 @@ export function MetronomePage() {
     const firstSong = setlistSongs?.[0];
     if (isLiveViewOpen && firstSong && !selectedSongId) {
       setSelectedSongId(firstSong.songId);
+      if (firstSong.songBpm && firstSong.songBpm > 0) {
+        setBpm(clampBpm(firstSong.songBpm));
+      }
     }
   }, [isLiveViewOpen, setlistSongs, selectedSongId]);
 
@@ -354,8 +357,12 @@ export function MetronomePage() {
     setSelectedSongId(songId);
 
     if (songBpm && songBpm > 0) {
-      playSongTempo(songBpm, songId);
-    } else {
+      if (isRunning) {
+        void playSongTempo(songBpm, songId);
+      } else {
+        setBpm(clampBpm(songBpm));
+      }
+    } else if (isRunning) {
       setEditingBpmSongId(songId);
       setIsTempoPickerOpen(true);
     }
@@ -535,6 +542,7 @@ export function MetronomePage() {
                 key={setlist.id}
                 mode="button"
                 onClick={() => {
+                  setSelectedSongId(null);
                   setSelectedSetlistId(setlist.id);
                   setIsLiveViewOpen(true);
                 }}
@@ -741,6 +749,7 @@ export function MetronomePage() {
                           onMouseUp={cancelLongPress}
                           onMouseLeave={cancelLongPress}
                           onTouchStart={() => startLongPress(entry.songId, entry.songBpm)}
+                          onTouchMove={cancelLongPress}
                           onTouchEnd={cancelLongPress}
                           onTouchCancel={cancelLongPress}
                           onClick={() => handleSongClick(entry.songId, entry.songBpm)}
