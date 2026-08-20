@@ -107,6 +107,30 @@ describe('CalendarPage scroll collapse', () => {
     expect(screen.getByTestId('calendar-month-grid').parentElement!).toHaveAttribute('data-expanded', 'true');
   });
 
+  it('ignores touch gestures when a dialog is open', () => {
+    render(
+      <div>
+        <div role="dialog" aria-modal="true" aria-label="Test Dialog" />
+        <CalendarPage />
+      </div>,
+    );
+
+    const calendar = screen.getByTestId('calendar-card');
+    const initialMonth = screen.getByRole('heading', { level: 2 }).textContent;
+
+    // Horizontal swipe on calendar
+    fireEvent.touchStart(calendar, { touches: [{ clientX: 240, clientY: 100 }] });
+    fireEvent.touchEnd(calendar, { changedTouches: [{ clientX: 120, clientY: 105 }] });
+
+    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent(initialMonth ?? '');
+
+    // Vertical swipe on window
+    fireEvent.touchStart(window, { touches: [{ clientY: 200 }] });
+    fireEvent.touchMove(window, { touches: [{ clientY: 148 }] });
+
+    expect(screen.queryByRole('button', { name: 'Déplier le calendrier' })).not.toBeInTheDocument();
+  });
+
   it('associe les labels partagés aux champs en lecture seule du détail', async () => {
     const now = Date.now();
     eventMocks.listAll.mockResolvedValue([{

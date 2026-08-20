@@ -113,7 +113,7 @@ describe('SetlistDetailPage suppressions', () => {
   it('rend la suppression de setlist accessible depuis le formulaire de modification', async () => {
     renderPage();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Modifier' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Modifier la setlist' }));
     const editDialog = screen.getByRole('dialog', { name: 'Modifier la setlist' });
     fireEvent.click(within(editDialog).getByRole('button', { name: 'Supprimer la setlist' }));
 

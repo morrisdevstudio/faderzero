@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { FormDialog } from '@/components/FormDialog';
+import { FeatureCard } from '@/components/FeatureCard';
 import { PickerDialog, WheelColumn } from '@/components/PickerDialog';
 import { setlistSongsRepository } from '@/db/repositories/setlistSongsRepository';
 import { setlistsRepository } from '@/db/repositories/setlistsRepository';
 import { songsRepository } from '@/db/repositories/songsRepository';
 import { clampBeatsPerBar, clampBpm, MetronomeEngine } from '@/features/metronome/metronomeEngine';
-import { bpmOptions, formatSetDuration } from '@/features/songs/songPresentation';
+import { bpmOptions, formatSetDuration, formatSongDuration, getSongStatusLabel, getSongStatusTone } from '@/features/songs/songPresentation';
 import { useAuthStore } from '@/stores/authStore';
+import { ContentRow } from '@/ui/components/ContentRow';
 import { PageHeader } from '@/ui/components/PageHeader';
+import { StatusPill } from '@/ui/components/StatusPill';
 import { FzIcon } from '@/ui/icons';
 
 const TAP_MEMORY = 5;
@@ -184,13 +186,13 @@ export function MetronomePage() {
   const [isTimeSignaturePickerOpen, setIsTimeSignaturePickerOpen] = useState(false);
   const [isSubdivisionPickerOpen, setIsSubdivisionPickerOpen] = useState(false);
 
-  const [isSetlistModalOpen, setIsSetlistModalOpen] = useState(false);
   const [selectedSetlistId, setSelectedSetlistId] = useState<string | null>(null);
   const [isLiveViewOpen, setIsLiveViewOpen] = useState(false);
   const [selectedSongId, setSelectedSongId] = useState<string | null>(null);
   const [editingBpmSongId, setEditingBpmSongId] = useState<string | null>(null);
 
   const setlists = useLiveQuery(() => setlistsRepository.listSummaries(), [activeWorkspaceId]);
+  const songs = useLiveQuery(() => songsRepository.list(), [activeWorkspaceId]);
   const setlistSongs = useLiveQuery(
     () => (selectedSetlistId ? setlistSongsRepository.listDetailedBySetlistId(selectedSetlistId) : Promise.resolve([])),
     [selectedSetlistId, activeWorkspaceId]
@@ -223,7 +225,7 @@ export function MetronomePage() {
   }, [isLiveViewOpen, setlistSongs, selectedSongId]);
 
   const navigationButtonClass =
-    "pointer-events-auto relative isolate flex min-h-16 items-center rounded-xl border border-white/10 bg-[#111318] px-3 text-xs font-black text-white/70 transition before:pointer-events-none before:absolute before:inset-0 before:-z-10 before:rounded-xl before:bg-black/45 before:blur-2xl before:backdrop-blur-lg before:content-[''] hover:bg-[#1a1d22] hover:text-white active:bg-[#20242a] disabled:cursor-not-allowed disabled:opacity-35";
+    "pointer-events-auto relative isolate flex min-h-16 items-center gap-2.5 rounded-xl border border-white/10 bg-[#111318] px-3.5 py-2 text-xs font-black text-white/70 transition before:pointer-events-none before:absolute before:inset-0 before:-z-10 before:rounded-xl before:bg-black/45 before:blur-2xl before:backdrop-blur-lg before:content-[''] hover:bg-[#1a1d22] hover:text-white active:bg-[#20242a] disabled:cursor-not-allowed disabled:opacity-35";
 
   if (engineRef.current === null) {
     engineRef.current = new MetronomeEngine();
@@ -298,19 +300,24 @@ export function MetronomePage() {
     if (songId) {
       setSelectedSongId(songId);
     }
-    if (songBpm && songBpm > 0) {
-      const nextBpm = clampBpm(songBpm);
-      setBpm(nextBpm);
-      const engine = engineRef.current;
-      if (engine) {
-        try {
-          setAudioError(null);
-          await engine.start({ bpm: nextBpm, beatsPerBar, subdivision });
-          setIsRunning(true);
-        } catch {
-          setAudioError("Impossible de démarrer l'audio sur cet appareil.");
-          setIsRunning(false);
-        }
+    if (!songBpm || songBpm <= 0) {
+      if (songId) {
+        setEditingBpmSongId(songId);
+      }
+      setIsTempoPickerOpen(true);
+      return;
+    }
+    const nextBpm = clampBpm(songBpm);
+    setBpm(nextBpm);
+    const engine = engineRef.current;
+    if (engine) {
+      try {
+        setAudioError(null);
+        await engine.start({ bpm: nextBpm, beatsPerBar, subdivision });
+        setIsRunning(true);
+      } catch {
+        setAudioError("Impossible de démarrer l'audio sur cet appareil.");
+        setIsRunning(false);
       }
     }
   }
@@ -383,171 +390,198 @@ export function MetronomePage() {
   }
 
   return (
-    <div className="space-y-4">
-      <PageHeader
-        icon={<FzIcon name="metronome" usageId="page-header.metronome" size="xl" className="text-amber-400" />}
-        title="Métronome"
-        actions={<button
-            type="button"
-            onClick={() => setIsSetlistModalOpen(true)}
-            aria-label="Choisir une setlist"
-            className="fz-button-primary h-11 w-11 shrink-0 p-0 flex items-center justify-center"
-            title="Choisir une setlist"
-          >
-            <FzIcon name="setlist" usageId="page-header.metronome.setlist" />
-          </button>}
-      />
+    <div className="space-y-6 pb-20">
+      {/* Zone fixe / sticky en haut */}
+      <div className="sticky top-0 z-20 -mx-4 -mt-4 bg-[var(--fz-bg)]/95 px-4 pb-3 pt-4 backdrop-blur-md border-b border-white/8 sm:-mx-6 sm:px-6">
+        <PageHeader
+          icon={<FzIcon name="metronome" usageId="page-header.metronome" size="xl" className="text-amber-400" />}
+          title="Métronome"
+        />
 
-      <section aria-label="Contrôles du métronome" className="rounded-[1.5rem] border border-white/8 bg-black/20 p-4">
-        <div className="flex items-center justify-between gap-4 py-1">
-          <button
-            type="button"
-            onClick={() => {
-              setEditingBpmSongId(null);
-              setIsTempoPickerOpen(true);
-            }}
-            className="group flex items-baseline gap-2 rounded-2xl p-1.5 text-left transition hover:bg-white/6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
-            title="Cliquer pour changer le tempo"
-          >
-            <span className="text-4xl font-black tracking-tight text-white transition-transform origin-left group-hover:scale-105">{bpm}</span>
-            <span className="text-base font-black uppercase tracking-wider text-[var(--fz-text-muted)] group-hover:text-white/80">BPM</span>
-          </button>
-          <div className="flex items-center gap-4">
-            <button
-              type="button"
-              onClick={() => setIsTimeSignaturePickerOpen(true)}
-              className="group rounded-2xl p-1.5 text-right transition hover:bg-white/6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
-              title="Cliquer pour changer la signature rythmique"
-            >
-              <span className="text-4xl font-black text-white transition-transform origin-right group-hover:scale-105">{beatsPerBar}/4</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsSubdivisionPickerOpen(true)}
-              className="group rounded-2xl p-1.5 text-right transition hover:bg-white/6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 flex items-center justify-center"
-              title="Cliquer pour changer la subdivision"
-            >
-              <SubdivisionIcon value={subdivision} className="h-11 w-11 text-white transition-transform origin-right group-hover:scale-105" />
-            </button>
+        <section aria-label="Contrôles du métronome" className="mt-3 rounded-[1.5rem] border border-white/10 bg-black/40 p-3 sm:p-4 shadow-xl">
+          <div className="grid grid-cols-3 items-center gap-2">
+            {/* Gauche : Bouton TAP + Tempo BPM */}
+            <div className="flex items-center gap-2 justify-self-start">
+              <button
+                type="button"
+                onClick={handleTapTempo}
+                aria-label="Tap tempo"
+                className="flex h-10 px-3 items-center justify-center rounded-xl border border-white/10 bg-white/6 hover:bg-white/12 active:scale-95 text-xs font-black uppercase tracking-wider text-white transition shrink-0"
+                title="Taper pour calculer le tempo"
+              >
+                TAP
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingBpmSongId(null);
+                  setIsTempoPickerOpen(true);
+                }}
+                className="group flex items-baseline gap-1 rounded-xl p-1 text-left transition hover:bg-white/6 focus-visible:outline-none"
+                title="Cliquer pour changer le tempo"
+              >
+                <span className="text-3xl font-black tracking-tight text-white leading-none">{bpm}</span>
+                <span className="text-[0.65rem] font-black uppercase tracking-wider text-[var(--fz-text-muted)] group-hover:text-white/80">BPM</span>
+              </button>
+            </div>
+
+            {/* Centre : Bouton Play/Stop rond */}
+            <div className="flex items-center justify-center justify-self-center">
+              <button
+                type="button"
+                onClick={handleTogglePlayback}
+                className={[
+                  'flex h-12 w-12 items-center justify-center rounded-full transition transform active:scale-95 shadow-lg shrink-0',
+                  isRunning
+                    ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40 hover:bg-rose-500/30 shadow-[0_0_15px_rgba(244,63,94,0.3)]'
+                    : 'bg-amber-500/20 text-amber-400 border border-amber-500/40 hover:bg-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.25)]',
+                ].join(' ')}
+                title={isRunning ? 'Stopper le métronome' : 'Lancer le métronome'}
+              >
+                {isRunning ? (
+                  <FzIcon name="pause" usageId="metronome.play.pause" size="md" />
+                ) : (
+                  <FzIcon name="play" usageId="metronome.play.start" size="md" />
+                )}
+              </button>
+            </div>
+
+            {/* Droite : Signature 4/4 + Subdivision */}
+            <div className="flex items-center gap-3 justify-self-end text-right">
+              <button
+                type="button"
+                onClick={() => setIsTimeSignaturePickerOpen(true)}
+                className="group rounded-xl p-1 text-right transition hover:bg-white/6 focus-visible:outline-none"
+                title="Cliquer pour changer la signature rythmique"
+              >
+                <span className="text-3xl font-black text-white leading-none">{beatsPerBar}/4</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsSubdivisionPickerOpen(true)}
+                className="group rounded-xl p-1 text-right transition hover:bg-white/6 flex items-center justify-center"
+                title="Cliquer pour changer la subdivision"
+              >
+                <SubdivisionIcon value={subdivision} className="h-9 w-9 text-white" />
+              </button>
+            </div>
+          </div>
+
+          {/* Barres de pulsation compactes */}
+          <div className="mt-3.5 grid gap-2" style={{ gridTemplateColumns: `repeat(${beatsPerBar}, minmax(0, 1fr))` }}>
+            {beatSlots.map((slot) => {
+              const isAccent = slot === 0;
+
+              return (
+                <div
+                  key={slot}
+                  className="grid h-6 sm:h-7 gap-1"
+                  style={{ gridTemplateColumns: `repeat(${subdivision}, minmax(0, 1fr))` }}
+                >
+                  {subdivisionSlots.map((subdivisionSlot) => {
+                    const isMainBeat = subdivisionSlot === 0;
+                    const isActive = slot === activeBeat && subdivisionSlot === activeSubdivision && isRunning;
+
+                    return (
+                      <div
+                        key={subdivisionSlot}
+                        className={[
+                          'rounded-md border transition',
+                          isActive && isAccent && isMainBeat
+                            ? 'border-amber-400/50 bg-amber-400 shadow-[0_0_24px_rgba(251,191,36,0.65)]'
+                            : isActive && isMainBeat
+                              ? 'border-amber-400/30 bg-amber-400/80 shadow-[0_0_18px_rgba(251,191,36,0.4)]'
+                              : isActive
+                                ? 'border-amber-300/40 bg-amber-300/70 shadow-[0_0_16px_rgba(252,211,77,0.3)]'
+                                : isAccent && isMainBeat
+                                  ? 'border-white/10 bg-white/10'
+                                  : isMainBeat
+                                    ? 'border-white/6 bg-white/6'
+                                    : 'border-amber-400/10 bg-amber-400/5',
+                        ].join(' ')}
+                      />
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
+
+          {audioError ? <p className="mt-2 text-center text-xs font-semibold text-rose-400">{audioError}</p> : null}
+        </section>
+      </div>
+
+      <section aria-labelledby="metronome-setlists-title" className="space-y-3">
+        <div>
+          <div className="-mx-4 border-y border-white/10 bg-white/[0.035] px-5 py-5">
+            <h2 id="metronome-setlists-title" className="flex items-center gap-3 text-sm font-black uppercase tracking-[0.18em] text-white">
+              <FzIcon name="setlist" usageId="metronome.section.setlists" size="md" />
+              Setlists
+            </h2>
+            <p className="mt-2 text-sm text-white/65">Lecture dans l'ordre défini dans la setlist.</p>
           </div>
         </div>
 
-        <div className="mt-5 grid gap-2" style={{ gridTemplateColumns: `repeat(${beatsPerBar}, minmax(0, 1fr))` }}>
-          {beatSlots.map((slot) => {
-            const isAccent = slot === 0;
-
-            return (
-              <div
-                key={slot}
-                className="grid h-14 gap-1"
-                style={{ gridTemplateColumns: `repeat(${subdivision}, minmax(0, 1fr))` }}
-              >
-                {subdivisionSlots.map((subdivisionSlot) => {
-                  const isMainBeat = subdivisionSlot === 0;
-                  const isActive = slot === activeBeat && subdivisionSlot === activeSubdivision && isRunning;
-
-                  return (
-                    <div
-                      key={subdivisionSlot}
-                      className={[
-                        'rounded-lg border transition',
-                        isActive && isAccent && isMainBeat
-                          ? 'border-[rgba(255,58,99,0.35)] bg-[rgba(255,58,99,0.9)] shadow-[0_0_24px_rgba(255,58,99,0.55)]'
-                          : isActive && isMainBeat
-                            ? 'border-[rgba(255,198,92,0.28)] bg-[rgba(255,198,92,0.88)] shadow-[0_0_18px_rgba(255,198,92,0.35)]'
-                            : isActive
-                              ? 'border-cyan-300/45 bg-cyan-300/85 shadow-[0_0_16px_rgba(103,232,249,0.35)]'
-                              : isAccent && isMainBeat
-                                ? 'border-white/10 bg-white/10'
-                                : isMainBeat
-                                  ? 'border-white/6 bg-white/6'
-                                  : 'border-cyan-300/10 bg-cyan-300/5',
-                      ].join(' ')}
-                    />
-                  );
-                })}
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="mt-5 grid grid-cols-3 gap-3">
-          <button
-            type="button"
-            onClick={() => updateBpm(bpm - 1)}
-            className="fz-button-secondary px-4 py-4 text-lg font-black text-white"
-          >
-            -
-          </button>
-          <button
-            type="button"
-            onClick={handleTapTempo}
-            className="rounded-[1.2rem] border border-white/10 bg-white/8 px-4 py-4 text-sm font-black uppercase tracking-[0.14em] text-white"
-          >
-            Tap tempo
-          </button>
-          <button
-            type="button"
-            onClick={() => updateBpm(bpm + 1)}
-            className="fz-button-secondary px-4 py-4 text-lg font-black text-white"
-          >
-            +
-          </button>
-        </div>
-
-        {audioError ? <p className="mt-4 text-sm font-semibold text-rose-400">{audioError}</p> : null}
-
-        <button
-          type="button"
-          onClick={handleTogglePlayback}
-          className="fz-button-primary mt-4 w-full px-4 py-4 text-sm font-black uppercase tracking-[0.18em]"
-        >
-          {isRunning ? 'Stopper le clic' : 'Lancer le clic'}
-        </button>
+        {setlists === undefined ? (
+          <FeatureCard eyebrow="Chargement" title="Lecture des setlists" description="Ouverture de la base locale..." />
+        ) : setlists.length === 0 ? (
+          <div className="fz-card-soft rounded-[1.2rem] px-4 py-5 text-sm text-[var(--fz-text-muted)]">
+            Aucune setlist disponible.
+          </div>
+        ) : (
+          <div className="divide-y divide-white/10">
+            {setlists.map((setlist) => (
+              <ContentRow
+                key={setlist.id}
+                mode="button"
+                onClick={() => {
+                  setSelectedSetlistId(setlist.id);
+                  setIsLiveViewOpen(true);
+                }}
+                title={setlist.name}
+                metadata={`${setlist.songCount} morceau${setlist.songCount > 1 ? 'x' : ''} · ${formatSetDuration(setlist.totalDurationSeconds)}`}
+              />
+            ))}
+          </div>
+        )}
       </section>
 
-      {/* MODAL POPUP SÉLECTION DE SETLIST */}
-      {isSetlistModalOpen ? (
-        <FormDialog
-          title="Sélectionner une setlist"
-          placement="bottom"
-          onClose={() => setIsSetlistModalOpen(false)}
-        >
-          {setlists === undefined ? (
-            <p className="text-sm text-[var(--fz-text-muted)] py-4">Chargement des setlists...</p>
-          ) : setlists.length === 0 ? (
-            <div className="fz-card-soft rounded-[1.2rem] px-4 py-5 text-sm text-[var(--fz-text-muted)]">
-              Aucune setlist disponible.
-            </div>
-          ) : (
-            <div className="max-h-[60vh] divide-y divide-white/10 overflow-y-auto">
-              {setlists.map((setlist) => (
-                <button
-                  key={setlist.id}
-                  type="button"
-                  onClick={() => {
-                    setSelectedSetlistId(setlist.id);
-                    setIsSetlistModalOpen(false);
-                    setIsLiveViewOpen(true);
-                  }}
-                  className="block w-full px-1 py-5 text-left transition first:pt-1 last:pb-1 hover:bg-white/[0.02]"
-                >
-                  <h3 className="truncate text-[1.35rem] font-black tracking-tight text-white">{setlist.name}</h3>
-                  <p className="mt-2 truncate text-[0.82rem] text-[var(--fz-text-muted)]">
-                    {setlist.songCount} morceau{setlist.songCount > 1 ? 'x' : ''}
-                    {' · '}
-                    {formatSetDuration(setlist.totalDurationSeconds)}
-                  </p>
-                </button>
-              ))}
-            </div>
-          )}
-        </FormDialog>
-      ) : null}
+      <section aria-labelledby="metronome-songs-title" className="space-y-3">
+        <div>
+          <div className="-mx-4 border-y border-white/10 bg-white/[0.035] px-5 py-5">
+            <h2 id="metronome-songs-title" className="flex items-center gap-3 text-sm font-black uppercase tracking-[0.18em] text-white">
+              <FzIcon name="songs" usageId="metronome.section.songs" size="md" />
+              Chansons
+            </h2>
+            <p className="mt-2 text-sm text-white/65">Lecture de tout le répertoire par ordre alphabétique.</p>
+          </div>
+        </div>
+
+        {songs === undefined ? (
+          <FeatureCard eyebrow="Chargement" title="Lecture du répertoire" description="Ouverture de la base locale..." />
+        ) : songs.length === 0 ? (
+          <div className="fz-card-soft rounded-[1.2rem] px-4 py-5 text-sm text-[var(--fz-text-muted)]">
+            Aucune chanson disponible.
+          </div>
+        ) : (
+          <div className="divide-y divide-white/10">
+            {songs.map((song) => (
+              <ContentRow
+                key={song.id}
+                mode="button"
+                onClick={() => void playSongTempo(song.bpm, song.id)}
+                title={song.title || 'Sans titre'}
+                metadata={`${song.bpm ? `${song.bpm} BPM` : 'BPM --'} · ${song.key || 'Ton --'} · ${formatSongDuration(song.durationSeconds)}`}
+                status={<StatusPill label={getSongStatusLabel(song.status)} tone={getSongStatusTone(song.status)} />}
+              />
+            ))}
+          </div>
+        )}
+      </section>
 
       {/* VUE EN PLEIN ÉCRAN TYPE PROMPTEUR POUR LA SETLIST */}
       {isLiveViewOpen ? (
-        <div className="fixed inset-0 z-50 flex flex-col bg-[var(--fz-bg)]">
+        <div className="fixed inset-0 z-[60] flex flex-col bg-[var(--fz-bg)]">
           {/* Header identique au prompteur */}
           <header className="sticky top-0 z-30 shrink-0 border-b border-white/10 bg-[var(--fz-bg)]/98 backdrop-blur-sm">
             <div className="mx-auto w-full max-w-5xl px-4 pb-2 pt-3 sm:px-6">
@@ -600,7 +634,7 @@ export function MetronomePage() {
                     <span className="text-xs font-black uppercase tracking-wider text-[var(--fz-text-muted)] group-hover:text-white/80">BPM</span>
                   </button>
 
-                  <div className="flex items-center justify-center justify-self-center">
+                    <div className="flex items-center justify-center justify-self-center">
                     <button
                       type="button"
                       onClick={handleTogglePlayback}
@@ -608,7 +642,7 @@ export function MetronomePage() {
                         'flex h-14 w-14 items-center justify-center rounded-full transition transform active:scale-95 shadow-lg shrink-0',
                         isRunning
                           ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40 hover:bg-rose-500/30'
-                          : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500/30',
+                          : 'bg-amber-500/20 text-amber-400 border border-amber-500/40 hover:bg-amber-500/30',
                       ].join(' ')}
                       title={isRunning ? 'Stopper le métronome' : 'Lancer le métronome'}
                     >
@@ -661,16 +695,16 @@ export function MetronomePage() {
                               className={[
                                 'rounded-md border transition',
                                 isActive && isAccent && isMainBeat
-                                  ? 'border-[rgba(255,58,99,0.35)] bg-[rgba(255,58,99,0.9)] shadow-[0_0_24px_rgba(255,58,99,0.55)]'
+                                  ? 'border-amber-400/50 bg-amber-400 shadow-[0_0_24px_rgba(251,191,36,0.65)]'
                                   : isActive && isMainBeat
-                                    ? 'border-[rgba(255,198,92,0.28)] bg-[rgba(255,198,92,0.88)] shadow-[0_0_18px_rgba(255,198,92,0.35)]'
+                                    ? 'border-amber-400/30 bg-amber-400/80 shadow-[0_0_18px_rgba(251,191,36,0.4)]'
                                     : isActive
-                                      ? 'border-cyan-300/45 bg-cyan-300/85 shadow-[0_0_16px_rgba(103,232,249,0.35)]'
+                                      ? 'border-amber-300/40 bg-amber-300/70 shadow-[0_0_16px_rgba(252,211,77,0.3)]'
                                       : isAccent && isMainBeat
                                         ? 'border-white/10 bg-white/10'
                                         : isMainBeat
                                           ? 'border-white/6 bg-white/6'
-                                          : 'border-cyan-300/10 bg-cyan-300/5',
+                                          : 'border-amber-400/10 bg-amber-400/5',
                               ].join(' ')}
                             />
                           );
@@ -713,7 +747,7 @@ export function MetronomePage() {
                           className={[
                             'w-full text-left rounded-2xl border p-4 transition flex items-center justify-between gap-4 select-none',
                             isSelected
-                              ? 'border-emerald-500/50 bg-emerald-500/10 shadow-[0_0_15px_rgba(16,185,129,0.15)]'
+                              ? 'border-amber-500/50 bg-amber-500/10 shadow-[0_0_15px_rgba(245,158,11,0.15)]'
                               : 'border-white/8 bg-black/20 hover:border-white/20 hover:bg-white/5',
                           ].join(' ')}
                         >
@@ -738,7 +772,7 @@ export function MetronomePage() {
                             <span
                               className={[
                                 'rounded-lg px-2.5 py-1 text-xs font-black',
-                                entry.songBpm ? 'bg-white/10 text-emerald-400' : 'text-white/40',
+                                entry.songBpm ? 'bg-amber-500/15 text-amber-400' : 'text-white/40',
                               ].join(' ')}
                             >
                               {entry.songBpm ? `${entry.songBpm} BPM` : 'BPM --'}
@@ -754,33 +788,39 @@ export function MetronomePage() {
           </div>
 
           {/* Navigation Précédent / Suivant en bas (exactement comme dans le prompteur) */}
-          <div className="pointer-events-none fixed inset-x-0 bottom-[max(4rem,env(safe-area-inset-bottom))] z-30">
+          <div className="pointer-events-none fixed inset-x-0 bottom-[max(1rem,env(safe-area-inset-bottom))] z-30">
             <div className="mx-auto grid max-w-5xl grid-cols-2 gap-3 px-4 sm:px-6">
-              <button
-                type="button"
-                disabled={!previousSong}
-                onClick={() => previousSong && handleSongClick(previousSong.songId, previousSong.songBpm)}
-                className={`${navigationButtonClass} justify-start text-left`}
-              >
-                <span>
-                  ‹ Précédent
-                  <br />
-                  <span className="text-white">{previousSong?.songTitle ?? 'Début'}</span>
-                </span>
-              </button>
+              {previousSong ? (
+                <button
+                  type="button"
+                  onClick={() => handleSongClick(previousSong.songId, previousSong.songBpm)}
+                  aria-label={`Morceau précédent : ${previousSong.songTitle || 'Sans titre'}`}
+                  className={`${navigationButtonClass} justify-start text-left`}
+                >
+                  <span aria-hidden="true" className="shrink-0 text-xl font-black leading-none text-white/70">‹</span>
+                  <span className="min-w-0 flex-1 overflow-hidden">
+                    <span className="line-clamp-3 break-words text-sm font-black leading-snug text-white">
+                      {previousSong.songTitle || 'Sans titre'}
+                    </span>
+                  </span>
+                </button>
+              ) : <div />}
 
-              <button
-                type="button"
-                disabled={!nextSong}
-                onClick={() => nextSong && handleSongClick(nextSong.songId, nextSong.songBpm)}
-                className={`${navigationButtonClass} justify-end text-right`}
-              >
-                <span>
-                  Suivant ›
-                  <br />
-                  <span className="text-white">{nextSong?.songTitle ?? 'Fin'}</span>
-                </span>
-              </button>
+              {nextSong ? (
+                <button
+                  type="button"
+                  onClick={() => handleSongClick(nextSong.songId, nextSong.songBpm)}
+                  aria-label={`Morceau suivant : ${nextSong.songTitle || 'Sans titre'}`}
+                  className={`${navigationButtonClass} justify-end text-right ${!previousSong ? 'col-start-2' : ''}`}
+                >
+                  <span className="min-w-0 flex-1 overflow-hidden">
+                    <span className="line-clamp-3 break-words text-sm font-black leading-snug text-white">
+                      {nextSong.songTitle || 'Sans titre'}
+                    </span>
+                  </span>
+                  <span aria-hidden="true" className="shrink-0 text-xl font-black leading-none text-white/70">›</span>
+                </button>
+              ) : null}
             </div>
           </div>
         </div>

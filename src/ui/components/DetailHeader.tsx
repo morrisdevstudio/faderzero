@@ -40,7 +40,7 @@ export function DetailHeader({ title, subtitle, onBack, backLabel, actions, titl
         </div>
 
         {actions ? (
-          <div className="flex shrink-0 items-center justify-end gap-1 text-white/80 [&>*]:flex [&>*]:h-11 [&>*]:w-11 [&>*]:shrink-0 [&>*]:items-center [&>*]:justify-center [&>*]:transition-colors [&>*]:hover:text-white [&>*]:active:text-white/60 [&>*]:focus-visible:outline-2 [&>*]:focus-visible:outline-offset-2 [&>*]:focus-visible:outline-white/60">
+          <div className="flex shrink-0 items-center justify-end gap-1 [&>*]:flex [&>*]:h-11 [&>*]:w-11 [&>*]:shrink-0 [&>*]:items-center [&>*]:justify-center [&>*]:transition-colors [&>*]:focus-visible:outline-2 [&>*]:focus-visible:outline-offset-2 [&>*]:focus-visible:outline-white/60">
             {actions}
           </div>
         ) : null}

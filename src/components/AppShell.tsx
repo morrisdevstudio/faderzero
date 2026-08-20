@@ -1,5 +1,7 @@
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
+import { createPortal } from 'react-dom';
+import { useDialogAccessibility } from '@/components/useDialogAccessibility';
 import { FormDialog } from '@/components/FormDialog';
 import { AudioMiniPlayer } from '@/features/audio/AudioMiniPlayer';
 import { QuickVoiceRecorder } from '@/features/recorder/QuickVoiceRecorder';
@@ -95,6 +97,7 @@ export function AppShell() {
     location.pathname.startsWith('/prompter') ||
     location.pathname.startsWith('/metronome');
   const canWrite = canWriteWorkspace(activeWorkspace?.role);
+  const quickActionDialogRef = useDialogAccessibility(() => setIsLiveMenuOpen(false), isLiveMenuOpen);
 
   useEffect(() => {
     if (!voiceRecorderMessage) return;
@@ -160,22 +163,6 @@ export function AppShell() {
     setIsLiveMenuOpen(false);
   }, [location.pathname]);
 
-  useEffect(() => {
-    if (!isLiveMenuOpen) return;
-
-    function handleGlobalPointerDown(event: PointerEvent) {
-      const target = event.target as HTMLElement | null;
-      if (!target?.closest('#live-mode-container')) {
-        setIsLiveMenuOpen(false);
-      }
-    }
-
-    window.addEventListener('pointerdown', handleGlobalPointerDown);
-    return () => {
-      window.removeEventListener('pointerdown', handleGlobalPointerDown);
-    };
-  }, [isLiveMenuOpen]);
-
   useLayoutEffect(() => {
     const scrollKey = `${location.pathname}${location.search}`;
     const restorePosition = scrollPositions.get(scrollKey) ?? 0;
@@ -199,7 +186,7 @@ export function AppShell() {
       {/* Top Header */}
       <header
         ref={headerRef}
-        className="fixed inset-x-0 z-40 bg-[var(--fz-bg)]/98 backdrop-blur-sm"
+        className="fixed inset-x-0 z-30 bg-[var(--fz-bg)]/98 backdrop-blur-sm"
         style={{ top: `${viewportOffsetTop}px` }}
       >
         <AppHeader
@@ -297,7 +284,7 @@ export function AppShell() {
       <AudioMiniPlayer />
 
       {/* Bottom Navigation Bar */}
-      <nav className="fixed inset-x-0 bottom-0 z-40 bg-[#0c0d10]/96 border-t border-white/10 shadow-[0_-16px_40px_rgba(0,0,0,0.5)] backdrop-blur-xl">
+      <nav className="fixed inset-x-0 bottom-0 z-50 bg-[#0c0d10]/96 border-t border-white/10 shadow-[0_-16px_40px_rgba(0,0,0,0.5)] backdrop-blur-xl">
         <div className="mx-auto flex w-full max-w-md items-center justify-around px-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2">
           {/* 1. Accueil */}
           <NavLink
@@ -338,78 +325,7 @@ export function AppShell() {
           </NavLink>
 
           {/* 3. Mode Live (Bouton REC rouge avec Popover Prompteur & Click) */}
-          <div id="live-mode-container" className="relative flex flex-1 flex-col items-center justify-center -mt-4 z-50">
-            {isLiveMenuOpen ? (
-              <>
-                <div
-                  className="fixed inset-0 z-40 bg-black/10"
-                  onClick={() => setIsLiveMenuOpen(false)}
-                  onTouchStart={() => setIsLiveMenuOpen(false)}
-                />
-                <div role="dialog" aria-label="Créer ou capturer" className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] left-1/2 z-50 w-[calc(100%-1rem)] max-w-[30rem] -translate-x-1/2 rounded-t-[2.5rem] border border-white/15 bg-[#14161b]/98 px-6 pb-6 pt-6 shadow-[0_-20px_55px_rgba(0,0,0,0.7)] backdrop-blur-xl animate-in fade-in slide-in-from-bottom-3">
-                  <div className="mx-auto h-1 w-10 rounded-full bg-white/30" aria-hidden="true" />
-                  <h2 className="mt-6 text-xl font-black tracking-tight text-white">Créer ou jouer</h2>
-                  <div className="mt-8 grid grid-cols-2 gap-4">
-                  {canWrite ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsLiveMenuOpen(false);
-                        setVoiceRecorderMessage(null);
-                        setIsVoiceRecorderOpen(true);
-                      }}
-                      className="flex min-h-36 flex-col items-center justify-center gap-5 rounded-[1.5rem] border border-white/10 bg-black/20 p-4 text-center text-white transition hover:border-rose-500/30 hover:bg-rose-500/10 active:scale-[0.98]"
-                    >
-                      <FzIcon name="record" usageId="app-shell.quick-actions.record" size="xl" className="h-10 w-10 text-[#ff3a63]" />
-                      <span className="text-xs font-medium leading-tight">Enregistrer une idée</span>
-                    </button>
-                  ) : null}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsLiveMenuOpen(false);
-                      navigate('/songs/new/write');
-                    }}
-                    className="flex min-h-36 flex-col items-center justify-center gap-5 rounded-[1.5rem] border border-white/10 bg-black/20 p-4 text-center text-white transition hover:border-emerald-500/30 hover:bg-emerald-500/10 active:scale-[0.98]"
-                  >
-                    <FzIcon name="edit" usageId="app-shell.quick-actions.write" size="xl" className="h-10 w-10 text-emerald-400" />
-                    <span className="text-xs font-medium leading-tight">Nouvelles paroles</span>
-                  </button>
-                  <NavLink
-                    to="/prompter"
-                    onClick={() => setIsLiveMenuOpen(false)}
-                    className={({ isActive }) =>
-                      [
-                        'flex min-h-36 flex-col items-center justify-center gap-5 rounded-[1.5rem] border p-4 text-center transition active:scale-[0.98]',
-                        isActive
-                          ? 'border-sky-500/50 bg-sky-500/15 text-sky-100'
-                          : 'border-white/10 bg-black/20 text-white hover:border-sky-500/30 hover:bg-sky-500/10',
-                      ].join(' ')
-                    }
-                  >
-                    <FzIcon name="prompter" usageId="app-shell.quick-actions.prompter" size="xl" className="h-10 w-10 text-sky-400" />
-                    <span className="text-xs font-medium leading-tight">Prompteur</span>
-                  </NavLink>
-                  <NavLink
-                    to="/metronome"
-                    onClick={() => setIsLiveMenuOpen(false)}
-                    className={({ isActive }) =>
-                      [
-                        'flex min-h-36 flex-col items-center justify-center gap-5 rounded-[1.5rem] border p-4 text-center transition active:scale-[0.98]',
-                        isActive
-                          ? 'border-amber-500/50 bg-amber-500/15 text-amber-100'
-                          : 'border-white/10 bg-black/20 text-white hover:border-amber-500/30 hover:bg-amber-500/10',
-                      ].join(' ')
-                    }
-                  >
-                    <FzIcon name="metronome" usageId="app-shell.quick-actions.metronome" size="xl" className="h-10 w-10 text-amber-400" />
-                    <span className="text-xs font-medium leading-tight">Métronome</span>
-                  </NavLink>
-                  </div>
-                </div>
-              </>
-            ) : null}
-
+          <div id="live-mode-container" className="relative flex flex-1 flex-col items-center justify-center -mt-4 z-40">
             <button
               type="button"
               onClick={() => setIsLiveMenuOpen((prev) => !prev)}
@@ -468,6 +384,89 @@ export function AppShell() {
           </NavLink>
         </div>
       </nav>
+
+      {isLiveMenuOpen ? (
+        createPortal(
+          <>
+            <div
+              data-testid="quick-actions-backdrop"
+              className="fixed inset-x-0 top-0 bottom-[calc(4.4rem+env(safe-area-inset-bottom))] z-40 bg-black/60 backdrop-blur-sm transition-opacity animate-in fade-in touch-none select-none"
+              onClick={() => setIsLiveMenuOpen(false)}
+              onTouchMove={(e) => e.preventDefault()}
+              onWheel={(e) => e.preventDefault()}
+              aria-hidden="true"
+            />
+            <div
+              ref={quickActionDialogRef}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Créer ou jouer"
+              tabIndex={-1}
+              className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] left-1/2 z-50 w-[calc(100%-1rem)] max-w-[30rem] -translate-x-1/2 rounded-t-[2.5rem] border border-white/15 bg-[#14161b]/98 px-6 pb-6 pt-6 shadow-[0_-20px_55px_rgba(0,0,0,0.7)] backdrop-blur-xl animate-in fade-in slide-in-from-bottom-3 outline-none"
+            >
+              <h2 className="text-xl font-black tracking-tight text-white">Créer ou jouer</h2>
+              <div className="mt-8 grid grid-cols-2 gap-4">
+                {canWrite ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsLiveMenuOpen(false);
+                      setVoiceRecorderMessage(null);
+                      setIsVoiceRecorderOpen(true);
+                    }}
+                    className="flex min-h-36 flex-col items-center justify-center gap-5 rounded-[1.5rem] border border-white/10 bg-black/20 p-4 text-center text-white transition hover:border-rose-500/30 hover:bg-rose-500/10 active:scale-[0.98]"
+                  >
+                    <FzIcon name="record" usageId="app-shell.quick-actions.record" size="xl" className="h-10 w-10 text-[#ff3a63]" />
+                    <span className="text-xs font-medium leading-tight">Enregistrer une idée</span>
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsLiveMenuOpen(false);
+                    navigate('/songs/new/write');
+                  }}
+                  className="flex min-h-36 flex-col items-center justify-center gap-5 rounded-[1.5rem] border border-white/10 bg-black/20 p-4 text-center text-white transition hover:border-emerald-500/30 hover:bg-emerald-500/10 active:scale-[0.98]"
+                >
+                  <FzIcon name="edit" usageId="app-shell.quick-actions.write" size="xl" className="h-10 w-10 text-emerald-400" />
+                  <span className="text-xs font-medium leading-tight">Nouvelles paroles</span>
+                </button>
+                <NavLink
+                  to="/prompter"
+                  onClick={() => setIsLiveMenuOpen(false)}
+                  className={({ isActive }) =>
+                    [
+                      'flex min-h-36 flex-col items-center justify-center gap-5 rounded-[1.5rem] border p-4 text-center transition active:scale-[0.98]',
+                      isActive
+                        ? 'border-sky-500/50 bg-sky-500/15 text-sky-100'
+                        : 'border-white/10 bg-black/20 text-white hover:border-sky-500/30 hover:bg-sky-500/10',
+                    ].join(' ')
+                  }
+                >
+                  <FzIcon name="prompter" usageId="app-shell.quick-actions.prompter" size="xl" className="h-10 w-10 text-sky-400" />
+                  <span className="text-xs font-medium leading-tight">Prompteur</span>
+                </NavLink>
+                <NavLink
+                  to="/metronome"
+                  onClick={() => setIsLiveMenuOpen(false)}
+                  className={({ isActive }) =>
+                    [
+                      'flex min-h-36 flex-col items-center justify-center gap-5 rounded-[1.5rem] border p-4 text-center transition active:scale-[0.98]',
+                      isActive
+                        ? 'border-amber-500/50 bg-amber-500/15 text-amber-100'
+                        : 'border-white/10 bg-black/20 text-white hover:border-amber-500/30 hover:bg-amber-500/10',
+                    ].join(' ')
+                  }
+                >
+                  <FzIcon name="metronome" usageId="app-shell.quick-actions.metronome" size="xl" className="h-10 w-10 text-amber-400" />
+                  <span className="text-xs font-medium leading-tight">Métronome</span>
+                </NavLink>
+              </div>
+            </div>
+          </>,
+          document.body,
+        )
+      ) : null}
 
       {isVoiceRecorderOpen ? (
         <QuickVoiceRecorder

@@ -136,4 +136,63 @@ describe('AppShell logo', () => {
 
     expect(screen.queryByRole('button', { name: 'Enregistrer' })).not.toBeInTheDocument();
   });
+
+  it('closes quick actions menu when clicking the backdrop', () => {
+    render(
+      <MemoryRouter initialEntries={['/songs']}>
+        <Routes>
+          <Route element={<AppShell />}>
+            <Route path="/songs" element={<LocationLabel />} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Actions rapides/ }));
+    expect(screen.getByRole('dialog', { name: 'Créer ou jouer' })).toBeInTheDocument();
+
+    const backdrop = screen.getByTestId('quick-actions-backdrop');
+    fireEvent.click(backdrop);
+
+    expect(screen.queryByRole('dialog', { name: 'Créer ou jouer' })).not.toBeInTheDocument();
+  });
+
+  it('closes quick actions menu on Escape key press', () => {
+    render(
+      <MemoryRouter initialEntries={['/songs']}>
+        <Routes>
+          <Route element={<AppShell />}>
+            <Route path="/songs" element={<LocationLabel />} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Actions rapides/ }));
+    expect(screen.getByRole('dialog', { name: 'Créer ou jouer' })).toBeInTheDocument();
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('dialog', { name: 'Créer ou jouer' })).not.toBeInTheDocument();
+  });
+
+  it('allows clicking the bottom navigation bar while quick actions menu is open', () => {
+    render(
+      <MemoryRouter initialEntries={['/songs']}>
+        <Routes>
+          <Route element={<AppShell />}>
+            <Route path="/songs" element={<LocationLabel />} />
+            <Route path="/home" element={<LocationLabel />} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Actions rapides/ }));
+    expect(screen.getByRole('dialog', { name: 'Créer ou jouer' })).toBeInTheDocument();
+
+    const bottomNav = screen.getByRole('navigation');
+    fireEvent.click(within(bottomNav).getByRole('link', { name: 'Accueil' }));
+    expect(screen.getByTestId('location')).toHaveTextContent('/home');
+    expect(screen.queryByRole('dialog', { name: 'Créer ou jouer' })).not.toBeInTheDocument();
+  });
 });

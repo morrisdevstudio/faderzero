@@ -452,36 +452,43 @@ export function SetlistDetailPage() {
             <Link
               to={`/prompter/play?setlistId=${encodeURIComponent(currentSetlist.id)}`}
               aria-label="Ouvrir le prompteur"
+              className="text-sky-400 hover:text-sky-300 active:text-sky-500"
             >
-              <FzIcon name="prompter" usageId="setlist-detail.prompter" size="md" />
+              <FzIcon name="prompter" usageId="setlist-detail.prompter" size="md" className="text-sky-400" />
             </Link>
             <button
               type="button"
               onClick={handleOpenPdfExportDialog}
               aria-label="Exporter en PDF"
+              title="Exporter en PDF"
+              className="text-amber-400 hover:text-amber-300 active:text-amber-500"
             >
               <FzIcon name="export-pdf" usageId="setlist.export-pdf" className="h-4.5 w-4.5" />
             </button>
 
-            {canWrite ? <button
-              type="button"
-              onClick={() => {
-                if (isEditing) {
-                  handleCloseEdit();
-                  return;
-                }
+            {canWrite ? (
+              <button
+                type="button"
+                onClick={() => {
+                  if (isEditing) {
+                    handleCloseEdit();
+                    return;
+                  }
 
-                setError(null);
-                setIsEditing(true);
-              }}
-              aria-label={isEditing ? 'Annuler la modification' : 'Modifier'}
-            >
-              <FzIcon
-                name={isEditing ? 'check' : 'edit'}
-                usageId={isEditing ? 'setlist-detail.finish-edit' : 'setlist-detail.edit'}
-                size="md"
-              />
-            </button> : null}
+                  setError(null);
+                  setIsEditing(true);
+                }}
+                aria-label={isEditing ? 'Annuler la modification' : 'Modifier la setlist'}
+                title={isEditing ? 'Terminer' : 'Options de la setlist'}
+                className={isEditing ? 'text-emerald-400 hover:text-emerald-300 active:text-emerald-500' : 'text-white/80 hover:text-white active:text-white/60'}
+              >
+                <FzIcon
+                  name={isEditing ? 'check' : 'menu'}
+                  usageId={isEditing ? 'setlist-detail.finish-edit' : 'setlist-detail.menu'}
+                  size="md"
+                />
+              </button>
+            ) : null}
           </>
         }
       />
@@ -669,7 +676,7 @@ export function SetlistDetailPage() {
                           onClick={() => setEntryToRemove(entry)}
                           disabled={isRemovingEntry}
                           aria-label={`Retirer ${entry.songTitle} de la setlist`}
-                          className="flex h-9 w-9 items-center justify-center text-white/35 transition hover:text-rose-400 disabled:opacity-25"
+                          className="flex h-9 w-9 items-center justify-center text-rose-400/80 transition hover:text-rose-300 active:text-rose-500 disabled:opacity-25"
                         >
                           <FzIcon name="delete" usageId="setlist-entry.remove" size="md" />
                         </button>

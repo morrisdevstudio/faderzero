@@ -609,17 +609,15 @@ export function SongDetailPage() {
         titleInteraction={canWrite ? { title: 'Appui long pour modifier le titre', ...titleLongPress } : undefined}
         actions={
           <>
-            {canWrite ? (
-              <button
-                type="button"
-                onClick={() => setIsDeleteDialogOpen(true)}
-                disabled={isSaving}
-                aria-label="Supprimer la chanson"
-                title="Supprimer la chanson"
-                className="disabled:opacity-60"
+            {!isEditMode ? (
+              <Link
+                to={`/prompter/play?songId=${encodeURIComponent(currentSong.id)}`}
+                aria-label="Ouvrir cette chanson dans le prompteur"
+                title="Ouvrir le prompteur"
+                className="text-sky-400 hover:text-sky-300 active:text-sky-500"
               >
-                <FzIcon name="delete" usageId="song-detail.delete" size="md" />
-              </button>
+                <FzIcon name="prompter" usageId="song-detail.prompter" size="md" className="text-sky-400" />
+              </Link>
             ) : null}
 
             {canWrite && !isEditMode ? (
@@ -628,6 +626,7 @@ export function SongDetailPage() {
                 onClick={() => setIsCopyModalOpen(true)}
                 aria-label="Copier vers un autre espace"
                 title="Copier vers un autre espace"
+                className="text-amber-400 hover:text-amber-300 active:text-amber-500"
               >
                 <svg className="h-4.5 w-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
@@ -636,13 +635,17 @@ export function SongDetailPage() {
               </button>
             ) : null}
 
-            {!isEditMode ? (
-              <Link
-                to={`/prompter/play?songId=${encodeURIComponent(currentSong.id)}`}
-                aria-label="Ouvrir cette chanson dans le prompteur"
+            {canWrite ? (
+              <button
+                type="button"
+                onClick={() => setIsDeleteDialogOpen(true)}
+                disabled={isSaving}
+                aria-label="Supprimer la chanson"
+                title="Supprimer la chanson"
+                className="text-rose-400 hover:text-rose-300 active:text-rose-500 disabled:opacity-60"
               >
-                <FzIcon name="prompter" usageId="song-detail.prompter" size="md" />
-              </Link>
+                <FzIcon name="delete" usageId="song-detail.delete" size="md" />
+              </button>
             ) : null}
 
             {canWrite && isEditMode ? (
@@ -651,6 +654,7 @@ export function SongDetailPage() {
                 onClick={() => handleCloseEdit()}
                 aria-label="Terminer la modification"
                 title="Terminer"
+                className="text-emerald-400 hover:text-emerald-300 active:text-emerald-500"
               >
                 <FzIcon name="check" usageId="song-detail.finish-edit" size="md" />
               </button>

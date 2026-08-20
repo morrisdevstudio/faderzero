@@ -63,7 +63,7 @@ export function PrompterPage() {
   const sourceLabel = setlist?.name ?? 'Toutes les chansons';
   const headerButtonClass = 'flex h-11 w-11 items-center justify-center text-white/72 transition hover:text-white disabled:cursor-not-allowed disabled:opacity-35';
   const settingsOptionClass = 'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg p-0 transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300';
-  const navigationButtonClass = "pointer-events-auto relative isolate flex min-h-16 items-center rounded-xl border border-white/10 bg-[#111318] px-3 text-xs font-black text-white/70 transition before:pointer-events-none before:absolute before:inset-0 before:-z-10 before:rounded-xl before:bg-black/45 before:blur-2xl before:backdrop-blur-lg before:content-[''] hover:bg-[#1a1d22] hover:text-white active:bg-[#20242a] disabled:cursor-not-allowed disabled:opacity-35";
+  const navigationButtonClass = "pointer-events-auto relative isolate flex min-h-16 items-center gap-2.5 rounded-xl border border-white/10 bg-[#111318] px-3.5 py-2 text-xs font-black text-white/70 transition before:pointer-events-none before:absolute before:inset-0 before:-z-10 before:rounded-xl before:bg-black/45 before:blur-2xl before:backdrop-blur-lg before:content-[''] hover:bg-[#1a1d22] hover:text-white active:bg-[#20242a] disabled:cursor-not-allowed disabled:opacity-35";
   const savePreferences = useCallback((next: Preferences) => { setPreferences(next); localStorage.setItem(PREF_KEY, JSON.stringify(next)); }, []);
   const pauseAutoScroll = useCallback(() => {
     paused.current = true;
@@ -117,29 +117,112 @@ export function PrompterPage() {
   }
 
   if (setlists === undefined || songs === undefined || (setlistId && entries === undefined)) return <div className="flex min-h-[100dvh] items-center justify-center bg-[#08090b] text-sm text-white/60">Chargement du prompteur...</div>;
-  return <div className="flex h-[100dvh] flex-col overflow-hidden overscroll-none bg-[var(--fz-bg)] text-white">
-    <header className="sticky top-0 z-20 shrink-0 border-b border-white/10 bg-[var(--fz-bg)]/98 backdrop-blur-sm"><div className="mx-auto w-full max-w-5xl px-4 pb-2 pt-3 sm:px-6"><div className="relative flex h-11 items-center"><button type="button" onClick={() => void closePrompter()} aria-label="Quitter le prompteur" className={`absolute left-0 z-10 ${headerButtonClass}`}><FzIcon name="close" usageId="prompter.header.close" size="md" /></button><div className="pointer-events-none absolute inset-x-0 min-w-0 px-24 text-center"><p className="truncate text-[0.72rem] font-black uppercase tracking-[0.26em] text-[var(--fz-text-muted)]">FaderZero</p><p className="mt-1 truncate text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-white/55">Prompteur - {sourceLabel}</p></div><div className="absolute right-0 z-10 flex items-center"><button type="button" onClick={() => void toggleFullscreen()} aria-label="Plein écran" className={headerButtonClass}><FzIcon name="fullscreen" usageId="prompter.header.fullscreen" size="md" /></button><button type="button" onClick={() => setSettingsOpen((value) => !value)} aria-expanded={settingsOpen} aria-label="Réglages" className={[headerButtonClass, settingsOpen ? 'text-emerald-300' : ''].join(' ')}><FzIcon name="settings" usageId="prompter.header.settings" size="md" /></button></div></div></div></header>
-    {settingsOpen ? (
-      <section aria-label="Réglages du prompteur" className="sticky top-16 z-10 shrink-0 border-b border-white/10 bg-[#0d0f13] px-3 py-2">
-        <div className="mx-auto flex max-w-5xl items-center justify-center gap-2">
-          <div role="group" aria-label="Vitesse de défilement" className="inline-flex rounded-xl bg-black/35 p-1">
-            {([0, 1, 2, 3] as const).map((speed) => {
-              const isActive = preferences.speed === speed;
-              const label = speed === 0 ? 'Arrêter le défilement' : `Vitesse de défilement ${speed}`;
-              return <button key={speed} type="button" onClick={() => savePreferences({ ...preferences, speed })} aria-label={label} title={label} aria-pressed={isActive} className={[settingsOptionClass, isActive ? 'bg-emerald-300 text-[#07100a]' : 'text-white/60 hover:bg-white/8 hover:text-white active:bg-white/12'].join(' ')}>{speed === 0 ? <FzIcon name="stop" usageId="prompter.scroll.stop" size="sm" /> : <SpeedIcon count={speed} className="h-5 w-5" />}</button>;
-            })}
-          </div>
-          <span aria-hidden="true" className="h-6 w-px shrink-0 bg-white/10" />
-          <div role="group" aria-label="Taille du texte" className="inline-flex rounded-xl bg-black/35 p-1">
-            {[1, 1.15, 1.3].map((scale) => {
-              const isActive = preferences.scale === scale;
-              const label = scale === 1 ? 'Texte normal' : scale === 1.15 ? 'Texte agrandi' : 'Texte très agrandi';
-              return <button key={scale} type="button" onClick={() => savePreferences({ ...preferences, scale })} aria-label={label} title={label} aria-pressed={isActive} className={[settingsOptionClass, isActive ? 'bg-emerald-300 text-[#07100a]' : 'text-white/60 hover:bg-white/8 hover:text-white active:bg-white/12'].join(' ')}><TextSizeIcon scale={scale} /></button>;
-            })}
+  return (
+    <div className="flex h-[100dvh] flex-col overflow-hidden overscroll-none bg-[var(--fz-bg)] text-white">
+      <header className="sticky top-0 z-20 shrink-0 border-b border-white/10 bg-[var(--fz-bg)]/98 backdrop-blur-sm">
+        <div className="mx-auto w-full max-w-5xl px-4 pb-2 pt-3 sm:px-6">
+          <div className="relative flex h-11 items-center">
+            <button type="button" onClick={() => void closePrompter()} aria-label="Quitter le prompteur" className={`absolute left-0 z-10 ${headerButtonClass}`}>
+              <FzIcon name="close" usageId="prompter.header.close" size="md" />
+            </button>
+            <div className="pointer-events-none absolute inset-x-0 min-w-0 px-24 text-center">
+              <p className="truncate text-[0.72rem] font-black uppercase tracking-[0.26em] text-[var(--fz-text-muted)]">FaderZero</p>
+              <p className="mt-1 truncate text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-white/55">Prompteur - {sourceLabel}</p>
+            </div>
+            <div className="absolute right-0 z-10 flex items-center">
+              <button type="button" onClick={() => void toggleFullscreen()} aria-label="Plein écran" className={headerButtonClass}>
+                <FzIcon name="fullscreen" usageId="prompter.header.fullscreen" size="md" />
+              </button>
+              <button type="button" onClick={() => setSettingsOpen((value) => !value)} aria-expanded={settingsOpen} aria-label="Réglages" className={[headerButtonClass, settingsOpen ? 'text-emerald-300' : ''].join(' ')}>
+                <FzIcon name="settings" usageId="prompter.header.settings" size="md" />
+              </button>
+            </div>
           </div>
         </div>
-      </section>
-    ) : null}
-    <main className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col overflow-hidden bg-black px-4 sm:px-6">{selectedSong ? <><section className="flex h-16 shrink-0 touch-none select-none flex-col justify-center border-b border-white/8 text-center"><h1 className="block w-full truncate text-lg font-black sm:text-xl">{selectedSong.title || 'Sans titre'}</h1><div className="mt-1 flex items-center justify-center gap-2 truncate text-[0.68rem] font-bold text-white/60"><span>{selectedSong.bpm ? `${selectedSong.bpm} BPM` : '— BPM'}</span><span aria-hidden="true">·</span><span>{formatDuration(selectedSong.durationSeconds)}</span><span aria-hidden="true">·</span><span>{selectedSong.key || '— Ton'}</span></div></section><div ref={contentRef} onPointerDown={pauseAutoScroll} onPointerUp={resumeAutoScrollLater} onPointerCancel={resumeAutoScrollLater} onWheel={() => { pauseAutoScroll(); resumeAutoScrollLater(); }} className="min-h-0 flex-1 overscroll-contain overflow-y-auto px-1 py-8 sm:px-12 sm:py-12"><Lyrics text={selectedSong.lyrics} scale={preferences.scale} /><p className="pb-8 pt-20 text-center text-xs italic text-white/35">— Fin du morceau —</p></div><div className="pointer-events-none fixed inset-x-0 bottom-[max(4rem,env(safe-area-inset-bottom))] z-30"><div className="mx-auto grid max-w-5xl grid-cols-2 gap-3 px-4 sm:px-6"><button type="button" disabled={!previousSong} onClick={() => moveSong(previousSong)} className={`${navigationButtonClass} justify-start text-left`}><span>‹ Précédent<br /><span className="text-white">{previousSong?.title ?? 'Début'}</span></span></button><button type="button" disabled={!nextSong} onClick={() => moveSong(nextSong)} className={`${navigationButtonClass} justify-end text-right`}><span>Suivant ›<br /><span className="text-white">{nextSong?.title ?? 'Fin'}</span></span></button></div></div></> : <div className="flex flex-1 items-center justify-center text-center"><div><p className="text-lg font-black">Aucun morceau disponible</p><p className="mt-2 text-sm text-white/55">Ajoute des chansons ou choisis une autre source.</p><button type="button" onClick={() => void closePrompter()} className="mt-5 rounded-xl bg-white px-4 py-3 text-sm font-black text-[#111319]">Retour au choix</button></div></div>}</main>
-  </div>;
+      </header>
+      {settingsOpen ? (
+        <section aria-label="Réglages du prompteur" className="sticky top-16 z-10 shrink-0 border-b border-white/10 bg-[#0d0f13] px-3 py-2">
+          <div className="mx-auto flex max-w-5xl items-center justify-center gap-2">
+            <div role="group" aria-label="Vitesse de défilement" className="inline-flex rounded-xl bg-black/35 p-1">
+              {([0, 1, 2, 3] as const).map((speed) => {
+                const isActive = preferences.speed === speed;
+                const label = speed === 0 ? 'Arrêter le défilement' : `Vitesse de défilement ${speed}`;
+                return <button key={speed} type="button" onClick={() => savePreferences({ ...preferences, speed })} aria-label={label} title={label} aria-pressed={isActive} className={[settingsOptionClass, isActive ? 'bg-emerald-300 text-[#07100a]' : 'text-white/60 hover:bg-white/8 hover:text-white active:bg-white/12'].join(' ')}>{speed === 0 ? <FzIcon name="stop" usageId="prompter.scroll.stop" size="sm" /> : <SpeedIcon count={speed} className="h-5 w-5" />}</button>;
+              })}
+            </div>
+            <span aria-hidden="true" className="h-6 w-px shrink-0 bg-white/10" />
+            <div role="group" aria-label="Taille du texte" className="inline-flex rounded-xl bg-black/35 p-1">
+              {[1, 1.15, 1.3].map((scale) => {
+                const isActive = preferences.scale === scale;
+                const label = scale === 1 ? 'Texte normal' : scale === 1.15 ? 'Texte agrandi' : 'Texte très agrandi';
+                return <button key={scale} type="button" onClick={() => savePreferences({ ...preferences, scale })} aria-label={label} title={label} aria-pressed={isActive} className={[settingsOptionClass, isActive ? 'bg-emerald-300 text-[#07100a]' : 'text-white/60 hover:bg-white/8 hover:text-white active:bg-white/12'].join(' ')}><TextSizeIcon scale={scale} /></button>;
+              })}
+            </div>
+          </div>
+        </section>
+      ) : null}
+      <main className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col overflow-hidden bg-black px-4 sm:px-6">
+        {selectedSong ? (
+          <>
+            <section className="flex h-16 shrink-0 touch-none select-none flex-col justify-center border-b border-white/8 text-center">
+              <h1 className="block w-full truncate text-lg font-black sm:text-xl">{selectedSong.title || 'Sans titre'}</h1>
+              <div className="mt-1 flex items-center justify-center gap-2 truncate text-[0.68rem] font-bold text-white/60">
+                <span>{selectedSong.bpm ? `${selectedSong.bpm} BPM` : '— BPM'}</span>
+                <span aria-hidden="true">·</span>
+                <span>{formatDuration(selectedSong.durationSeconds)}</span>
+                <span aria-hidden="true">·</span>
+                <span>{selectedSong.key || '— Ton'}</span>
+              </div>
+            </section>
+            <div ref={contentRef} onPointerDown={pauseAutoScroll} onPointerUp={resumeAutoScrollLater} onPointerCancel={resumeAutoScrollLater} onWheel={() => { pauseAutoScroll(); resumeAutoScrollLater(); }} className="min-h-0 flex-1 overscroll-contain overflow-y-auto px-1 py-8 sm:px-12 sm:py-12">
+              <Lyrics text={selectedSong.lyrics} scale={preferences.scale} />
+              <p className="pb-8 pt-20 text-center text-xs italic text-white/35">— Fin du morceau —</p>
+            </div>
+            <div className="pointer-events-none fixed inset-x-0 bottom-[max(1rem,env(safe-area-inset-bottom))] z-30">
+              <div className="mx-auto grid max-w-5xl grid-cols-2 gap-3 px-4 sm:px-6">
+                {previousSong ? (
+                  <button
+                    type="button"
+                    onClick={() => moveSong(previousSong)}
+                    aria-label={`Morceau précédent : ${previousSong.title || 'Sans titre'}`}
+                    className={`${navigationButtonClass} justify-start text-left`}
+                  >
+                    <span aria-hidden="true" className="shrink-0 text-xl font-black leading-none text-white/70">‹</span>
+                    <span className="min-w-0 flex-1 overflow-hidden">
+                      <span className="line-clamp-3 break-words text-sm font-black leading-snug text-white">
+                        {previousSong.title || 'Sans titre'}
+                      </span>
+                    </span>
+                  </button>
+                ) : <div />}
+                {nextSong ? (
+                  <button
+                    type="button"
+                    onClick={() => moveSong(nextSong)}
+                    aria-label={`Morceau suivant : ${nextSong.title || 'Sans titre'}`}
+                    className={`${navigationButtonClass} justify-end text-right ${!previousSong ? 'col-start-2' : ''}`}
+                  >
+                    <span className="min-w-0 flex-1 overflow-hidden">
+                      <span className="line-clamp-3 break-words text-sm font-black leading-snug text-white">
+                        {nextSong.title || 'Sans titre'}
+                      </span>
+                    </span>
+                    <span aria-hidden="true" className="shrink-0 text-xl font-black leading-none text-white/70">›</span>
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="flex flex-1 items-center justify-center text-center">
+            <div>
+              <p className="text-lg font-black">Aucun morceau disponible</p>
+              <p className="mt-2 text-sm text-white/55">Ajoute des chansons ou choisis une autre source.</p>
+              <button type="button" onClick={() => void closePrompter()} className="mt-5 rounded-xl bg-white px-4 py-3 text-sm font-black text-[#111319]">Retour au choix</button>
+            </div>
+          </div>
+        )}
+      </main>
+    </div>
+  );
 }

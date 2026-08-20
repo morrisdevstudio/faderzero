@@ -349,6 +349,10 @@ export function CalendarPage() {
   };
 
   const handleCalendarTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
+    if (document.body.style.overflow === 'hidden' || document.querySelector('[role="dialog"]')) {
+      calendarTouchStart.current = null;
+      return;
+    }
     const touch = event.touches[0];
     if (!touch) return;
     calendarTouchStart.current = { x: touch.clientX, y: touch.clientY };
@@ -356,9 +360,13 @@ export function CalendarPage() {
 
   const handleCalendarTouchEnd = (event: React.TouchEvent<HTMLDivElement>) => {
     const start = calendarTouchStart.current;
-    const touch = event.changedTouches[0];
     calendarTouchStart.current = null;
-    if (!start || !touch) return;
+    if (!start) return;
+    if (document.body.style.overflow === 'hidden' || document.querySelector('[role="dialog"]')) {
+      return;
+    }
+    const touch = event.changedTouches[0];
+    if (!touch) return;
 
     const deltaX = touch.clientX - start.x;
     const deltaY = touch.clientY - start.y;
@@ -482,12 +490,17 @@ export function CalendarPage() {
     let scrollStartTop: number | null = null;
     let wheelDeltaY = 0;
 
+    const isDialogOpen = () => (
+      document.body.style.overflow === 'hidden' ||
+      document.querySelector('[role="dialog"]') !== null
+    );
+
     const isCalendarCardTarget = (target: EventTarget | null) => (
       target instanceof Element && target.closest('[data-calendar-card]') !== null
     );
 
     const handleWheel = (event: WheelEvent) => {
-      if (isCalendarCardTarget(event.target)) return;
+      if (isDialogOpen() || isCalendarCardTarget(event.target)) return;
 
       wheelDeltaY = Math.sign(wheelDeltaY) === Math.sign(event.deltaY)
         ? wheelDeltaY + event.deltaY
@@ -500,7 +513,7 @@ export function CalendarPage() {
     };
 
     const handleTouchStart = (event: TouchEvent) => {
-      if (isCalendarCardTarget(event.target)) {
+      if (isDialogOpen() || isCalendarCardTarget(event.target)) {
         touchStart = null;
         return;
       }
@@ -509,6 +522,10 @@ export function CalendarPage() {
     };
 
     const handleTouchMove = (event: TouchEvent) => {
+      if (isDialogOpen()) {
+        touchStart = null;
+        return;
+      }
       const touch = event.touches[0];
       if (!touchStart || !touch) return;
 
@@ -526,6 +543,7 @@ export function CalendarPage() {
     };
 
     const handleScroll = () => {
+      if (isDialogOpen()) return;
       const currentScrollTop = window.scrollY;
       if (currentScrollTop <= lastScrollTop) {
         scrollStartTop = null;
