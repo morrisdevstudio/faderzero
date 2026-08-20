@@ -104,10 +104,9 @@ interface DeletePromptState {
   filename: string;
 }
 
-function ChevronIcon({ className, isOpen, iconAuditId }: { className?: string; isOpen: boolean; iconAuditId?: string }) {
+function ChevronIcon({ className, isOpen }: { className?: string; isOpen: boolean }) {
   return (
     <svg
-      data-icon-audit-id={iconAuditId}
       viewBox="0 0 24 24"
       className={['h-4 w-4 transition-transform duration-200', isOpen ? 'rotate-180' : '', className].join(' ')}
       fill="none"
@@ -1232,7 +1231,7 @@ export function SongsPage() {
                           aria-label={isExpanded ? 'Masquer les pistes supplémentaires' : `Afficher les ${otherAssets.length} pistes supplémentaires`}
                           className="flex w-full items-center justify-center border-t border-white/6 px-3 py-3 text-white/60 transition hover:bg-white/5 hover:text-white"
                         >
-                          <ChevronIcon isOpen={isExpanded} iconAuditId="e141b12888456545" />
+                          <ChevronIcon isOpen={isExpanded} />
                         </button>
                       </>
                     )}

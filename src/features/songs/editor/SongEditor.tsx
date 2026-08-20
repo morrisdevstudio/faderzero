@@ -275,10 +275,10 @@ export function SongEditor({ initialDocument, onChange, autoFocus = true }: Song
           <RedoIcon />
         </button>
         <button type="button" onPointerDown={(event) => event.preventDefault()} onClick={() => moveCursor(-1)} aria-label="Déplacer le curseur à gauche">
-          <ChevronIcon direction="left" data-icon-audit-id="cbc0a967f918a0e7" />
+          <ChevronIcon direction="left" />
         </button>
         <button type="button" onPointerDown={(event) => event.preventDefault()} onClick={() => moveCursor(1)} aria-label="Déplacer le curseur à droite">
-          <ChevronIcon direction="right" data-icon-audit-id="f7d0341f46591999" />
+          <ChevronIcon direction="right" />
         </button>
         <button
           type="button"

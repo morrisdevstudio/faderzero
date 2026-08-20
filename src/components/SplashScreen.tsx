@@ -25,7 +25,7 @@ export function SplashScreen({ subtitle = 'Chargement...' }: { subtitle?: string
 
       {/* Fader Loader Pro */}
       <div className="w-[170px] max-w-[48vw] aspect-[3/8] text-white">
-        <svg viewBox="0 0 240 640" className="block w-full h-full overflow-visible" aria-hidden="true" data-icon-audit-id="614f22a90c4e443d">
+        <svg viewBox="0 0 240 640" className="block w-full h-full overflow-visible" aria-hidden="true">
           <defs>
             <filter id="softGlow" x="-100%" y="-100%" width="300%" height="300%">
               <feGaussianBlur stdDeviation="5" result="blur" />

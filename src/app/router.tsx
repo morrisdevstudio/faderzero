@@ -15,7 +15,6 @@ const SyncPage = lazy(async () => ({ default: (await import('@/features/sync/Syn
 const HomePage = lazy(async () => ({ default: (await import('@/features/home/HomePage')).HomePage }));
 const CalendarPage = lazy(async () => ({ default: (await import('@/features/events/CalendarPage')).CalendarPage }));
 const BookingPage = lazy(async () => ({ default: (await import('@/features/booking/BookingPage')).BookingPage }));
-const IconDesignSystemPage = lazy(async () => ({ default: (await import('@/features/icon-admin/IconDesignSystemPage')).IconDesignSystemPage }));
 
 function RouteFallback() {
   return <div className="py-10 text-center text-xs text-white/45">Chargement…</div>;
@@ -25,7 +24,6 @@ export function AppRouter() {
   return (
     <Suspense fallback={<RouteFallback />}>
       <Routes>
-      <Route path="/internal/design-system/icons" element={<IconDesignSystemPage />} />
       <Route path="/prompter/play" element={<PrompterPage />} />
       <Route path="/songs/:songId/write" element={<SongWriterPage />} />
       <Route element={<AppShell />}>

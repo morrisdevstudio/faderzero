@@ -8,7 +8,6 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
-.icon-publication-build.json
 dist
 dist-ssr
 .cert
@@ -25,8 +24,18 @@ playwright/.auth/
 **/.smoke-tmp/
 .env.e2e
 .env.e2e.local
-docs/icon-audit/screenshots/
-docs/icon-audit/capture-report.json
+docs/icon-audit/
+src/features/icon-admin/
+tools/icon-catalog/
+e2e/icon-audit-routes.spec.ts
+e2e/icon-capture.spec.ts
+scripts/audit-icons.mjs
+scripts/audit-icons.test.mjs
+scripts/capture-dynamic-icon-previews.mjs
+scripts/create-icon-catalog-*.mjs
+scripts/icons/
+supabase/functions/icon-build-channel/
+supabase/functions/publish-icon-system/
 .agents/
 AGENTS.md
 PRODUCT.md
@@ -35,6 +44,7 @@ docs/AUDIT_SECURITE_FADERZERO.md
 docs/FONCTIONNALITES_FADERZERO.md
 docs/VALIDATION_COMMANDS_FADERZERO.md
 supabase/audit/
+docs/NETTOYAGE_DEPOT_GITHUB.md
 
 # Temporary files & mocks
 preview_*.html

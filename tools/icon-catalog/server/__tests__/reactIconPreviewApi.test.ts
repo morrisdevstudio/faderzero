@@ -1,4 +1,0 @@
-import { describe, expect, it } from 'vitest';
-import { reactIconPreviewApi } from '../reactIconPreviewApi';
-function call(url:string,item:any){return new Promise<any>(resolve=>{const res:any={headers:{},setHeader:(k:string,v:string)=>res.headers[k]=v,end:(body?:string)=>resolve({status:res.statusCode,headers:res.headers,body})};reactIconPreviewApi({read:async()=>({inventory:{icons:item?[item]:[]}})} as any,process.cwd())({method:'GET',url} as any,res,()=>resolve({next:true}));});}
-describe('react icon api',()=>{it('refuses unknown and unsafe ids',async()=>{expect((await call('/api/icon-component/missing',undefined)).status).toBe(404);expect((await call('/api/icon-component/a%2Fb',{occurrenceId:'a/b'})).status).toBe(400);});it('leaves other routes',async()=>expect(await call('/api/nope',{})).toEqual({next:true}));});
