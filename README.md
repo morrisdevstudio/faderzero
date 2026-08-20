@@ -327,11 +327,7 @@ flowchart TD
 
 ## Documentation complémentaire
 
-Pour en savoir plus sur des aspects techniques spécifiques, consultez les documents dans le dossier `docs/` :
-
-- **Spécifications fonctionnelles** : `docs/FONCTIONNALITES_FADERZERO.md`
-- **Audit de sécurité** : `docs/AUDIT_SECURITE_FADERZERO.md`
-- **Migrations et configuration Supabase** : `supabase/`
+Pour les migrations et la configuration Supabase, consultez `supabase/`.
 
 ---
 

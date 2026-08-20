@@ -29,6 +29,12 @@ docs/icon-audit/screenshots/
 docs/icon-audit/capture-report.json
 .agents/
 AGENTS.md
+PRODUCT.md
+scripts/ai/project-snapshot.ps1
+docs/AUDIT_SECURITE_FADERZERO.md
+docs/FONCTIONNALITES_FADERZERO.md
+docs/VALIDATION_COMMANDS_FADERZERO.md
+supabase/audit/
 
 # Temporary files & mocks
 preview_*.html
