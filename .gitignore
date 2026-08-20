@@ -25,6 +25,8 @@ playwright/.auth/
 **/.smoke-tmp/
 .env.e2e
 .env.e2e.local
+.agents/
+AGENTS.md
 
 # Temporary files & mocks
 preview_*.html
