@@ -1,4 +1,4 @@
-﻿import http from 'http';
+import http from 'http';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -21,7 +21,13 @@ const mimeTypes = {
 const server = http.createServer((req, res) => {
   let reqPath = req.url ? req.url.split('?')[0] : '/';
   if (reqPath === '/') reqPath = '/index.html';
-  let filePath = path.join(distDir, reqPath);
+  let filePath = path.normalize(path.join(distDir, reqPath));
+
+  if (!filePath.startsWith(distDir)) {
+    res.writeHead(403, { 'Content-Type': 'text/plain' });
+    res.end('Forbidden');
+    return;
+  }
 
   if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
     filePath = path.join(distDir, 'index.html');

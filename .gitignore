@@ -22,15 +22,30 @@ cloudflare/audio-worker/wrangler.local.jsonc
 playwright-report/
 test-results/
 playwright/.auth/
-docs/icon-audit/.smoke-tmp/
+**/.smoke-tmp/
 .env.e2e
 .env.e2e.local
+
+# Temporary files & mocks
+preview_*.html
+*.preview.html
+temp_*.html
+*.pid
+**/*.pid
+*.tmp
+*.bak
+*.swp
+
+# Coverage
+coverage/
+.nyc_output/
 
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
 .idea
 .DS_Store
+Thumbs.db
 *.suo
 *.ntvs*
 *.njsproj
