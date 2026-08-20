@@ -16,7 +16,7 @@ Référence actuelle : 36 fichiers de tests et 147 tests. Une baisse inattendue 
 ## Epic 9 — Durcissement avant production
 
 ```powershell
-# Contrôle statique de la CSP et des en-têtes appliqués par Caddy
+# Contrôle statique de la CSP et des en-têtes Cloudflare Pages
 npm run security:headers
 npm run security:secrets
 npm audit --audit-level=high
@@ -32,25 +32,6 @@ docker exec supabase_db_pwa psql -U postgres -d postgres -X -v ON_ERROR_STOP=1 -
 docker cp .\supabase\tests\epic-9-events-rls.sql supabase_db_pwa:/tmp/epic-9-events-rls.sql
 docker exec supabase_db_pwa psql -U postgres -d postgres -X -v ON_ERROR_STOP=1 -f /tmp/epic-9-events-rls.sql
 ```
-
-Tailscale Serve termine TLS et relaie vers Caddy en `https+insecure://localhost:8443`; Caddy ajoute `Strict-Transport-Security: max-age=31536000; includeSubDomains` à cette réponse HTTPS. La recette complète et les critères utilisateur sont consignés dans `docs/reports/PAUSE_9_VALIDATION_FADERZERO.md`.
-
-## Epic 10 — Gate de retrait du legacy
-
-```powershell
-# Doit rester en échec tant que deux versions et trente jours ne sont pas prouvés
-npm run epic10:gate
-
-# Audit strictement en lecture seule
-docker cp .\supabase\audit\epic-10-observation.sql supabase_db_pwa:/tmp/epic-10-observation.sql
-docker exec supabase_db_pwa psql -U postgres -d postgres -X -v ON_ERROR_STOP=1 -f /tmp/epic-10-observation.sql
-
-# RPC d’observation et protections d’accès
-docker cp .\supabase\tests\epic-10-compatibility-observation.sql supabase_db_pwa:/tmp/epic-10-compatibility-observation.sql
-docker exec supabase_db_pwa psql -U postgres -d postgres -X -v ON_ERROR_STOP=1 -f /tmp/epic-10-compatibility-observation.sql
-```
-
-Le retrait est interdit tant que `docs/reports/EPIC_10_OBSERVATION.json` ne fait pas passer le gate. Un échec du script est actuellement le résultat correct.
 
 ## Epic 2 — Invitations
 
@@ -89,12 +70,6 @@ supabase db advisors --local
 
 Les scripts SQL ouvrent une transaction et terminent par `ROLLBACK`. Le test concurrent utilise uniquement des UUID et comptes réservés au test, puis les supprime dans un bloc `finally`.
 
-## Artefacts BMAD
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\validate-epic-0-artifacts.ps1
-```
-
 ## Epic 5 — Audios, quotas et Worker R2
 
 ```powershell
@@ -107,8 +82,6 @@ powershell -ExecutionPolicy Bypass -File .\scripts\compare-epic-5-r2-manifest.ps
 npx tsc --noEmit -p .\cloudflare\audio-worker\tsconfig.json
 npx --yes wrangler types --check --config .\cloudflare\audio-worker\wrangler.jsonc .\cloudflare\audio-worker\worker-configuration.d.ts
 ```
-
-Le rapport manuel et les garde-fous de passage sont dans `docs/reports/PAUSE_5_VALIDATION_FADERZERO.md`.
 
 ## Inventaire SQL en lecture seule
 
@@ -129,4 +102,4 @@ Le rôle utilisé ne doit disposer que de `CONNECT`, `USAGE` et `SELECT`. Le scr
 - Comparer le manifeste R2 par clé, taille et ETag ; aucun objet manquant n’est toléré.
 - Tester une authentification restaurée et un échantillon audio avant toute migration.
 
-Les commandes `pg_dump`, `psql`, Supabase CLI et Wrangler ne sont pas installées automatiquement par le dépôt. Leur installation et les accès administrateur sont des prérequis contrôlés de Stories 0.3 et 0.4.
+Les commandes `pg_dump`, `psql`, Supabase CLI et Wrangler ne sont pas installées automatiquement par le dépôt. Leur installation et les accès administrateur sont des prérequis contrôlés.

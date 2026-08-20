@@ -32,10 +32,10 @@ L'application ne devrait toutefois pas être ouverte à des utilisateurs non fia
 
 **Preuves**
 
-- [`workspace_members.role`](https://github.com/morrisdevstudio/faderzero/blob/7a5257a0716993841b394db70db7f1c0a51ba836/supabase/sql/01_schema.sql#L35-L42)
-- [Policies du workspace et des membres](https://github.com/morrisdevstudio/faderzero/blob/7a5257a0716993841b394db70db7f1c0a51ba836/supabase/sql/02_rls.sql#L79-L128)
-- [Policies des invitations](https://github.com/morrisdevstudio/faderzero/blob/7a5257a0716993841b394db70db7f1c0a51ba836/supabase/sql/02_rls.sql#L131-L152)
-- [Policies des fichiers audio](https://github.com/morrisdevstudio/faderzero/blob/7a5257a0716993841b394db70db7f1c0a51ba836/supabase/sql/03_storage.sql#L30-L74)
+- [`workspace_members.role`](../supabase/migrations/20260717142736_bootstrap_schema.sql)
+- [Policies du workspace et des membres](../supabase/migrations/20260717142743_configure_rls.sql)
+- [Policies des invitations](../supabase/migrations/20260717142822_add_workspace_invite_links.sql)
+- [Policies des fichiers audio](../supabase/migrations/20260717142753_configure_storage.sql)
 
 **Impact**
 
@@ -57,7 +57,7 @@ La fonction accepte explicitement une invitation au statut `pending` **ou `accep
 
 **Preuves**
 
-- [Acceptation de `pending` ou `accepted`](https://github.com/morrisdevstudio/faderzero/blob/7a5257a0716993841b394db70db7f1c0a51ba836/supabase/sql/09_workspace_invite_links.sql#L53-L81)
+- [Fonction d’acceptation de l’invitation](../supabase/migrations/20260717142822_add_workspace_invite_links.sql)
 - [Expiration client à 30 jours](https://github.com/morrisdevstudio/faderzero/blob/7a5257a0716993841b394db70db7f1c0a51ba836/src/services/supabase/workspace.ts#L167-L185)
 
 **Impact**
@@ -123,7 +123,7 @@ Une fois créée, l'URL donne accès à l'objet pendant une heure sans nouvelle 
 
 **Impact :** un client hostile ou défectueux peut créer des relations incohérentes entre espaces, déplacer des lignes entre deux espaces dont il est membre ou perturber les suppressions en cascade.
 
-**Preuve :** [schéma des relations](https://github.com/morrisdevstudio/faderzero/blob/7a5257a0716993841b394db70db7f1c0a51ba836/supabase/sql/01_schema.sql#L101-L137).
+**Preuve :** [schéma des relations](../supabase/migrations/20260717142736_bootstrap_schema.sql).
 
 **À faire :** utiliser des contraintes composites incluant `workspace_id`, rendre `workspace_id` immuable après création et vérifier que `storage_path` commence exactement par `workspaces/{workspace_id}/`.
 

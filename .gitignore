@@ -25,6 +25,8 @@ playwright/.auth/
 **/.smoke-tmp/
 .env.e2e
 .env.e2e.local
+docs/icon-audit/screenshots/
+docs/icon-audit/capture-report.json
 .agents/
 AGENTS.md
 

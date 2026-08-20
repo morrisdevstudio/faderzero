@@ -1,60 +1,30 @@
-# Supabase Reset & Bootstrap - FaderZero
+# Supabase — FaderZero
 
-Ce dossier contient les scripts SQL necessaires pour initialiser et maintenir l'instance Supabase self-hosted de FaderZero.
+Les migrations versionnées de `migrations/` sont l’unique source de vérité pour le schéma, la sécurité RLS, les fonctions SQL et le stockage Supabase.
 
-## Instance en service
+## Appliquer les migrations
 
-La stack active est la stack Docker officielle Supabase reconstruite dans :
+Utiliser Supabase CLI sur un environnement explicitement ciblé. Ne jamais appliquer une migration directement sur la production sans sauvegarde et validation préalable.
 
-```text
-/path/to/supabase-clean
+```powershell
+supabase migration list
+supabase db push
 ```
 
-Endpoints utiles :
+Pour une base locale, démarrer Supabase puis appliquer les migrations :
 
-- API gateway : `http://your-supabase-host:54321`
-- Studio : `http://your-supabase-host:54323`
-
-> [!WARNING]
-> `00_reset_faderzero.sql` est destructif. Il supprime les donnees FaderZero et le bucket de stockage associe.
-
-## Ordre d'execution des scripts SQL
-
-Pour une base vide ou apres reset complet, executez les scripts dans cet ordre :
-
-1. `sql/00_reset_faderzero.sql`
-2. `sql/01_schema.sql`
-3. `sql/02_rls.sql`
-4. `sql/03_storage.sql`
-5. `sql/04_seed_minimal.sql` (optionnel)
-6. `sql/05_fix_workspace_permissions.sql`
-7. `sql/06_song_assets_optional_song.sql`
-8. `sql/07_sync_server_version_indexes.sql`
-9. `sql/08_setlists_schema_alignment.sql`
-
-## Mode d'administration recommande
-
-Le port Postgres n'est pas expose directement a la machine de dev. L'administration se fait donc :
-
-- soit via **Supabase Studio** sur `http://your-supabase-host:54323`
-- soit en **SSH** sur le serveur, puis `docker exec` dans `supabase-clean`
-
-Exemple :
-
-```bash
-ssh your-user@your-host
-cd ~/appGroup/supabase-clean
-docker exec -i supabase-db psql -U postgres -d postgres < faderzero-sql/01_schema.sql
+```powershell
+supabase start
+supabase migration up --local
 ```
 
-## Verifications apres initialisation
+## Vérifications
 
-Apres bootstrap, verifier que :
+Après une migration, exécuter les contrôles SQL versionnés dans `tests/`, ainsi que :
 
-1. les tables metier `profiles`, `workspaces`, `workspace_members`, `workspace_invites`, `songs`, `setlists`, `setlist_songs`, `song_assets` existent dans `public`
-2. la RLS est active sur toutes ces tables
-3. le bucket `faderzero-audio` existe dans `storage.buckets` et reste prive
+```powershell
+supabase db lint --local --schema public,private --level warning --fail-on error
+supabase db advisors --local --type security --level warn --fail-on error
+```
 
-## Configuration de la PWA
-
-Pour connecter la PWA a cette instance Supabase, gerer les conflits et televerser des fichiers audio, consultez [SUPABASE_SYNC.md](../docs/SUPABASE_SYNC.md).
+Les données de démonstration sont dans `seed.sql`. Aucun script de reset destructif n’est conservé dans ce dépôt.

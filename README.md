@@ -331,7 +331,7 @@ Pour en savoir plus sur des aspects techniques spécifiques, consultez les docum
 
 - **Spécifications fonctionnelles** : `docs/FONCTIONNALITES_FADERZERO.md`
 - **Audit de sécurité** : `docs/AUDIT_SECURITE_FADERZERO.md`
-- **Schémas SQL & Supabase** : `supabase/sql`
+- **Migrations et configuration Supabase** : `supabase/`
 
 ---
 

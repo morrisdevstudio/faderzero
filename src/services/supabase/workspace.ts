@@ -117,7 +117,7 @@ function normalizeWorkspaceError(error: unknown): Error {
       normalizedMessage.includes('permission denied for table workspace_members')
     ) {
       return new Error(
-        "La base Supabase n'autorise pas encore l'acces aux tables workspace pour le role authenticated. Executez `pwa/supabase/sql/05_fix_workspace_permissions.sql` dans Supabase Studio, puis rechargez la PWA."
+        "La base Supabase n'autorise pas encore l'accès aux tables workspace pour le rôle authenticated. Le déploiement est incomplet : appliquez les migrations Supabase versionnées, puis rechargez la PWA."
       );
     }
 
