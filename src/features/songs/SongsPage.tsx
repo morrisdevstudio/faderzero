@@ -855,7 +855,7 @@ export function SongsPage() {
     <div className="space-y-4">
       <section className="space-y-3">
         <PageHeader
-          icon={<FzIcon name="songs" usageId="page-header.songs" size="xl" />}
+          icon={<FzIcon name="songs" usageId="page-header.songs" size="xl" className="text-indigo-400" />}
           title="Morceaux"
           actions={canWrite ? <>
             <button

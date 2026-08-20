@@ -385,7 +385,7 @@ export function MetronomePage() {
   return (
     <div className="space-y-4">
       <PageHeader
-        icon={<FzIcon name="metronome" usageId="page-header.metronome" size="xl" />}
+        icon={<FzIcon name="metronome" usageId="page-header.metronome" size="xl" className="text-amber-400" />}
         title="Métronome"
         actions={<button
             type="button"

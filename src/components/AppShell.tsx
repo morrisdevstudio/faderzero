@@ -299,8 +299,23 @@ export function AppShell() {
       {/* Bottom Navigation Bar */}
       <nav className="fixed inset-x-0 bottom-0 z-40 bg-[#0c0d10]/96 border-t border-white/10 shadow-[0_-16px_40px_rgba(0,0,0,0.5)] backdrop-blur-xl">
         <div className="mx-auto flex w-full max-w-md items-center justify-around px-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2">
-          <NavLink to="/home" className={({ isActive }) => ['flex flex-1 flex-col items-center justify-center gap-1 py-1 text-center transition-colors', isActive ? 'text-white font-bold' : 'text-white/40 hover:text-white/70'].join(' ')}>
-            {({ isActive }) => <><FzIcon name="home" usageId="app-shell.navigation.home" className={['h-5 w-5', isActive ? 'text-white' : 'text-white/40'].join(' ')} /><span className="text-[0.6rem] uppercase tracking-wider">Accueil</span><span className={['h-1 w-1 rounded-full', isActive ? 'bg-[#ff3a63]' : 'bg-transparent'].join(' ')} /></>}
+          {/* 1. Accueil */}
+          <NavLink
+            to="/home"
+            className={({ isActive }) =>
+              [
+                'flex flex-1 flex-col items-center justify-center gap-1 py-1 text-center transition-colors',
+                isActive ? 'text-[#ff3a63] font-bold' : 'text-white/40 hover:text-white/70',
+              ].join(' ')
+            }
+          >
+            {({ isActive }) => (
+              <>
+                <FzIcon name="home" usageId="app-shell.navigation.home" className={['h-5 w-5 transition-colors', isActive ? 'text-[#ff3a63]' : 'text-white/40'].join(' ')} />
+                <span className="text-[0.6rem] uppercase tracking-wider">Accueil</span>
+                <span className={['h-1 w-1 rounded-full transition-all', isActive ? 'bg-[#ff3a63] opacity-100 scale-100' : 'bg-transparent opacity-0 scale-50'].join(' ')} />
+              </>
+            )}
           </NavLink>
 
           {/* 2. Calendrier */}
@@ -309,15 +324,15 @@ export function AppShell() {
             className={({ isActive }) =>
               [
                 'flex flex-1 flex-col items-center justify-center gap-1 py-1 text-center transition-colors',
-                isActive ? 'text-white font-bold' : 'text-white/40 hover:text-white/70',
+                isActive ? 'text-teal-400 font-bold' : 'text-white/40 hover:text-white/70',
               ].join(' ')
             }
           >
             {({ isActive }) => (
               <>
-                <FzIcon name="calendar" usageId="app-shell.navigation.calendar" className={['h-5 w-5 transition-colors', isActive ? 'text-white' : 'text-white/40'].join(' ')} />
+                <FzIcon name="calendar" usageId="app-shell.navigation.calendar" className={['h-5 w-5 transition-colors', isActive ? 'text-teal-400' : 'text-white/40'].join(' ')} />
                 <span className="text-[0.6rem] uppercase tracking-wider">Calendrier</span>
-                <span className={['h-1 w-1 rounded-full transition-all', isActive ? 'bg-[#ff3a63] opacity-100 scale-100' : 'bg-transparent opacity-0 scale-50'].join(' ')} />
+                <span className={['h-1 w-1 rounded-full transition-all', isActive ? 'bg-teal-400 opacity-100 scale-100' : 'bg-transparent opacity-0 scale-50'].join(' ')} />
               </>
             )}
           </NavLink>
@@ -343,9 +358,9 @@ export function AppShell() {
                         setVoiceRecorderMessage(null);
                         setIsVoiceRecorderOpen(true);
                       }}
-                      className="flex min-h-36 flex-col items-center justify-center gap-5 rounded-[1.5rem] border border-white/10 bg-black/20 p-4 text-center text-white transition hover:border-rose-300/35 hover:bg-rose-400/8 active:scale-[0.98]"
+                      className="flex min-h-36 flex-col items-center justify-center gap-5 rounded-[1.5rem] border border-white/10 bg-black/20 p-4 text-center text-white transition hover:border-rose-500/30 hover:bg-rose-500/10 active:scale-[0.98]"
                     >
-                      <FzIcon name="record" usageId="app-shell.quick-actions.record" size="xl" className="h-10 w-10 text-white" />
+                      <FzIcon name="record" usageId="app-shell.quick-actions.record" size="xl" className="h-10 w-10 text-[#ff3a63]" />
                       <span className="text-xs font-medium leading-tight">Enregistrer une idée</span>
                     </button>
                   ) : null}
@@ -355,9 +370,9 @@ export function AppShell() {
                       setIsLiveMenuOpen(false);
                       navigate('/songs/new/write');
                     }}
-                    className="flex min-h-36 flex-col items-center justify-center gap-5 rounded-[1.5rem] border border-white/10 bg-black/20 p-4 text-center text-white transition hover:border-rose-300/35 hover:bg-rose-400/8 active:scale-[0.98]"
+                    className="flex min-h-36 flex-col items-center justify-center gap-5 rounded-[1.5rem] border border-white/10 bg-black/20 p-4 text-center text-white transition hover:border-emerald-500/30 hover:bg-emerald-500/10 active:scale-[0.98]"
                   >
-                    <FzIcon name="edit" usageId="app-shell.quick-actions.write" size="xl" className="h-10 w-10 text-white" />
+                    <FzIcon name="edit" usageId="app-shell.quick-actions.write" size="xl" className="h-10 w-10 text-emerald-400" />
                     <span className="text-xs font-medium leading-tight">Nouvelles paroles</span>
                   </button>
                   <NavLink
@@ -367,12 +382,12 @@ export function AppShell() {
                       [
                         'flex min-h-36 flex-col items-center justify-center gap-5 rounded-[1.5rem] border p-4 text-center transition active:scale-[0.98]',
                         isActive
-                          ? 'border-rose-300/55 bg-rose-400/15 text-rose-100'
-                          : 'border-white/10 bg-black/20 text-white hover:border-rose-300/35 hover:bg-rose-400/8',
+                          ? 'border-sky-500/50 bg-sky-500/15 text-sky-100'
+                          : 'border-white/10 bg-black/20 text-white hover:border-sky-500/30 hover:bg-sky-500/10',
                       ].join(' ')
                     }
                   >
-                    <FzIcon name="prompter" usageId="app-shell.quick-actions.prompter" size="xl" className="h-10 w-10 text-white" />
+                    <FzIcon name="prompter" usageId="app-shell.quick-actions.prompter" size="xl" className="h-10 w-10 text-sky-400" />
                     <span className="text-xs font-medium leading-tight">Prompteur</span>
                   </NavLink>
                   <NavLink
@@ -382,12 +397,12 @@ export function AppShell() {
                       [
                         'flex min-h-36 flex-col items-center justify-center gap-5 rounded-[1.5rem] border p-4 text-center transition active:scale-[0.98]',
                         isActive
-                          ? 'border-rose-300/55 bg-rose-400/15 text-rose-100'
-                          : 'border-white/10 bg-black/20 text-white hover:border-rose-300/35 hover:bg-rose-400/8',
+                          ? 'border-amber-500/50 bg-amber-500/15 text-amber-100'
+                          : 'border-white/10 bg-black/20 text-white hover:border-amber-500/30 hover:bg-amber-500/10',
                       ].join(' ')
                     }
                   >
-                    <FzIcon name="metronome" usageId="app-shell.quick-actions.metronome" size="xl" className="h-10 w-10 text-white" />
+                    <FzIcon name="metronome" usageId="app-shell.quick-actions.metronome" size="xl" className="h-10 w-10 text-amber-400" />
                     <span className="text-xs font-medium leading-tight">Métronome</span>
                   </NavLink>
                   </div>
@@ -420,15 +435,15 @@ export function AppShell() {
             className={({ isActive }) =>
               [
                 'flex flex-1 flex-col items-center justify-center gap-1 py-1 text-center transition-colors',
-                isActive ? 'text-white font-bold' : 'text-white/40 hover:text-white/70',
+                isActive ? 'text-indigo-400 font-bold' : 'text-white/40 hover:text-white/70',
               ].join(' ')
             }
           >
             {({ isActive }) => (
               <>
-                <FzIcon name="songs" usageId="app-shell.navigation.songs" className={['h-5 w-5 transition-colors', isActive ? 'text-white' : 'text-white/40'].join(' ')} />
+                <FzIcon name="songs" usageId="app-shell.navigation.songs" className={['h-5 w-5 transition-colors', isActive ? 'text-indigo-400' : 'text-white/40'].join(' ')} />
                 <span className="text-[0.6rem] uppercase tracking-wider">Morceaux</span>
-                <span className={['h-1 w-1 rounded-full transition-all', isActive ? 'bg-[#ff3a63] opacity-100 scale-100' : 'bg-transparent opacity-0 scale-50'].join(' ')} />
+                <span className={['h-1 w-1 rounded-full transition-all', isActive ? 'bg-indigo-400 opacity-100 scale-100' : 'bg-transparent opacity-0 scale-50'].join(' ')} />
               </>
             )}
           </NavLink>
@@ -439,15 +454,15 @@ export function AppShell() {
             className={({ isActive }) =>
               [
                 'flex flex-1 flex-col items-center justify-center gap-1 py-1 text-center transition-colors',
-                isActive ? 'text-white font-bold' : 'text-white/40 hover:text-white/70',
+                isActive ? 'text-fuchsia-400 font-bold' : 'text-white/40 hover:text-white/70',
               ].join(' ')
             }
           >
             {({ isActive }) => (
               <>
-                <FzIcon name="setlist" usageId="app-shell.navigation.setlists" className={['h-5 w-5 transition-colors', isActive ? 'text-white' : 'text-white/40'].join(' ')} />
+                <FzIcon name="setlist" usageId="app-shell.navigation.setlists" className={['h-5 w-5 transition-colors', isActive ? 'text-fuchsia-400' : 'text-white/40'].join(' ')} />
                 <span className="text-[0.6rem] uppercase tracking-wider">Setlist</span>
-                <span className={['h-1 w-1 rounded-full transition-all', isActive ? 'bg-[#ff3a63] opacity-100 scale-100' : 'bg-transparent opacity-0 scale-50'].join(' ')} />
+                <span className={['h-1 w-1 rounded-full transition-all', isActive ? 'bg-fuchsia-400 opacity-100 scale-100' : 'bg-transparent opacity-0 scale-50'].join(' ')} />
               </>
             )}
           </NavLink>

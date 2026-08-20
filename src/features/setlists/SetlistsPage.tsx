@@ -89,7 +89,7 @@ export function SetlistsPage() {
   return (
     <div className="space-y-4">
       <PageHeader
-        icon={<FzIcon name="setlist" usageId="page-header.setlists" size="xl" />}
+        icon={<FzIcon name="setlist" usageId="page-header.setlists" size="xl" className="text-fuchsia-400" />}
         title="Setlists"
         actions={canWrite ? <AddButton
           onClick={() => {

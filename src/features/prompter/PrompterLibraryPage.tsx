@@ -16,7 +16,7 @@ export function PrompterLibraryPage() {
 
   return (
     <div className="space-y-8">
-      <PageHeader icon={<FzIcon name="prompter" usageId="page-header.prompter" size="xl" />} title="Prompteur" />
+      <PageHeader icon={<FzIcon name="prompter" usageId="page-header.prompter" size="xl" className="text-sky-400" />} title="Prompteur" />
 
       <section aria-labelledby="prompter-setlists-title" className="space-y-3">
         <div>

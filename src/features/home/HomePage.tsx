@@ -299,7 +299,7 @@ export function HomePage() {
             className="group flex flex-col items-center justify-center gap-1.5 rounded-2xl border border-white/10 bg-white/[0.03] p-2.5 transition hover:border-white/20 hover:bg-white/[0.07] active:scale-95"
             aria-label="Ouvrir le calendrier"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-500/30 bg-cyan-500/15 text-cyan-400 transition group-hover:scale-105">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-teal-500/30 bg-teal-500/15 text-teal-400 transition group-hover:scale-105">
               <FzIcon name="calendar" usageId="home.toolbox.calendar" size="lg" />
             </div>
             <span className="text-[10px] font-bold text-zinc-200">Calendrier</span>
@@ -311,7 +311,7 @@ export function HomePage() {
             className="group relative flex flex-col items-center justify-center gap-1.5 rounded-2xl border border-white/10 bg-white/[0.03] p-2.5 transition hover:border-white/20 hover:bg-white/[0.07] active:scale-95"
             aria-label={dueBookingCount > 0 ? `Ouvrir le booking (${dueBookingCount} relance${dueBookingCount > 1 ? 's' : ''} à traiter)` : 'Ouvrir le booking'}
           >
-            <div className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-rose-500/30 bg-rose-500/15 text-[#ff3a63] transition group-hover:scale-105">
+            <div className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-orange-500/30 bg-orange-500/15 text-orange-400 transition group-hover:scale-105">
               <svg
                 aria-hidden="true"
                 viewBox="0 0 24 24"

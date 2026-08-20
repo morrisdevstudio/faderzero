@@ -561,10 +561,10 @@ export function CalendarPage() {
   return (
     <div className="w-full space-y-4 pb-24 text-[#f5f0ea]">
       <PageHeader
-        icon={<FzIcon name="calendar" usageId="page-header.calendar" size="xl" />}
+        icon={<FzIcon name="calendar" usageId="page-header.calendar" size="xl" className="text-teal-400" />}
         title="Événements"
         actions={<>
-            <button type="button" onClick={() => goToBooking()} aria-label="Ouvrir la prospection" title="Prospection" className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/10 text-white/80 transition hover:bg-white/15 hover:text-white"><BookingIcon /></button>
+            <button type="button" onClick={() => goToBooking()} aria-label="Ouvrir la prospection" title="Prospection" className="flex h-11 w-11 items-center justify-center rounded-xl border border-orange-500/30 bg-orange-500/15 text-orange-400 transition hover:bg-orange-500/25"><BookingIcon /></button>
             <AddButton onClick={() => handleCreateNew()} aria-label="Nouvel événement" />
           </>}
         search={{

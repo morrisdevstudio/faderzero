@@ -330,6 +330,29 @@ Migrations prioritaires terminées : `TrashModal`, `CopySongModal` et `EventForm
 - Un éventuel `SetlistEntry` ne peut être qu’une extraction technique à DOM, dimensions, couleurs et comportement identiques.
 - **NEVER** : créer un composant universel `Tile` regroupant cette tuile avec les morceaux, événements ou fichiers audio.
 
+## Palette thématique des fonctionnalités et icônes
+
+Chaque grand domaine fonctionnel de l’application dispose d’une couleur thématique dédiée et discriminante pour ses icônes, en-têtes (`PageHeader`), tuiles d’accueil, modale « Créer ou jouer » et onglets de navigation :
+
+| Fonctionnalité | Rôle d’icône (`FzIcon`) | Teinte sémantique | Classe icône | Conteneur / Tuile d’accueil |
+|---|---|---|---|---|
+| **Accueil** | `home` | Rose signature | `text-[#ff3a63]` / `text-rose-400` | `border-rose-500/30 bg-rose-500/15` |
+| **Enregistrer** | `record` | Rose signature | `text-[#ff3a63]` | `border-rose-500/30 bg-rose-500/15` |
+| **Métronome** | `metronome` | Ambre | `text-amber-400` | `border-amber-500/30 bg-amber-500/15` |
+| **Prompteur** | `prompter` | Bleu ciel / Sky | `text-sky-400` | `border-sky-500/30 bg-sky-500/15` |
+| **Nouveau / Écrire** | `add` / `edit` | Vert Émeraude | `text-emerald-400` | `border-emerald-500/30 bg-emerald-500/15` |
+| **Morceaux** | `songs` | Indigo | `text-indigo-400` | `border-indigo-500/30 bg-indigo-500/15` |
+| **Setlists** | `setlist` | Fuchsia | `text-fuchsia-400` | `border-fuchsia-500/30 bg-fuchsia-500/15` |
+| **Calendrier** | `calendar` | Teal / Turquoise | `text-teal-400` | `border-teal-500/30 bg-teal-500/15` |
+| **Booking** | `booking` / valise | Orange | `text-orange-400` | `border-orange-500/30 bg-orange-500/15` |
+
+### Règles d’application des couleurs thématiques
+
+- **Grille de la page d’accueil** : chaque tuile d'outil utilise son conteneur coloré `border-{color}-500/30 bg-{color}-500/15` et son icône `text-{color}-400` (ou `#ff3a63`).
+- **Modale « Créer ou jouer »** : chaque option affiche son icône thématique et ses états survol/focus dans la teinte associée.
+- **En-têtes de pages principales (`PageHeader`)** : l’icône d’en-tête reçoit explicitement la classe `text-{color}-400` du domaine.
+- **Barre de navigation inférieure (`AppShell`)** : l’onglet actif allume son icône, son texte et sa pastille indicatrice dans la couleur de la fonctionnalité (`text-teal-400 bg-teal-400`, `text-indigo-400 bg-indigo-400`, `text-fuchsia-400 bg-fuchsia-400`, etc.).
+
 ## Composants validés et migrations
 
 - `AddButton`, `Button`, `FieldLabel`, `PageHeader`, `DetailHeader`, `AppHeader`, `StatusPill`, `FormDialog`, `PickerDialog`, `ConfirmDialog` et `ContentRow` sont les composants canoniques validés.
