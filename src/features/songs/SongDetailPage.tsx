@@ -153,7 +153,13 @@ export function SongDetailPage() {
   const duplicateResolverRef = useRef<((decision: DuplicateDecision) => void) | null>(null);
 
   const isOnline = useOnlineStatus();
-  const { cachedAssetIds, checkCacheStatus } = useAudioCacheStore();
+  const {
+    cachedAssetIds,
+    downloadingAssetIds,
+    checkCacheStatus,
+    downloadAsset,
+    removeAsset,
+  } = useAudioCacheStore();
 
   type QuickEditField = 'title' | 'status' | 'key' | 'bpm' | 'duration' | 'notes' | null;
   const [quickEditField, setQuickEditField] = useState<QuickEditField>(null);
@@ -600,6 +606,28 @@ export function SongDetailPage() {
     void playQueue(audioTracks, assetId);
   }
 
+  async function handleToggleAudioCache(assetId: string, isCached: boolean) {
+    setError(null);
+    setAudioNotice(null);
+
+    try {
+      if (isCached) {
+        await removeAsset(assetId);
+        setAudioNotice('Fichier retiré du cache hors ligne.');
+        return;
+      }
+
+      if (!activeWorkspaceId) {
+        throw new Error('Aucun espace de travail actif.');
+      }
+
+      await downloadAsset(activeWorkspaceId, assetId);
+      setAudioNotice('Fichier disponible hors ligne.');
+    } catch (cacheError) {
+      setError(cacheError instanceof Error ? cacheError.message : 'Impossible de mettre ce fichier en cache.');
+    }
+  }
+
   return (
     <div className="space-y-4">
       <DetailHeader
@@ -803,6 +831,8 @@ export function SongDetailPage() {
           onClose={() => setIsAudioActionsOpen(false)}
         >
           <div className="space-y-4">
+            {error ? <p role="alert" className="rounded-xl border border-rose-400/20 bg-rose-500/10 p-3 text-sm font-semibold text-rose-200">{error}</p> : null}
+            {audioNotice ? <p className="rounded-xl border border-emerald-400/20 bg-emerald-500/10 p-3 text-sm font-semibold text-emerald-100">{audioNotice}</p> : null}
             {assets === undefined ? (
               <p className="rounded-xl border border-white/8 bg-white/5 p-3 text-sm text-white/50">Chargement des pistes...</p>
             ) : assets.length > 0 ? (
@@ -811,6 +841,7 @@ export function SongDetailPage() {
                   const isThisPlaying = currentTrack?.assetId === asset.id && status === 'playing';
                   const isCached = cachedAssetIds.has(asset.id);
                   const isPrimary = primaryAudioAsset?.id === asset.id;
+                  const isDownloading = downloadingAssetIds[asset.id] !== undefined;
 
                   return (
                     <ContentRow
@@ -842,17 +873,39 @@ export function SongDetailPage() {
                         </button>
                       }
                       trailing={
-                        canWrite ? (
+                        <div className="flex shrink-0 items-center gap-1">
                           <button
                             type="button"
-                            onClick={() => handleSetPrimaryAudio(asset.id)}
-                            aria-label={isPrimary ? `${asset.filename} est la piste principale` : `Définir ${asset.filename} comme piste principale`}
-                            title={isPrimary ? 'Piste principale' : 'Définir comme principale'}
-                            className={["flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition", isPrimary ? 'border-white/40 bg-white/20 text-white' : 'border-white/8 bg-white/5 text-white/55 hover:bg-white/10 hover:text-white'].join(' ')}
+                            disabled={isDownloading || (!isCached && !isOnline)}
+                            onClick={() => void handleToggleAudioCache(asset.id, isCached)}
+                            aria-label={isCached ? `Retirer ${asset.filename} du cache hors ligne` : `Mettre ${asset.filename} en cache hors ligne`}
+                            title={isCached ? 'Retirer du cache hors ligne' : isOnline ? 'Mettre en cache hors ligne' : 'Connexion requise pour télécharger'}
+                            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/8 bg-white/5 text-white/75 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
                           >
-                            <FzIcon name="check" usageId="song-detail.track.primary" size="sm" />
+                            {isDownloading ? (
+                              <span className="text-xs font-black text-orange-300" aria-live="polite">
+                                {downloadingAssetIds[asset.id]}%
+                              </span>
+                            ) : (
+                              <FzIcon
+                                name={isCached ? 'delete' : 'download'}
+                                usageId={isCached ? 'song-detail.track.remove-cache' : 'song-detail.track.download'}
+                                size="sm"
+                              />
+                            )}
                           </button>
-                        ) : null
+                          {canWrite ? (
+                            <button
+                              type="button"
+                              onClick={() => handleSetPrimaryAudio(asset.id)}
+                              aria-label={isPrimary ? `${asset.filename} est la piste principale` : `Définir ${asset.filename} comme piste principale`}
+                              title={isPrimary ? 'Piste principale' : 'Définir comme principale'}
+                              className={["flex h-11 w-11 shrink-0 items-center justify-center rounded-full border transition", isPrimary ? 'border-white/40 bg-white/20 text-white' : 'border-white/8 bg-white/5 text-white/55 hover:bg-white/10 hover:text-white'].join(' ')}
+                            >
+                              <FzIcon name="check" usageId="song-detail.track.primary" size="sm" />
+                            </button>
+                          ) : null}
+                        </div>
                       }
                     />
                   );
