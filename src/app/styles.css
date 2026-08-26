@@ -148,7 +148,8 @@ body::before {
   -webkit-text-fill-color: #ffffff;
   font-family: inherit;
   font-size: 1rem;
-  font-weight: 700;
+  font-weight: 500;
+  letter-spacing: 0.01em;
   line-height: 1.5;
   outline: none;
   transition:
@@ -158,8 +159,9 @@ body::before {
 }
 
 .fz-text-field::placeholder {
-  color: rgba(255, 255, 255, 0.55);
-  -webkit-text-fill-color: rgba(255, 255, 255, 0.55);
+  color: rgba(255, 255, 255, 0.46);
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.46);
+  font-weight: 500;
   opacity: 1;
 }
 
@@ -202,6 +204,17 @@ body::before {
 
 .fz-temporal-field {
   color-scheme: dark;
+  font-variant-numeric: tabular-nums;
+}
+
+.fz-temporal-field:invalid {
+  color: rgba(255, 255, 255, 0.46);
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.46);
+  font-weight: 500;
+}
+
+.fz-temporal-field:invalid::-webkit-datetime-edit {
+  color: rgba(255, 255, 255, 0.46);
 }
 
 .fz-temporal-field::-webkit-calendar-picker-indicator {
@@ -219,7 +232,7 @@ body::before {
   -webkit-text-fill-color: #ffffff !important;
   font-family: inherit;
   font-size: 1rem;
-  font-weight: 700;
+  font-weight: 500;
   opacity: 1 !important;
   appearance: none;
   -webkit-appearance: none;
@@ -237,7 +250,7 @@ body::before {
   color: #ffffff !important;
   -webkit-text-fill-color: #ffffff !important;
   font-family: inherit;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .fz-select-field:disabled {

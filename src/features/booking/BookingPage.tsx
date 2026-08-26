@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useNavigate, useParams } from 'react-router-dom';
 import { bookingRepository, BOOKING_STAGE_LABELS } from '@/db/repositories/bookingRepository';
@@ -7,17 +7,19 @@ import { ConfirmDialog } from '@/components/ConfirmDialog';
 import type { BookingNoteType, BookingStage, WorkspaceContactRecord } from '@/db/schema';
 import { useAuthStore } from '@/stores/authStore';
 import { canWriteWorkspace } from '@/services/supabase/workspace';
-import { ContentRow } from '@/ui/components/ContentRow';
 import { DateField } from '@/ui/components/DateField';
 import { DateTimeField } from '@/ui/components/DateTimeField';
 import { DetailHeader } from '@/ui/components/DetailHeader';
+import { FieldLabel } from '@/ui/components/FieldLabel';
 import { FzIcon } from '@/ui/icons';
+import { formatContactPhone } from '@/lib/contactUrls';
+import { Button } from '@/ui/components/Button';
 import { SelectField } from '@/ui/components/SelectField';
 import { TextArea } from '@/ui/components/TextArea';
 import { TextField } from '@/ui/components/TextField';
 import { TimeField } from '@/ui/components/TimeField';
+import { BookingOverview } from './BookingOverview';
 
-type Tab = 'due' | 'all' | 'confirmed';
 type FollowUpKind = 'call' | 'email' | 'follow_up' | 'send_press_kit' | 'other';
 
 const followUpLabels: Record<FollowUpKind, string> = {
@@ -48,24 +50,14 @@ function targetDateLabel(lead: { targetDate?: string | undefined; targetPeriodSt
 }
 
 function ContactActionIcon({ type }: { type: 'phone' | 'email' | 'social' }) {
-  if (type === 'phone') return <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.8a2 2 0 0 1-.5 2.1L8 10a16 16 0 0 0 6 6l1.4-1.4a2 2 0 0 1 2.1-.5c.9.4 1.8.6 2.8.7a2 2 0 0 1 1.7 2.1Z" /></svg>;
-  if (type === 'email') return <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 7 9 6 9-6" /></svg>;
-  return <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><path d="M14 3h7v7" /><path d="m21 3-9 9" /><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6" /></svg>;
+  const icon = type === 'phone' ? 'phone' : type === 'email' ? 'email' : 'external-link';
+  return <FzIcon name={icon} usageId={`booking-detail.contact-${type}`} size="md" />;
 }
 
 function followUpFromForm(data: FormData) {
   const kind = String(data.get('followUpKind') || 'follow_up') as FollowUpKind;
   const custom = String(data.get('followUpCustom') || '').trim();
   return kind === 'other' ? custom : followUpLabels[kind];
-}
-
-function focusFirstInvalidField(form: HTMLFormElement) {
-  const field = Array.from(form.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>('[required]'))
-    .find((candidate) => !candidate.validity.valid);
-  if (!field) return false;
-  field.focus();
-  field.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  return true;
 }
 
 function FollowUpFields({ includeSummary = false }: { includeSummary?: boolean }) {
@@ -89,24 +81,42 @@ function FollowUpFields({ includeSummary = false }: { includeSummary?: boolean }
 
 function ContactForm({ contact }: { contact?: WorkspaceContactRecord }) {
   return <>
-    <TextField required name="name" aria-label="Nom du contact" defaultValue={contact?.name} placeholder="Nom du contact" />
-    <TextField name="role" aria-label="Rôle" defaultValue={contact?.role} placeholder="Rôle (programmation, régie…)" />
-    <TextField name="phone" aria-label="Téléphone" type="tel" defaultValue={contact?.phone} placeholder="Téléphone" />
-    <TextField name="email" aria-label="E-mail" type="email" defaultValue={contact?.email} placeholder="E-mail" />
-    <TextField name="instagramUrl" aria-label="Lien Instagram" type="url" defaultValue={contact?.instagramUrl} placeholder="Lien Instagram" />
-    <TextField name="facebookUrl" aria-label="Lien Facebook" type="url" defaultValue={contact?.facebookUrl} placeholder="Lien Facebook" />
+    <div><FieldLabel htmlFor="booking-detail-contact-name" required>Nom du contact</FieldLabel><TextField id="booking-detail-contact-name" required name="name" defaultValue={contact?.name} placeholder="Ex. Camille Martin" /></div>
+    <div><FieldLabel htmlFor="booking-detail-contact-organization" required>Structure, salle ou association</FieldLabel><TextField id="booking-detail-contact-organization" required name="organization" defaultValue={contact?.organization} placeholder="Ex. Le Chabada" /></div>
+    <div><FieldLabel htmlFor="booking-detail-contact-role">Rôle</FieldLabel><TextField id="booking-detail-contact-role" name="role" defaultValue={contact?.role} placeholder="Programmation, régie…" /></div>
+    <div><FieldLabel htmlFor="booking-detail-contact-city">Ville</FieldLabel><TextField id="booking-detail-contact-city" name="city" defaultValue={contact?.city} placeholder="Ville" /></div>
+    <div><FieldLabel htmlFor="booking-detail-contact-phone" required>Téléphone</FieldLabel><TextField id="booking-detail-contact-phone" required name="phone" type="tel" inputMode="tel" autoComplete="tel" defaultValue={formatContactPhone(contact?.phone)} onChange={(event) => { event.currentTarget.value = formatContactPhone(event.currentTarget.value); }} placeholder="06 00 00 00 00" /></div>
+    <div><FieldLabel htmlFor="booking-detail-contact-email">E-mail</FieldLabel><TextField id="booking-detail-contact-email" name="email" type="email" defaultValue={contact?.email} placeholder="contact@exemple.fr" /></div>
+    <div><FieldLabel htmlFor="booking-detail-contact-website">Site web</FieldLabel><TextField id="booking-detail-contact-website" name="website" defaultValue={contact?.website} placeholder="site.com" /></div>
+    <div><FieldLabel htmlFor="booking-detail-contact-instagram">Instagram</FieldLabel><TextField id="booking-detail-contact-instagram" name="instagramUrl" defaultValue={contact?.instagramUrl} placeholder="@profil ou lien complet" /></div>
+    <div><FieldLabel htmlFor="booking-detail-contact-facebook">Facebook</FieldLabel><TextField id="booking-detail-contact-facebook" name="facebookUrl" defaultValue={contact?.facebookUrl} placeholder="profil ou lien complet" /></div>
   </>;
 }
 
 export function BookingPage() {
-  const navigate = useNavigate();
   const { bookingId } = useParams<{ bookingId?: string }>();
+  return bookingId ? <BookingDetail bookingId={bookingId} /> : <BookingOverview />;
+}
+
+function contactInputFromForm(data: FormData) {
+  return {
+    name: String(data.get('name') || ''),
+    organization: String(data.get('organization') || '') || undefined,
+    role: String(data.get('role') || '') || undefined,
+    city: String(data.get('city') || '') || undefined,
+    phone: String(data.get('phone') || '') || undefined,
+    email: String(data.get('email') || '') || undefined,
+    website: String(data.get('website') || '') || undefined,
+    instagramUrl: String(data.get('instagramUrl') || '') || undefined,
+    facebookUrl: String(data.get('facebookUrl') || '') || undefined,
+  };
+}
+
+function BookingDetail({ bookingId }: { bookingId: string }) {
+  const navigate = useNavigate();
   const activeWorkspace = useAuthStore((state) => state.activeWorkspace);
-  const session = useAuthStore((state) => state.session);
   const canWrite = canWriteWorkspace(activeWorkspace?.role);
-  const [tab, setTab] = useState<Tab>('due');
-  const selectedId = bookingId ?? null;
-  const [isAdding, setIsAdding] = useState(false);
+  const selectedId = bookingId;
   const [isEditingLead, setIsEditingLead] = useState(false);
   const [isLoggingExchange, setIsLoggingExchange] = useState(false);
   const [isAddingContact, setIsAddingContact] = useState(false);
@@ -114,43 +124,15 @@ export function BookingPage() {
   const [contactToEdit, setContactToEdit] = useState<WorkspaceContactRecord | null>(null);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [isContactDeleteConfirmOpen, setIsContactDeleteConfirmOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [newLeadFormError, setNewLeadFormError] = useState<string | null>(null);
 
   const leads = useLiveQuery(() => bookingRepository.listLeads(activeWorkspace?.id), [activeWorkspace?.id]) ?? [];
   const workspaceContacts = useLiveQuery(() => bookingRepository.listWorkspaceContacts(activeWorkspace?.id), [activeWorkspace?.id]) ?? [];
   const selected = leads.find((lead) => lead.id === selectedId) ?? null;
   const notes = useLiveQuery(() => selectedId ? bookingRepository.listNotes(selectedId) : Promise.resolve([]), [selectedId]) ?? [];
   const contacts = useLiveQuery(() => selectedId ? bookingRepository.listLeadContacts(selectedId) : Promise.resolve([]), [selectedId]) ?? [];
-  const visible = useMemo(() => leads.filter((lead) => {
-    if (tab === 'confirmed') return lead.stage === 'confirmed';
-    if (tab === 'all') return lead.stage !== 'closed';
-    return lead.stage !== 'closed' && lead.stage !== 'confirmed' && lead.nextActionAt <= Date.now();
-  }), [leads, tab]);
   const availableContacts = workspaceContacts.filter((contact) => !contacts.some((linked) => linked.id === contact.id));
-
-  async function createLead(form: HTMLFormElement) {
-    const data = new FormData(form); setError(null);
-    try {
-      const nextActionAt = new Date(String(data.get('nextActionAt'))).getTime();
-      const lead = await bookingRepository.createLead({
-        venueName: String(data.get('venueName') || ''), city: String(data.get('city') || '') || undefined,
-        targetDate: String(data.get('targetDate') || '') || undefined, targetPeriodStart: String(data.get('periodStart') || '') || undefined,
-        nextAction: followUpFromForm(data), nextActionAt, ownerId: session?.user.id,
-      });
-      const contactName = String(data.get('contactName') || '').trim();
-      if (contactName) {
-        const contact = await bookingRepository.createWorkspaceContact({
-          name: contactName,
-          role: String(data.get('contactRole') || '').trim() || undefined,
-          phone: String(data.get('contactPhone') || '').trim() || undefined,
-          email: String(data.get('contactEmail') || '').trim() || undefined,
-        });
-        await bookingRepository.linkContact(lead.id, contact.id);
-      }
-      navigate(`/booking/${lead.id}`); setIsAdding(false);
-    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Impossible de créer la salle.'); }
-  }
 
   async function saveLead(form: HTMLFormElement) {
     if (!selected) return; const data = new FormData(form); setError(null);
@@ -181,7 +163,7 @@ export function BookingPage() {
   async function createContact(form: HTMLFormElement) {
     if (!selected) return; const data = new FormData(form); setError(null);
     try {
-      const contact = await bookingRepository.createWorkspaceContact({ name: String(data.get('name') || ''), role: String(data.get('role') || '') || undefined, phone: String(data.get('phone') || '') || undefined, email: String(data.get('email') || '') || undefined, instagramUrl: String(data.get('instagramUrl') || '') || undefined, facebookUrl: String(data.get('facebookUrl') || '') || undefined });
+      const contact = await bookingRepository.createWorkspaceContact(contactInputFromForm(data));
       await bookingRepository.linkContact(selected.id, contact.id);
       setIsAddingContact(false);
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Impossible d’ajouter le contact.'); }
@@ -190,7 +172,7 @@ export function BookingPage() {
   async function updateContact(form: HTMLFormElement) {
     if (!contactToEdit) return; const data = new FormData(form); setError(null);
     try {
-      await bookingRepository.updateWorkspaceContact(contactToEdit.id, { name: String(data.get('name') || ''), role: String(data.get('role') || '') || undefined, phone: String(data.get('phone') || '') || undefined, email: String(data.get('email') || '') || undefined, instagramUrl: String(data.get('instagramUrl') || '') || undefined, facebookUrl: String(data.get('facebookUrl') || '') || undefined });
+      await bookingRepository.updateWorkspaceContact(contactToEdit.id, contactInputFromForm(data));
       setContactToEdit(null);
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Impossible de modifier le contact.'); }
   }
@@ -203,6 +185,16 @@ export function BookingPage() {
   async function unlinkContact(contactId: string) {
     if (!selected) return; setError(null);
     try { await bookingRepository.unlinkContact(selected.id, contactId); } catch (reason) { setError(reason instanceof Error ? reason.message : 'Impossible de retirer le contact.'); }
+  }
+
+  async function deleteContact() {
+    if (!contactToEdit) return;
+    setError(null);
+    try {
+      await bookingRepository.deleteWorkspaceContact(contactToEdit.id);
+      setIsContactDeleteConfirmOpen(false);
+      setContactToEdit(null);
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Impossible de supprimer le contact.'); }
   }
 
   async function addToCalendar(form: HTMLFormElement) {
@@ -251,13 +243,14 @@ export function BookingPage() {
 
       {isLoggingExchange && <FormDialog title="Consigner un échange" onClose={() => setIsLoggingExchange(false)} placement="bottom"><form onSubmit={(event) => { event.preventDefault(); void logExchange(event.currentTarget); }} className="space-y-3"><label className="block"><span className="fz-field-label">Type d’échange</span><SelectField name="type" aria-label="Type d’échange" defaultValue="call">{noteTypes.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</SelectField></label><FollowUpFields includeSummary /><button className="w-full rounded-xl bg-rose-500 px-4 py-3 text-xs font-black uppercase tracking-widest">Enregistrer</button></form></FormDialog>}
       {isAddingContact && <FormDialog title="Nouveau contact" onClose={() => setIsAddingContact(false)} placement="bottom"><form onSubmit={(event) => { event.preventDefault(); void createContact(event.currentTarget); }} className="space-y-3">{error && <p role="alert" className="rounded-xl bg-rose-500/15 p-3 text-sm text-rose-100">{error}</p>}<ContactForm /><button className="w-full rounded-xl bg-rose-500 px-4 py-3 text-xs font-black uppercase tracking-widest">Ajouter le contact</button></form></FormDialog>}
-      {contactToEdit && <FormDialog title="Modifier le contact" onClose={() => setContactToEdit(null)} placement="bottom"><form onSubmit={(event) => { event.preventDefault(); void updateContact(event.currentTarget); }} className="space-y-3">{error && <p role="alert" className="rounded-xl bg-rose-500/15 p-3 text-sm text-rose-100">{error}</p>}<ContactForm contact={contactToEdit} /><button className="w-full rounded-xl bg-rose-500 px-4 py-3 text-xs font-black uppercase tracking-widest">Enregistrer</button><button type="button" onClick={() => { void unlinkContact(contactToEdit.id); setContactToEdit(null); }} className="w-full rounded-xl bg-rose-500/15 px-4 py-3 text-xs font-black uppercase tracking-widest text-rose-200">Retirer de cette salle</button></form></FormDialog>}
+      {contactToEdit && <FormDialog title="Modifier le contact" onClose={() => setContactToEdit(null)} placement="bottom"><form onSubmit={(event) => { event.preventDefault(); void updateContact(event.currentTarget); }} className="space-y-3">{error && <p role="alert" className="rounded-xl bg-rose-500/15 p-3 text-sm text-rose-100">{error}</p>}<ContactForm contact={contactToEdit} /><Button type="submit" variant="primary" fullWidth>Enregistrer</Button><Button variant="secondary" fullWidth onClick={() => { void unlinkContact(contactToEdit.id); setContactToEdit(null); }}>Retirer de cette salle</Button><Button variant="danger" fullWidth onClick={() => setIsContactDeleteConfirmOpen(true)}>Supprimer le contact</Button></form></FormDialog>}
       {isLinkingContact && <FormDialog title="Lier un contact" onClose={() => setIsLinkingContact(false)} placement="bottom"><div className="space-y-2">{availableContacts.map((contact) => <button key={contact.id} type="button" onClick={() => void linkContact(contact.id)} className="w-full rounded-xl bg-white/6 p-4 text-left transition hover:bg-white/12"><p className="font-black">{contact.name}</p><p className="mt-1 text-xs text-white/55">{contact.role || contact.email || contact.phone || 'Sans coordonnées'}</p></button>)}{availableContacts.length === 0 && <p className="text-sm text-white/60">Aucun autre contact disponible dans le carnet.</p>}</div></FormDialog>}
       {isCalendarOpen && <FormDialog title="Ajouter le concert au calendrier" onClose={() => setIsCalendarOpen(false)} placement="bottom"><form onSubmit={(event) => { event.preventDefault(); void addToCalendar(event.currentTarget); }} className="space-y-4"><p className="text-sm text-white/65">{selected.venueName}{selected.city ? ` · ${selected.city}` : ''}</p><label className="block"><span className="fz-field-label">Date</span><DateField required name="date" aria-label="Date du concert" defaultValue={selected.targetDate} /></label><label className="block"><span className="fz-field-label">Heure</span><TimeField required name="time" aria-label="Heure du concert" defaultValue="20:00" /></label><button className="w-full rounded-xl bg-emerald-500 px-4 py-3 text-xs font-black uppercase tracking-widest text-white">Créer le concert</button></form></FormDialog>}
       {isEditingLead && <FormDialog title="Détails de la salle" onClose={() => setIsEditingLead(false)} placement="bottom"><form onSubmit={(event) => { event.preventDefault(); void saveLead(event.currentTarget); }} className="space-y-3"><TextField required name="venueName" aria-label="Salle ou organisateur" defaultValue={selected.venueName} /><TextField name="city" aria-label="Ville" defaultValue={selected.city} placeholder="Ville" /><label className="block"><span className="fz-field-label">Date cible</span><DateField required name="targetDate" aria-label="Date cible" defaultValue={selected.targetDate} /></label><label className="block"><span className="fz-field-label">Statut</span><SelectField name="stage" aria-label="Statut" defaultValue={selected.stage}>{editableStages.map((stage) => <option key={stage} value={stage}>{BOOKING_STAGE_LABELS[stage]}</option>)}</SelectField></label><label className="block"><span className="fz-field-label">Notes globales</span><TextArea name="summary" defaultValue={selected.summary} placeholder="Objectif, contexte et informations utiles…" /></label><div className="grid grid-cols-2 gap-2"><button className="rounded-xl bg-rose-500 px-4 py-3 text-xs font-black uppercase tracking-widest">Enregistrer</button><button type="button" onClick={() => setIsDeleteConfirmOpen(true)} className="rounded-xl bg-rose-500/15 px-4 py-3 text-xs font-black uppercase tracking-widest text-rose-200">Supprimer</button></div></form></FormDialog>}
       <ConfirmDialog isOpen={isDeleteConfirmOpen} title="Supprimer cette salle ?" description="Les relances et l’historique associés ne seront plus visibles." confirmLabel="Supprimer" onConfirm={() => void deleteSelected()} onCancel={() => setIsDeleteConfirmOpen(false)} />
+      <ConfirmDialog isOpen={isContactDeleteConfirmOpen} title="Supprimer ce contact ?" description="Le contact sera retiré du carnet et de toutes ses propositions liées." confirmLabel="Supprimer" onConfirm={() => void deleteContact()} onCancel={() => setIsContactDeleteConfirmOpen(false)} />
     </section>;
   }
 
-  return <section className="space-y-4 pb-6"><DetailHeader title="Booking" onBack={() => navigate('/calendar')} backLabel="Retour au calendrier" actions={canWrite ? <button type="button" onClick={() => setIsAdding(true)} aria-label="Ajouter une proposition"><FzIcon name="add" usageId="booking-header.add" size="md" /></button> : undefined} /><div className="grid grid-cols-3 gap-2">{([['due', 'À relancer'], ['all', 'Toutes'], ['confirmed', 'Confirmées']] as const).map(([value, label]) => <button key={value} aria-pressed={tab === value} onClick={() => setTab(value)} className={`rounded-xl px-2 py-2 text-xs font-black ${tab === value ? 'bg-white text-black' : 'bg-white/5 text-white/55'}`}>{label}</button>)}</div>{error && <p className="rounded-xl bg-rose-500/15 p-3 text-sm text-rose-100">{error}</p>}<div className="divide-y divide-white/10">{visible.map((lead) => <ContentRow key={lead.id} mode="link" to={`/booking/${lead.id}`} title={lead.venueName} metadata={`${lead.city || 'Ville non renseignée'} · ${lead.nextAction}`} status={<span className={`text-[0.65rem] font-black ${lead.nextActionAt < Date.now() ? 'text-rose-300' : 'text-amber-200'}`}>{dueLabel(lead.nextActionAt)}</span>} />)}{visible.length === 0 && <div className="rounded-[1rem] bg-[var(--fz-bg-elevated)] p-6 text-center text-sm text-white/60">Aucune relance à faire dans cette vue.</div>}</div>{isAdding && <FormDialog title="Nouvelle proposition" onClose={() => setIsAdding(false)} placement="bottom"><form noValidate onInput={() => setNewLeadFormError(null)} onSubmit={(event) => { event.preventDefault(); if (focusFirstInvalidField(event.currentTarget)) { setNewLeadFormError('Complète les champs obligatoires indiqués par un astérisque.'); return; } void createLead(event.currentTarget); }} className="space-y-4">{newLeadFormError && <p role="alert" className="rounded-xl bg-rose-500/15 p-3 text-sm text-rose-100">{newLeadFormError}</p>}<label className="block"><span className="fz-field-label">Salle ou organisateur <span className="text-rose-300">*</span></span><TextField required name="venueName" aria-label="Salle ou organisateur" placeholder="Salle ou organisateur" /></label><label className="block"><span className="fz-field-label">Ville</span><TextField name="city" aria-label="Ville" placeholder="Ville" /></label><label className="block"><span className="fz-field-label">Date cible <span className="text-rose-300">*</span></span><DateField required name="targetDate" aria-label="Date cible" /></label><fieldset className="space-y-3 border-t border-white/10 pt-4"><legend className="text-xs font-black uppercase tracking-widest text-white/60">Contact (facultatif)</legend><label className="block"><span className="fz-field-label">Nom du contact</span><TextField name="contactName" aria-label="Nom du contact" placeholder="Nom du contact" /></label><label className="block"><span className="fz-field-label">Rôle</span><TextField name="contactRole" aria-label="Rôle du contact" placeholder="Programmation, régie…" /></label><label className="block"><span className="fz-field-label">Téléphone</span><TextField name="contactPhone" aria-label="Téléphone du contact" type="tel" placeholder="Téléphone" /></label><label className="block"><span className="fz-field-label">E-mail</span><TextField name="contactEmail" aria-label="E-mail du contact" type="email" placeholder="E-mail" /></label></fieldset><FollowUpFields /><p className="text-xs text-white/55"><span className="text-rose-300">*</span> Champs obligatoires</p><button className="w-full rounded-xl bg-rose-500 px-4 py-3 text-xs font-black uppercase tracking-widest">Créer la proposition</button></form></FormDialog>}</section>;
+  return null;
 }

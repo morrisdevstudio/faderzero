@@ -9,6 +9,7 @@ import type {
   BookingLeadRecord,
   BookingNoteRecord,
   BookingLeadContactRecord,
+  EventContactRecord,
 } from '@/db/schema';
 import { normalizeSongDocument, SONG_DOCUMENT_VERSION } from '@/db/songDocument';
 
@@ -368,6 +369,9 @@ export const toLocalPersonalContact = (row: DbSyncRecord) => toLocalShared<Perso
 export const toDbPersonalContact = (record: PersonalContactRecord) => toDbShared(record, { ownerId: 'owner_id', ...contactFields });
 export const toLocalWorkspaceContact = (row: DbSyncRecord) => toLocalShared<WorkspaceContactRecord>(row, { workspaceId: 'workspace_id', ...contactFields });
 export const toDbWorkspaceContact = (record: WorkspaceContactRecord) => toDbShared(record, { workspaceId: 'workspace_id', ...contactFields });
+const eventContactFields = { workspaceId: 'workspace_id', eventId: 'event_id', contactId: 'contact_id' };
+export const toLocalEventContact = (row: DbSyncRecord) => toLocalShared<EventContactRecord>(row, eventContactFields);
+export const toDbEventContact = (record: EventContactRecord) => toDbShared(record, eventContactFields);
 const leadFields = { workspaceId: 'workspace_id', venueName: 'venue_name', city: 'city', stage: 'stage', priority: 'priority', targetDate: 'target_date', targetPeriodStart: 'target_period_start', targetPeriodEnd: 'target_period_end', ownerId: 'owner_id', nextAction: 'next_action', nextActionAt: 'next_action_at', feeAmount: 'fee_amount', feeCurrency: 'fee_currency', summary: 'summary', closeReason: 'close_reason', eventId: 'event_id' };
 export const toLocalBookingLead = (row: DbSyncRecord) => { const lead = toLocalShared<BookingLeadRecord>(row, leadFields); lead.nextActionAt = mapTimestampToMs(row.next_action_at)!; return lead; };
 export const toDbBookingLead = (record: BookingLeadRecord) => ({ ...toDbShared(record, leadFields), next_action_at: mapMsToTimestamp(record.nextActionAt) });

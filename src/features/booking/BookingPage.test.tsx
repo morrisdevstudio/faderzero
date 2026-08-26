@@ -3,9 +3,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 
 const bookingMocks = vi.hoisted(() => ({
-  listLeads: vi.fn(), listWorkspaceContacts: vi.fn(), listNotes: vi.fn(), listLeadContacts: vi.fn(),
+  listLeads: vi.fn(), listWorkspaceContacts: vi.fn(), listLeadOverviews: vi.fn(), listContactOverviews: vi.fn(), listNotes: vi.fn(), listLeadContacts: vi.fn(),
   updateLead: vi.fn(), addNote: vi.fn(), linkContact: vi.fn(), unlinkContact: vi.fn(),
-  createLead: vi.fn(), createWorkspaceContact: vi.fn(), updateWorkspaceContact: vi.fn(), confirmLead: vi.fn(), archiveLead: vi.fn(),
+  createLead: vi.fn(), createLeadWithContact: vi.fn(), createWorkspaceContact: vi.fn(), updateWorkspaceContact: vi.fn(), deleteWorkspaceContact: vi.fn(), confirmLead: vi.fn(), archiveLead: vi.fn(),
 }));
 const authMocks = vi.hoisted(() => ({ role: 'admin' }));
 
@@ -21,14 +21,18 @@ vi.mock('@/stores/authStore', () => ({
 import { useLiveQuery } from 'dexie-react-hooks';
 import { BookingPage } from '@/features/booking/BookingPage';
 
-const lead = { id: 'lead-1', workspaceId: 'workspace-1', venueName: 'Le Chabada', city: 'Angers', stage: 'contacted' as const, priority: 'normal' as const, targetDate: '2026-08-22', ownerId: 'user-1', nextAction: 'Relancer après le festival', nextActionAt: new Date('2026-08-01T10:00:00').getTime(), summary: 'Dossier de presse déjà envoyé.', createdAt: 1, updatedAt: 1, syncStatus: 'synced' as const };
-const contact = { id: 'contact-1', workspaceId: 'workspace-1', name: 'Clara Martin', role: 'Programmation', email: 'clara@example.test', createdAt: 1, updatedAt: 1, syncStatus: 'synced' as const };
+const lead = { id: 'lead-1', workspaceId: 'workspace-1', venueName: 'Le Chabada', city: 'Angers', stage: 'contacted' as const, priority: 'normal' as const, targetDate: '2026-08-22', ownerId: 'user-1', nextAction: 'Relancer après le festival', nextActionAt: new Date('2026-08-01T10:00:00').getTime(), summary: 'Dossier de presse déjà envoyé.', createdAt: 1, updatedAt: 1, syncStatus: 'synced' as const, contactIds: ['contact-1'], contactNames: ['Clara Martin'] };
+const contact = { id: 'contact-1', workspaceId: 'workspace-1', name: 'Clara Martin', organization: 'Le Chabada', role: 'Programmation', city: 'Angers', email: 'clara@example.test', createdAt: 1, updatedAt: 1, syncStatus: 'synced' as const, linkedLeads: [lead] };
 
 describe('BookingPage detail', () => {
   beforeEach(() => {
     authMocks.role = 'admin';
-    let queryIndex = 0;
-    vi.mocked(useLiveQuery).mockImplementation(() => [ [lead], [], [], [contact] ][queryIndex++ % 4] as never);
+    vi.mocked(useLiveQuery).mockImplementation((querier) => {
+      const source = String(querier);
+      if (source.includes('listLeadOverviews') || source.includes('listLeads')) return [lead] as never;
+      if (source.includes('listContactOverviews') || source.includes('listLeadContacts')) return [contact] as never;
+      return [] as never;
+    });
     Object.values(bookingMocks).forEach((mock) => mock.mockReset());
   });
 
@@ -52,12 +56,79 @@ describe('BookingPage detail', () => {
     renderBooking();
     expect(screen.getByRole('heading', { level: 1, name: 'Booking' })).toBeInTheDocument();
     expect(screen.queryByText('Les salles à relancer et leurs interlocuteurs.')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Ajouter une proposition' }).querySelector('svg')).toHaveAttribute('data-icon-usage', 'booking-header.add');
+    expect(screen.getByRole('button', { name: 'Ajouter une proposition' }).querySelector('svg')).toHaveAttribute('data-icon-usage', 'booking-header.add-proposition');
     fireEvent.click(screen.getByRole('button', { name: 'Ajouter une proposition' }));
     const dialog = screen.getByRole('dialog', { name: 'Nouvelle proposition' });
-    expect(within(dialog).getByLabelText('Nom du contact')).toBeInTheDocument();
+    fireEvent.change(within(dialog).getByLabelText('Mode d’association du contact'), { target: { value: 'new' } });
+    expect(within(dialog).getByRole('textbox', { name: /Nom du contact/ })).toBeRequired();
+    expect(within(dialog).getByRole('textbox', { name: /Structure, salle ou association/ })).toBeRequired();
+    expect(within(dialog).getByRole('textbox', { name: /Téléphone/ })).toBeRequired();
     expect(within(dialog).getByLabelText('Rôle')).toBeInTheDocument();
     expect(within(dialog).getByRole('button', { name: 'Créer la proposition' })).toBeInTheDocument();
+  });
+
+  it('switches between booking and contacts with independent search and filters', () => {
+    renderBooking();
+    expect(screen.getByRole('tab', { name: 'Booking' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('searchbox', { name: 'Rechercher une proposition' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Contacts' }));
+    expect(screen.getByRole('searchbox', { name: 'Rechercher un contact' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Filtrer les contacts' }));
+    expect(screen.getByRole('dialog', { name: 'Filtrer les contacts' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Filtrer par joignabilité')).toBeInTheDocument();
+    expect(screen.getByLabelText('Filtrer par proposition liée')).toBeInTheDocument();
+  });
+
+  it('supports keyboard tabs and applies then resets booking filters', () => {
+    renderBooking();
+    const bookingTab = screen.getByRole('tab', { name: 'Booking' });
+    const contactsTab = screen.getByRole('tab', { name: 'Contacts' });
+    bookingTab.focus();
+    fireEvent.keyDown(bookingTab, { key: 'ArrowRight' });
+    expect(contactsTab).toHaveAttribute('aria-selected', 'true');
+    expect(contactsTab).toHaveFocus();
+    expect(document.getElementById('booking-panel-booking')).toBeInTheDocument();
+    expect(document.getElementById('booking-panel-contacts')).toBeInTheDocument();
+
+    fireEvent.click(bookingTab);
+    fireEvent.click(screen.getByRole('button', { name: 'Filtrer les propositions' }));
+    fireEvent.change(screen.getByLabelText('Filtrer par statut'), { target: { value: 'confirmed' } });
+    expect(screen.queryByRole('link', { name: /Le Chabada/ })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Réinitialiser' }));
+    expect(screen.getByRole('link', { name: /Le Chabada/ })).toBeInTheDocument();
+  });
+
+  it('searches a proposition by its linked contact name', () => {
+    renderBooking();
+    const search = screen.getByRole('searchbox', { name: 'Rechercher une proposition' });
+    fireEvent.change(search, { target: { value: 'clara' } });
+    expect(screen.getByRole('link', { name: /Le Chabada/ })).toBeInTheDocument();
+    fireEvent.change(search, { target: { value: 'personne inconnue' } });
+    expect(screen.queryByRole('link', { name: /Le Chabada/ })).not.toBeInTheDocument();
+    expect(screen.getByText('Aucune proposition ne correspond à cette recherche.')).toBeInTheDocument();
+  });
+
+  it('opens a contact as read-only, then exposes its edit form', () => {
+    renderBooking();
+    fireEvent.click(screen.getByRole('tab', { name: 'Contacts' }));
+    fireEvent.click(screen.getByRole('button', { name: /Clara Martin/ }));
+
+    const sheet = screen.getByRole('dialog', { name: 'Clara Martin' });
+    expect(within(sheet).getByRole('button', { name: 'Copier ce contact vers un autre espace' }).querySelector('svg'))
+      .toHaveAttribute('data-icon-usage', 'booking-contact-sheet.copy');
+    expect(within(sheet).getByRole('link', { name: 'Écrire' })).toHaveAttribute('href', 'mailto:clara@example.test');
+    expect(within(sheet).getByRole('link', { name: /Le Chabada/ })).toHaveAttribute('href', '/booking/lead-1');
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Modifier' }));
+    const editDialog = screen.getByRole('dialog', { name: 'Modifier le contact' });
+    expect(editDialog).toBeInTheDocument();
+    const phone = within(editDialog).getByRole('textbox', { name: /Téléphone/ });
+    fireEvent.change(phone, { target: { value: '0612345678' } });
+    expect(phone).toHaveValue('06 12 34 56 78');
+    fireEvent.click(within(editDialog).getByRole('button', { name: 'Supprimer le contact' }));
+    const confirmation = screen.getByRole('dialog', { name: 'Supprimer ce contact ?' });
+    fireEvent.click(within(confirmation).getByRole('button', { name: 'Supprimer' }));
+    expect(bookingMocks.deleteWorkspaceContact).toHaveBeenCalledWith('contact-1');
   });
 
   it('shows compact venue details and every active stage', () => {

@@ -12,10 +12,41 @@ import type {
 import { enqueueMutation } from '@/db/syncQueueHelper';
 import { createId } from '@/lib/createId';
 import { now } from '@/lib/now';
+import { formatContactPhone, normalizeFacebookUrl, normalizeInstagramUrl, normalizeWebsiteUrl } from '@/lib/contactUrls';
 import { useAuthStore } from '@/stores/authStore';
 import { eventsRepository } from '@/db/repositories/eventsRepository';
 
 const ACTIVE_STAGES: BookingStage[] = ['to_contact', 'contacted', 'in_discussion', 'option', 'confirmed'];
+
+export type CreateBookingLeadInput = {
+  venueName: string;
+  city?: string | undefined;
+  stage?: BookingStage | undefined;
+  priority?: BookingPriority | undefined;
+  targetDate?: string | undefined;
+  targetPeriodStart?: string | undefined;
+  targetPeriodEnd?: string | undefined;
+  ownerId?: string | undefined;
+  nextAction: string;
+  nextActionAt: number;
+  feeAmount?: number | undefined;
+  feeCurrency?: string | undefined;
+  summary?: string | undefined;
+};
+
+export type CreateWorkspaceContactInput = Pick<
+  WorkspaceContactRecord,
+  'name' | 'organization' | 'role' | 'city' | 'website' | 'email' | 'phone' | 'instagramUrl' | 'facebookUrl'
+>;
+
+export interface BookingLeadOverview extends BookingLeadRecord {
+  contactIds: string[];
+  contactNames: string[];
+}
+
+export interface WorkspaceContactOverview extends WorkspaceContactRecord {
+  linkedLeads: BookingLeadRecord[];
+}
 
 export const BOOKING_STAGE_LABELS: Record<BookingStage, string> = {
   to_contact: 'À contacter', contacted: 'Contacté', in_discussion: 'En échange', option: 'Option', confirmed: 'Confirmé', closed: 'Clos',
@@ -41,23 +72,146 @@ function validateLead(lead: Pick<BookingLeadRecord, 'stage' | 'nextAction' | 'ne
   if (!lead.targetDate && !lead.targetPeriodStart) throw new Error('Ajoutez une date ou une période cible.');
 }
 
+function buildLead(input: CreateBookingLeadInput, workspaceId: string, timestamp: number): BookingLeadRecord {
+  const lead: BookingLeadRecord = {
+    id: createId(),
+    workspaceId,
+    venueName: input.venueName.trim(),
+    city: input.city?.trim() || undefined,
+    stage: input.stage ?? 'to_contact',
+    priority: input.priority ?? 'normal',
+    targetDate: input.targetDate,
+    targetPeriodStart: input.targetPeriodStart,
+    targetPeriodEnd: input.targetPeriodEnd,
+    ownerId: input.ownerId ?? userIdOrThrow(),
+    nextAction: input.nextAction.trim(),
+    nextActionAt: input.nextActionAt,
+    feeAmount: input.feeAmount,
+    feeCurrency: input.feeCurrency,
+    summary: input.summary?.trim() || undefined,
+    createdAt: timestamp,
+    updatedAt: timestamp,
+    serverVersion: 1,
+    syncStatus: 'pending',
+  };
+  validateLead(lead);
+  return lead;
+}
+
+function buildWorkspaceContact(input: CreateWorkspaceContactInput, workspaceId: string, timestamp: number): WorkspaceContactRecord {
+  return {
+    id: createId(),
+    workspaceId,
+    ...input,
+    name: input.name.trim(),
+    organization: input.organization?.trim() || undefined,
+    role: input.role?.trim() || undefined,
+    city: input.city?.trim() || undefined,
+    website: normalizeWebsiteUrl(input.website),
+    email: input.email?.trim() || undefined,
+    phone: formatContactPhone(input.phone) || undefined,
+    instagramUrl: normalizeInstagramUrl(input.instagramUrl),
+    facebookUrl: normalizeFacebookUrl(input.facebookUrl),
+    createdAt: timestamp,
+    updatedAt: timestamp,
+    serverVersion: 1,
+    syncStatus: 'pending',
+  };
+}
+
 export const bookingRepository = {
   async listLeads(workspaceId = workspaceIdOrThrow()) {
     const leads = await db.bookingLeads.where('workspaceId').equals(workspaceId).filter((item) => item.deletedAt === undefined).toArray();
     return leads.sort((a, b) => a.nextActionAt - b.nextActionAt);
   },
 
+  async listLeadOverviews(workspaceId = workspaceIdOrThrow()): Promise<BookingLeadOverview[]> {
+    const [leads, contacts, links] = await Promise.all([
+      this.listLeads(workspaceId),
+      this.listWorkspaceContacts(workspaceId),
+      db.bookingLeadContacts.where('workspaceId').equals(workspaceId).filter((item) => item.deletedAt === undefined).toArray(),
+    ]);
+    const contactsById = new Map(contacts.map((contact) => [contact.id, contact]));
+    const contactIdsByLead = new Map<string, string[]>();
+    for (const link of links) {
+      const current = contactIdsByLead.get(link.leadId) ?? [];
+      current.push(link.contactId);
+      contactIdsByLead.set(link.leadId, current);
+    }
+    return leads.map((lead) => {
+      const contactIds = contactIdsByLead.get(lead.id) ?? [];
+      return {
+        ...lead,
+        contactIds,
+        contactNames: contactIds.flatMap((contactId) => {
+          const contact = contactsById.get(contactId);
+          return contact ? [contact.name] : [];
+        }),
+      };
+    });
+  },
+
+  async listContactOverviews(workspaceId = workspaceIdOrThrow()): Promise<WorkspaceContactOverview[]> {
+    const [contacts, leads, links] = await Promise.all([
+      this.listWorkspaceContacts(workspaceId),
+      this.listLeads(workspaceId),
+      db.bookingLeadContacts.where('workspaceId').equals(workspaceId).filter((item) => item.deletedAt === undefined).toArray(),
+    ]);
+    const leadsById = new Map(leads.map((lead) => [lead.id, lead]));
+    const leadIdsByContact = new Map<string, string[]>();
+    for (const link of links) {
+      const current = leadIdsByContact.get(link.contactId) ?? [];
+      current.push(link.leadId);
+      leadIdsByContact.set(link.contactId, current);
+    }
+    return contacts.map((contact) => ({
+      ...contact,
+      linkedLeads: (leadIdsByContact.get(contact.id) ?? []).flatMap((leadId) => {
+        const lead = leadsById.get(leadId);
+        return lead ? [lead] : [];
+      }),
+    }));
+  },
+
   async getLead(id: string) { return db.bookingLeads.get(id); },
 
-  async createLead(input: {
-    venueName: string; city?: string | undefined; stage?: BookingStage | undefined; priority?: BookingPriority | undefined; targetDate?: string | undefined; targetPeriodStart?: string | undefined; targetPeriodEnd?: string | undefined;
-    ownerId?: string | undefined; nextAction: string; nextActionAt: number; feeAmount?: number | undefined; feeCurrency?: string | undefined; summary?: string | undefined;
-  }) {
-    const timestamp = now(); const workspaceId = workspaceIdOrThrow(); const ownerId = input.ownerId ?? userIdOrThrow();
-    const lead: BookingLeadRecord = { id: createId(), workspaceId, venueName: input.venueName.trim(), city: input.city?.trim() || undefined, stage: input.stage ?? 'to_contact', priority: input.priority ?? 'normal', targetDate: input.targetDate, targetPeriodStart: input.targetPeriodStart, targetPeriodEnd: input.targetPeriodEnd, ownerId, nextAction: input.nextAction.trim(), nextActionAt: input.nextActionAt, feeAmount: input.feeAmount, feeCurrency: input.feeCurrency, summary: input.summary?.trim() || undefined, createdAt: timestamp, updatedAt: timestamp, serverVersion: 1, syncStatus: 'pending' };
-    validateLead(lead);
+  async createLead(input: CreateBookingLeadInput) {
+    const timestamp = now(); const workspaceId = workspaceIdOrThrow();
+    const lead = buildLead(input, workspaceId, timestamp);
     await db.transaction('rw', db.bookingLeads, db.syncQueue, async () => { await db.bookingLeads.add(lead); await enqueueMutation(db, workspaceId, 'bookingLead', lead.id, 'create', lead); });
     return lead;
+  },
+
+  async createLeadWithContact(input: CreateBookingLeadInput, contactChoice?: { existingContactId: string } | { newContact: CreateWorkspaceContactInput }) {
+    const timestamp = now();
+    const workspaceId = workspaceIdOrThrow();
+    const lead = buildLead(input, workspaceId, timestamp);
+    let contact: WorkspaceContactRecord | undefined;
+
+    await db.transaction('rw', db.workspaceContacts, db.bookingLeads, db.bookingLeadContacts, db.syncQueue, async () => {
+      if (contactChoice && 'existingContactId' in contactChoice) {
+        contact = await db.workspaceContacts.get(contactChoice.existingContactId);
+        if (!contact || contact.deletedAt || contact.workspaceId !== workspaceId) throw new Error('Contact introuvable dans ce groupe');
+      } else if (contactChoice && 'newContact' in contactChoice) {
+        contact = buildWorkspaceContact(contactChoice.newContact, workspaceId, timestamp);
+        await db.workspaceContacts.add(contact);
+        await enqueueMutation(db, workspaceId, 'workspaceContact', contact.id, 'create', contact);
+      }
+
+      await db.bookingLeads.add(lead);
+      await enqueueMutation(db, workspaceId, 'bookingLead', lead.id, 'create', lead);
+
+      if (contact) {
+        const link: BookingLeadContactRecord = {
+          id: createId(), workspaceId, leadId: lead.id, contactId: contact.id,
+          createdAt: timestamp, updatedAt: timestamp, serverVersion: 1, syncStatus: 'pending',
+        };
+        await db.bookingLeadContacts.add(link);
+        await enqueueMutation(db, workspaceId, 'bookingLeadContact', link.id, 'create', link);
+      }
+    });
+
+    return { lead, contact };
   },
 
   async updateLead(id: string, patch: Partial<BookingLeadRecord>) {
@@ -91,22 +245,80 @@ export const bookingRepository = {
 
   async listWorkspaceContacts(workspaceId = workspaceIdOrThrow()) { return (await db.workspaceContacts.where('workspaceId').equals(workspaceId).filter((item) => item.deletedAt === undefined).toArray()).sort((a, b) => a.name.localeCompare(b.name)); },
 
-  async createWorkspaceContact(input: Pick<WorkspaceContactRecord, 'name' | 'organization' | 'role' | 'city' | 'website' | 'email' | 'phone' | 'instagramUrl' | 'facebookUrl'>) {
-    const timestamp = now(); const workspaceId = workspaceIdOrThrow(); const contact: WorkspaceContactRecord = { id: createId(), workspaceId, ...input, name: input.name.trim(), createdAt: timestamp, updatedAt: timestamp, serverVersion: 1, syncStatus: 'pending' };
+  async createWorkspaceContact(input: CreateWorkspaceContactInput) {
+    const timestamp = now(); const workspaceId = workspaceIdOrThrow(); const contact = buildWorkspaceContact(input, workspaceId, timestamp);
     await db.transaction('rw', db.workspaceContacts, db.syncQueue, async () => { await db.workspaceContacts.add(contact); await enqueueMutation(db, workspaceId, 'workspaceContact', contact.id, 'create', contact); }); return contact;
+  },
+
+  async copyWorkspaceContactToWorkspace(id: string, targetWorkspaceId: string) {
+    const source = await db.workspaceContacts.get(id);
+    if (!source || source.deletedAt) throw new Error('Contact introuvable');
+    if (source.workspaceId === targetWorkspaceId) throw new Error('Choisissez un autre espace de destination.');
+    const contact = buildWorkspaceContact({
+      name: source.name,
+      organization: source.organization,
+      role: source.role,
+      city: source.city,
+      website: source.website,
+      email: source.email,
+      phone: source.phone,
+      instagramUrl: source.instagramUrl,
+      facebookUrl: source.facebookUrl,
+    }, targetWorkspaceId, now());
+    await db.transaction('rw', db.workspaceContacts, db.syncQueue, async () => {
+      await db.workspaceContacts.add(contact);
+      await enqueueMutation(db, targetWorkspaceId, 'workspaceContact', contact.id, 'create', contact);
+    });
+    return contact;
   },
 
   async updateWorkspaceContact(id: string, patch: Partial<WorkspaceContactRecord>) {
     const existing = await db.workspaceContacts.get(id); if (!existing) throw new Error('Contact introuvable');
-    const updated: WorkspaceContactRecord = { ...existing, ...patch, name: patch.name?.trim() ?? existing.name, updatedAt: now(), syncStatus: 'pending' };
+    const updated: WorkspaceContactRecord = {
+      ...existing,
+      ...patch,
+      name: patch.name?.trim() ?? existing.name,
+      website: 'website' in patch ? normalizeWebsiteUrl(patch.website) : existing.website,
+      instagramUrl: 'instagramUrl' in patch ? normalizeInstagramUrl(patch.instagramUrl) : existing.instagramUrl,
+      facebookUrl: 'facebookUrl' in patch ? normalizeFacebookUrl(patch.facebookUrl) : existing.facebookUrl,
+      phone: 'phone' in patch ? formatContactPhone(patch.phone) || undefined : existing.phone,
+      updatedAt: now(),
+      syncStatus: 'pending',
+    };
     await db.transaction('rw', db.workspaceContacts, db.syncQueue, async () => { await db.workspaceContacts.put(updated); await enqueueMutation(db, updated.workspaceId, 'workspaceContact', id, patch.deletedAt ? 'soft_delete' : 'update', updated, existing.serverVersion); });
     return updated;
+  },
+
+  async deleteWorkspaceContact(id: string) {
+    const contact = await db.workspaceContacts.get(id);
+    if (!contact || contact.deletedAt) return;
+    const timestamp = now();
+    const archivedContact: WorkspaceContactRecord = { ...contact, deletedAt: timestamp, updatedAt: timestamp, syncStatus: 'pending' };
+    const links = await db.bookingLeadContacts.where('workspaceId').equals(contact.workspaceId)
+      .filter((link) => link.contactId === id && link.deletedAt === undefined)
+      .toArray();
+
+    await db.transaction('rw', db.workspaceContacts, db.bookingLeadContacts, db.syncQueue, async () => {
+      for (const link of links) {
+        const archivedLink: BookingLeadContactRecord = { ...link, deletedAt: timestamp, updatedAt: timestamp, syncStatus: 'pending' };
+        await db.bookingLeadContacts.put(archivedLink);
+        await enqueueMutation(db, contact.workspaceId, 'bookingLeadContact', link.id, 'soft_delete', archivedLink, link.serverVersion);
+      }
+      await db.workspaceContacts.put(archivedContact);
+      await enqueueMutation(db, contact.workspaceId, 'workspaceContact', contact.id, 'soft_delete', archivedContact, contact.serverVersion);
+    });
   },
 
   async listPersonalContacts() { const ownerId = userIdOrThrow(); return (await db.personalContacts.where('ownerId').equals(ownerId).filter((item) => item.deletedAt === undefined).toArray()).sort((a, b) => a.name.localeCompare(b.name)); },
 
   async createPersonalContact(input: Pick<PersonalContactRecord, 'name' | 'organization' | 'role' | 'city' | 'website' | 'email' | 'phone' | 'instagramUrl' | 'facebookUrl'>) {
-    const timestamp = now(); const ownerId = userIdOrThrow(); const contact: PersonalContactRecord = { id: createId(), ownerId, ...input, name: input.name.trim(), createdAt: timestamp, updatedAt: timestamp, serverVersion: 1, syncStatus: 'pending' };
+    const timestamp = now(); const ownerId = userIdOrThrow(); const contact: PersonalContactRecord = {
+      id: createId(), ownerId, ...input, name: input.name.trim(),
+      website: normalizeWebsiteUrl(input.website),
+      instagramUrl: normalizeInstagramUrl(input.instagramUrl),
+      facebookUrl: normalizeFacebookUrl(input.facebookUrl),
+      createdAt: timestamp, updatedAt: timestamp, serverVersion: 1, syncStatus: 'pending',
+    };
     await db.transaction('rw', db.personalContacts, db.syncQueue, async () => { await db.personalContacts.add(contact); await enqueueMutation(db, `user:${ownerId}`, 'personalContact', contact.id, 'create', contact); }); return contact;
   },
 

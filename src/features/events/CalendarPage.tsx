@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { useNavigate } from 'react-router-dom';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { eventsRepository } from '@/db/repositories/eventsRepository';
 import { bookingRepository } from '@/db/repositories/bookingRepository';
@@ -10,9 +11,10 @@ import { EventFormModal } from './EventFormModal';
 import { AddButton } from '@/ui/components/AddButton';
 import { ContentRow } from '@/ui/components/ContentRow';
 import { PageHeader } from '@/ui/components/PageHeader';
-import { SelectField } from '@/ui/components/SelectField';
 import { useUndoToastStore } from '@/stores/undoToastStore';
 import { FzIcon } from '@/ui/icons';
+import { canWriteWorkspace } from '@/services/supabase/workspace';
+import { EventDetailsDialog } from './EventDetailsDialog';
 
 import { getWorkspaceColorOption, useWorkspaceBadgeColors } from '@/services/workspaceColors';
 
@@ -102,7 +104,8 @@ const WEEKDAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 type MonthTransitionDirection = 'previous' | 'next';
 
 export function CalendarPage() {
-  const { workspaces, session, activeWorkspace } = useAuthStore();
+  const navigate = useNavigate();
+  const { workspaces, session } = useAuthStore();
   const user = session?.user;
   useWorkspaceBadgeColors();
   const [events, setEvents] = useState<EventRecord[]>([]);
@@ -121,10 +124,10 @@ export function CalendarPage() {
   const [isDeletingEvent, setIsDeletingEvent] = useState(false);
   const [monthTransitionDirection, setMonthTransitionDirection] = useState<MonthTransitionDirection | null>(null);
   const calendarTouchStart = useRef<{ x: number; y: number } | null>(null);
-  const bookingLeads = useLiveQuery(() => bookingRepository.listLeads(activeWorkspace?.id), [activeWorkspace?.id]) ?? [];
-  const leadByEventId = useMemo(() => new Map(bookingLeads.filter((lead) => lead.eventId).map((lead) => [lead.eventId!, lead])), [bookingLeads]);
+  const eventContacts = useLiveQuery(() => activeBottomSheetEvent ? eventsRepository.listContacts(activeBottomSheetEvent.id) : Promise.resolve([]), [activeBottomSheetEvent?.id]) ?? [];
+  const eventWorkspaceContacts = useLiveQuery(() => activeBottomSheetEvent ? bookingRepository.listWorkspaceContacts(activeBottomSheetEvent.workspaceId) : Promise.resolve([]), [activeBottomSheetEvent?.workspaceId]) ?? [];
   const goToBooking = (bookingId?: string) => {
-    window.location.assign(bookingId ? `/booking/${encodeURIComponent(bookingId)}` : '/booking');
+    navigate(bookingId ? `/booking/${encodeURIComponent(bookingId)}` : '/booking');
   };
 
   const loadEvents = async () => {
@@ -1053,6 +1056,19 @@ export function CalendarPage() {
 
       {/* MOBILE BOTTOM SHEET DRAWER */}
       {/* Event Details Modal matching EventFormModal form fields (readOnly) */}
+      {activeBottomSheetEvent ? <EventDetailsDialog
+        event={activeBottomSheetEvent}
+        contacts={eventContacts}
+        availableContacts={eventWorkspaceContacts}
+        canWrite={canWriteWorkspace(workspaces.find((workspace) => workspace.id === activeBottomSheetEvent.workspaceId)?.role)}
+        onClose={() => setActiveBottomSheetEvent(null)}
+        onEdit={() => { const event = activeBottomSheetEvent; setActiveBottomSheetEvent(null); handleEditEvent(event); }}
+        onDelete={() => setEventToDelete(activeBottomSheetEvent)}
+        onAddContact={(contactId) => eventsRepository.linkContact(activeBottomSheetEvent.id, contactId).then(() => undefined)}
+        onRemoveContact={(contactId) => eventsRepository.unlinkContact(activeBottomSheetEvent.id, contactId)}
+      /> : null}
+
+      {/* Legacy details panel removed in favour of EventDetailsDialog.
       {activeBottomSheetEvent && createPortal(
         <div
           className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4 backdrop-blur-xs"
@@ -1063,7 +1079,7 @@ export function CalendarPage() {
           }}
         >
           <div className="fz-card w-full max-w-md rounded-[1.6rem] p-5">
-            {/* Modal Header */}
+            Modal Header
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <h2 className="text-[1.35rem] font-black tracking-tight text-white">
                 Détails de l’événement
@@ -1078,7 +1094,7 @@ export function CalendarPage() {
               </button>
             </div>
 
-            {/* Event Information as Form Controls (ReadOnly) */}
+            Event information
             {(() => {
               const bookingLead = leadByEventId.get(activeBottomSheetEvent.id);
               const wsInfo = workspaceMap.get(activeBottomSheetEvent.workspaceId);
@@ -1150,17 +1166,14 @@ export function CalendarPage() {
                       <label htmlFor="calendar-event-type" className="fz-field-label">
                         Type
                       </label>
-                      <SelectField
+                      <input
                         id="calendar-event-type"
-                        value={activeBottomSheetEvent.eventType}
-                        disabled
+                        type="text"
+                        value={EVENT_TYPE_LABELS[activeBottomSheetEvent.eventType] || activeBottomSheetEvent.eventType}
+                        readOnly
                         tabIndex={-1}
-                      >
-                        <option value="rehearsal">Répétition</option>
-                        <option value="concert">Concert</option>
-                        <option value="meeting">Réunion</option>
-                        <option value="other">Autre</option>
-                      </SelectField>
+                        className={readOnlyClass}
+                      />
                     </div>
                     <div>
                       <label htmlFor="calendar-event-location" className="fz-field-label">
@@ -1250,7 +1263,7 @@ export function CalendarPage() {
               );
             })()}
 
-            {/* Modal Footer Buttons matching EventFormModal */}
+            Modal footer
             <div className="flex items-center justify-between border-t border-white/10 pt-4 mt-4">
               <button
                 type="button"
@@ -1288,7 +1301,7 @@ export function CalendarPage() {
           </div>
         </div>,
         document.body
-      )}
+      )} */}
 
       {/* Create/Edit Form Modal */}
       <EventFormModal

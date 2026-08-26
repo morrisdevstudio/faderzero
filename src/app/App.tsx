@@ -203,9 +203,12 @@ function SyncBootstrap() {
   );
 }
 
-function AppContent() {
+export function AppContent() {
   const { session, activeWorkspace, loading, initialize, initialized } = useAuthStore();
   const [inviteToken, setInviteToken] = useState<string | null>(() => readPendingInviteToken());
+  const [animatedUserId, setAnimatedUserId] = useState<string | null>(null);
+  const [enteredUserId, setEnteredUserId] = useState<string | null>(null);
+  const sessionUserId = session?.user.id ?? null;
 
   useEffect(() => {
     initialize();
@@ -216,12 +219,33 @@ function AppContent() {
     setInviteToken((currentToken) => (currentToken === nextToken ? currentToken : nextToken));
   }, [session]);
 
-  if (loading || !initialized) {
-    return <SplashScreen />;
+  useEffect(() => {
+    if (!sessionUserId) {
+      setAnimatedUserId(null);
+      setEnteredUserId(null);
+      return;
+    }
+
+    if (initialized && !loading && animatedUserId === sessionUserId) {
+      setEnteredUserId(sessionUserId);
+    }
+  }, [animatedUserId, initialized, loading, sessionUserId]);
+
+  if (!initialized && !sessionUserId) {
+    return <SplashScreen key="session-initialization" />;
   }
 
   if (!session) {
     return <LoginPage inviteTokenPresent={Boolean(inviteToken)} />;
+  }
+
+  if (enteredUserId !== sessionUserId) {
+    return (
+      <SplashScreen
+        key={`authenticated-${sessionUserId}`}
+        onComplete={() => setAnimatedUserId(sessionUserId)}
+      />
+    );
   }
 
   if (inviteToken) {

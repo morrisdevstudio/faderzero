@@ -1,20 +1,54 @@
-export function SplashScreen({ subtitle = 'Chargement...' }: { subtitle?: string }) {
+import { useCallback, useEffect, useRef } from 'react';
+
+export const SPLASH_ANIMATION_DURATION_MS = 3600;
+const SPLASH_COMPLETION_FALLBACK_MS = SPLASH_ANIMATION_DURATION_MS + 250;
+
+interface SplashScreenProps {
+  subtitle?: string;
+  onComplete?: () => void;
+  animated?: boolean;
+}
+
+export function SplashScreen({ subtitle = 'Chargement...', onComplete, animated = true }: SplashScreenProps) {
+  const completedRef = useRef(false);
+
+  const complete = useCallback(() => {
+    if (completedRef.current) return;
+    completedRef.current = true;
+    onComplete?.();
+  }, [onComplete]);
+
+  useEffect(() => {
+    if (!animated) return;
+
+    const fallbackId = window.setTimeout(complete, SPLASH_COMPLETION_FALLBACK_MS);
+    return () => window.clearTimeout(fallbackId);
+  }, [animated, complete]);
+
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#000000] text-white select-none">
+    <div
+      role="status"
+      aria-label="Chargement de FaderZero"
+      onAnimationEnd={animated ? complete : undefined}
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#000000] text-white select-none"
+    >
       <style>{`
         @keyframes faderMove {
           0% { transform: translateY(410px); opacity: 1; }
           76% { transform: translateY(49px); opacity: 1; }
-          87% { transform: translateY(49px); opacity: 1; }
-          93% { transform: translateY(49px); opacity: 0; }
-          93.01% { transform: translateY(410px); opacity: 0; }
-          100% { transform: translateY(410px); opacity: 1; }
+          100% { transform: translateY(49px); opacity: 1; }
         }
         .animate-fader-cap {
           transform-box: fill-box;
           transform-origin: center;
-          animation: faderMove 3.6s cubic-bezier(.45, 0, .15, 1) infinite;
+          transform: translateY(410px);
+          animation: faderMove ${SPLASH_ANIMATION_DURATION_MS}ms cubic-bezier(.45, 0, .15, 1) 1 both;
           will-change: transform, opacity;
+        }
+        .completed-fader-cap {
+          transform-box: fill-box;
+          transform-origin: center;
+          transform: translateY(49px);
         }
       `}</style>
 
@@ -81,7 +115,7 @@ export function SplashScreen({ subtitle = 'Chargement...' }: { subtitle?: string
           </g>
 
           {/* Fader animé */}
-          <g className="animate-fader-cap">
+          <g className={animated ? 'animate-fader-cap' : 'completed-fader-cap'}>
             {/* Ombre */}
             <rect
               x="80.8"

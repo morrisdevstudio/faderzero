@@ -1,4 +1,4 @@
-import { useId, type PropsWithChildren } from 'react';
+import { useId, type PropsWithChildren, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { FzIcon } from '@/ui/icons';
 import { useDialogAccessibility } from './useDialogAccessibility';
@@ -7,6 +7,7 @@ interface FormDialogProps extends PropsWithChildren {
   title: string;
   closeLabel?: string;
   closeDisabled?: boolean;
+  headerActions?: ReactNode;
   onClose: () => void;
   placement?: 'center' | 'bottom';
 }
@@ -15,6 +16,7 @@ export function FormDialog({
   title,
   closeLabel = 'Fermer',
   closeDisabled = false,
+  headerActions,
   onClose,
   placement = 'center',
   children,
@@ -59,15 +61,18 @@ export function FormDialog({
             <div>
               <h2 id={titleId} className="text-[1.35rem] font-black text-white">{title}</h2>
             </div>
-            <button
-              type="button"
-              onClick={requestClose}
-              disabled={closeDisabled}
-              aria-label={closeLabel}
-              className="fz-dialog-close"
-            >
-              <FzIcon name="close" usageId="form-dialog.close" size="md" />
-            </button>
+            <div className="flex shrink-0 items-center gap-1">
+              {headerActions}
+              <button
+                type="button"
+                onClick={requestClose}
+                disabled={closeDisabled}
+                aria-label={closeLabel}
+                className="fz-dialog-close"
+              >
+                <FzIcon name="close" usageId="form-dialog.close" size="md" />
+              </button>
+            </div>
           </div>
 
           <div className="mt-5">{children}</div>

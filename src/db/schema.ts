@@ -188,6 +188,18 @@ export interface EventRecord {
   syncStatus?: 'synced' | 'pending' | 'conflict';
 }
 
+export interface EventContactRecord {
+  id: string;
+  workspaceId: string;
+  eventId: string;
+  contactId: string;
+  createdAt: number;
+  updatedAt: number;
+  deletedAt?: number;
+  serverVersion?: number;
+  syncStatus?: 'synced' | 'pending' | 'conflict';
+}
+
 export interface SyncQueueItem {
   id?: number;
   workspaceId: string;
@@ -222,7 +234,7 @@ export interface SyncStateRecord {
   lastPulledAt: number;
 }
 
-export type LocalEntityType = 'song' | 'setlist' | 'setlistSong' | 'songAsset' | 'event' | 'personalContact' | 'workspaceContact' | 'bookingLead' | 'bookingNote' | 'bookingLeadContact';
+export type LocalEntityType = 'song' | 'setlist' | 'setlistSong' | 'songAsset' | 'event' | 'eventContact' | 'personalContact' | 'workspaceContact' | 'bookingLead' | 'bookingNote' | 'bookingLeadContact';
 
 export interface LocalMigrationJournalRecord {
   id: string;
@@ -255,6 +267,7 @@ export interface RecoveryItemRecord {
 
 export interface DatabaseSchema {
   events: EventRecord;
+  eventContacts: EventContactRecord;
   personalContacts: PersonalContactRecord;
   workspaceContacts: WorkspaceContactRecord;
   bookingLeads: BookingLeadRecord;

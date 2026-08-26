@@ -219,6 +219,52 @@ describe('Sync Engine', () => {
       expect(queue[0]?.errorMessage).toBe('timeout');
     });
 
+    it('defers a booking relation while its contact creation remains unresolved', async () => {
+      const timestamp = now();
+      const contactId = 'contact-parent';
+      const linkId = 'lead-contact-child';
+      const contact = {
+        id: contactId,
+        workspaceId,
+        name: 'Clara Martin',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+        syncStatus: 'pending' as const,
+      };
+      const link = {
+        id: linkId,
+        workspaceId,
+        leadId: 'lead-already-remote',
+        contactId,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+        syncStatus: 'pending' as const,
+      };
+      await database.workspaceContacts.add(contact);
+      await database.bookingLeadContacts.add(link);
+      await database.syncQueue.bulkAdd([
+        { workspaceId, entityType: 'workspaceContact', entityId: contactId, operation: 'create', payload: contact, status: 'pending', queuedAt: timestamp },
+        { workspaceId, entityType: 'bookingLeadContact', entityId: linkId, operation: 'create', payload: link, status: 'pending', queuedAt: timestamp },
+      ]);
+
+      singleMock
+        .mockResolvedValueOnce({ data: null, error: { message: 'contact unavailable' } } as any)
+        .mockResolvedValueOnce({ data: null, error: { message: 'contact unavailable' } } as any)
+        .mockResolvedValueOnce({ data: null, error: { message: 'contact unavailable' } } as any);
+      maybeSingleMock
+        .mockResolvedValueOnce({ data: null, error: null } as any)
+        .mockResolvedValueOnce({ data: null, error: null } as any)
+        .mockResolvedValueOnce({ data: null, error: null } as any);
+
+      const report = await pushPendingMutations(workspaceId, { retryDelayMs: 0 });
+
+      expect(report).toEqual({ processedCount: 0, failedCount: 1, recoveredCount: 0 });
+      expect(vi.mocked(supabase.from).mock.calls.map(([table]) => table)).not.toContain('booking_lead_contacts');
+      const queued = await database.syncQueue.orderBy('id').toArray();
+      expect(queued.find((item) => item.entityId === contactId)?.status).toBe('failed');
+      expect(queued.find((item) => item.entityId === linkId)?.status).toBe('pending');
+    });
+
     it('revives a stale processing mutation instead of leaving it stuck forever', async () => {
       const songId = 'stale-processing-song';
       const timestamp = now();

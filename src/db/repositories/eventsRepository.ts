@@ -1,5 +1,5 @@
 import { db } from '@/db/db';
-import type { CreateEventInput, EventRecord, UpdateEventInput } from '@/db/schema';
+import type { CreateEventInput, EventContactRecord, EventRecord, UpdateEventInput, WorkspaceContactRecord } from '@/db/schema';
 import { createId } from '@/lib/createId';
 import { now } from '@/lib/now';
 import { useAuthStore } from '@/stores/authStore';
@@ -8,6 +8,37 @@ import { enqueueMutation } from '@/db/syncQueueHelper';
 export const eventsRepository = {
   async getById(id: string): Promise<EventRecord | undefined> {
     return db.events.get(id);
+  },
+
+  async listContacts(eventId: string): Promise<WorkspaceContactRecord[]> {
+    const links = await db.eventContacts.where('eventId').equals(eventId).filter((link) => link.deletedAt === undefined).toArray();
+    const contacts = await Promise.all(links.map((link) => db.workspaceContacts.get(link.contactId)));
+    return contacts.filter((contact): contact is WorkspaceContactRecord => Boolean(contact && contact.deletedAt === undefined));
+  },
+
+  async linkContact(eventId: string, contactId: string): Promise<EventContactRecord> {
+    const [event, contact] = await Promise.all([db.events.get(eventId), db.workspaceContacts.get(contactId)]);
+    if (!event || event.deletedAt) throw new Error('Événement introuvable');
+    if (!contact || contact.deletedAt || contact.workspaceId !== event.workspaceId) throw new Error('Contact introuvable dans ce groupe');
+    const existing = await db.eventContacts.where('[eventId+contactId]').equals([eventId, contactId]).first();
+    if (existing && !existing.deletedAt) return existing;
+    const timestamp = now();
+    const link: EventContactRecord = { id: existing?.id ?? createId(), workspaceId: event.workspaceId, eventId, contactId, createdAt: existing?.createdAt ?? timestamp, updatedAt: timestamp, serverVersion: existing?.serverVersion ?? 1, syncStatus: 'pending' };
+    await db.transaction('rw', db.eventContacts, db.syncQueue, async () => {
+      await db.eventContacts.put(link);
+      await enqueueMutation(db, event.workspaceId, 'eventContact', link.id, existing?.deletedAt ? 'update' : 'create', link, existing?.serverVersion);
+    });
+    return link;
+  },
+
+  async unlinkContact(eventId: string, contactId: string): Promise<void> {
+    const link = await db.eventContacts.where('[eventId+contactId]').equals([eventId, contactId]).first();
+    if (!link || link.deletedAt) return;
+    const archived = { ...link, deletedAt: now(), updatedAt: now(), syncStatus: 'pending' as const };
+    await db.transaction('rw', db.eventContacts, db.syncQueue, async () => {
+      await db.eventContacts.put(archived);
+      await enqueueMutation(db, link.workspaceId, 'eventContact', link.id, 'soft_delete', archived, link.serverVersion);
+    });
   },
 
   async listByWorkspace(

@@ -3,6 +3,7 @@ export const iconRoleKeys = [
   'fullscreen', 'home', 'menu', 'metronome', 'pause', 'play', 'prompter',
   'record', 'setlist', 'settings', 'songs', 'stop', 'upload',
   'show-password', 'hide-password', 'export-pdf',
+  'phone', 'phone-add', 'calendar-add', 'filter', 'email', 'external-link', 'copy',
 ] as const;
 
 export type BuiltInIconRoleKey = (typeof iconRoleKeys)[number];

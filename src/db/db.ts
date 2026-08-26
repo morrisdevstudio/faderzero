@@ -17,13 +17,14 @@ import type {
   BookingLeadRecord,
   BookingNoteRecord,
   BookingLeadContactRecord,
+  EventContactRecord,
 } from '@/db/schema';
 import { createId } from '@/lib/createId';
 import { now } from '@/lib/now';
 import { normalizeSongDocument, SONG_DOCUMENT_VERSION } from '@/db/songDocument';
 
 export const FADERZERO_DB_NAME = 'faderzero-pwa';
-export const FADERZERO_LOCAL_SCHEMA_VERSION = 13;
+export const FADERZERO_LOCAL_SCHEMA_VERSION = 14;
 
 const version1Stores = {
   songs: 'id, title, updatedAt',
@@ -97,6 +98,10 @@ const version13Stores = {
   bookingLeads: 'id, workspaceId, stage, nextActionAt, ownerId, updatedAt, deletedAt, syncStatus',
   bookingNotes: 'id, workspaceId, leadId, occurredAt, updatedAt, deletedAt, syncStatus',
   bookingLeadContacts: 'id, workspaceId, leadId, contactId, [leadId+contactId], updatedAt, deletedAt, syncStatus',
+} satisfies Record<string, string>;
+const version14Stores = {
+  ...version13Stores,
+  eventContacts: 'id, workspaceId, eventId, contactId, [eventId+contactId], updatedAt, deletedAt, syncStatus',
 } satisfies Record<keyof DatabaseSchema, string>;
 
 export class FaderZeroDatabase extends Dexie {
@@ -116,6 +121,7 @@ export class FaderZeroDatabase extends Dexie {
   bookingLeads!: EntityTable<BookingLeadRecord, 'id'>;
   bookingNotes!: EntityTable<BookingNoteRecord, 'id'>;
   bookingLeadContacts!: EntityTable<BookingLeadContactRecord, 'id'>;
+  eventContacts!: EntityTable<EventContactRecord, 'id'>;
 
   constructor(name = FADERZERO_DB_NAME) {
     super(name);
@@ -268,6 +274,7 @@ export class FaderZeroDatabase extends Dexie {
           });
       });
     this.version(13).stores(version13Stores);
+    this.version(14).stores(version14Stores);
   }
 }
 

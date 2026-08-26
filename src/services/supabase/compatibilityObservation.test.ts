@@ -29,7 +29,7 @@ describe('compatibility observation', () => {
     expect(buildCompatibilityObservation(migrationReport, { clientId, appVersion: 'release-1' })).toEqual({
       clientId,
       appVersion: 'release-1',
-      localSchemaVersion: 13,
+      localSchemaVersion: 14,
       migrationStatus: 'completed',
       legacyRecordCount: 3,
       recoveryItemCount: 0,
@@ -41,7 +41,7 @@ describe('compatibility observation', () => {
     await reportClientCompatibility({ ...migrationReport, recoveryCount: 2 });
 
     expect(rpc).toHaveBeenCalledWith('report_client_compatibility', expect.objectContaining({
-      p_local_schema_version: 13,
+      p_local_schema_version: 14,
       p_migration_status: 'recovery_required',
       p_legacy_record_count: 3,
       p_recovery_item_count: 2,

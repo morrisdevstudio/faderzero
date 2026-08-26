@@ -1,6 +1,8 @@
 import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { AppShell } from '@/components/AppShell';
+import { SplashScreen } from '@/components/SplashScreen';
+import { BookingPage } from '@/features/booking/BookingPage';
 
 const AccountPage = lazy(async () => ({ default: (await import('@/features/account/AccountPage')).AccountPage }));
 const SongsPage = lazy(async () => ({ default: (await import('@/features/songs/SongsPage')).SongsPage }));
@@ -14,10 +16,9 @@ const SongWriterPage = lazy(async () => ({ default: (await import('@/features/so
 const SyncPage = lazy(async () => ({ default: (await import('@/features/sync/SyncPage')).SyncPage }));
 const HomePage = lazy(async () => ({ default: (await import('@/features/home/HomePage')).HomePage }));
 const CalendarPage = lazy(async () => ({ default: (await import('@/features/events/CalendarPage')).CalendarPage }));
-const BookingPage = lazy(async () => ({ default: (await import('@/features/booking/BookingPage')).BookingPage }));
 
 function RouteFallback() {
-  return <div className="py-10 text-center text-xs text-white/45">Chargement…</div>;
+  return <SplashScreen animated={false} />;
 }
 
 export function AppRouter() {

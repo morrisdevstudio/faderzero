@@ -13,7 +13,7 @@ import {
   toLocalSongAsset,
   toDbEvent,
   toLocalEvent,
-  toDbPersonalContact, toLocalPersonalContact, toDbWorkspaceContact, toLocalWorkspaceContact,
+  toDbPersonalContact, toLocalPersonalContact, toDbWorkspaceContact, toLocalWorkspaceContact, toDbEventContact, toLocalEventContact,
   toDbBookingLead, toLocalBookingLead, toDbBookingNote, toLocalBookingNote, toDbBookingLeadContact, toLocalBookingLeadContact,
   mapTimestampToMs,
 } from './mappers';
@@ -54,6 +54,7 @@ const ENTITY_CONFIGS = {
     toLocal: toLocalEvent,
     scope: 'workspace',
   },
+  eventContact: { dbTable: 'event_contacts', localTable: 'eventContacts', toDb: toDbEventContact, toLocal: toLocalEventContact, scope: 'workspace' },
   personalContact: { dbTable: 'personal_contacts', localTable: 'personalContacts', toDb: toDbPersonalContact, toLocal: toLocalPersonalContact, scope: 'owner' },
   workspaceContact: { dbTable: 'workspace_contacts', localTable: 'workspaceContacts', toDb: toDbWorkspaceContact, toLocal: toLocalWorkspaceContact, scope: 'workspace' },
   bookingLead: { dbTable: 'booking_leads', localTable: 'bookingLeads', toDb: toDbBookingLead, toLocal: toLocalBookingLead, scope: 'workspace' },
@@ -114,6 +115,33 @@ async function reviveStaleProcessingMutations(
   }
 
   return staleItems.length;
+}
+
+async function hasUnresolvedCreateDependency(mutation: SyncQueueItem): Promise<boolean> {
+  const dependencies: Array<{ entityType: SyncQueueItem['entityType']; entityId: string }> = [];
+  if (mutation.entityType === 'bookingLeadContact') {
+    dependencies.push(
+      { entityType: 'bookingLead', entityId: String(mutation.payload.leadId) },
+      { entityType: 'workspaceContact', entityId: String(mutation.payload.contactId) },
+    );
+  } else if (mutation.entityType === 'bookingNote') {
+    dependencies.push({ entityType: 'bookingLead', entityId: String(mutation.payload.leadId) });
+  } else if (mutation.entityType === 'eventContact') {
+    dependencies.push(
+      { entityType: 'event', entityId: String(mutation.payload.eventId) },
+      { entityType: 'workspaceContact', entityId: String(mutation.payload.contactId) },
+    );
+  }
+
+  for (const dependency of dependencies) {
+    const pendingParent = await db.syncQueue
+      .where('entityId')
+      .equals(dependency.entityId)
+      .filter((item) => item.workspaceId === mutation.workspaceId && item.entityType === dependency.entityType && item.operation === 'create')
+      .first();
+    if (pendingParent) return true;
+  }
+  return false;
 }
 
 async function fetchRemoteRow(tableName: string, entityId: string) {
@@ -233,7 +261,29 @@ export async function pushPendingMutations(
     .filter((item) => item.status === 'pending' || (includeFailed && item.status === 'failed'))
     .toArray();
 
-  mutations.sort((a, b) => a.queuedAt - b.queuedAt);
+  const createDependencyOrder: Partial<Record<SyncQueueItem['entityType'], number>> = {
+    workspaceContact: 0,
+    bookingLead: 1,
+    bookingLeadContact: 2,
+    bookingNote: 2,
+    eventContact: 2,
+  };
+  const deleteDependencyOrder: Partial<Record<SyncQueueItem['entityType'], number>> = {
+    bookingLeadContact: 0,
+    eventContact: 0,
+    workspaceContact: 1,
+  };
+  mutations.sort((a, b) => {
+    const chronologicalOrder = a.queuedAt - b.queuedAt;
+    if (chronologicalOrder !== 0) return chronologicalOrder;
+    if (a.operation === 'create' && b.operation === 'create') {
+      return (createDependencyOrder[a.entityType] ?? 1) - (createDependencyOrder[b.entityType] ?? 1);
+    }
+    if (a.operation === 'soft_delete' && b.operation === 'soft_delete') {
+      return (deleteDependencyOrder[a.entityType] ?? 1) - (deleteDependencyOrder[b.entityType] ?? 1);
+    }
+    return 0;
+  });
 
   let processedCount = 0;
   let failedCount = 0;
@@ -241,6 +291,7 @@ export async function pushPendingMutations(
   for (const mutation of mutations) {
     const config = ENTITY_CONFIGS[mutation.entityType];
     if (!config) continue;
+    if (mutation.operation === 'create' && await hasUnresolvedCreateDependency(mutation)) continue;
 
     for (let attempt = 1; attempt <= maxRetries; attempt += 1) {
       try {

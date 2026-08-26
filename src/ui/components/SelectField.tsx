@@ -7,8 +7,7 @@ export const SelectField = forwardRef<HTMLSelectElement, SelectFieldProps>(funct
     <select
       {...props}
       ref={ref}
-      className="fz-text-field fz-select-field !text-white font-bold"
-      style={{ color: '#ffffff', WebkitTextFillColor: '#ffffff' }}
+      className="fz-text-field fz-select-field"
     />
   );
 });

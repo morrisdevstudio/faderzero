@@ -1,4 +1,6 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import type { ReactNode } from 'react';
+import { fireEvent, render as renderWithTestingLibrary, screen } from '@testing-library/react';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const eventMocks = vi.hoisted(() => ({
@@ -23,6 +25,20 @@ vi.mock('@/stores/authStore', () => ({
 }));
 
 import { CalendarPage } from '@/features/events/CalendarPage';
+
+function LocationProbe() {
+  const location = useLocation();
+  return <output aria-label="Route actuelle">{location.pathname}</output>;
+}
+
+function render(children: ReactNode) {
+  return renderWithTestingLibrary(
+    <MemoryRouter>
+      {children}
+      <LocationProbe />
+    </MemoryRouter>,
+  );
+}
 
 describe('CalendarPage scroll collapse', () => {
   beforeEach(() => {
@@ -107,6 +123,14 @@ describe('CalendarPage scroll collapse', () => {
     expect(screen.getByTestId('calendar-month-grid').parentElement!).toHaveAttribute('data-expanded', 'true');
   });
 
+  it('ouvre Booking par navigation interne sans recharger la PWA', () => {
+    render(<CalendarPage />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ouvrir la prospection' }));
+
+    expect(screen.getByRole('status', { name: 'Route actuelle' })).toHaveTextContent('/booking');
+  });
+
   it('ignores touch gestures when a dialog is open', () => {
     render(
       <div>
@@ -131,7 +155,7 @@ describe('CalendarPage scroll collapse', () => {
     expect(screen.queryByRole('button', { name: 'Déplier le calendrier' })).not.toBeInTheDocument();
   });
 
-  it('associe les labels partagés aux champs en lecture seule du détail', async () => {
+  it('affiche le détail d’un événement dans une fiche lisible', async () => {
     const now = Date.now();
     eventMocks.listAll.mockResolvedValue([{
       id: 'event-labels',
@@ -149,27 +173,8 @@ describe('CalendarPage scroll collapse', () => {
     render(<CalendarPage />);
     fireEvent.click(await screen.findByText('Répétition test'));
 
-    const labels = [
-      'Titre de l’événement',
-      'Espace / Groupe',
-      'Type',
-      'Lieu',
-      'Date de début',
-      'Heure de début',
-      'Date de fin (optionnelle)',
-      'Heure de fin',
-      'Notes',
-    ];
-
-    labels.forEach((label) => {
-      expect(screen.getByText(label)).toHaveClass('fz-field-label');
-      expect(screen.getByLabelText(label)).toBeInTheDocument();
-    });
-
-    const endFieldsGrid = screen.getByText('Date de fin (optionnelle)').parentElement;
-    expect(endFieldsGrid).toHaveClass('grid', 'grid-cols-2');
-    expect(screen.getByText('Heure de fin').parentElement).toBe(endFieldsGrid);
-    expect(screen.getByLabelText('Date de fin (optionnelle)').parentElement).toBe(endFieldsGrid);
-    expect(screen.getByLabelText('Heure de fin').parentElement).toBe(endFieldsGrid);
+    expect(screen.getByRole('dialog', { name: 'Répétition test' })).toBeInTheDocument();
+    ['Type', 'Date et heure', 'Lieu', 'Contacts'].forEach((label) => expect(screen.getByText(label)).toHaveClass('fz-field-label'));
+    expect(screen.getByText('Aucun contact lié.')).toBeInTheDocument();
   });
 });
