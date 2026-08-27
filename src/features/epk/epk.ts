@@ -1,4 +1,6 @@
 import { supabase } from '@/services/supabase/client';
+import { createId } from '@/lib/createId';
+import { deleteEpkObject, uploadEpkObject } from '@/services/audio/r2Client';
 
 export type EpkStatus = 'DRAFT' | 'PUBLISHED';
 export type EpkTheme = 'stage-dark' | 'midnight-blue' | 'press-ivory' | 'fader-red';
@@ -66,6 +68,12 @@ export interface EpkLink {
   position: number;
 }
 
+export type EpkDocumentType = 'TECH_RIDER' | 'STAGE_PLOT' | 'HOSPITALITY_RIDER' | 'PRESS_KIT' | 'LOGO' | 'OTHER';
+export interface EpkPhoto { id: string; epkId: string; previewAssetId: string; originalAssetId: string; credit?: string; caption?: string; position: number; }
+export interface EpkDocument { id: string; epkId: string; assetId: string; title: string; documentType: EpkDocumentType; documentUpdatedAt: string; position: number; }
+export interface EpkTrack { id: string; epkId: string; title: string; description?: string; visibility: 'PUBLIC' | 'UNLISTED'; sourceType: 'SONG_ASSET' | 'EPK_ASSET'; songAssetId?: string; position: number; }
+export interface AvailableEpkTrack { id: string; filename: string; songTitle?: string; }
+
 export interface CreateEpkVideoInput {
   url: string;
   title?: string;
@@ -127,7 +135,7 @@ export async function saveEpk(epk: EpkRecord): Promise<EpkRecord> {
   const slug = normalizeEpkSlug(epk.slug);
   const validation = validateEpkDraft({ displayName: epk.displayName, slug, genres: epk.genres });
   if (validation) throw new Error(validation);
-  const { data, error } = await supabase.from('epks').update({ display_name: epk.displayName.trim(), slug, genres: epk.genres.map((genre) => genre.trim()).filter(Boolean), city: epk.city?.trim() || null, country: epk.country?.trim() || null, tagline: epk.tagline?.trim() || null, short_bio: epk.shortBio?.trim() || null, full_bio: epk.fullBio?.trim() || null, theme: epk.theme }).eq('id', epk.id).select().single();
+  const { data, error } = await supabase.from('epks').update({ display_name: epk.displayName.trim(), slug, genres: epk.genres.map((genre) => genre.trim()).filter(Boolean), city: epk.city?.trim() || null, country: epk.country?.trim() || null, tagline: epk.tagline?.trim() || null, short_bio: epk.shortBio?.trim() || null, full_bio: epk.fullBio?.trim() || null, theme: epk.theme, featured_type: epk.featuredType ?? null, featured_id: epk.featuredId ?? null }).eq('id', epk.id).select().single();
   if (error) throw error;
   return toRecord(data);
 }
@@ -235,6 +243,109 @@ export async function deleteEpkLink(linkId: string): Promise<void> {
   const { error } = await supabase.from('epk_links').delete().eq('id', linkId);
   if (error) throw error;
 }
+
+function toPhoto(row: Record<string, unknown>): EpkPhoto {
+  const photo: EpkPhoto = { id: String(row.id), epkId: String(row.epk_id), previewAssetId: String(row.preview_asset_id), originalAssetId: String(row.original_asset_id), position: Number(row.position ?? 0) };
+  if (typeof row.credit === 'string') photo.credit = row.credit;
+  if (typeof row.caption === 'string') photo.caption = row.caption;
+  return photo;
+}
+
+export async function listEpkPhotos(epkId: string): Promise<EpkPhoto[]> {
+  const { data, error } = await supabase.from('epk_photos').select('*').eq('epk_id', epkId).order('position');
+  if (error) throw error;
+  return (data ?? []).map(toPhoto);
+}
+
+function extensionFor(file: File): string {
+  if (file.type === 'image/jpeg') return 'jpg';
+  if (file.type === 'image/png') return 'png';
+  if (file.type === 'image/webp') return 'webp';
+  return 'pdf';
+}
+
+async function uploadAsset(epk: EpkRecord, file: File, kind: 'image_preview' | 'image_original' | 'document'): Promise<string> {
+  const id = createId();
+  const storagePath = `workspaces/${epk.workspaceId}/epks/${epk.id}/${id}.${extensionFor(file)}`;
+  await uploadEpkObject(storagePath, file, kind);
+  const { error } = await supabase.from('epk_assets').insert({ id, epk_id: epk.id, storage_path: storagePath, mime_type: file.type, size_bytes: file.size, kind, original_filename: file.name });
+  if (!error) return id;
+  await deleteEpkObject(storagePath).catch(() => undefined);
+  throw error;
+}
+
+export async function addEpkPhoto(epk: EpkRecord, file: File, input: { credit?: string; caption?: string }, position: number): Promise<EpkPhoto> {
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 10 * 1024 * 1024) throw new Error('Choisissez une image JPEG, PNG ou WebP de 10 Mo maximum.');
+  const previewId = await uploadAsset(epk, file, 'image_preview');
+  try {
+    const originalId = await uploadAsset(epk, file, 'image_original');
+    const { data, error } = await supabase.from('epk_photos').insert({ epk_id: epk.id, preview_asset_id: previewId, original_asset_id: originalId, credit: input.credit?.trim() || null, caption: input.caption?.trim() || null, position }).select().single();
+    if (error) throw error;
+    return toPhoto(data);
+  } catch (error) {
+    await supabase.from('epk_assets').delete().eq('id', previewId);
+    throw error;
+  }
+}
+
+export async function deleteEpkPhoto(photo: EpkPhoto): Promise<void> {
+  const { data: assets, error: assetsError } = await supabase.from('epk_assets').select('id,storage_path').in('id', [photo.previewAssetId, photo.originalAssetId]);
+  if (assetsError) throw assetsError;
+  const { error } = await supabase.from('epk_photos').delete().eq('id', photo.id);
+  if (error) throw error;
+  const { error: deleteError } = await supabase.from('epk_assets').delete().in('id', [photo.previewAssetId, photo.originalAssetId]);
+  if (deleteError) throw deleteError;
+  await Promise.all((assets ?? []).map((asset) => deleteEpkObject(String(asset.storage_path))));
+}
+
+function toDocument(row: Record<string, unknown>): EpkDocument {
+  const allowed: EpkDocumentType[] = ['TECH_RIDER', 'STAGE_PLOT', 'HOSPITALITY_RIDER', 'PRESS_KIT', 'LOGO', 'OTHER'];
+  return { id: String(row.id), epkId: String(row.epk_id), assetId: String(row.asset_id), title: String(row.title ?? ''), documentType: allowed.includes(row.document_type as EpkDocumentType) ? row.document_type as EpkDocumentType : 'OTHER', documentUpdatedAt: String(row.document_updated_at ?? ''), position: Number(row.position ?? 0) };
+}
+
+export async function listEpkDocuments(epkId: string): Promise<EpkDocument[]> {
+  const { data, error } = await supabase.from('epk_documents').select('*').eq('epk_id', epkId).order('position');
+  if (error) throw error;
+  return (data ?? []).map(toDocument);
+}
+
+export async function addEpkDocument(epk: EpkRecord, file: File, input: { title: string; documentType: EpkDocumentType; documentUpdatedAt: string }, position: number): Promise<EpkDocument> {
+  if (file.type !== 'application/pdf' || file.size > 15 * 1024 * 1024) throw new Error('Choisissez un PDF de 15 Mo maximum.');
+  if (!input.title.trim()) throw new Error('Le titre du document est requis.');
+  const assetId = await uploadAsset(epk, file, 'document');
+  const { data, error } = await supabase.from('epk_documents').insert({ epk_id: epk.id, asset_id: assetId, title: input.title.trim(), document_type: input.documentType, document_updated_at: input.documentUpdatedAt || undefined, position }).select().single();
+  if (!error) return toDocument(data);
+  const { data: asset } = await supabase.from('epk_assets').select('storage_path').eq('id', assetId).single();
+  await supabase.from('epk_assets').delete().eq('id', assetId);
+  if (asset?.storage_path) await deleteEpkObject(asset.storage_path).catch(() => undefined);
+  throw error;
+}
+
+export async function deleteEpkDocument(document: EpkDocument): Promise<void> {
+  const { data: asset, error: assetError } = await supabase.from('epk_assets').select('storage_path').eq('id', document.assetId).single();
+  if (assetError) throw assetError;
+  const { error } = await supabase.from('epk_documents').delete().eq('id', document.id);
+  if (error) throw error;
+  const { error: deleteError } = await supabase.from('epk_assets').delete().eq('id', document.assetId);
+  if (deleteError) throw deleteError;
+  await deleteEpkObject(asset.storage_path);
+}
+
+export async function listAvailableEpkTracks(workspaceId: string): Promise<AvailableEpkTrack[]> {
+  const { data, error } = await supabase.from('song_assets').select('id,filename,songs(title)').eq('workspace_id', workspaceId).is('deleted_at', null).order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((row) => {
+    const song = row.songs as unknown;
+    return typeof song === 'object' && song !== null && !Array.isArray(song) && 'title' in song && typeof song.title === 'string'
+      ? { id: String(row.id), filename: String(row.filename), songTitle: song.title }
+      : { id: String(row.id), filename: String(row.filename) };
+  });
+}
+
+function toTrack(row: Record<string, unknown>): EpkTrack { return { id: String(row.id), epkId: String(row.epk_id), title: String(row.title ?? ''), visibility: row.visibility === 'UNLISTED' ? 'UNLISTED' : 'PUBLIC', sourceType: row.source_type === 'EPK_ASSET' ? 'EPK_ASSET' : 'SONG_ASSET', ...(typeof row.song_asset_id === 'string' ? { songAssetId: row.song_asset_id } : {}), position: Number(row.position ?? 0), ...(typeof row.description === 'string' ? { description: row.description } : {}) }; }
+export async function listEpkTracks(epkId: string): Promise<EpkTrack[]> { const { data, error } = await supabase.from('epk_tracks').select('*').eq('epk_id', epkId).order('position'); if (error) throw error; return (data ?? []).map(toTrack); }
+export async function addEpkTrack(epkId: string, asset: AvailableEpkTrack, position: number): Promise<EpkTrack> { const { data, error } = await supabase.from('epk_tracks').insert({ epk_id: epkId, title: asset.songTitle || asset.filename, position, source_type: 'SONG_ASSET', song_asset_id: asset.id, visibility: 'PUBLIC' }).select().single(); if (error) throw error; return toTrack(data); }
+export async function deleteEpkTrack(trackId: string): Promise<void> { const { error } = await supabase.from('epk_tracks').delete().eq('id', trackId); if (error) throw error; }
 
 export function getEpkCompleteness(epk: EpkRecord, contactCount: number): number {
   let score = 0;

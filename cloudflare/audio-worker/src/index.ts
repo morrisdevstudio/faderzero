@@ -21,6 +21,7 @@ interface AuthenticatedUser {
 interface ObjectKeyDetails {
   key: string;
   workspaceId: string;
+  type: 'audio' | 'epk';
 }
 
 type WorkspaceRole = 'admin' | 'member' | 'guest';
@@ -53,7 +54,13 @@ export default {
         }
 
         if (request.method === 'PUT') {
-          return await uploadObject(request, env, details);
+          return details.type === 'epk'
+            ? await uploadEpkObject(request, env, details)
+            : await uploadObject(request, env, details);
+        }
+
+        if (request.method === 'DELETE' && details.type === 'epk') {
+          return await deleteEpkObject(request, env, details);
         }
 
         if (request.method === 'GET' || request.method === 'HEAD') {
@@ -166,6 +173,48 @@ async function uploadObject(
     size: object.size,
     etag: object.httpEtag,
   }, 201);
+}
+
+const EPK_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const EPK_DOCUMENT_TYPES = new Set(['application/pdf']);
+const MAX_EPK_IMAGE_BYTES = 10 * 1024 * 1024;
+const MAX_EPK_DOCUMENT_BYTES = 15 * 1024 * 1024;
+
+async function uploadEpkObject(request: Request, env: WorkerEnv, details: ObjectKeyDetails): Promise<Response> {
+  const user = await authenticate(request, env);
+  if (!user) return jsonResponse(request, env, { error: 'Unauthorized' }, 401);
+  if ((await getWorkspaceRole(user, details.workspaceId, env)) !== 'admin') return jsonResponse(request, env, { error: 'Forbidden' }, 403);
+
+  const contentLength = Number(request.headers.get('content-length'));
+  const assetKind = request.headers.get('x-epk-asset-kind');
+  const contentType = request.headers.get('content-type')?.split(';', 1)[0]?.trim().toLowerCase();
+  const isImage = assetKind === 'image_preview' || assetKind === 'image_original';
+  const isDocument = assetKind === 'document';
+  const limit = isImage ? MAX_EPK_IMAGE_BYTES : isDocument ? MAX_EPK_DOCUMENT_BYTES : 0;
+  const allowedTypes = isImage ? EPK_IMAGE_TYPES : EPK_DOCUMENT_TYPES;
+  if (!Number.isInteger(contentLength) || contentLength <= 0 || contentLength > limit || !contentType || !allowedTypes.has(contentType) || !request.body) {
+    return jsonResponse(request, env, { error: 'Invalid EPK media upload' }, 415);
+  }
+
+  const operationGuardError = await reserveR2OperationBudget(env, 'A');
+  if (operationGuardError) return r2GuardrailResponse(request, env, operationGuardError);
+  const object = await env.AUDIO_BUCKET.put(details.key, request.body.pipeThrough(new FixedLengthStream(contentLength)), {
+    onlyIf: new Headers({ 'if-none-match': '*' }),
+    httpMetadata: { contentType: contentType!, cacheControl: 'private, max-age=3600' },
+    customMetadata: { workspaceId: details.workspaceId, uploadedBy: user.id, assetKind: assetKind! },
+  });
+  if (!object) return jsonResponse(request, env, { error: 'Object already exists' }, 409);
+  return jsonResponse(request, env, { key: object.key, size: object.size }, 201);
+}
+
+async function deleteEpkObject(request: Request, env: WorkerEnv, details: ObjectKeyDetails): Promise<Response> {
+  const user = await authenticate(request, env);
+  if (!user) return jsonResponse(request, env, { error: 'Unauthorized' }, 401);
+  if ((await getWorkspaceRole(user, details.workspaceId, env)) !== 'admin') return jsonResponse(request, env, { error: 'Forbidden' }, 403);
+  const operationGuardError = await reserveR2OperationBudget(env, 'A');
+  if (operationGuardError) return r2GuardrailResponse(request, env, operationGuardError);
+  await env.AUDIO_BUCKET.delete(details.key);
+  return new Response(null, { status: 204, headers: corsHeaders(request, env) });
 }
 
 async function claimAudioReservation(
@@ -515,7 +564,9 @@ function parseObjectKey(encodedKey: string): ObjectKeyDetails | null {
     isSafeSegment(parts[3]) &&
     isSafeSegment(parts[4]);
 
-  return isImport || isSong ? { key, workspaceId } : null;
+  const isEpk = parts.length === 5 && parts[2] === 'epks' && UUID_PATTERN.test(parts[3] ?? '') && isSafeSegment(parts[4]);
+  if (isEpk) return { key, workspaceId, type: 'epk' };
+  return isImport || isSong ? { key, workspaceId, type: 'audio' } : null;
 }
 
 function isSafeSegment(value: string | undefined): value is string {
@@ -616,8 +667,8 @@ function matchesOrigin(origin: string, allowed: string): boolean {
 
 function corsHeaders(request: Request, env: WorkerEnv): Headers {
   const headers = new Headers({
-    'access-control-allow-methods': 'GET, HEAD, PUT, POST, OPTIONS',
-    'access-control-allow-headers': 'authorization, content-type, x-audio-reservation-id',
+    'access-control-allow-methods': 'GET, HEAD, PUT, POST, DELETE, OPTIONS',
+    'access-control-allow-headers': 'authorization, content-type, x-audio-reservation-id, x-epk-asset-kind',
     'access-control-expose-headers': 'content-length, content-range, etag',
     'access-control-max-age': '86400',
     vary: 'Origin',

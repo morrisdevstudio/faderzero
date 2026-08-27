@@ -30,6 +30,28 @@ export function createR2AudioClient(dependencies: R2AudioClientDependencies) {
     }
   }
 
+  async function uploadEpkObject(key: string, file: File, assetKind: 'image_preview' | 'image_original' | 'document'): Promise<void> {
+    const accessToken = await dependencies.getAccessToken();
+    const response = await dependencies.fetch(`${apiUrl}/objects/${encodeObjectKey(key)}`, {
+      method: 'PUT',
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+        'content-type': file.type,
+        'x-epk-asset-kind': assetKind,
+      },
+      body: file,
+    });
+    if (!response.ok) throw await createApiError(response, 'Upload du média EPK impossible');
+  }
+
+  async function deleteEpkObject(key: string): Promise<void> {
+    const accessToken = await dependencies.getAccessToken();
+    const response = await dependencies.fetch(`${apiUrl}/objects/${encodeObjectKey(key)}`, {
+      method: 'DELETE', headers: { authorization: `Bearer ${accessToken}` },
+    });
+    if (!response.ok) throw await createApiError(response, 'Suppression du média EPK impossible');
+  }
+
   async function createSignedUrl(key: string): Promise<string> {
     const accessToken = await dependencies.getAccessToken();
     const response = await dependencies.fetch(`${apiUrl}/signed-url`, {
@@ -52,7 +74,7 @@ export function createR2AudioClient(dependencies: R2AudioClientDependencies) {
     return body.signedUrl;
   }
 
-  return { uploadObject, createSignedUrl };
+  return { uploadObject, uploadEpkObject, deleteEpkObject, createSignedUrl };
 }
 
 const r2AudioClient = createR2AudioClient({
@@ -73,6 +95,16 @@ const r2AudioClient = createR2AudioClient({
 export async function uploadAudioObject(key: string, file: Blob, reservationId: string): Promise<void> {
   assertAudioApiConfig();
   await r2AudioClient.uploadObject(key, file, reservationId);
+}
+
+export async function uploadEpkObject(key: string, file: File, assetKind: 'image_preview' | 'image_original' | 'document'): Promise<void> {
+  assertAudioApiConfig();
+  await r2AudioClient.uploadEpkObject(key, file, assetKind);
+}
+
+export async function deleteEpkObject(key: string): Promise<void> {
+  assertAudioApiConfig();
+  await r2AudioClient.deleteEpkObject(key);
 }
 
 export async function createAudioSignedUrl(key: string): Promise<string> {
