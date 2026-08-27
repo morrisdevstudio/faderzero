@@ -16,6 +16,7 @@ const SongWriterPage = lazy(async () => ({ default: (await import('@/features/so
 const SyncPage = lazy(async () => ({ default: (await import('@/features/sync/SyncPage')).SyncPage }));
 const HomePage = lazy(async () => ({ default: (await import('@/features/home/HomePage')).HomePage }));
 const CalendarPage = lazy(async () => ({ default: (await import('@/features/events/CalendarPage')).CalendarPage }));
+const EpkPage = lazy(async () => ({ default: (await import('@/features/epk/EpkPage')).EpkPage }));
 
 function RouteFallback() {
   return <SplashScreen animated={false} />;
@@ -43,6 +44,7 @@ export function AppRouter() {
         <Route path="/sync" element={<SyncPage />} />
         <Route path="/metronome" element={<MetronomePage />} />
         <Route path="/account" element={<AccountPage />} />
+        <Route path="/account/epk" element={<EpkPage />} />
       </Route>
       </Routes>
     </Suspense>

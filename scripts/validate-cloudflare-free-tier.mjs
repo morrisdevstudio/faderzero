@@ -6,6 +6,7 @@ const policy = JSON.parse(readFileSync(`${root}/cloudflare/free-tier-policy.json
 const wranglerFiles = [
   'cloudflare/audio-worker/wrangler.jsonc',
   'cloudflare/audio-worker/wrangler.local.jsonc',
+  'cloudflare/epk-public/wrangler.jsonc',
 ];
 const wranglerConfigs = wranglerFiles.map((path) => ({
   path,
@@ -55,6 +56,14 @@ const configuredBuckets = [...wrangler.matchAll(/"bucket_name"\s*:\s*"([^"]+)"/g
   .map((match) => match[1]);
 if (JSON.stringify(configuredBuckets) !== JSON.stringify(policy.allowedR2Buckets)) {
   fail(`buckets R2 attendus : ${policy.allowedR2Buckets.join(', ')}.`);
+}
+
+for (const { path, contents } of wranglerConfigs) {
+  if (path.endsWith('.local.jsonc')) continue;
+  const buckets = [...contents.matchAll(/"bucket_name"\s*:\s*"([^"]+)"/g)].map((match) => match[1]);
+  for (const bucket of buckets) {
+    if (!policy.allowedR2Buckets.includes(bucket)) fail(`bucket R2 non autorisé dans ${path} : ${bucket}.`);
+  }
 }
 
 for (const value of [

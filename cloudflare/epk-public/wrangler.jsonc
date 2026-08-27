@@ -1,0 +1,17 @@
+{
+  "name": "faderzero-epk-public",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-26",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "routes": [
+    { "pattern": "faderzero.com/*", "zone_name": "faderzero.com" }
+  ],
+  "observability": { "enabled": true, "logs": { "head_sampling_rate": 1 }, "traces": { "enabled": true, "head_sampling_rate": 0.01 } },
+  "r2_buckets": [
+    { "binding": "MEDIA_BUCKET", "bucket_name": "faderzero-audio" }
+  ],
+  "vars": {
+    "SUPABASE_URL": "https://lragtkgshbnwvufjqnzm.supabase.co"
+  }
+}

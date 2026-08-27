@@ -28,8 +28,10 @@ console.log(`  npm: ${expected.npm}`);
 const checks = [
   ['Politique Cloudflare gratuite', ['run', 'check:cloudflare:costs']],
   ['TypeScript', ['run', 'typecheck']],
+  ['EPK Worker TypeScript', ['run', 'typecheck:epk']],
   ['Lint', ['run', 'lint']],
   ['Tests', ['test']],
+  ['EPK Worker tests', ['run', 'test:epk']],
   ['Build Cloudflare Pages', ['run', 'build']],
 ];
 

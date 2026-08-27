@@ -1,0 +1,45 @@
+name: Deploy EPK Worker
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'cloudflare/epk-public/**'
+      - 'scripts/run-cloudflare-checks.mjs'
+      - 'scripts/validate-cloudflare-free-tier.mjs'
+      - 'package.json'
+      - 'package-lock.json'
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run check:cloudflare:costs
+      - run: npm run typecheck:epk
+      - run: npm run test:epk
+      - run: npx wrangler@4.118.0 types --check --config cloudflare/epk-public/wrangler.jsonc cloudflare/epk-public/worker-configuration.d.ts
+      - name: Configure EPK runtime secrets
+        run: |
+          test -n "$EPK_SUPABASE_SECRET_KEY"
+          test -n "$EPK_MEDIA_SIGNING_SECRET"
+          printf '%s' "$EPK_SUPABASE_SECRET_KEY" | npx wrangler@4.118.0 secret put SUPABASE_SECRET_KEY --config cloudflare/epk-public/wrangler.jsonc
+          printf '%s' "$EPK_MEDIA_SIGNING_SECRET" | npx wrangler@4.118.0 secret put MEDIA_SIGNING_SECRET --config cloudflare/epk-public/wrangler.jsonc
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          EPK_SUPABASE_SECRET_KEY: ${{ secrets.EPK_SUPABASE_SECRET_KEY }}
+          EPK_MEDIA_SIGNING_SECRET: ${{ secrets.EPK_MEDIA_SIGNING_SECRET }}
+      - run: npx wrangler@4.118.0 deploy --config cloudflare/epk-public/wrangler.jsonc
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

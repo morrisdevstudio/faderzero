@@ -40,6 +40,21 @@ jobs:
       - run: npm run test:worker
       - run: npx wrangler@4.118.0 types --check --config cloudflare/audio-worker/wrangler.jsonc cloudflare/audio-worker/worker-configuration.d.ts
 
+  epk-worker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run check:cloudflare:costs
+      - run: npm run typecheck:epk
+      - run: npm run test:epk
+      - run: npx wrangler@4.118.0 types --check --config cloudflare/epk-public/wrangler.jsonc cloudflare/epk-public/worker-configuration.d.ts
+
   repository-security:
     runs-on: ubuntu-latest
     timeout-minutes: 10

@@ -1224,6 +1224,16 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
                                 {ws.type === 'group' && canAdministerWorkspace(ws.role) && (
                                   <button
                                     type="button"
+                                    aria-label={`Gérer l’EPK public de ${ws.name}`}
+                                    onClick={() => window.location.assign('/account/epk')}
+                                    className="flex items-center gap-1.5 rounded-lg border border-fuchsia-500/30 bg-fuchsia-500/10 px-2.5 py-1 text-[0.68rem] font-semibold text-fuchsia-200 hover:bg-fuchsia-500/20 transition"
+                                  >
+                                    EPK public
+                                  </button>
+                                )}
+                                {ws.type === 'group' && canAdministerWorkspace(ws.role) && (
+                                  <button
+                                    type="button"
                                     aria-label={`Partager le groupe ${ws.name}`}
                                     onClick={() => void handleOpenShareDialog(ws)}
                                     className="flex items-center gap-1.5 rounded-lg border border-orange-500/30 bg-orange-500/10 px-2.5 py-1 text-[0.68rem] font-semibold text-orange-300 hover:bg-orange-500/20 transition"
