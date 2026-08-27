@@ -41,6 +41,23 @@ function Test-DockerReady {
     }
 }
 
+function Invoke-NativeLogged {
+    param(
+        [Parameter(Mandatory)][string]$Command,
+        [Parameter(Mandatory)][string[]]$Arguments
+    )
+
+    $previousErrorActionPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = 'Continue'
+        & $Command @Arguments *>> $LogFile
+        return $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
+}
+
 function Get-ChangedPaths {
     $paths = @(
         & git diff --name-only
@@ -124,8 +141,7 @@ try {
     }
 
     Write-PushLog 'Push in progress; the Cloudflare hook output follows in the log.'
-    & git push origin main *>> $LogFile
-    $pushExitCode = $LASTEXITCODE
+    $pushExitCode = Invoke-NativeLogged -Command 'git' -Arguments @('push', 'origin', 'main')
     Get-Content -LiteralPath $LogFile
     if ($pushExitCode -ne 0) {
         throw "The push or Cloudflare check failed (log: $LogFile)."
