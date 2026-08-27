@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DetailHeader } from '@/ui/components/DetailHeader';
 import { Button } from '@/ui/components/Button';
@@ -59,11 +59,23 @@ export function EpkPage() {
     catch (error) { setMessage(error instanceof Error ? error.message : 'Création impossible.'); }
     finally { setSaving(false); }
   }
-  async function save() {
+  async function save(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
     if (!epk) return;
+    const formData = new FormData(event.currentTarget);
+    const nextEpk: EpkRecord = {
+      ...epk,
+      displayName: String(formData.get('displayName') ?? ''),
+      slug: String(formData.get('slug') ?? ''),
+      genres: String(formData.get('genres') ?? '').split(',').map((genre) => genre.trim()).filter(Boolean),
+      city: String(formData.get('city') ?? ''),
+      country: String(formData.get('country') ?? ''),
+      tagline: String(formData.get('tagline') ?? ''),
+      theme: String(formData.get('theme') ?? 'stage-dark') as EpkTheme,
+    };
     setSaving(true); setMessage(null);
     try {
-      const value = await saveEpk({ ...epk, genres: genresText.split(',').map((genre) => genre.trim()).filter(Boolean) });
+      const value = await saveEpk(nextEpk);
       setEpk(value); setGenresText(value.genres.join(', ')); setMessage('Section identité enregistrée.');
     } catch (error) { setMessage(error instanceof Error ? error.message : 'Enregistrement impossible.'); }
     finally { setSaving(false); }
@@ -128,15 +140,15 @@ export function EpkPage() {
 
   return <div className="space-y-5 pb-6"><DetailHeader title="EPK public" subtitle={epk.status === 'PUBLISHED' ? 'Publié' : 'Brouillon'} onBack={() => navigate('/account?tab=groupe')} backLabel="Retour aux paramètres" />
     <section className="rounded-2xl border border-white/10 bg-white/5 p-4 space-y-3"><div className="flex items-center justify-between gap-3"><p className="text-sm font-bold text-white">Complétude</p><p className="text-sm text-amber-300">{getEpkCompleteness(epk, contacts.length)} %</p></div><p className="text-xs text-white/55">Ajoutez une image ou un média principal et un contact pour publier.</p><Button variant={epk.status === 'PUBLISHED' ? 'secondary' : 'primary'} fullWidth loading={saving} onClick={() => void togglePublication()}>{epk.status === 'PUBLISHED' ? 'Dépublier' : 'Publier'}</Button></section>
-    <section className="rounded-2xl border border-white/10 bg-white/5 p-4 space-y-4"><h2 className="text-base font-black text-white">Identité</h2>
-      <div><FieldLabel htmlFor="epk-name" required>Nom public</FieldLabel><TextField id="epk-name" value={epk.displayName} onChange={(event) => setEpk({ ...epk, displayName: event.target.value })} /></div>
-      <div><FieldLabel htmlFor="epk-slug" required>Slug</FieldLabel><TextField id="epk-slug" value={epk.slug} onChange={(event) => setEpk({ ...epk, slug: event.target.value })} /><p className="mt-1 text-xs text-white/45">faderzero.com/{epk.slug}</p></div>
-      <div><FieldLabel htmlFor="epk-genres" required>Genres</FieldLabel><TextField id="epk-genres" value={genresText} onChange={(event) => setGenresText(event.target.value)} placeholder="Rock, indie" /><p className="mt-1 text-xs text-white/45">Séparez les genres par une virgule.</p></div>
-      <div className="grid grid-cols-2 gap-3"><div><FieldLabel htmlFor="epk-city" required>Ville</FieldLabel><TextField id="epk-city" value={epk.city ?? ''} onChange={(event) => setEpk({ ...epk, city: event.target.value })} /></div><div><FieldLabel htmlFor="epk-country" optional>Pays</FieldLabel><TextField id="epk-country" value={epk.country ?? ''} onChange={(event) => setEpk({ ...epk, country: event.target.value })} /></div></div>
-      <div><FieldLabel htmlFor="epk-tagline" optional>Accroche</FieldLabel><TextArea id="epk-tagline" rows={2} value={epk.tagline ?? ''} onChange={(event) => setEpk({ ...epk, tagline: event.target.value })} /></div>
-      <div><FieldLabel htmlFor="epk-theme">Thème</FieldLabel><SelectField id="epk-theme" value={epk.theme} onChange={(event) => setEpk({ ...epk, theme: event.target.value as EpkTheme })}>{THEMES.map((theme) => <option key={theme.value} value={theme.value}>{theme.label}</option>)}</SelectField></div>
-      <Button variant="secondary" fullWidth loading={saving} onClick={() => void save()}>Enregistrer l’identité</Button>{message ? <p role="status" className="text-sm text-amber-300">{message}</p> : null}
-    </section>
+    <form className="rounded-2xl border border-white/10 bg-white/5 p-4 space-y-4" onSubmit={(event) => void save(event)}><h2 className="text-base font-black text-white">Identité</h2>
+      <div><FieldLabel htmlFor="epk-name" required>Nom public</FieldLabel><TextField id="epk-name" name="displayName" value={epk.displayName} onChange={(event) => setEpk({ ...epk, displayName: event.target.value })} /></div>
+      <div><FieldLabel htmlFor="epk-slug" required>Slug</FieldLabel><TextField id="epk-slug" name="slug" value={epk.slug} onChange={(event) => setEpk({ ...epk, slug: event.target.value })} /><p className="mt-1 text-xs text-white/45">faderzero.com/{epk.slug}</p></div>
+      <div><FieldLabel htmlFor="epk-genres" required>Genres</FieldLabel><TextField id="epk-genres" name="genres" value={genresText} onChange={(event) => setGenresText(event.target.value)} placeholder="Rock, indie" /><p className="mt-1 text-xs text-white/45">Séparez les genres par une virgule.</p></div>
+      <div className="grid grid-cols-2 gap-3"><div><FieldLabel htmlFor="epk-city" required>Ville</FieldLabel><TextField id="epk-city" name="city" value={epk.city ?? ''} onChange={(event) => setEpk({ ...epk, city: event.target.value })} /></div><div><FieldLabel htmlFor="epk-country" optional>Pays</FieldLabel><TextField id="epk-country" name="country" value={epk.country ?? ''} onChange={(event) => setEpk({ ...epk, country: event.target.value })} /></div></div>
+      <div><FieldLabel htmlFor="epk-tagline" optional>Accroche</FieldLabel><TextArea id="epk-tagline" name="tagline" rows={2} value={epk.tagline ?? ''} onChange={(event) => setEpk({ ...epk, tagline: event.target.value })} /></div>
+      <div><FieldLabel htmlFor="epk-theme">Thème</FieldLabel><SelectField id="epk-theme" name="theme" value={epk.theme} onChange={(event) => setEpk({ ...epk, theme: event.target.value as EpkTheme })}>{THEMES.map((theme) => <option key={theme.value} value={theme.value}>{theme.label}</option>)}</SelectField></div>
+      <Button type="submit" variant="secondary" fullWidth loading={saving}>Enregistrer l’identité</Button>{message ? <p role="status" className="text-sm text-amber-300">{message}</p> : null}
+    </form>
     <section className="rounded-2xl border border-white/10 bg-white/5 p-4 space-y-4"><h2 className="text-base font-black text-white">Présentation</h2><div><FieldLabel htmlFor="epk-short-bio" optional>Bio courte</FieldLabel><TextArea id="epk-short-bio" rows={4} value={epk.shortBio ?? ''} onChange={(event) => setEpk({ ...epk, shortBio: event.target.value })} /></div><div><FieldLabel htmlFor="epk-full-bio" optional>Bio complète</FieldLabel><TextArea id="epk-full-bio" rows={7} value={epk.fullBio ?? ''} onChange={(event) => setEpk({ ...epk, fullBio: event.target.value })} /><p className="mt-1 text-xs text-white/45">La page publique replie ce texte derrière « Lire la suite ».</p></div><Button variant="secondary" fullWidth loading={saving} onClick={() => void savePresentation()}>Enregistrer la présentation</Button></section>
     <section className="rounded-2xl border border-white/10 bg-white/5 p-4 space-y-4"><h2 className="text-base font-black text-white">Contacts</h2>{contacts.map((contact) => <div key={contact.id} className="flex items-center justify-between gap-3 border-b border-white/10 pb-3"><div className="min-w-0"><p className="font-semibold text-white">{contact.name}</p><p className="truncate text-xs text-white/55">{contact.email ?? contact.phone ?? contact.whatsapp}</p></div><Button variant="danger" loading={saving} onClick={() => void removeContact(contact)}>Supprimer</Button></div>)}<div className="space-y-3 border-t border-white/10 pt-4"><div><FieldLabel htmlFor="epk-contact-name" required>Nom</FieldLabel><TextField id="epk-contact-name" value={contactName} onChange={(event) => setContactName(event.target.value)} /></div><div><FieldLabel htmlFor="epk-contact-role">Rôle</FieldLabel><SelectField id="epk-contact-role" value={contactRole} onChange={(event) => setContactRole(event.target.value as EpkContactRole)}><option value="BAND">Groupe</option><option value="BOOKING">Booking</option><option value="MANAGEMENT">Management</option><option value="TECH">Technique</option><option value="PRESS">Presse</option><option value="PRODUCTION">Production</option><option value="OTHER">Autre</option></SelectField></div><div><FieldLabel htmlFor="epk-contact-email" required>E-mail</FieldLabel><TextField id="epk-contact-email" type="email" value={contactEmail} onChange={(event) => setContactEmail(event.target.value)} /></div><Button variant="secondary" fullWidth loading={saving} onClick={() => void addContact()}>Ajouter le contact</Button></div></section>
     <section className="rounded-2xl border border-white/10 bg-white/5 p-4 space-y-4"><h2 className="text-base font-black text-white">Vidéos</h2>{videos.map((video) => <div key={video.id} className="flex items-center justify-between gap-3 border-b border-white/10 pb-3"><div className="min-w-0"><p className="font-semibold text-white">{video.title || `${video.provider} · ${video.videoType}`}</p><p className="truncate text-xs text-white/55">{video.providerVideoId}</p></div><Button variant="danger" loading={saving} onClick={() => void removeVideo(video)}>Supprimer</Button></div>)}<div className="space-y-3 border-t border-white/10 pt-4"><div><FieldLabel htmlFor="epk-video-url" required>URL YouTube ou Vimeo</FieldLabel><TextField id="epk-video-url" type="url" value={videoUrl} onChange={(event) => setVideoUrl(event.target.value)} /></div><div><FieldLabel htmlFor="epk-video-title" optional>Titre</FieldLabel><TextField id="epk-video-title" value={videoTitle} onChange={(event) => setVideoTitle(event.target.value)} /></div><div><FieldLabel htmlFor="epk-video-type">Type</FieldLabel><SelectField id="epk-video-type" value={videoType} onChange={(event) => setVideoType(event.target.value as EpkVideoType)}><option value="LIVE">Live</option><option value="LIVE_SESSION">Session live</option><option value="MUSIC_VIDEO">Clip</option><option value="INTERVIEW">Interview</option><option value="OTHER">Autre</option></SelectField></div><Button variant="secondary" fullWidth loading={saving} onClick={() => void addVideo()}>Ajouter la vidéo</Button></div></section>

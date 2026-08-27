@@ -1,7 +1,8 @@
 [CmdletBinding()]
 param(
     [string]$CommitMessage,
-    [int]$DockerStartTimeoutSeconds = 90
+    [int]$DockerStartTimeoutSeconds = 90,
+    [int]$DockerProbeTimeoutSeconds = 5
 )
 
 $ErrorActionPreference = 'Stop'
@@ -30,14 +31,59 @@ function Invoke-Git {
 }
 
 function Test-DockerReady {
-    $previousErrorActionPreference = $ErrorActionPreference
+    $dockerProcess = $null
     try {
-        $ErrorActionPreference = 'Continue'
-        & docker info --format '{{.ServerVersion}}' *> $null
-        return $LASTEXITCODE -eq 0
+        $dockerPath = (Get-Command docker -ErrorAction Stop).Source
+        $dockerProcess = Start-Process `
+            -FilePath $dockerPath `
+            -ArgumentList @('info', '--format', '{{.ServerVersion}}') `
+            -WindowStyle Hidden `
+            -PassThru
+
+        if (-not $dockerProcess.WaitForExit($DockerProbeTimeoutSeconds * 1000)) {
+            Stop-Process -Id $dockerProcess.Id -Force -ErrorAction SilentlyContinue
+            $dockerProcess.WaitForExit()
+            return $false
+        }
+
+        return $dockerProcess.ExitCode -eq 0
+    }
+    catch {
+        return $false
     }
     finally {
-        $ErrorActionPreference = $previousErrorActionPreference
+        if ($dockerProcess) { $dockerProcess.Dispose() }
+    }
+}
+
+function Invoke-DockerDesktopCommand {
+    param(
+        [Parameter(Mandatory)][ValidateSet('start', 'restart', 'stop')][string]$Action,
+        [int]$TimeoutSeconds = 20
+    )
+
+    $dockerProcess = $null
+    try {
+        $dockerPath = (Get-Command docker -ErrorAction Stop).Source
+        $dockerProcess = Start-Process `
+            -FilePath $dockerPath `
+            -ArgumentList @('desktop', $Action) `
+            -WindowStyle Hidden `
+            -PassThru
+
+        if (-not $dockerProcess.WaitForExit($TimeoutSeconds * 1000)) {
+            Stop-Process -Id $dockerProcess.Id -Force -ErrorAction SilentlyContinue
+            $dockerProcess.WaitForExit()
+            return $null
+        }
+
+        return $dockerProcess.ExitCode
+    }
+    catch {
+        return -1
+    }
+    finally {
+        if ($dockerProcess) { $dockerProcess.Dispose() }
     }
 }
 
@@ -78,6 +124,10 @@ function Find-SensitivePath {
 
 Push-Location $RepoRoot
 try {
+    if ($DockerStartTimeoutSeconds -lt 1 -or $DockerProbeTimeoutSeconds -lt 1) {
+        throw 'Docker timeout values must be positive integers.'
+    }
+
     $branch = (& git branch --show-current).Trim()
     if ($LASTEXITCODE -ne 0 -or $branch -ne 'main') {
         throw "Publication cancelled: the current branch must be main (current: $branch)."
@@ -106,10 +156,17 @@ try {
     }
 
     if (-not (Test-DockerReady)) {
-        Write-PushLog 'Docker Desktop is stopped; starting it.'
-        & docker desktop start *>> $LogFile
-        if ($LASTEXITCODE -ne 0) { throw 'Unable to start Docker Desktop.' }
-        $DockerStartedByScript = $true
+        $dockerDesktopIsRunning = $null -ne (Get-Process -Name 'Docker Desktop' -ErrorAction SilentlyContinue)
+        $dockerAction = if ($dockerDesktopIsRunning) { 'restart' } else { 'start' }
+        $DockerStartedByScript = -not $dockerDesktopIsRunning
+        Write-PushLog "Docker engine is unavailable; running Docker Desktop $dockerAction."
+        $dockerActionExitCode = Invoke-DockerDesktopCommand -Action $dockerAction
+        if ($null -ne $dockerActionExitCode -and $dockerActionExitCode -ne 0) {
+            throw "Unable to $dockerAction Docker Desktop (exit code: $dockerActionExitCode)."
+        }
+        if ($null -eq $dockerActionExitCode) {
+            Write-PushLog "Docker Desktop $dockerAction command is still initializing; waiting for the engine."
+        }
         $deadline = (Get-Date).AddSeconds($DockerStartTimeoutSeconds)
         while (-not (Test-DockerReady)) {
             if ((Get-Date) -ge $deadline) {
@@ -161,6 +218,12 @@ finally {
     Pop-Location
     if ($DockerStartedByScript) {
         Write-PushLog 'Stopping Docker Desktop started by this script.'
-        & docker desktop stop *>> $LogFile
+        $dockerStopExitCode = Invoke-DockerDesktopCommand -Action stop
+        if ($null -eq $dockerStopExitCode) {
+            Write-PushLog 'Docker Desktop stop command timed out; it may still be shutting down.'
+        }
+        elseif ($dockerStopExitCode -ne 0) {
+            Write-PushLog "Docker Desktop stop failed with exit code $dockerStopExitCode."
+        }
     }
 }
