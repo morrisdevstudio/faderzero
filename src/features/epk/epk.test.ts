@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { getEpkCompleteness, normalizeEpkSlug, parseEpkVideoUrl, validateEpkDraft, type EpkRecord } from './epk';
+import { DEFAULT_EPK_EDITORIAL } from './epkPresentation';
 
 describe('EPK helpers', () => {
   it('normalizes accented public slugs', () => {
@@ -12,7 +13,7 @@ describe('EPK helpers', () => {
   });
 
   it('calculates the confirmed weighted completion baseline', () => {
-    const epk: EpkRecord = { id: 'epk', workspaceId: 'workspace', displayName: 'Fader', slug: 'fader', status: 'DRAFT', genres: ['Rock'], city: 'Paris', theme: 'stage-dark', heroAssetId: 'asset' };
+    const epk: EpkRecord = { id: 'epk', workspaceId: 'workspace', displayName: 'Fader', slug: 'fader', status: 'DRAFT', genres: ['Rock'], city: 'Paris', theme: 'stage-dark', heroAssetId: 'asset', editorial: DEFAULT_EPK_EDITORIAL };
     expect(getEpkCompleteness(epk, 1)).toBe(55);
   });
 

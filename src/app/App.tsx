@@ -14,6 +14,8 @@ import { clearPendingInviteToken, readPendingInviteToken } from '@/services/supa
 import { processPendingAudioUploads } from '@/services/audio/pendingUploads';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { FzIcon } from '@/ui/icons';
+import { LandingPage } from '@/features/landing/LandingPage';
+import { resolveViewTarget } from '@/utils/domainRouting';
 
 import { SplashScreen } from '@/components/SplashScreen';
 
@@ -236,6 +238,12 @@ export function AppContent() {
   }
 
   if (!session) {
+    if (!inviteToken) {
+      const viewTarget = resolveViewTarget();
+      if (viewTarget === 'landing') {
+        return <LandingPage />;
+      }
+    }
     return <LoginPage inviteTokenPresent={Boolean(inviteToken)} />;
   }
 

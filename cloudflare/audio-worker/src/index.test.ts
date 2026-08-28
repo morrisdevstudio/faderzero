@@ -4,7 +4,7 @@ import type { WorkerEnv } from './index';
 
 const baseEnv = {
   ALLOWED_ORIGINS:
-    'http://localhost:5173,https://faderzero.pages.dev,https://*.faderzero.pages.dev',
+    'http://localhost:5173,https://app.faderzero.com,https://fader.pages.dev,https://faderzero.pages.dev,https://*.faderzero.pages.dev',
 } as const;
 
 const workspaceId = '11111111-1111-4111-8111-111111111111';

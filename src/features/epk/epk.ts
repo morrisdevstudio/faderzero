@@ -1,6 +1,8 @@
 import { supabase } from '@/services/supabase/client';
 import { createId } from '@/lib/createId';
 import { deleteEpkObject, uploadEpkObject } from '@/services/audio/r2Client';
+import { db } from '@/db/db';
+import { DEFAULT_EPK_ACCENT, DEFAULT_EPK_EDITORIAL, DEFAULT_EPK_SECTION_ORDER, EPK_SECTION_IDS, type EpkEditorialContent, type EpkPublicModel, type EpkSectionId } from './epkPresentation';
 
 export type EpkStatus = 'DRAFT' | 'PUBLISHED';
 export type EpkTheme = 'stage-dark' | 'midnight-blue' | 'press-ivory' | 'fader-red';
@@ -26,7 +28,16 @@ export interface EpkRecord {
   featuredType?: 'VIDEO' | 'AUDIO' | 'IMAGE';
   featuredId?: string;
   publishedAt?: string;
+  accentColor?: string;
+  sectionOrder?: EpkSectionId[];
+  hiddenSections?: EpkSectionId[];
+  draftRevision?: number;
+  publishedRevision?: number;
+  editorial: EpkEditorialContent;
 }
+
+export interface EpkDraftDocument extends EpkPublicModel { revision: number; }
+export interface EpkPublishedSnapshotV1 extends EpkPublicModel { version: 1; publishedAt: string; revision: number; }
 
 export interface EpkContact {
   id: string;
@@ -72,7 +83,7 @@ export type EpkDocumentType = 'TECH_RIDER' | 'STAGE_PLOT' | 'HOSPITALITY_RIDER' 
 export interface EpkPhoto { id: string; epkId: string; previewAssetId: string; originalAssetId: string; credit?: string; caption?: string; position: number; }
 export interface EpkDocument { id: string; epkId: string; assetId: string; title: string; documentType: EpkDocumentType; documentUpdatedAt: string; position: number; }
 export interface EpkTrack { id: string; epkId: string; title: string; description?: string; visibility: 'PUBLIC' | 'UNLISTED'; sourceType: 'SONG_ASSET' | 'EPK_ASSET'; songAssetId?: string; position: number; }
-export interface AvailableEpkTrack { id: string; filename: string; songTitle?: string; }
+export interface AvailableEpkTrack { id: string; filename: string; songTitle?: string; isSynced: boolean; }
 
 export interface CreateEpkVideoInput {
   url: string;
@@ -104,6 +115,10 @@ function toRecord(row: Record<string, unknown>): EpkRecord {
     id: String(row.id), workspaceId: String(row.workspace_id), displayName: String(row.display_name ?? ''), slug: String(row.slug ?? ''),
     status: row.status === 'PUBLISHED' ? 'PUBLISHED' : 'DRAFT', genres: Array.isArray(row.genres) ? row.genres.filter((item): item is string => typeof item === 'string') : [],
     theme: row.theme === 'midnight-blue' || row.theme === 'press-ivory' || row.theme === 'fader-red' ? row.theme : 'stage-dark',
+    accentColor: typeof row.accent_color === 'string' && /^#[0-9a-f]{6}$/i.test(row.accent_color) ? row.accent_color : DEFAULT_EPK_ACCENT,
+    sectionOrder: Array.isArray(row.section_order) ? row.section_order.filter((item): item is EpkSectionId => typeof item === 'string' && EPK_SECTION_IDS.includes(item as EpkSectionId)) : [...DEFAULT_EPK_SECTION_ORDER],
+    hiddenSections: Array.isArray(row.hidden_sections) ? row.hidden_sections.filter((item): item is EpkSectionId => typeof item === 'string' && EPK_SECTION_IDS.includes(item as EpkSectionId)) : [],
+    draftRevision: Number(row.draft_revision ?? 0), editorial: toEditorial(row.editorial_content),
   };
   if (typeof row.city === 'string') record.city = row.city;
   if (typeof row.country === 'string') record.country = row.country;
@@ -115,7 +130,20 @@ function toRecord(row: Record<string, unknown>): EpkRecord {
   if (row.featured_type === 'VIDEO' || row.featured_type === 'AUDIO' || row.featured_type === 'IMAGE') record.featuredType = row.featured_type;
   if (typeof row.featured_id === 'string') record.featuredId = row.featured_id;
   if (typeof row.published_at === 'string') record.publishedAt = row.published_at;
+  if (typeof row.published_revision === 'number') record.publishedRevision = row.published_revision;
   return record;
+}
+
+function toEditorial(value: unknown): EpkEditorialContent {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return { ...DEFAULT_EPK_EDITORIAL, facts: [] };
+  const data = value as Record<string, unknown>;
+  const text = (key: keyof Omit<EpkEditorialContent, 'facts'>) => typeof data[key] === 'string' ? data[key] as string : DEFAULT_EPK_EDITORIAL[key];
+  const facts = Array.isArray(data.facts) ? data.facts.flatMap((fact, index) => {
+    if (!fact || typeof fact !== 'object' || Array.isArray(fact)) return [];
+    const item = fact as Record<string, unknown>; const icon = item.icon;
+    return typeof item.title === 'string' && typeof item.value === 'string' && (icon === 'location' || icon === 'users' || icon === 'calendar' || icon === 'music') ? [{ id: typeof item.id === 'string' ? item.id : `fact-${index}`, title: item.title, value: item.value, icon: icon as EpkEditorialContent['facts'][number]['icon'] }] : [];
+  }) : [];
+  return { bioTitle: text('bioTitle'), musicTitle: text('musicTitle'), proTitle: text('proTitle'), proDescription: text('proDescription'), contactTitle: text('contactTitle'), facts };
 }
 
 export async function getEpk(workspaceId: string): Promise<EpkRecord | null> {
@@ -133,11 +161,26 @@ export async function createEpk(workspaceId: string, displayName: string): Promi
 
 export async function saveEpk(epk: EpkRecord): Promise<EpkRecord> {
   const slug = normalizeEpkSlug(epk.slug);
-  const validation = validateEpkDraft({ displayName: epk.displayName, slug, genres: epk.genres });
-  if (validation) throw new Error(validation);
-  const { data, error } = await supabase.from('epks').update({ display_name: epk.displayName.trim(), slug, genres: epk.genres.map((genre) => genre.trim()).filter(Boolean), city: epk.city?.trim() || null, country: epk.country?.trim() || null, tagline: epk.tagline?.trim() || null, short_bio: epk.shortBio?.trim() || null, full_bio: epk.fullBio?.trim() || null, theme: epk.theme, featured_type: epk.featuredType ?? null, featured_id: epk.featuredId ?? null }).eq('id', epk.id).select().single();
+  if (!slug || RESERVED_SLUGS.has(slug)) throw new Error('Ce slug est indisponible.');
+  if (epk.genres.length > 5 || epk.genres.some((genre) => genre.trim().length > 40)) throw new Error('Ajoutez au maximum cinq genres de 40 caractères maximum.');
+  const { data, error } = await supabase.from('epks').update({ display_name: epk.displayName.trim(), slug, genres: epk.genres.map((genre) => genre.trim()).filter(Boolean), city: epk.city?.trim() || null, country: epk.country?.trim() || null, tagline: epk.tagline?.trim() || null, short_bio: epk.shortBio?.trim() || null, full_bio: epk.fullBio?.trim() || null, theme: epk.theme, accent_color: epk.accentColor ?? DEFAULT_EPK_ACCENT, section_order: epk.sectionOrder ?? DEFAULT_EPK_SECTION_ORDER, hidden_sections: epk.hiddenSections ?? [], editorial_content: epk.editorial, featured_type: epk.featuredType ?? null, featured_id: epk.featuredId ?? null }).eq('id', epk.id).select().single();
   if (error) throw error;
   return toRecord(data);
+}
+
+export async function saveEpkDraft(epk: EpkRecord, expectedRevision: number): Promise<EpkRecord> {
+  const patch = { display_name: epk.displayName.trim(), slug: normalizeEpkSlug(epk.slug), genres: epk.genres, city: epk.city || null, country: epk.country || null, tagline: epk.tagline || null, short_bio: epk.shortBio || null, full_bio: epk.fullBio || null, accent_color: epk.accentColor ?? DEFAULT_EPK_ACCENT, section_order: epk.sectionOrder ?? DEFAULT_EPK_SECTION_ORDER, hidden_sections: epk.hiddenSections ?? [], editorial_content: epk.editorial, featured_type: epk.featuredType ?? null, featured_id: epk.featuredId ?? null };
+  const { data, error } = await supabase.rpc('save_epk_draft', { p_epk_id: epk.id, p_expected_revision: expectedRevision, p_patch: patch });
+  if (error) throw error;
+  if (!data || !Array.isArray(data) || !data[0]) throw new Error('Conflit de modification EPK.');
+  return toRecord(data[0] as Record<string, unknown>);
+}
+
+export async function publishEpkDraft(epkId: string, expectedRevision: number): Promise<EpkRecord> {
+  const { data, error } = await supabase.rpc('publish_epk', { p_epk_id: epkId, p_expected_revision: expectedRevision });
+  if (error) throw error;
+  if (!data || !Array.isArray(data) || !data[0]) throw new Error('Publication EPK impossible.');
+  return toRecord(data[0] as Record<string, unknown>);
 }
 
 export async function setEpkStatus(epkId: string, status: EpkStatus): Promise<EpkRecord> {
@@ -274,6 +317,21 @@ async function uploadAsset(epk: EpkRecord, file: File, kind: 'image_preview' | '
   throw error;
 }
 
+export async function uploadEpkHeroImage(epk: EpkRecord, file: File): Promise<EpkRecord> {
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 10 * 1024 * 1024) {
+    throw new Error('Choisissez une image JPEG, PNG ou WebP de 10 Mo maximum.');
+  }
+  const assetId = await uploadAsset(epk, file, 'image_original');
+  try {
+    return await saveEpk({ ...epk, heroAssetId: assetId, featuredType: 'IMAGE', featuredId: assetId });
+  } catch (error) {
+    const { data: asset } = await supabase.from('epk_assets').select('storage_path').eq('id', assetId).maybeSingle();
+    await supabase.from('epk_assets').delete().eq('id', assetId);
+    if (asset?.storage_path) await deleteEpkObject(asset.storage_path).catch(() => undefined);
+    throw error;
+  }
+}
+
 export async function addEpkPhoto(epk: EpkRecord, file: File, input: { credit?: string; caption?: string }, position: number): Promise<EpkPhoto> {
   if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 10 * 1024 * 1024) throw new Error('Choisissez une image JPEG, PNG ou WebP de 10 Mo maximum.');
   const previewId = await uploadAsset(epk, file, 'image_preview');
@@ -332,19 +390,22 @@ export async function deleteEpkDocument(document: EpkDocument): Promise<void> {
 }
 
 export async function listAvailableEpkTracks(workspaceId: string): Promise<AvailableEpkTrack[]> {
-  const { data, error } = await supabase.from('song_assets').select('id,filename,songs(title)').eq('workspace_id', workspaceId).is('deleted_at', null).order('created_at', { ascending: false });
-  if (error) throw error;
-  return (data ?? []).map((row) => {
-    const song = row.songs as unknown;
-    return typeof song === 'object' && song !== null && !Array.isArray(song) && 'title' in song && typeof song.title === 'string'
-      ? { id: String(row.id), filename: String(row.filename), songTitle: song.title }
-      : { id: String(row.id), filename: String(row.filename) };
-  });
+  const [assets, songs] = await Promise.all([
+    db.songAssets.where('workspaceId').equals(workspaceId).toArray(),
+    db.songs.where('workspaceId').equals(workspaceId).toArray(),
+  ]);
+  const songTitles = new Map(songs.filter((song) => song.deletedAt === undefined).map((song) => [song.id, song.title]));
+  return assets
+    .filter((asset) => asset.deletedAt === undefined)
+    .sort((left, right) => right.createdAt - left.createdAt)
+    .map((asset) => asset.songId && songTitles.has(asset.songId)
+      ? { id: asset.id, filename: asset.filename, songTitle: songTitles.get(asset.songId)!, isSynced: asset.syncStatus === 'synced' }
+      : { id: asset.id, filename: asset.filename, isSynced: asset.syncStatus === 'synced' });
 }
 
 function toTrack(row: Record<string, unknown>): EpkTrack { return { id: String(row.id), epkId: String(row.epk_id), title: String(row.title ?? ''), visibility: row.visibility === 'UNLISTED' ? 'UNLISTED' : 'PUBLIC', sourceType: row.source_type === 'EPK_ASSET' ? 'EPK_ASSET' : 'SONG_ASSET', ...(typeof row.song_asset_id === 'string' ? { songAssetId: row.song_asset_id } : {}), position: Number(row.position ?? 0), ...(typeof row.description === 'string' ? { description: row.description } : {}) }; }
 export async function listEpkTracks(epkId: string): Promise<EpkTrack[]> { const { data, error } = await supabase.from('epk_tracks').select('*').eq('epk_id', epkId).order('position'); if (error) throw error; return (data ?? []).map(toTrack); }
-export async function addEpkTrack(epkId: string, asset: AvailableEpkTrack, position: number): Promise<EpkTrack> { const { data, error } = await supabase.from('epk_tracks').insert({ epk_id: epkId, title: asset.songTitle || asset.filename, position, source_type: 'SONG_ASSET', song_asset_id: asset.id, visibility: 'PUBLIC' }).select().single(); if (error) throw error; return toTrack(data); }
+export async function addEpkTrack(epkId: string, asset: AvailableEpkTrack, position: number): Promise<EpkTrack> { if (!asset.isSynced) throw new Error('Cet audio doit être synchronisé avant de pouvoir être ajouté à un EPK public.'); const { data, error } = await supabase.from('epk_tracks').insert({ epk_id: epkId, title: asset.songTitle || asset.filename, position, source_type: 'SONG_ASSET', song_asset_id: asset.id, visibility: 'PUBLIC' }).select().single(); if (error) throw error; return toTrack(data); }
 export async function deleteEpkTrack(trackId: string): Promise<void> { const { error } = await supabase.from('epk_tracks').delete().eq('id', trackId); if (error) throw error; }
 
 export function getEpkCompleteness(epk: EpkRecord, contactCount: number): number {

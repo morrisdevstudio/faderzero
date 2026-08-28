@@ -1,0 +1,1958 @@
+<!doctype html>
+<html lang="fr">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+        <title>EPK Visuel</title>
+
+        <!-- Google Fonts -->
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+            rel="stylesheet"
+        />
+
+        <!-- Font Awesome -->
+        <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+        />
+
+        <!-- Tailwind CSS -->
+        <script src="https://cdn.tailwindcss.com"></script>
+
+        <!-- Alpine.js -->
+        <script
+            defer
+            src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"
+        ></script>
+
+        <style>
+            html {
+                scroll-behavior: smooth;
+            }
+
+            body {
+                font-family: "Inter", sans-serif;
+                background-color: #09090b;
+                color: #ffffff;
+            }
+
+            [x-cloak] {
+                display: none !important;
+            }
+
+            .input-field {
+                width: 100%;
+                background-color: #18181b !important;
+                border: 1px solid #3f3f46 !important;
+                border-radius: 0.375rem;
+                padding: 0.5rem;
+                color: #ffffff !important;
+                font-size: 0.875rem;
+            }
+
+            .input-field:focus {
+                outline: none;
+                border-color: #71717a !important;
+                box-shadow: 0 0 0 1px #71717a;
+            }
+
+            .input-field::placeholder {
+                color: #71717a;
+            }
+
+            .editor-panel {
+                scrollbar-width: thin;
+                scrollbar-color: #52525b #27272a;
+            }
+
+            .editor-panel::-webkit-scrollbar {
+                width: 7px;
+            }
+
+            .editor-panel::-webkit-scrollbar-track {
+                background: #27272a;
+            }
+
+            .editor-panel::-webkit-scrollbar-thumb {
+                background: #52525b;
+                border-radius: 9999px;
+            }
+
+            .editor-panel::-webkit-scrollbar-thumb:hover {
+                background: #71717a;
+            }
+
+            textarea {
+                resize: vertical;
+            }
+
+            audio {
+                width: 100%;
+            }
+
+            audio::-webkit-media-controls-panel {
+                background-color: #e4e4e7;
+            }
+        </style>
+    </head>
+
+    <body x-data="epkApp()" class="overflow-x-hidden">
+        <!-- =========================================================
+       VUE PUBLIQUE
+  ========================================================== -->
+        <main
+            class="flex min-h-screen flex-col transition-[margin] duration-300 ease-out"
+            :class="editMode ? 'sm:mr-[400px]' : 'mr-0'"
+        >
+            <!-- =====================================================
+         BANNIÈRE
+    ====================================================== -->
+            <section
+                x-show="modules.banniere"
+                id="banniere"
+                style="order: 0"
+                class="relative flex min-h-[80vh] items-end overflow-hidden bg-black"
+            >
+                <div
+                    class="absolute inset-0 bg-cover bg-center grayscale"
+                    :style="`background-image: url('${content.banniereUrl}')`"
+                ></div>
+
+                <div
+                    class="absolute inset-0 bg-gradient-to-t from-[#09090b] via-black/55 to-black/20"
+                ></div>
+                <div
+                    class="absolute inset-0 bg-gradient-to-r from-black/75 via-black/25 to-transparent"
+                ></div>
+
+                <div
+                    class="relative z-10 mx-auto w-full max-w-7xl px-6 pb-16 pt-32 sm:px-10 lg:px-16 lg:pb-24"
+                >
+                    <div class="max-w-4xl">
+                        <div
+                            class="mb-5 inline-flex rounded-full border border-white/20 bg-black/30 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-zinc-300 backdrop-blur"
+                            x-text="content.style"
+                        ></div>
+
+                        <h1
+                            class="max-w-5xl text-5xl font-black uppercase leading-[0.9] tracking-[-0.05em] text-white sm:text-7xl lg:text-8xl"
+                            x-text="content.nomGroupe"
+                        ></h1>
+
+                        <p
+                            class="mt-6 max-w-2xl text-base font-medium uppercase tracking-[0.2em] text-zinc-300 sm:text-lg"
+                            x-text="content.style"
+                        ></p>
+
+                        <div class="mt-10 flex flex-wrap gap-3">
+                            <a
+                                href="#musique"
+                                class="inline-flex min-h-12 items-center gap-3 rounded-md bg-white px-6 py-3 text-sm font-bold text-black transition hover:bg-zinc-200"
+                            >
+                                <i class="fa-solid fa-play"></i>
+                                Écouter
+                            </a>
+
+                            <a
+                                href="#espace-pro"
+                                class="inline-flex min-h-12 items-center gap-3 rounded-md border border-white/25 bg-white/5 px-6 py-3 text-sm font-bold text-white backdrop-blur transition hover:bg-white/10"
+                            >
+                                <i class="fa-solid fa-folder-open"></i>
+                                Espace Pro
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- =====================================================
+         BIO
+    ====================================================== -->
+            <section
+                x-show="modules.bio"
+                id="bio"
+                :style="`order: ${sectionOrder.indexOf('bio')}`"
+                class="bg-[#09090b] px-6 py-20 sm:px-10 lg:px-16 lg:py-28"
+            >
+                <div class="mx-auto max-w-7xl">
+                    <div
+                        class="grid gap-14 lg:grid-cols-[1.35fr_0.65fr] lg:gap-20"
+                    >
+                        <div>
+                            <p
+                                class="mb-4 text-xs font-bold uppercase tracking-[0.28em] text-zinc-500"
+                            >
+                                À propos
+                            </p>
+
+                            <h2
+                                class="text-3xl font-black tracking-tight sm:text-5xl"
+                                x-text="content.bio.titre"
+                            ></h2>
+
+                            <p
+                                class="mt-8 max-w-3xl whitespace-pre-line text-base leading-8 text-zinc-300 sm:text-lg"
+                                x-text="content.bio.texte"
+                            ></p>
+                        </div>
+
+                        <div
+                            class="rounded-2xl border border-zinc-800 bg-[#18181b] p-6 sm:p-8"
+                        >
+                            <h3
+                                class="mb-7 text-sm font-bold uppercase tracking-[0.2em] text-white"
+                            >
+                                En bref
+                            </h3>
+
+                            <div class="divide-y divide-zinc-800">
+                                <template
+                                    x-for="(item, index) in content.bio.enBref"
+                                    :key="index"
+                                >
+                                    <div
+                                        class="flex gap-4 py-5 first:pt-0 last:pb-0"
+                                    >
+                                        <div
+                                            class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-zinc-800 text-zinc-300"
+                                        >
+                                            <i :class="item.icone"></i>
+                                        </div>
+
+                                        <div class="min-w-0">
+                                            <p
+                                                class="text-[11px] font-bold uppercase tracking-[0.16em] text-zinc-500"
+                                                x-text="item.titre"
+                                            ></p>
+
+                                            <p
+                                                class="mt-1 break-words text-sm font-semibold text-white"
+                                                x-text="item.valeur"
+                                            ></p>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- =====================================================
+         MUSIQUE
+    ====================================================== -->
+            <section
+                x-show="modules.musique"
+                id="musique"
+                :style="`order: ${sectionOrder.indexOf('musique')}`"
+                class="bg-[#18181b] px-6 py-20 sm:px-10 lg:px-16 lg:py-28"
+            >
+                <div class="mx-auto max-w-7xl">
+                    <div class="mb-12">
+                        <p
+                            class="mb-4 text-xs font-bold uppercase tracking-[0.28em] text-zinc-500"
+                        >
+                            Discographie
+                        </p>
+
+                        <h2
+                            class="text-3xl font-black tracking-tight sm:text-5xl"
+                            x-text="content.musique.titre"
+                        ></h2>
+                    </div>
+
+                    <div class="grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">
+                        <!-- Lecteur audio -->
+                        <div
+                            x-data="{ activeTrack: 0 }"
+                            class="overflow-hidden rounded-2xl border border-zinc-800 bg-[#09090b]"
+                        >
+                            <div class="border-b border-zinc-800 p-6 sm:p-8">
+                                <div class="mb-6 flex items-center gap-4">
+                                    <div
+                                        class="flex h-14 w-14 items-center justify-center rounded-xl bg-white text-lg text-black"
+                                    >
+                                        <i class="fa-solid fa-wave-square"></i>
+                                    </div>
+
+                                    <div>
+                                        <p
+                                            class="text-xs font-bold uppercase tracking-[0.15em] text-zinc-500"
+                                        >
+                                            Lecture
+                                        </p>
+
+                                        <h3
+                                            class="mt-1 font-bold text-white"
+                                            x-text="content.musique.pistes[activeTrack]?.titre || 'Aucune piste'"
+                                        ></h3>
+                                    </div>
+                                </div>
+
+                                <audio
+                                    controls
+                                    preload="metadata"
+                                    :src="content.musique.pistes[activeTrack]?.url || ''"
+                                ></audio>
+                            </div>
+
+                            <div class="divide-y divide-zinc-800">
+                                <template
+                                    x-for="(track, index) in content.musique.pistes"
+                                    :key="index"
+                                >
+                                    <button
+                                        type="button"
+                                        @click="activeTrack = index"
+                                        class="flex w-full items-center gap-4 px-6 py-4 text-left transition hover:bg-zinc-900"
+                                        :class="activeTrack === index ? 'bg-zinc-900' : ''"
+                                    >
+                                        <div
+                                            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border"
+                                            :class="activeTrack === index
+                      ? 'border-white bg-white text-black'
+                      : 'border-zinc-700 text-zinc-500'"
+                                        >
+                                            <i
+                                                class="fa-solid"
+                                                :class="activeTrack === index ? 'fa-volume-high' : 'fa-play'"
+                                            ></i>
+                                        </div>
+
+                                        <div class="min-w-0 flex-1">
+                                            <p
+                                                class="truncate text-sm font-semibold"
+                                                :class="activeTrack === index ? 'text-white' : 'text-zinc-300'"
+                                                x-text="track.titre"
+                                            ></p>
+                                        </div>
+
+                                        <span
+                                            class="text-xs font-medium text-zinc-600"
+                                            x-text="String(index + 1).padStart(2, '0')"
+                                        ></span>
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
+
+                        <!-- Plateformes -->
+                        <div class="space-y-3">
+                            <template
+                                x-for="(plat, index) in content.musique.plateformes"
+                                :key="index"
+                            >
+                                <a
+                                    :href="plat.url"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="group flex min-h-16 items-center gap-4 rounded-xl border border-zinc-700 bg-[#27272a] px-5 py-4 transition hover:border-zinc-500 hover:bg-zinc-700/60"
+                                >
+                                    <div
+                                        class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[#18181b] text-xl text-white"
+                                    >
+                                        <i :class="plat.icon"></i>
+                                    </div>
+
+                                    <div class="min-w-0 flex-1">
+                                        <p
+                                            class="font-semibold text-white"
+                                            x-text="plat.nom"
+                                        ></p>
+
+                                        <p class="mt-0.5 text-xs text-zinc-500">
+                                            Écouter sur la plateforme
+                                        </p>
+                                    </div>
+
+                                    <i
+                                        class="fa-solid fa-arrow-right -rotate-45 text-zinc-500 transition group-hover:text-white"
+                                    ></i>
+                                </a>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- =====================================================
+         MÉDIAS
+    ====================================================== -->
+            <section
+                x-show="modules.medias"
+                id="medias"
+                :style="`order: ${sectionOrder.indexOf('medias')}`"
+                class="bg-[#09090b] px-6 py-20 sm:px-10 lg:px-16 lg:py-28"
+            >
+                <div class="mx-auto max-w-7xl">
+                    <div class="mb-12">
+                        <p
+                            class="mb-4 text-xs font-bold uppercase tracking-[0.28em] text-zinc-500"
+                        >
+                            Médias
+                        </p>
+
+                        <h2
+                            class="text-3xl font-black tracking-tight sm:text-5xl"
+                        >
+                            Vidéos & Photos
+                        </h2>
+                    </div>
+
+                    <!-- Vidéos -->
+                    <template x-if="content.medias.videosUrl.length">
+                        <div class="mb-16">
+                            <div class="flex flex-wrap justify-center gap-6">
+                                <template
+                                    x-for="(videoUrl, index) in content.medias.videosUrl"
+                                    :key="index"
+                                >
+                                    <div
+                                        class="w-full overflow-hidden rounded-2xl border border-zinc-800 bg-black"
+                                        :class="content.medias.videosUrl.length === 1
+                    ? 'lg:w-[50%]'
+                    : 'lg:w-[calc(50%-0.75rem)]'"
+                                    >
+                                        <iframe
+                                            class="aspect-video w-full"
+                                            :src="videoUrl"
+                                            title="Vidéo du groupe"
+                                            frameborder="0"
+                                            loading="lazy"
+                                            allow="
+                                                accelerometer;
+                                                autoplay;
+                                                clipboard-write;
+                                                encrypted-media;
+                                                gyroscope;
+                                                picture-in-picture;
+                                                web-share;
+                                            "
+                                            allowfullscreen
+                                        ></iframe>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- Photos -->
+                    <template x-if="content.medias.photosUrl.length">
+                        <div
+                            x-data="{ activeSlide: 0 }"
+                            class="group relative mx-auto max-w-5xl overflow-hidden rounded-2xl border border-zinc-800 bg-[#18181b]"
+                        >
+                            <div
+                                class="relative aspect-[16/10] sm:aspect-[16/9]"
+                            >
+                                <template
+                                    x-for="(photo, index) in content.medias.photosUrl"
+                                    :key="index"
+                                >
+                                    <img
+                                        x-show="activeSlide === index"
+                                        x-transition.opacity.duration.300ms
+                                        :src="photo"
+                                        :alt="`Photo ${index + 1}`"
+                                        class="absolute inset-0 h-full w-full object-cover"
+                                    />
+                                </template>
+                            </div>
+
+                            <template
+                                x-if="content.medias.photosUrl.length > 1"
+                            >
+                                <div>
+                                    <button
+                                        type="button"
+                                        @click="activeSlide = activeSlide === 0 ? content.medias.photosUrl.length - 1 : activeSlide - 1"
+                                        class="absolute left-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/70 text-white opacity-0 backdrop-blur transition hover:bg-white hover:text-black group-hover:opacity-100"
+                                    >
+                                        <i class="fa-solid fa-chevron-left"></i>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        @click="activeSlide = activeSlide === content.medias.photosUrl.length - 1 ? 0 : activeSlide + 1"
+                                        class="absolute right-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/70 text-white opacity-0 backdrop-blur transition hover:bg-white hover:text-black group-hover:opacity-100"
+                                    >
+                                        <i
+                                            class="fa-solid fa-chevron-right"
+                                        ></i>
+                                    </button>
+
+                                    <div
+                                        class="absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-2 rounded-full bg-black/55 px-3 py-2 backdrop-blur"
+                                    >
+                                        <template
+                                            x-for="(photo, index) in content.medias.photosUrl"
+                                            :key="index"
+                                        >
+                                            <button
+                                                type="button"
+                                                @click="activeSlide = index"
+                                                class="h-2 rounded-full transition-all"
+                                                :class="activeSlide === index ? 'w-6 bg-white' : 'w-2 bg-zinc-500'"
+                                            ></button>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+                </div>
+            </section>
+
+            <!-- =====================================================
+         ESPACE PRO
+    ====================================================== -->
+            <section
+                x-show="modules.espacePro"
+                id="espace-pro"
+                :style="`order: ${sectionOrder.indexOf('espacePro')}`"
+                class="bg-[#18181b] px-6 py-20 sm:px-10 lg:px-16 lg:py-28"
+            >
+                <div class="mx-auto max-w-7xl">
+                    <div class="max-w-3xl">
+                        <p
+                            class="mb-4 text-xs font-bold uppercase tracking-[0.28em] text-zinc-500"
+                        >
+                            Professionnels
+                        </p>
+
+                        <h2
+                            class="text-3xl font-black tracking-tight sm:text-5xl"
+                            x-text="content.espacePro.titre"
+                        ></h2>
+
+                        <p
+                            class="mt-6 text-base leading-7 text-zinc-400"
+                            x-text="content.espacePro.description"
+                        ></p>
+                    </div>
+
+                    <div class="mt-12 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                        <template
+                            x-for="(file, index) in content.espacePro.fichiers"
+                            :key="index"
+                        >
+                            <a
+                                :href="file.url"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="group relative flex min-h-52 flex-col rounded-2xl border border-zinc-700 bg-[#09090b] p-6 transition hover:-translate-y-1 hover:border-zinc-500"
+                            >
+                                <div
+                                    class="mb-10 flex items-start justify-between gap-4"
+                                >
+                                    <div
+                                        class="flex h-12 w-12 items-center justify-center rounded-xl bg-zinc-800 text-xl text-white"
+                                    >
+                                        <i :class="file.icone"></i>
+                                    </div>
+
+                                    <span
+                                        class="rounded-full border border-zinc-700 bg-zinc-900 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-300"
+                                        x-text="file.format"
+                                    ></span>
+                                </div>
+
+                                <h3
+                                    class="font-bold text-white"
+                                    x-text="file.nom"
+                                ></h3>
+
+                                <p
+                                    class="mt-2 text-sm leading-6 text-zinc-500"
+                                    x-text="file.type"
+                                ></p>
+
+                                <div
+                                    class="mt-auto pt-6 text-xs font-bold uppercase tracking-[0.12em] text-zinc-400 transition group-hover:text-white"
+                                >
+                                    Ouvrir
+                                    <i
+                                        class="fa-solid fa-arrow-up-right-from-square ml-2"
+                                    ></i>
+                                </div>
+                            </a>
+                        </template>
+                    </div>
+                </div>
+            </section>
+
+            <!-- =====================================================
+         CONTACT
+    ====================================================== -->
+            <section
+                x-show="modules.contact"
+                id="contact"
+                :style="`order: ${sectionOrder.indexOf('contact')}`"
+                class="bg-[#09090b] px-6 py-20 sm:px-10 lg:px-16 lg:py-28"
+            >
+                <div class="mx-auto max-w-7xl">
+                    <div class="grid gap-14 lg:grid-cols-[0.7fr_1.3fr]">
+                        <div>
+                            <p
+                                class="mb-4 text-xs font-bold uppercase tracking-[0.28em] text-zinc-500"
+                            >
+                                Contact
+                            </p>
+
+                            <h2
+                                class="text-3xl font-black tracking-tight sm:text-5xl"
+                                x-text="content.contact.titre"
+                            ></h2>
+                        </div>
+
+                        <div>
+                            <div
+                                class="divide-y divide-zinc-800 border-y border-zinc-800"
+                            >
+                                <template
+                                    x-for="(contact, index) in content.contact.liste"
+                                    :key="index"
+                                >
+                                    <a
+                                        :href="contact.type === 'phone'
+                    ? `tel:${contact.valeur}`
+                    : `mailto:${contact.valeur}`"
+                                        class="group flex flex-col gap-2 py-6 sm:flex-row sm:items-center sm:justify-between"
+                                    >
+                                        <div>
+                                            <p
+                                                class="text-xs font-bold uppercase tracking-[0.15em] text-zinc-500"
+                                                x-text="contact.role"
+                                            ></p>
+
+                                            <p
+                                                class="mt-1 break-all text-lg font-semibold text-white"
+                                                x-text="contact.valeur"
+                                            ></p>
+                                        </div>
+
+                                        <div
+                                            class="flex h-11 w-11 items-center justify-center rounded-full border border-zinc-700 text-zinc-400 transition group-hover:border-white group-hover:bg-white group-hover:text-black"
+                                        >
+                                            <i
+                                                class="fa-solid"
+                                                :class="contact.type === 'phone' ? 'fa-phone' : 'fa-envelope'"
+                                            ></i>
+                                        </div>
+                                    </a>
+                                </template>
+                            </div>
+
+                            <div class="mt-8 flex flex-wrap gap-3">
+                                <template
+                                    x-for="(social, index) in content.contact.reseaux"
+                                    :key="index"
+                                >
+                                    <a
+                                        :href="social.url"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        :aria-label="social.nom"
+                                        class="flex h-12 w-12 items-center justify-center rounded-full border border-zinc-700 bg-[#18181b] text-lg text-zinc-300 transition hover:border-white hover:bg-white hover:text-black"
+                                    >
+                                        <i :class="social.icon"></i>
+                                    </a>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- =========================================================
+       BOUTON OUVERTURE ÉDITEUR
+  ========================================================== -->
+        <button
+            x-show="!editMode"
+            x-transition.opacity
+            @click="editMode = true"
+            type="button"
+            class="fixed bottom-5 right-5 z-40 flex h-14 items-center gap-3 rounded-full border border-zinc-700 bg-[#18181b] px-5 font-semibold text-white shadow-2xl shadow-black/50 transition hover:border-zinc-500 hover:bg-[#27272a]"
+        >
+            <i class="fa-solid fa-pen-to-square"></i>
+
+            <span class="hidden sm:inline"> Modifier l'EPK </span>
+        </button>
+
+        <!-- =========================================================
+       ÉDITEUR
+  ========================================================== -->
+        <aside
+            x-cloak
+            class="editor-panel fixed right-0 top-0 z-50 h-full w-full overflow-y-auto border-l border-zinc-700 bg-[#27272a] shadow-2xl shadow-black/70 transition-transform duration-300 ease-out sm:w-[400px]"
+            :class="editMode ? 'translate-x-0' : 'translate-x-full'"
+        >
+            <!-- Header -->
+            <div
+                class="sticky top-0 z-20 flex items-center justify-between border-b border-zinc-700 bg-[#27272a]/95 px-5 py-4 backdrop-blur"
+            >
+                <div>
+                    <p
+                        class="text-xs font-bold uppercase tracking-[0.16em] text-zinc-500"
+                    >
+                        Générateur
+                    </p>
+
+                    <h2 class="mt-1 font-bold text-white">Éditeur EPK</h2>
+                </div>
+
+                <button
+                    type="button"
+                    @click="editMode = false"
+                    class="flex h-11 w-11 items-center justify-center rounded-full border border-zinc-600 text-zinc-300 transition hover:border-white hover:bg-white hover:text-black"
+                    aria-label="Fermer"
+                >
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="space-y-8 p-5 pb-28">
+                <!-- =====================================================
+           STRUCTURE DES SECTIONS
+      ====================================================== -->
+                <section
+                    class="rounded-xl border border-zinc-700 bg-[#18181b] p-4"
+                >
+                    <div class="mb-4">
+                        <p
+                            class="text-xs font-bold uppercase tracking-[0.16em] text-zinc-500"
+                        >
+                            Structure
+                        </p>
+
+                        <h3
+                            class="mt-1 text-sm font-bold uppercase tracking-[0.12em] text-white"
+                        >
+                            Sections
+                        </h3>
+
+                        <p class="mt-2 text-xs leading-5 text-zinc-500">
+                            Modifiez l'ordre ou masquez les sections de l'EPK.
+                        </p>
+                    </div>
+
+                    <div class="space-y-2">
+                        <template
+                            x-for="(sectionKey, index) in sectionOrder"
+                            :key="sectionKey"
+                        >
+                            <div
+                                class="flex items-center gap-3 rounded-lg border border-zinc-700 bg-[#27272a] p-3"
+                                :class="!modules[sectionKey] ? 'opacity-60' : ''"
+                            >
+                                <!-- Position -->
+                                <div
+                                    class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-[#18181b] text-xs font-bold text-zinc-500"
+                                    x-text="index + 1"
+                                ></div>
+
+                                <!-- Nom -->
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex items-center gap-2">
+                                        <p
+                                            class="truncate text-sm font-semibold"
+                                            :class="modules[sectionKey] ? 'text-white' : 'text-zinc-500'"
+                                            x-text="sectionLabels[sectionKey]"
+                                        ></p>
+
+                                        <!-- Bannière verrouillée -->
+                                        <template
+                                            x-if="sectionKey === 'banniere'"
+                                        >
+                                            <i
+                                                class="fa-solid fa-lock text-[10px] text-zinc-600"
+                                                title="La bannière reste toujours en première position"
+                                            ></i>
+                                        </template>
+                                    </div>
+
+                                    <p
+                                        class="mt-0.5 text-[10px] font-bold uppercase tracking-[0.12em]"
+                                        :class="modules[sectionKey] ? 'text-emerald-500' : 'text-zinc-600'"
+                                        x-text="modules[sectionKey] ? 'Visible' : 'Masquée'"
+                                    ></p>
+                                </div>
+
+                                <!-- Visibilité -->
+                                <button
+                                    type="button"
+                                    @click="modules[sectionKey] = !modules[sectionKey]"
+                                    class="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border transition"
+                                    :class="modules[sectionKey]
+                  ? 'border-zinc-600 bg-zinc-800 text-white hover:border-zinc-400'
+                  : 'border-zinc-700 bg-[#18181b] text-zinc-600 hover:text-zinc-300'"
+                                    :title="modules[sectionKey] ? 'Masquer la section' : 'Afficher la section'"
+                                    :aria-label="modules[sectionKey] ? 'Masquer la section' : 'Afficher la section'"
+                                >
+                                    <i
+                                        class="fa-solid"
+                                        :class="modules[sectionKey] ? 'fa-eye' : 'fa-eye-slash'"
+                                    ></i>
+                                </button>
+
+                                <!-- Bannière : pas de déplacement -->
+                                <template x-if="sectionKey === 'banniere'">
+                                    <div
+                                        class="flex h-9 w-[76px] shrink-0 items-center justify-center rounded-md border border-zinc-800 bg-[#18181b] text-zinc-600"
+                                        title="Position fixe"
+                                    >
+                                        <i class="fa-solid fa-lock text-xs"></i>
+                                    </div>
+                                </template>
+
+                                <!-- Autres sections -->
+                                <template x-if="sectionKey !== 'banniere'">
+                                    <div class="flex shrink-0 gap-1">
+                                        <button
+                                            type="button"
+                                            @click="moveSection(index, -1)"
+                                            :disabled="index <= 1"
+                                            class="flex h-9 w-9 items-center justify-center rounded-md border border-zinc-700 text-zinc-300 transition hover:border-zinc-500 hover:bg-zinc-700 hover:text-white disabled:cursor-not-allowed disabled:opacity-20"
+                                            :aria-label="`Monter ${sectionLabels[sectionKey]}`"
+                                        >
+                                            <i
+                                                class="fa-solid fa-chevron-up"
+                                            ></i>
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            @click="moveSection(index, 1)"
+                                            :disabled="index === sectionOrder.length - 1"
+                                            class="flex h-9 w-9 items-center justify-center rounded-md border border-zinc-700 text-zinc-300 transition hover:border-zinc-500 hover:bg-zinc-700 hover:text-white disabled:cursor-not-allowed disabled:opacity-20"
+                                            :aria-label="`Descendre ${sectionLabels[sectionKey]}`"
+                                        >
+                                            <i
+                                                class="fa-solid fa-chevron-down"
+                                            ></i>
+                                        </button>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+                    </div>
+
+                    <button
+                        type="button"
+                        @click="resetSectionOrder()"
+                        class="mt-4 flex w-full items-center justify-center gap-2 rounded-md border border-zinc-700 px-3 py-2.5 text-xs font-semibold text-zinc-400 transition hover:border-zinc-500 hover:text-white"
+                    >
+                        <i class="fa-solid fa-arrow-rotate-left"></i>
+                        Réinitialiser l'ordre
+                    </button>
+                </section>
+
+                <!-- =====================================================
+           IDENTITÉ / BANNIÈRE
+      ====================================================== -->
+                <section class="space-y-4">
+                    <div>
+                        <p
+                            class="text-xs font-bold uppercase tracking-[0.16em] text-zinc-500"
+                        >
+                            Identité
+                        </p>
+
+                        <h3 class="mt-1 font-bold text-white">Bannière</h3>
+                    </div>
+
+                    <label class="block">
+                        <span
+                            class="mb-1.5 block text-xs font-semibold text-zinc-400"
+                        >
+                            Nom du groupe
+                        </span>
+
+                        <input
+                            x-model="content.nomGroupe"
+                            type="text"
+                            class="input-field"
+                        />
+                    </label>
+
+                    <label class="block">
+                        <span
+                            class="mb-1.5 block text-xs font-semibold text-zinc-400"
+                        >
+                            Style musical
+                        </span>
+
+                        <input
+                            x-model="content.style"
+                            type="text"
+                            class="input-field"
+                        />
+                    </label>
+
+                    <label class="block">
+                        <span
+                            class="mb-1.5 block text-xs font-semibold text-zinc-400"
+                        >
+                            URL image bannière
+                        </span>
+
+                        <input
+                            x-model="content.banniereUrl"
+                            type="url"
+                            class="input-field"
+                        />
+                    </label>
+                </section>
+
+                <hr class="border-zinc-700" />
+
+                <!-- =====================================================
+           BIO
+      ====================================================== -->
+                <section class="space-y-4">
+                    <div>
+                        <p
+                            class="text-xs font-bold uppercase tracking-[0.16em] text-zinc-500"
+                        >
+                            Section
+                        </p>
+
+                        <h3 class="mt-1 font-bold text-white">Biographie</h3>
+                    </div>
+
+                    <label class="block">
+                        <span
+                            class="mb-1.5 block text-xs font-semibold text-zinc-400"
+                        >
+                            Titre
+                        </span>
+
+                        <input
+                            x-model="content.bio.titre"
+                            type="text"
+                            class="input-field"
+                        />
+                    </label>
+
+                    <label class="block">
+                        <span
+                            class="mb-1.5 block text-xs font-semibold text-zinc-400"
+                        >
+                            Texte
+                        </span>
+
+                        <textarea
+                            x-model="content.bio.texte"
+                            rows="8"
+                            class="input-field"
+                        ></textarea>
+                    </label>
+
+                    <!-- En bref -->
+                    <div>
+                        <div class="mb-3 flex items-center justify-between">
+                            <h4 class="text-sm font-bold text-white">
+                                En bref
+                            </h4>
+
+                            <button
+                                type="button"
+                                @click="content.bio.enBref.push({
+                titre: 'Information',
+                valeur: '',
+                icone: 'fas fa-circle-info'
+              })"
+                                class="text-xs font-semibold text-zinc-300 hover:text-white"
+                            >
+                                <i class="fa-solid fa-plus mr-1"></i>
+                                Ajouter
+                            </button>
+                        </div>
+
+                        <div class="space-y-3">
+                            <template
+                                x-for="(item, index) in content.bio.enBref"
+                                :key="index"
+                            >
+                                <div
+                                    class="relative rounded-lg border border-zinc-700 bg-[#18181b] p-3 pt-10"
+                                >
+                                    <button
+                                        type="button"
+                                        @click="content.bio.enBref.splice(index, 1)"
+                                        class="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-md text-red-400 hover:bg-red-500/10"
+                                    >
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+
+                                    <div class="space-y-2">
+                                        <input
+                                            x-model="item.titre"
+                                            class="input-field"
+                                            type="text"
+                                            placeholder="Titre"
+                                        />
+
+                                        <input
+                                            x-model="item.valeur"
+                                            class="input-field"
+                                            type="text"
+                                            placeholder="Valeur"
+                                        />
+
+                                        <input
+                                            x-model="item.icone"
+                                            class="input-field"
+                                            type="text"
+                                            placeholder="fas fa-location-dot"
+                                        />
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </section>
+
+                <hr class="border-zinc-700" />
+
+                <!-- =====================================================
+           MUSIQUE
+      ====================================================== -->
+                <section class="space-y-5">
+                    <div>
+                        <p
+                            class="text-xs font-bold uppercase tracking-[0.16em] text-zinc-500"
+                        >
+                            Section
+                        </p>
+
+                        <h3 class="mt-1 font-bold text-white">Musique</h3>
+                    </div>
+
+                    <label class="block">
+                        <span
+                            class="mb-1.5 block text-xs font-semibold text-zinc-400"
+                        >
+                            Titre
+                        </span>
+
+                        <input
+                            x-model="content.musique.titre"
+                            type="text"
+                            class="input-field"
+                        />
+                    </label>
+
+                    <!-- Pistes audio -->
+                    <div>
+                        <div class="mb-3 flex items-center justify-between">
+                            <h4 class="text-sm font-bold text-white">
+                                Pistes audio
+                            </h4>
+
+                            <button
+                                type="button"
+                                @click="content.musique.pistes.push({
+                titre: 'Nouvelle piste',
+                url: ''
+              })"
+                                class="text-xs font-semibold text-zinc-300 hover:text-white"
+                            >
+                                <i class="fa-solid fa-plus mr-1"></i>
+                                Ajouter
+                            </button>
+                        </div>
+
+                        <div class="space-y-3">
+                            <template
+                                x-for="(track, index) in content.musique.pistes"
+                                :key="index"
+                            >
+                                <div
+                                    class="relative rounded-lg border border-zinc-700 bg-[#18181b] p-3 pt-10"
+                                >
+                                    <button
+                                        type="button"
+                                        @click="content.musique.pistes.splice(index, 1)"
+                                        class="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-md text-red-400 hover:bg-red-500/10"
+                                    >
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+
+                                    <div class="space-y-2">
+                                        <input
+                                            x-model="track.titre"
+                                            type="text"
+                                            class="input-field"
+                                            placeholder="Titre"
+                                        />
+
+                                        <input
+                                            x-model="track.url"
+                                            type="url"
+                                            class="input-field"
+                                            placeholder="https://.../piste.mp3"
+                                        />
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Plateformes -->
+                    <div>
+                        <div class="mb-3 flex items-center justify-between">
+                            <div>
+                                <h4 class="text-sm font-bold text-white">
+                                    Plateformes
+                                </h4>
+
+                                <span
+                                    class="text-xs text-zinc-500"
+                                    x-text="`${content.musique.plateformes.length}/4`"
+                                ></span>
+                            </div>
+
+                            <button
+                                x-show="content.musique.plateformes.length < 4"
+                                type="button"
+                                @click="content.musique.plateformes.push({
+                nom: platformsList[0].nom,
+                icon: platformsList[0].icon,
+                url: ''
+              })"
+                                class="text-xs font-semibold text-zinc-300 hover:text-white"
+                            >
+                                <i class="fa-solid fa-plus mr-1"></i>
+                                Ajouter
+                            </button>
+                        </div>
+
+                        <div class="space-y-3">
+                            <template
+                                x-for="(plat, index) in content.musique.plateformes"
+                                :key="index"
+                            >
+                                <div
+                                    class="relative rounded-lg border border-zinc-700 bg-[#18181b] p-3 pt-10"
+                                >
+                                    <button
+                                        type="button"
+                                        @click="content.musique.plateformes.splice(index, 1)"
+                                        class="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-md text-red-400 hover:bg-red-500/10"
+                                    >
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+
+                                    <div class="space-y-2">
+                                        <div class="flex items-center gap-2">
+                                            <div
+                                                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-zinc-700 bg-[#27272a] text-white"
+                                            >
+                                                <i :class="plat.icon"></i>
+                                            </div>
+
+                                            <select
+                                                x-model="plat.nom"
+                                                @change="
+                        const selected = platformsList.find(p => p.nom === plat.nom);
+                        if (selected) plat.icon = selected.icon;
+                      "
+                                                class="input-field"
+                                            >
+                                                <template
+                                                    x-for="platform in platformsList"
+                                                    :key="platform.nom"
+                                                >
+                                                    <option
+                                                        :value="platform.nom"
+                                                        x-text="platform.nom"
+                                                    ></option>
+                                                </template>
+                                            </select>
+                                        </div>
+
+                                        <input
+                                            x-model="plat.url"
+                                            type="url"
+                                            class="input-field"
+                                            placeholder="Lien vers la plateforme"
+                                        />
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </section>
+
+                <hr class="border-zinc-700" />
+
+                <!-- =====================================================
+           MÉDIAS
+      ====================================================== -->
+                <section class="space-y-5">
+                    <div>
+                        <p
+                            class="text-xs font-bold uppercase tracking-[0.16em] text-zinc-500"
+                        >
+                            Section
+                        </p>
+
+                        <h3 class="mt-1 font-bold text-white">Médias</h3>
+                    </div>
+
+                    <!-- Vidéos -->
+                    <div>
+                        <div class="mb-3 flex items-center justify-between">
+                            <div>
+                                <h4 class="text-sm font-bold text-white">
+                                    Vidéos
+                                </h4>
+
+                                <span
+                                    class="text-xs text-zinc-500"
+                                    x-text="`${content.medias.videosUrl.length}/2`"
+                                ></span>
+                            </div>
+
+                            <button
+                                x-show="content.medias.videosUrl.length < 2"
+                                type="button"
+                                @click="content.medias.videosUrl.push('')"
+                                class="text-xs font-semibold text-zinc-300 hover:text-white"
+                            >
+                                <i class="fa-solid fa-plus mr-1"></i>
+                                Ajouter
+                            </button>
+                        </div>
+
+                        <div class="space-y-3">
+                            <template
+                                x-for="(video, index) in content.medias.videosUrl"
+                                :key="index"
+                            >
+                                <div
+                                    class="relative rounded-lg border border-zinc-700 bg-[#18181b] p-3 pt-10"
+                                >
+                                    <button
+                                        type="button"
+                                        @click="content.medias.videosUrl.splice(index, 1)"
+                                        class="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-md text-red-400 hover:bg-red-500/10"
+                                    >
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+
+                                    <input
+                                        x-model="content.medias.videosUrl[index]"
+                                        type="url"
+                                        class="input-field"
+                                        placeholder="https://www.youtube.com/embed/..."
+                                    />
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Photos -->
+                    <div>
+                        <div class="mb-3 flex items-center justify-between">
+                            <div>
+                                <h4 class="text-sm font-bold text-white">
+                                    Photos
+                                </h4>
+
+                                <span
+                                    class="text-xs text-zinc-500"
+                                    x-text="`${content.medias.photosUrl.length}/10`"
+                                ></span>
+                            </div>
+
+                            <button
+                                x-show="content.medias.photosUrl.length < 10"
+                                type="button"
+                                @click="content.medias.photosUrl.push('')"
+                                class="text-xs font-semibold text-zinc-300 hover:text-white"
+                            >
+                                <i class="fa-solid fa-plus mr-1"></i>
+                                Ajouter
+                            </button>
+                        </div>
+
+                        <div class="space-y-3">
+                            <template
+                                x-for="(photo, index) in content.medias.photosUrl"
+                                :key="index"
+                            >
+                                <div
+                                    class="relative rounded-lg border border-zinc-700 bg-[#18181b] p-3 pt-10"
+                                >
+                                    <button
+                                        type="button"
+                                        @click="content.medias.photosUrl.splice(index, 1)"
+                                        class="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-md text-red-400 hover:bg-red-500/10"
+                                    >
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+
+                                    <input
+                                        x-model="content.medias.photosUrl[index]"
+                                        type="url"
+                                        class="input-field"
+                                        placeholder="URL de l'image"
+                                    />
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </section>
+
+                <hr class="border-zinc-700" />
+
+                <!-- =====================================================
+           ESPACE PRO
+      ====================================================== -->
+                <section class="space-y-5">
+                    <div>
+                        <p
+                            class="text-xs font-bold uppercase tracking-[0.16em] text-zinc-500"
+                        >
+                            Section
+                        </p>
+
+                        <h3 class="mt-1 font-bold text-white">Espace Pro</h3>
+                    </div>
+
+                    <label class="block">
+                        <span
+                            class="mb-1.5 block text-xs font-semibold text-zinc-400"
+                        >
+                            Titre
+                        </span>
+
+                        <input
+                            x-model="content.espacePro.titre"
+                            type="text"
+                            class="input-field"
+                        />
+                    </label>
+
+                    <label class="block">
+                        <span
+                            class="mb-1.5 block text-xs font-semibold text-zinc-400"
+                        >
+                            Description
+                        </span>
+
+                        <textarea
+                            x-model="content.espacePro.description"
+                            rows="4"
+                            class="input-field"
+                        ></textarea>
+                    </label>
+
+                    <div>
+                        <div class="mb-3 flex items-center justify-between">
+                            <h4 class="text-sm font-bold text-white">
+                                Fichiers
+                            </h4>
+
+                            <button
+                                type="button"
+                                @click="content.espacePro.fichiers.push({
+                nom: 'Nouveau fichier',
+                type: '',
+                format: 'PDF',
+                url: '',
+                icone: 'fas fa-file'
+              })"
+                                class="text-xs font-semibold text-zinc-300 hover:text-white"
+                            >
+                                <i class="fa-solid fa-plus mr-1"></i>
+                                Ajouter
+                            </button>
+                        </div>
+
+                        <div class="space-y-3">
+                            <template
+                                x-for="(file, index) in content.espacePro.fichiers"
+                                :key="index"
+                            >
+                                <div
+                                    class="relative rounded-lg border border-zinc-700 bg-[#18181b] p-3 pt-10"
+                                >
+                                    <button
+                                        type="button"
+                                        @click="content.espacePro.fichiers.splice(index, 1)"
+                                        class="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-md text-red-400 hover:bg-red-500/10"
+                                    >
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+
+                                    <div class="space-y-2">
+                                        <input
+                                            x-model="file.nom"
+                                            type="text"
+                                            class="input-field"
+                                            placeholder="Nom du fichier"
+                                        />
+
+                                        <input
+                                            x-model="file.type"
+                                            type="text"
+                                            class="input-field"
+                                            placeholder="Description"
+                                        />
+
+                                        <input
+                                            x-model="file.format"
+                                            type="text"
+                                            class="input-field"
+                                            placeholder="PDF"
+                                        />
+
+                                        <input
+                                            x-model="file.url"
+                                            type="url"
+                                            class="input-field"
+                                            placeholder="URL"
+                                        />
+
+                                        <input
+                                            x-model="file.icone"
+                                            type="text"
+                                            class="input-field"
+                                            placeholder="fas fa-file-pdf"
+                                        />
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </section>
+
+                <hr class="border-zinc-700" />
+
+                <!-- =====================================================
+           CONTACT
+      ====================================================== -->
+                <section class="space-y-5">
+                    <div>
+                        <p
+                            class="text-xs font-bold uppercase tracking-[0.16em] text-zinc-500"
+                        >
+                            Section
+                        </p>
+
+                        <h3 class="mt-1 font-bold text-white">Contact</h3>
+                    </div>
+
+                    <label class="block">
+                        <span
+                            class="mb-1.5 block text-xs font-semibold text-zinc-400"
+                        >
+                            Titre
+                        </span>
+
+                        <input
+                            x-model="content.contact.titre"
+                            type="text"
+                            class="input-field"
+                        />
+                    </label>
+
+                    <!-- Contacts -->
+                    <div>
+                        <div class="mb-3 flex items-center justify-between">
+                            <h4 class="text-sm font-bold text-white">
+                                Contacts
+                            </h4>
+
+                            <button
+                                type="button"
+                                @click="content.contact.liste.push({
+                type: 'email',
+                role: 'Contact',
+                valeur: ''
+              })"
+                                class="text-xs font-semibold text-zinc-300 hover:text-white"
+                            >
+                                <i class="fa-solid fa-plus mr-1"></i>
+                                Ajouter
+                            </button>
+                        </div>
+
+                        <div class="space-y-3">
+                            <template
+                                x-for="(contact, index) in content.contact.liste"
+                                :key="index"
+                            >
+                                <div
+                                    class="relative rounded-lg border border-zinc-700 bg-[#18181b] p-3 pt-10"
+                                >
+                                    <button
+                                        type="button"
+                                        @click="content.contact.liste.splice(index, 1)"
+                                        class="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-md text-red-400 hover:bg-red-500/10"
+                                    >
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+
+                                    <div class="space-y-2">
+                                        <select
+                                            x-model="contact.type"
+                                            class="input-field"
+                                        >
+                                            <option value="email">Email</option>
+                                            <option value="phone">
+                                                Téléphone
+                                            </option>
+                                        </select>
+
+                                        <input
+                                            x-model="contact.role"
+                                            type="text"
+                                            class="input-field"
+                                            placeholder="Booking / Presse / Manager..."
+                                        />
+
+                                        <input
+                                            x-model="contact.valeur"
+                                            type="text"
+                                            class="input-field"
+                                            placeholder="Valeur"
+                                        />
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Réseaux -->
+                    <div>
+                        <div class="mb-3 flex items-center justify-between">
+                            <h4 class="text-sm font-bold text-white">
+                                Réseaux sociaux
+                            </h4>
+
+                            <button
+                                type="button"
+                                @click="content.contact.reseaux.push({
+                nom: socialsList[0].nom,
+                icon: socialsList[0].icon,
+                url: ''
+              })"
+                                class="text-xs font-semibold text-zinc-300 hover:text-white"
+                            >
+                                <i class="fa-solid fa-plus mr-1"></i>
+                                Ajouter
+                            </button>
+                        </div>
+
+                        <div class="space-y-3">
+                            <template
+                                x-for="(social, index) in content.contact.reseaux"
+                                :key="index"
+                            >
+                                <div
+                                    class="relative rounded-lg border border-zinc-700 bg-[#18181b] p-3 pt-10"
+                                >
+                                    <button
+                                        type="button"
+                                        @click="content.contact.reseaux.splice(index, 1)"
+                                        class="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-md text-red-400 hover:bg-red-500/10"
+                                    >
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+
+                                    <div class="space-y-2">
+                                        <div class="flex items-center gap-2">
+                                            <div
+                                                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-zinc-700 bg-[#27272a] text-white"
+                                            >
+                                                <i :class="social.icon"></i>
+                                            </div>
+
+                                            <select
+                                                x-model="social.nom"
+                                                @change="
+                        const selected = socialsList.find(s => s.nom === social.nom);
+                        if (selected) social.icon = selected.icon;
+                      "
+                                                class="input-field"
+                                            >
+                                                <template
+                                                    x-for="item in socialsList"
+                                                    :key="item.nom"
+                                                >
+                                                    <option
+                                                        :value="item.nom"
+                                                        x-text="item.nom"
+                                                    ></option>
+                                                </template>
+                                            </select>
+                                        </div>
+
+                                        <input
+                                            x-model="social.url"
+                                            type="url"
+                                            class="input-field"
+                                            placeholder="Lien du réseau social"
+                                        />
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </aside>
+
+        <!-- =========================================================
+       ALPINE APP
+  ========================================================== -->
+        <script>
+            function epkApp() {
+                return {
+                    editMode: false,
+
+                    /*
+                     * La bannière est volontairement présente en première
+                     * position et moveSection() interdit de la déplacer.
+                     */
+                    sectionOrder: [
+                        "banniere",
+                        "bio",
+                        "musique",
+                        "medias",
+                        "espacePro",
+                        "contact",
+                    ],
+
+                    sectionLabels: {
+                        banniere: "Bannière",
+                        bio: "Biographie",
+                        musique: "Musique",
+                        medias: "Médias",
+                        espacePro: "Espace Pro",
+                        contact: "Contact",
+                    },
+
+                    moveSection(index, direction) {
+                        const sectionKey = this.sectionOrder[index];
+
+                        /*
+                         * La bannière est totalement verrouillée.
+                         */
+                        if (sectionKey === "banniere") {
+                            return;
+                        }
+
+                        const newIndex = index + direction;
+
+                        /*
+                         * Index 0 réservé à la bannière.
+                         */
+                        if (
+                            newIndex <= 0 ||
+                            newIndex >= this.sectionOrder.length
+                        ) {
+                            return;
+                        }
+
+                        const newOrder = [...this.sectionOrder];
+
+                        [newOrder[index], newOrder[newIndex]] = [
+                            newOrder[newIndex],
+                            newOrder[index],
+                        ];
+
+                        /*
+                         * Protection supplémentaire.
+                         * Même en cas de mauvaise manipulation,
+                         * la bannière reste toujours index 0.
+                         */
+                        if (newOrder[0] !== "banniere") {
+                            return;
+                        }
+
+                        this.sectionOrder = newOrder;
+                    },
+
+                    resetSectionOrder() {
+                        this.sectionOrder = [
+                            "banniere",
+                            "bio",
+                            "musique",
+                            "medias",
+                            "espacePro",
+                            "contact",
+                        ];
+                    },
+
+                    modules: {
+                        banniere: true,
+                        bio: true,
+                        musique: true,
+                        medias: true,
+                        espacePro: true,
+                        contact: true,
+                    },
+
+                    platformsList: [
+                        {
+                            nom: "Spotify",
+                            icon: "fab fa-spotify",
+                        },
+                        {
+                            nom: "Apple Music",
+                            icon: "fab fa-apple",
+                        },
+                        {
+                            nom: "YouTube Music",
+                            icon: "fab fa-youtube",
+                        },
+                        {
+                            nom: "Deezer",
+                            icon: "fab fa-deezer",
+                        },
+                        {
+                            nom: "SoundCloud",
+                            icon: "fab fa-soundcloud",
+                        },
+                        {
+                            nom: "Bandcamp",
+                            icon: "fab fa-bandcamp",
+                        },
+                        {
+                            nom: "Amazon Music",
+                            icon: "fab fa-amazon",
+                        },
+                        {
+                            nom: "Tidal",
+                            icon: "fas fa-water",
+                        },
+                        {
+                            nom: "Qobuz",
+                            icon: "fas fa-compact-disc",
+                        },
+                    ],
+
+                    socialsList: [
+                        {
+                            nom: "Instagram",
+                            icon: "fab fa-instagram",
+                        },
+                        {
+                            nom: "Facebook",
+                            icon: "fab fa-facebook-f",
+                        },
+                        {
+                            nom: "YouTube",
+                            icon: "fab fa-youtube",
+                        },
+                        {
+                            nom: "X",
+                            icon: "fab fa-x-twitter",
+                        },
+                        {
+                            nom: "TikTok",
+                            icon: "fab fa-tiktok",
+                        },
+                        {
+                            nom: "LinkedIn",
+                            icon: "fab fa-linkedin-in",
+                        },
+                        {
+                            nom: "Twitch",
+                            icon: "fab fa-twitch",
+                        },
+                    ],
+
+                    content: {
+                        nomGroupe: "KICKED TO HEAVEN",
+
+                        style: "Hard Rock · Heavy Rock",
+
+                        banniereUrl:
+                            "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=2200&q=90",
+
+                        bio: {
+                            titre: "Du rock, sans mode d'emploi.",
+
+                            texte: `Kicked To Heaven délivre un hard rock direct, électrique et sans détour.
+
+Des riffs massifs, une section rythmique tendue et une énergie pensée pour la scène : le groupe puise dans la tradition du rock'n'roll tout en conservant une production actuelle.
+
+Après plusieurs concerts et sessions de studio, Kicked To Heaven poursuit son développement avec un objectif simple : transformer chaque date en véritable performance live.`,
+
+                            enBref: [
+                                {
+                                    titre: "Origine",
+                                    valeur: "France",
+                                    icone: "fas fa-location-dot",
+                                },
+                                {
+                                    titre: "Style",
+                                    valeur: "Hard Rock / Heavy Rock",
+                                    icone: "fas fa-guitar",
+                                },
+                                {
+                                    titre: "Formation",
+                                    valeur: "4 musiciens",
+                                    icone: "fas fa-users",
+                                },
+                                {
+                                    titre: "Pour les fans de",
+                                    valeur: "AC/DC · Airbourne · Motörhead",
+                                    icone: "fas fa-bolt",
+                                },
+                            ],
+                        },
+
+                        musique: {
+                            titre: "Écouter",
+
+                            pistes: [
+                                {
+                                    titre: "Born To Rock",
+                                    url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+                                },
+                                {
+                                    titre: "No Way Back",
+                                    url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
+                                },
+                                {
+                                    titre: "High Voltage Heart",
+                                    url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
+                                },
+                            ],
+
+                            plateformes: [
+                                {
+                                    nom: "Spotify",
+                                    icon: "fab fa-spotify",
+                                    url: "https://open.spotify.com/",
+                                },
+                                {
+                                    nom: "Apple Music",
+                                    icon: "fab fa-apple",
+                                    url: "https://music.apple.com/",
+                                },
+                                {
+                                    nom: "YouTube Music",
+                                    icon: "fab fa-youtube",
+                                    url: "https://music.youtube.com/",
+                                },
+                                {
+                                    nom: "Deezer",
+                                    icon: "fab fa-deezer",
+                                    url: "https://www.deezer.com/",
+                                },
+                            ],
+                        },
+
+                        medias: {
+                            videosUrl: [
+                                "https://www.youtube.com/embed/dQw4w9WgXcQ",
+                            ],
+
+                            photosUrl: [
+                                "https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?auto=format&fit=crop&w=1800&q=90",
+                                "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1800&q=90",
+                                "https://images.unsplash.com/photo-1506157786151-b8491531f063?auto=format&fit=crop&w=1800&q=90",
+                            ],
+                        },
+
+                        espacePro: {
+                            titre: "Espace professionnel",
+
+                            description:
+                                "Retrouvez ici les documents utiles à la programmation, à la production et à la communication autour du groupe.",
+
+                            fichiers: [
+                                {
+                                    nom: "Fiche technique",
+                                    type: "Backline, plateau, patch et besoins techniques.",
+                                    format: "PDF",
+                                    url: "#",
+                                    icone: "fas fa-sliders",
+                                },
+                                {
+                                    nom: "Plan de scène",
+                                    type: "Implantation complète du groupe sur scène.",
+                                    format: "PDF",
+                                    url: "#",
+                                    icone: "fas fa-diagram-project",
+                                },
+                                {
+                                    nom: "Dossier de presse",
+                                    type: "Biographie, photos, références et informations presse.",
+                                    format: "PDF",
+                                    url: "#",
+                                    icone: "fas fa-newspaper",
+                                },
+                                {
+                                    nom: "Photos HD",
+                                    type: "Sélection de visuels haute résolution pour la communication.",
+                                    format: "ZIP",
+                                    url: "#",
+                                    icone: "fas fa-images",
+                                },
+                            ],
+                        },
+
+                        contact: {
+                            titre: "Parlons de votre prochaine date.",
+
+                            liste: [
+                                {
+                                    type: "email",
+                                    role: "Booking",
+                                    valeur: "booking@kickedtoheaven.com",
+                                },
+                                {
+                                    type: "email",
+                                    role: "Presse",
+                                    valeur: "press@kickedtoheaven.com",
+                                },
+                                {
+                                    type: "phone",
+                                    role: "Management",
+                                    valeur: "+33 6 12 34 56 78",
+                                },
+                            ],
+
+                            reseaux: [
+                                {
+                                    nom: "Instagram",
+                                    icon: "fab fa-instagram",
+                                    url: "https://instagram.com/",
+                                },
+                                {
+                                    nom: "Facebook",
+                                    icon: "fab fa-facebook-f",
+                                    url: "https://facebook.com/",
+                                },
+                                {
+                                    nom: "YouTube",
+                                    icon: "fab fa-youtube",
+                                    url: "https://youtube.com/",
+                                },
+                                {
+                                    nom: "TikTok",
+                                    icon: "fab fa-tiktok",
+                                    url: "https://tiktok.com/",
+                                },
+                            ],
+                        },
+                    },
+                };
+            }
+        </script>
+    </body>
+</html>

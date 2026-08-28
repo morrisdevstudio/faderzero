@@ -3,6 +3,7 @@ type WorkerEnv = Omit<Cloudflare.Env, 'SUPABASE_URL'> & {
   SUPABASE_SECRET_KEY: string;
   MEDIA_SIGNING_SECRET: string;
   MEDIA_BUCKET: R2Bucket;
+  PAGES_ORIGIN?: string;
 };
 
 type EpkContact = { name: string; role: string; email: string | null; phone: string | null; whatsapp: string | null };
@@ -11,10 +12,24 @@ type EpkLink = { kind: string; label: string | null; url: string; position: numb
 type EpkPhoto = { id: string; preview_asset_id: string; original_asset_id: string; credit: string | null; caption: string | null; position: number };
 type EpkDocument = { id: string; asset_id: string; title: string; document_type: string; document_updated_at: string; position: number };
 type EpkTrack = { id: string; title: string; description: string | null; visibility: string; position: number; source_type: string; audio_asset_id: string | null };
-type EpkRow = { id: string; display_name: string; slug: string; tagline: string | null; short_bio: string | null; full_bio: string | null; city: string | null; country: string | null; genres: string[]; theme: string; status: string; hero_asset_id: string | null; epk_contacts: EpkContact[]; epk_videos: EpkVideo[]; epk_links: EpkLink[]; epk_photos: EpkPhoto[]; epk_documents: EpkDocument[]; epk_tracks: EpkTrack[] };
+type EpkRow = { id: string; display_name: string; slug: string; tagline: string | null; short_bio: string | null; full_bio: string | null; city: string | null; country: string | null; genres: string[]; theme: string; status: string; hero_asset_id: string | null; accent_color?: string; published_snapshot?: unknown; epk_contacts: EpkContact[]; epk_videos: EpkVideo[]; epk_links: EpkLink[]; epk_photos: EpkPhoto[]; epk_documents: EpkDocument[]; epk_tracks: EpkTrack[] };
 type PublicAsset = { storage_path: string; mime_type: string; kind: string };
 type PublicTrack = { audio_asset_id: string; epk_assets: PublicAsset };
-const RESERVED_PAGE_SLUGS = new Set(['account', 'assets', 'booking', 'calendar', 'home', 'imports', 'metronome', 'musiques', 'prompter', 'songs', 'setlists', 'sync']);
+const RESERVED_PAGE_SLUGS = new Set(['account', 'assets', 'booking', 'calendar', 'home', 'imports', 'landing', 'login', 'metronome', 'musiques', 'prompter', 'songs', 'setlists', 'sync']);
+
+function forwardToPages(request: Request, env: WorkerEnv): Promise<Response> {
+  const pagesOrigin = env.PAGES_ORIGIN || 'https://faderzero.pages.dev';
+  const url = new URL(request.url);
+  const targetUrl = new URL(url.pathname + url.search, pagesOrigin);
+  const headers = new Headers(request.headers);
+  headers.set('host', new URL(pagesOrigin).host);
+  return fetch(new Request(targetUrl.toString(), {
+    method: request.method,
+    headers,
+    body: request.body,
+    redirect: 'follow',
+  }));
+}
 
 export default {
   async fetch(request: Request, env: WorkerEnv): Promise<Response> {
@@ -27,24 +42,24 @@ export default {
     if (request.method === 'GET' && url.pathname.startsWith('/media/audio/')) return serveSignedAsset(request, env, url.pathname.slice('/media/audio/'.length), 'audio');
     if (request.method === 'GET' && url.pathname.startsWith('/media/song-audio/')) return serveSignedSongAsset(request, env, url.pathname.slice('/media/song-audio/'.length));
     if (request.method === 'GET' && url.pathname.startsWith('/download/')) return serveSignedAsset(request, env, url.pathname.slice('/download/'.length), 'download');
-    if (request.method !== 'GET' || url.pathname.split('/').filter(Boolean).length !== 1) return fetch(request);
+    if (request.method !== 'GET' || url.pathname.split('/').filter(Boolean).length !== 1) return forwardToPages(request, env);
     const slug = url.pathname.slice(1);
-    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || RESERVED_PAGE_SLUGS.has(slug)) return fetch(request);
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || RESERVED_PAGE_SLUGS.has(slug)) return forwardToPages(request, env);
     try {
       const epk = await loadPublishedEpk(slug, env);
-      if (!epk) return fetch(request);
+      if (!epk) return forwardToPages(request, env);
       if (url.searchParams.get('format') === 'json') return Response.json(toPublicDto(epk), { headers: publicHeaders('application/json; charset=utf-8') });
       return new Response(renderHtml(epk, url), { headers: publicHeaders('text/html; charset=utf-8') });
     } catch (error) {
       console.error(JSON.stringify({ message: 'epk public request failed', slug, error: error instanceof Error ? error.message : String(error) }));
-      return fetch(request);
+      return forwardToPages(request, env);
     }
   },
 } satisfies ExportedHandler<WorkerEnv>;
 
 async function loadPublishedEpk(slug: string, env: WorkerEnv): Promise<EpkRow | null> {
   const url = new URL(`${env.SUPABASE_URL}/rest/v1/epks`);
-  url.searchParams.set('select', 'id,display_name,slug,tagline,short_bio,full_bio,city,country,genres,theme,status,hero_asset_id,epk_contacts(name,role,email,phone,whatsapp),epk_videos(provider,provider_video_id,title,video_type,position),epk_links(kind,label,url,position),epk_photos(id,preview_asset_id,original_asset_id,credit,caption,position),epk_documents(id,asset_id,title,document_type,document_updated_at,position),epk_tracks(id,title,description,visibility,position,source_type,audio_asset_id)');
+  url.searchParams.set('select', 'id,display_name,slug,tagline,short_bio,full_bio,city,country,genres,theme,status,hero_asset_id,accent_color,published_snapshot,epk_contacts(name,role,email,phone,whatsapp),epk_videos(provider,provider_video_id,title,video_type,position),epk_links(kind,label,url,position),epk_photos(id,preview_asset_id,original_asset_id,credit,caption,position),epk_documents(id,asset_id,title,document_type,document_updated_at,position),epk_tracks(id,title,description,visibility,position,source_type,audio_asset_id)');
   url.searchParams.set('slug', `eq.${slug}`); url.searchParams.set('status', 'eq.PUBLISHED'); url.searchParams.set('limit', '1');
   const response = await fetch(url, { headers: { apikey: env.SUPABASE_SECRET_KEY, authorization: `Bearer ${env.SUPABASE_SECRET_KEY}`, accept: 'application/json' } });
   if (!response.ok) throw new Error(`Supabase returned ${response.status}`);
@@ -160,6 +175,8 @@ function toPublicDto(epk: EpkRow) {
 }
 
 function renderHtml(epk: EpkRow, url: URL): string {
+  const snapshot = isRecord(epk.published_snapshot) ? epk.published_snapshot : null;
+  if (snapshot) return renderSnapshotHtml(snapshot, epk, url);
   const title = escapeHtml(epk.display_name);
   const description = escapeHtml(epk.tagline || epk.short_bio || `${epk.display_name} · ${epk.genres.join(', ')}`);
   const location = [epk.city, epk.country].filter((value): value is string => Boolean(value)).map(escapeHtml).join(' · ');
@@ -177,6 +194,26 @@ function renderHtml(epk: EpkRow, url: URL): string {
   const tracks = epk.epk_tracks.filter((track) => track.visibility === 'PUBLIC' && (track.source_type === 'SONG_ASSET' || track.audio_asset_id)).sort((a, b) => a.position - b.position).map((track) => `<article class="track"><strong>${escapeHtml(track.title)}</strong>${track.description ? `<p>${escapeHtml(track.description)}</p>` : ''}<button type="button" data-track="${escapeAttribute(track.id)}">Écouter</button><audio controls preload="none" hidden></audio></article>`).join('');
   const accent = epk.theme === 'fader-red' ? '#ff3a63' : epk.theme === 'press-ivory' ? '#4b2d18' : epk.theme === 'midnight-blue' ? '#77bdfb' : '#f5f0ea';
   return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title} — EPK</title><meta name="description" content="${description}"><link rel="canonical" href="${escapeHtml(url.href)}"><meta property="og:type" content="profile"><meta property="og:title" content="${title}"><meta property="og:description" content="${description}"><meta property="og:url" content="${escapeHtml(url.href)}"><meta name="twitter:card" content="summary"><style>:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#111;color:#f5f0ea;font:16px system-ui,sans-serif}main{max-width:720px;margin:auto;padding:32px 20px}p{line-height:1.55;color:#d4d4d8}.eyebrow{color:${accent};font-weight:800;text-transform:uppercase;letter-spacing:.12em;font-size:.75rem}.genres{display:flex;flex-wrap:wrap;gap:8px}.genres span{border:1px solid #ffffff33;border-radius:999px;padding:6px 10px;font-size:.85rem}h1{font-size:clamp(2.2rem,10vw,4.5rem);line-height:.95;margin:12px 0}a{color:${accent}}li{margin:.55rem 0}.video,.track{margin:16px 0}.video button,.more-button,.track button,li button{min-height:44px;border:0;border-radius:8px;background:${accent};color:#111;padding:10px 14px;font:inherit;font-weight:700}.video iframe{width:100%;aspect-ratio:16/9;border:0;margin-top:10px}figure{margin:12px 0}figure img{display:block;width:100%;border-radius:10px}figcaption,small{color:#a1a1aa}#full-bio[hidden]{display:none}footer{margin-top:48px;color:#a1a1aa;font-size:.8rem}</style></head><body><main><p class="eyebrow">Electronic press kit</p><h1>${title}</h1><div class="genres">${genres}</div>${location ? `<p>${location}</p>` : ''}${epk.tagline ? `<p>${escapeHtml(epk.tagline)}</p>` : ''}${epk.short_bio ? `<p>${escapeHtml(epk.short_bio)}</p>` : ''}${fullBio ? `<button class="more-button" type="button" data-more>Lire la suite</button><div id="full-bio" hidden>${fullBio}</div>` : ''}${videos ? `<section><h2>Vidéos</h2>${videos}</section>` : ''}${tracks ? `<section><h2>Audio</h2>${tracks}</section>` : ''}${photos ? `<section><h2>Photos</h2>${photos}</section>` : ''}${documents ? `<section><h2>Documents</h2><ul>${documents}</ul></section>` : ''}${contacts ? `<section><h2>Contacts</h2><ul>${contacts}</ul></section>` : ''}${links ? `<section><h2>Liens</h2><ul>${links}</ul></section>` : ''}<footer>Propulsé par FaderZero</footer></main><script>document.querySelectorAll('[data-embed]').forEach(function(button){button.addEventListener('click',function(){var frame=document.createElement('iframe');frame.src=button.dataset.embed;frame.title=button.previousElementSibling.textContent||'Vidéo';frame.allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';frame.allowFullscreen=true;document.getElementById(button.dataset.target).appendChild(frame);button.remove();});});document.querySelectorAll('[data-track]').forEach(function(button){button.addEventListener('click',async function(){var response=await fetch('/api/public/${encodeURIComponent(epk.slug)}/tracks/'+button.dataset.track+'/session',{method:'POST'});if(!response.ok)return;var audio=button.nextElementSibling;audio.src=(await response.json()).url;audio.hidden=false;audio.play();button.remove();});});document.querySelectorAll('[data-document]').forEach(function(button){button.addEventListener('click',async function(){var response=await fetch('/api/public/${encodeURIComponent(epk.slug)}/documents/'+button.dataset.document+'/session',{method:'POST'});if(!response.ok)return;location.assign((await response.json()).url);});});var more=document.querySelector('[data-more]');if(more){more.addEventListener('click',function(){document.getElementById('full-bio').hidden=false;more.remove();});}</script></body></html>`;
+}
+
+function renderSnapshotHtml(snapshot: Record<string, unknown>, epk: EpkRow, url: URL): string {
+  const value = (key: string) => typeof snapshot[key] === 'string' ? snapshot[key] : '';
+  const list = (key: string) => Array.isArray(snapshot[key]) ? snapshot[key] : [];
+  const accent = /^#[0-9a-f]{6}$/i.test(value('accentColor')) ? value('accentColor') : '#ff3a63';
+  const name = value('name') || epk.display_name; const title = escapeHtml(name); const description = escapeHtml(value('tagline') || value('shortBio') || name);
+  const genres = list('genres').filter((item): item is string => typeof item === 'string').map((genre) => `<span>${escapeHtml(genre)}</span>`).join('');
+  const location = [value('city'), value('country')].filter(Boolean).map(escapeHtml).join(' · ');
+  const videos = list('videos').filter(isRecord).map((video) => `<a class="video" target="_blank" rel="noreferrer" href="${escapeAttribute(video.provider === 'VIMEO' ? `https://vimeo.com/${String(video.providerVideoId ?? '')}` : `https://youtube.com/watch?v=${String(video.providerVideoId ?? '')}`)}">▶ ${escapeHtml(String(video.title || 'Voir la vidéo'))}</a>`).join('');
+  const tracks = list('tracks').filter(isRecord).map((track) => `<article class="track"><strong>${escapeHtml(String(track.title ?? ''))}</strong><button data-track="${escapeAttribute(String(track.id ?? ''))}">Écouter</button></article>`).join('');
+  const photos = list('photos').filter(isRecord).map((photo) => `<figure><img loading="lazy" src="/media/preview/${escapeAttribute(String(photo.previewAssetId ?? ''))}" alt="${escapeAttribute(String(photo.caption || `${name} — photo presse`))}"></figure>`).join('');
+  const documents = list('documents').filter(isRecord).map((document) => `<button data-document="${escapeAttribute(String(document.assetId ?? ''))}">${escapeHtml(String(document.title ?? 'Document'))}</button>`).join('');
+  const contacts = list('contacts').filter(isRecord).map((contact) => `<article class="contact"><strong>${escapeHtml(String(contact.name ?? ''))}</strong><span>${escapeHtml(String(contact.role ?? ''))}</span>${typeof contact.email === 'string' ? `<a href="mailto:${escapeAttribute(contact.email)}">E-mail</a>` : ''}</article>`).join('');
+  const links = list('links').filter(isRecord).map((link) => `<a class="link" target="_blank" rel="noreferrer" href="${escapeAttribute(String(link.url ?? ''))}">${escapeHtml(String(link.label ?? 'Lien'))} ↗</a>`).join('');
+  const editorial = isRecord(snapshot.editorial) ? snapshot.editorial : {};
+  const editorialValue = (key: string, fallback: string) => typeof editorial[key] === 'string' ? editorial[key] : fallback;
+  const facts = Array.isArray(editorial.facts) ? editorial.facts.filter(isRecord).map((fact) => `<article class="fact"><small>${escapeHtml(String(fact.title ?? ''))}</small><strong>${escapeHtml(String(fact.value ?? ''))}</strong></article>`).join('') : '';
+  const section = (id: string, heading: string, content: string) => content ? `<section id="epk-${id}"><h2>${heading}</h2>${content}</section>` : '';
+  return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title} — EPK</title><meta name="description" content="${description}"><link rel="canonical" href="${escapeHtml(url.href)}"><meta property="og:type" content="profile"><meta property="og:title" content="${title}"><meta property="og:description" content="${description}"><meta property="og:url" content="${escapeHtml(url.href)}"><meta name="twitter:card" content="summary"><style>:root{color-scheme:dark;--accent:${accent}}*{box-sizing:border-box}body{margin:0;background:#09090b;color:#fff;font:16px Inter,Segoe UI,sans-serif}header{min-height:80vh;padding:32px max(24px,calc((100% - 1280px)/2));display:flex;flex-direction:column;justify-content:end;background:linear-gradient(to top,#09090b,#0008,#0003)}nav{position:absolute;top:24px;left:24px;right:24px;display:flex;justify-content:space-between;font-weight:800}main{margin:auto;max-width:1280px}h1{max-width:12ch;margin:20px 0 0;font-size:clamp(3rem,11vw,8rem);font-weight:900;line-height:.9;letter-spacing:-.05em;text-transform:uppercase}h2{margin:8px 0 28px;font-size:clamp(2rem,6vw,3rem);font-weight:900}.genres{display:flex;flex-wrap:wrap;gap:8px}.genres span,.link{border:1px solid #ffffff3a;border-radius:999px;padding:6px 10px}section{padding:80px 24px;border-bottom:1px solid #27272a}.video,.track,.contact{display:flex;min-height:64px;align-items:center;justify-content:space-between;gap:14px;margin:10px 0;padding:16px;border:1px solid #3f3f46;border-radius:12px;background:#18181b;color:#fff}.video:first-letter{color:var(--accent)}button{min-height:44px;border:0;border-radius:8px;padding:10px 14px;background:var(--accent);color:#09090b;font:inherit;font-weight:900}figure{display:inline-block;width:calc(50% - 8px);margin:4px}img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px}.link{display:inline-flex;margin:4px;color:#fff}.fact{display:inline-flex;flex-direction:column;gap:4px;min-width:150px;margin:8px;padding:16px;border:1px solid #27272a;border-radius:12px;background:#18181b}.fact small{color:#a1a1aa;text-transform:uppercase;font-size:.68rem}footer{padding:32px;text-align:center;color:#aab1bd}@media(min-width:760px){section{padding:112px 40px}figure{width:calc(33.333% - 8px)}}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}</style></head><body><header><nav><strong>${title}</strong><span>Electronic press kit</span></nav><h1>${title}</h1>${value('tagline') ? `<p>${escapeHtml(value('tagline'))}</p>` : ''}<div class="genres">${genres}</div></header><main>${section('bio',editorialValue('bioTitle','Biographie'),`${value('fullBio') ? `<p>${escapeHtml(value('fullBio'))}</p>` : ''}${facts}`)}${section('musique',editorialValue('musicTitle','À écouter'),`${tracks}${links}`)}${section('medias','Vidéos &amp; Photos',`${videos}${photos}`)}${section('espace-pro',editorialValue('proTitle','Espace pro'),`${editorialValue('proDescription','')}${documents}`)}${section('contact',editorialValue('contactTitle','Contact'),contacts)}</main><footer>Propulsé par <strong>FaderZero</strong></footer><script>document.querySelectorAll('[data-track]').forEach(function(b){b.addEventListener('click',async function(){var r=await fetch('/api/public/${encodeURIComponent(epk.slug)}/tracks/'+b.dataset.track+'/session',{method:'POST'});if(r.ok){var a=document.createElement('audio');a.controls=true;a.src=(await r.json()).url;b.replaceWith(a);a.play()}})});document.querySelectorAll('[data-document]').forEach(function(b){b.addEventListener('click',async function(){var r=await fetch('/api/public/${encodeURIComponent(epk.slug)}/documents/'+b.dataset.document+'/session',{method:'POST'});if(r.ok)location.assign((await r.json()).url)})})</script></body></html>`;
 }
 
 function publicHeaders(contentType: string): Headers { return new Headers({ 'content-type': contentType, 'cache-control': 'public, max-age=60, s-maxage=300', 'content-security-policy': "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; frame-src https://www.youtube-nocookie.com https://player.vimeo.com; base-uri 'none'; frame-ancestors 'none'", 'x-content-type-options': 'nosniff', 'referrer-policy': 'strict-origin-when-cross-origin' }); }
