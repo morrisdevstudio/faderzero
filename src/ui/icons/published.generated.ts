@@ -1,7 +1,7 @@
 import {
-  ArrowLeft, CalendarDays, CalendarPlus, Check, CloudDownload, Copy, Ellipsis, Eye, EyeOff, ExternalLink, FileDown, Filter,
+  ArrowLeft, ArrowRight, CalendarDays, CalendarPlus, Check, CloudDownload, Copy, Ellipsis, Eye, EyeOff, ExternalLink, FileDown, Filter,
   House, Library, ListMusic, Maximize, Metronome, Mic, Monitor, Pause, Pencil, Play,
-  Mail, Phone, Plus, Settings, Square, Trash2, Upload, X,
+  Mail, MapPin, Music2, Phone, Plus, Settings, Square, Trash2, Upload, Users, X,
   createLucideIcon, type LucideIcon,
 } from 'lucide-react';
 const PhonePlus = createLucideIcon('PhonePlus', [
@@ -43,6 +43,10 @@ export const publishedIconComponents: Record<string, LucideIcon> = {
   email: Mail,
   'external-link': ExternalLink,
   copy: Copy,
+  next: ArrowRight,
+  location: MapPin,
+  users: Users,
+  music: Music2,
 };
 
 export const publishedIconUsageOverrides: Record<string, LucideIcon> = {};

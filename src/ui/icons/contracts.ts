@@ -4,6 +4,7 @@ export const iconRoleKeys = [
   'record', 'setlist', 'settings', 'songs', 'stop', 'upload',
   'show-password', 'hide-password', 'export-pdf',
   'phone', 'phone-add', 'calendar-add', 'filter', 'email', 'external-link', 'copy',
+  'next', 'location', 'users', 'music',
 ] as const;
 
 export type BuiltInIconRoleKey = (typeof iconRoleKeys)[number];

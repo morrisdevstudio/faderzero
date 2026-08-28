@@ -1,6 +1,6 @@
 import { supabase } from '@/services/supabase/client';
 import { createId } from '@/lib/createId';
-import { deleteEpkObject, uploadEpkObject } from '@/services/audio/r2Client';
+import { createAudioSignedUrl, deleteEpkObject, uploadEpkObject } from '@/services/audio/r2Client';
 import { db } from '@/db/db';
 import { DEFAULT_EPK_ACCENT, DEFAULT_EPK_EDITORIAL, DEFAULT_EPK_SECTION_ORDER, EPK_SECTION_IDS, type EpkEditorialContent, type EpkPublicModel, type EpkSectionId } from './epkPresentation';
 
@@ -83,7 +83,7 @@ export type EpkDocumentType = 'TECH_RIDER' | 'STAGE_PLOT' | 'HOSPITALITY_RIDER' 
 export interface EpkPhoto { id: string; epkId: string; previewAssetId: string; originalAssetId: string; credit?: string; caption?: string; position: number; }
 export interface EpkDocument { id: string; epkId: string; assetId: string; title: string; documentType: EpkDocumentType; documentUpdatedAt: string; position: number; }
 export interface EpkTrack { id: string; epkId: string; title: string; description?: string; visibility: 'PUBLIC' | 'UNLISTED'; sourceType: 'SONG_ASSET' | 'EPK_ASSET'; songAssetId?: string; position: number; }
-export interface AvailableEpkTrack { id: string; filename: string; songTitle?: string; isSynced: boolean; }
+export interface AvailableEpkTrack { id: string; filename: string; songId?: string; songTitle?: string; isSynced: boolean; }
 
 export interface CreateEpkVideoInput {
   url: string;
@@ -163,7 +163,7 @@ export async function saveEpk(epk: EpkRecord): Promise<EpkRecord> {
   const slug = normalizeEpkSlug(epk.slug);
   if (!slug || RESERVED_SLUGS.has(slug)) throw new Error('Ce slug est indisponible.');
   if (epk.genres.length > 5 || epk.genres.some((genre) => genre.trim().length > 40)) throw new Error('Ajoutez au maximum cinq genres de 40 caractères maximum.');
-  const { data, error } = await supabase.from('epks').update({ display_name: epk.displayName.trim(), slug, genres: epk.genres.map((genre) => genre.trim()).filter(Boolean), city: epk.city?.trim() || null, country: epk.country?.trim() || null, tagline: epk.tagline?.trim() || null, short_bio: epk.shortBio?.trim() || null, full_bio: epk.fullBio?.trim() || null, theme: epk.theme, accent_color: epk.accentColor ?? DEFAULT_EPK_ACCENT, section_order: epk.sectionOrder ?? DEFAULT_EPK_SECTION_ORDER, hidden_sections: epk.hiddenSections ?? [], editorial_content: epk.editorial, featured_type: epk.featuredType ?? null, featured_id: epk.featuredId ?? null }).eq('id', epk.id).select().single();
+  const { data, error } = await supabase.from('epks').update({ display_name: epk.displayName.trim(), slug, genres: epk.genres.map((genre) => genre.trim()).filter(Boolean), city: epk.city?.trim() || null, country: epk.country?.trim() || null, tagline: epk.tagline?.trim() || null, short_bio: epk.shortBio?.trim() || null, full_bio: epk.fullBio?.trim() || null, theme: epk.theme, hero_asset_id: epk.heroAssetId ?? null, accent_color: epk.accentColor ?? DEFAULT_EPK_ACCENT, section_order: epk.sectionOrder ?? DEFAULT_EPK_SECTION_ORDER, hidden_sections: epk.hiddenSections ?? [], editorial_content: epk.editorial, featured_type: epk.featuredType ?? null, featured_id: epk.featuredId ?? null }).eq('id', epk.id).select().single();
   if (error) throw error;
   return toRecord(data);
 }
@@ -317,19 +317,62 @@ async function uploadAsset(epk: EpkRecord, file: File, kind: 'image_preview' | '
   throw error;
 }
 
+/**
+ * The EPK editor runs on the application origin, whereas public media routes
+ * are served by the EPK Worker. Resolve a private R2 object here instead of
+ * pointing the editor at a non-existent local `/media/preview/...` route.
+ */
+export async function createEpkAssetSignedUrl(assetId: string): Promise<string> {
+  const { data, error } = await supabase.from('epk_assets').select('storage_path').eq('id', assetId).single();
+  if (error) throw error;
+  if (!data?.storage_path) throw new Error('Média EPK introuvable.');
+  return createAudioSignedUrl(data.storage_path);
+}
+
 export async function uploadEpkHeroImage(epk: EpkRecord, file: File): Promise<EpkRecord> {
   if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 10 * 1024 * 1024) {
     throw new Error('Choisissez une image JPEG, PNG ou WebP de 10 Mo maximum.');
   }
+  const previousAssetId = epk.heroAssetId;
   const assetId = await uploadAsset(epk, file, 'image_original');
   try {
-    return await saveEpk({ ...epk, heroAssetId: assetId, featuredType: 'IMAGE', featuredId: assetId });
+    const saved = await saveEpk({ ...epk, heroAssetId: assetId, featuredType: 'IMAGE', featuredId: assetId });
+    if (previousAssetId && previousAssetId !== assetId) await deleteEpkAsset(previousAssetId).catch(() => undefined);
+    return saved;
   } catch (error) {
     const { data: asset } = await supabase.from('epk_assets').select('storage_path').eq('id', assetId).maybeSingle();
     await supabase.from('epk_assets').delete().eq('id', assetId);
     if (asset?.storage_path) await deleteEpkObject(asset.storage_path).catch(() => undefined);
     throw error;
   }
+}
+
+async function deleteEpkAsset(assetId: string): Promise<void> {
+  const { data: asset, error: assetError } = await supabase.from('epk_assets').select('storage_path').eq('id', assetId).maybeSingle();
+  if (assetError) throw assetError;
+  const { error } = await supabase.from('epk_assets').delete().eq('id', assetId);
+  if (error) throw error;
+  if (asset?.storage_path) await deleteEpkObject(asset.storage_path);
+}
+
+export async function deleteEpkHeroImage(epk: EpkRecord): Promise<EpkRecord> {
+  const assetId = epk.heroAssetId;
+  if (!assetId) return epk;
+
+  const next = { ...epk };
+  delete next.heroAssetId;
+  if (next.featuredId === assetId) {
+    delete next.featuredId;
+    delete next.featuredType;
+  }
+  if (next.status === 'PUBLISHED') {
+    await setEpkStatus(next.id, 'DRAFT');
+    next.status = 'DRAFT';
+  }
+
+  const saved = await saveEpk(next);
+  await deleteEpkAsset(assetId).catch(() => undefined);
+  return saved;
 }
 
 export async function addEpkPhoto(epk: EpkRecord, file: File, input: { credit?: string; caption?: string }, position: number): Promise<EpkPhoto> {
@@ -399,13 +442,13 @@ export async function listAvailableEpkTracks(workspaceId: string): Promise<Avail
     .filter((asset) => asset.deletedAt === undefined)
     .sort((left, right) => right.createdAt - left.createdAt)
     .map((asset) => asset.songId && songTitles.has(asset.songId)
-      ? { id: asset.id, filename: asset.filename, songTitle: songTitles.get(asset.songId)!, isSynced: asset.syncStatus === 'synced' }
+      ? { id: asset.id, filename: asset.filename, songId: asset.songId, songTitle: songTitles.get(asset.songId)!, isSynced: asset.syncStatus === 'synced' }
       : { id: asset.id, filename: asset.filename, isSynced: asset.syncStatus === 'synced' });
 }
 
 function toTrack(row: Record<string, unknown>): EpkTrack { return { id: String(row.id), epkId: String(row.epk_id), title: String(row.title ?? ''), visibility: row.visibility === 'UNLISTED' ? 'UNLISTED' : 'PUBLIC', sourceType: row.source_type === 'EPK_ASSET' ? 'EPK_ASSET' : 'SONG_ASSET', ...(typeof row.song_asset_id === 'string' ? { songAssetId: row.song_asset_id } : {}), position: Number(row.position ?? 0), ...(typeof row.description === 'string' ? { description: row.description } : {}) }; }
 export async function listEpkTracks(epkId: string): Promise<EpkTrack[]> { const { data, error } = await supabase.from('epk_tracks').select('*').eq('epk_id', epkId).order('position'); if (error) throw error; return (data ?? []).map(toTrack); }
-export async function addEpkTrack(epkId: string, asset: AvailableEpkTrack, position: number): Promise<EpkTrack> { if (!asset.isSynced) throw new Error('Cet audio doit être synchronisé avant de pouvoir être ajouté à un EPK public.'); const { data, error } = await supabase.from('epk_tracks').insert({ epk_id: epkId, title: asset.songTitle || asset.filename, position, source_type: 'SONG_ASSET', song_asset_id: asset.id, visibility: 'PUBLIC' }).select().single(); if (error) throw error; return toTrack(data); }
+export async function addEpkTrack(epkId: string, asset: AvailableEpkTrack, position: number, displayTitle: string): Promise<EpkTrack> { if (!asset.isSynced) throw new Error('Cet audio doit être synchronisé avant de pouvoir être ajouté à un EPK public.'); const { data, error } = await supabase.from('epk_tracks').insert({ epk_id: epkId, title: displayTitle.trim(), position, source_type: 'SONG_ASSET', song_asset_id: asset.id, visibility: 'PUBLIC' }).select().single(); if (error) throw error; return toTrack(data); }
 export async function deleteEpkTrack(trackId: string): Promise<void> { const { error } = await supabase.from('epk_tracks').delete().eq('id', trackId); if (error) throw error; }
 
 export function getEpkCompleteness(epk: EpkRecord, contactCount: number): number {

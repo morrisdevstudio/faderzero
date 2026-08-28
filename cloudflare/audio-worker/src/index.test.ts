@@ -4,7 +4,7 @@ import type { WorkerEnv } from './index';
 
 const baseEnv = {
   ALLOWED_ORIGINS:
-    'http://localhost:5173,https://app.faderzero.com,https://fader.pages.dev,https://faderzero.pages.dev,https://*.faderzero.pages.dev',
+    'http://localhost:5173,http://192.168.1.23:5173,https://app.faderzero.com,https://fader.pages.dev,https://faderzero.pages.dev,https://*.faderzero.pages.dev',
 } as const;
 
 const workspaceId = '11111111-1111-4111-8111-111111111111';
@@ -91,6 +91,18 @@ describe('audio Worker request boundary', () => {
     expect(response.headers.get('access-control-allow-origin')).toBe(
       'https://preview-123.faderzero.pages.dev',
     );
+  });
+
+  it('allows the LAN development origin used by mobile devices', async () => {
+    const response = await worker.fetch(
+      new Request('https://audio.example/health', {
+        headers: { origin: 'http://192.168.1.23:5173' },
+      }),
+      makeAudioEnv(),
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('access-control-allow-origin')).toBe('http://192.168.1.23:5173');
   });
 
   it('rejects a lookalike Pages origin', async () => {
