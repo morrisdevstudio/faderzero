@@ -117,6 +117,7 @@ function toPdfByteArray(value: string) {
 function sanitizePdfFileName(value: string) {
   return value
     .trim()
+    // eslint-disable-next-line no-control-regex
     .replace(/[<>:"/\\|?*\u0000-\u001F]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();

@@ -168,6 +168,85 @@ function SubdivisionSelector({
   );
 }
 
+function MetronomeBeatGrid({
+  engine,
+  beatsPerBar,
+  subdivision,
+  isRunning,
+  heightClass = 'h-6 sm:h-7',
+}: {
+  engine: MetronomeEngine | null;
+  beatsPerBar: number;
+  subdivision: MetronomeSubdivision;
+  isRunning: boolean;
+  heightClass?: string;
+}) {
+  const [activeBeat, setActiveBeat] = useState(0);
+  const [activeSubdivision, setActiveSubdivision] = useState(0);
+
+  useEffect(() => {
+    if (!engine) return;
+    engine.setBeatListener(({ beatInBar, subdivisionInBeat }) => {
+      setActiveBeat(beatInBar);
+      setActiveSubdivision(subdivisionInBeat);
+    });
+    return () => {
+      engine.setBeatListener(null);
+    };
+  }, [engine]);
+
+  useEffect(() => {
+    if (!isRunning) {
+      setActiveBeat(0);
+      setActiveSubdivision(0);
+    }
+  }, [isRunning]);
+
+  const beatSlots = useMemo(() => Array.from({ length: beatsPerBar }, (_, index) => index), [beatsPerBar]);
+  const subdivisionSlots = useMemo(() => Array.from({ length: subdivision }, (_, index) => index), [subdivision]);
+
+  return (
+    <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${beatsPerBar}, minmax(0, 1fr))` }}>
+      {beatSlots.map((slot) => {
+        const isAccent = slot === 0;
+
+        return (
+          <div
+            key={slot}
+            className={`grid ${heightClass} gap-1`}
+            style={{ gridTemplateColumns: `repeat(${subdivision}, minmax(0, 1fr))` }}
+          >
+            {subdivisionSlots.map((subdivisionSlot) => {
+              const isMainBeat = subdivisionSlot === 0;
+              const isActive = slot === activeBeat && subdivisionSlot === activeSubdivision && isRunning;
+
+              return (
+                <div
+                  key={subdivisionSlot}
+                  className={[
+                    'rounded-md border transition',
+                    isActive && isAccent && isMainBeat
+                      ? 'border-amber-400/50 bg-amber-400 shadow-[0_0_24px_rgba(251,191,36,0.65)]'
+                      : isActive && isMainBeat
+                        ? 'border-amber-400/30 bg-amber-400/80 shadow-[0_0_18px_rgba(251,191,36,0.4)]'
+                        : isActive
+                          ? 'border-amber-300/40 bg-amber-300/70 shadow-[0_0_16px_rgba(252,211,77,0.3)]'
+                          : isAccent && isMainBeat
+                            ? 'border-white/10 bg-white/10'
+                            : isMainBeat
+                              ? 'border-white/6 bg-white/6'
+                              : 'border-amber-400/10 bg-amber-400/5',
+                  ].join(' ')}
+                />
+              );
+            })}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function MetronomePage() {
   const activeWorkspaceId = useAuthStore((state) => state.activeWorkspace?.id);
   const engineRef = useRef<MetronomeEngine | null>(null);
@@ -179,8 +258,6 @@ export function MetronomePage() {
   const [beatsPerBar, setBeatsPerBar] = useState(4);
   const [subdivision, setSubdivision] = useState<MetronomeSubdivision>(1);
   const [isRunning, setIsRunning] = useState(false);
-  const [activeBeat, setActiveBeat] = useState(0);
-  const [activeSubdivision, setActiveSubdivision] = useState(0);
   const [audioError, setAudioError] = useState<string | null>(null);
   const [isTempoPickerOpen, setIsTempoPickerOpen] = useState(false);
   const [isTimeSignaturePickerOpen, setIsTimeSignaturePickerOpen] = useState(false);
@@ -236,18 +313,8 @@ export function MetronomePage() {
 
   useEffect(() => {
     const engine = engineRef.current;
-    if (engine === null) {
-      return;
-    }
-
-    engine.setBeatListener(({ beatInBar, subdivisionInBeat }) => {
-      setActiveBeat(beatInBar);
-      setActiveSubdivision(subdivisionInBeat);
-    });
-
     return () => {
-      engine.setBeatListener(null);
-      engine.stop();
+      engine?.stop();
     };
   }, []);
 
@@ -257,16 +324,11 @@ export function MetronomePage() {
 
   useEffect(() => {
     engineRef.current?.updateConfig({ beatsPerBar });
-    setActiveBeat((current) => current % beatsPerBar);
   }, [beatsPerBar]);
 
   useEffect(() => {
     engineRef.current?.updateConfig({ subdivision });
-    setActiveSubdivision(0);
   }, [subdivision]);
-
-  const beatSlots = useMemo(() => Array.from({ length: beatsPerBar }, (_, index) => index), [beatsPerBar]);
-  const subdivisionSlots = useMemo(() => Array.from({ length: subdivision }, (_, index) => index), [subdivision]);
 
   function updateBpm(nextBpm: number) {
     setBpm(clampBpm(nextBpm));
@@ -286,8 +348,6 @@ export function MetronomePage() {
       if (isRunning) {
         engine.stop();
         setIsRunning(false);
-        setActiveBeat(0);
-        setActiveSubdivision(0);
       } else {
         setAudioError(null);
         await engine.start({ bpm, beatsPerBar, subdivision });
@@ -475,43 +535,13 @@ export function MetronomePage() {
           </div>
 
           {/* Barres de pulsation compactes */}
-          <div className="mt-3.5 grid gap-2" style={{ gridTemplateColumns: `repeat(${beatsPerBar}, minmax(0, 1fr))` }}>
-            {beatSlots.map((slot) => {
-              const isAccent = slot === 0;
-
-              return (
-                <div
-                  key={slot}
-                  className="grid h-6 sm:h-7 gap-1"
-                  style={{ gridTemplateColumns: `repeat(${subdivision}, minmax(0, 1fr))` }}
-                >
-                  {subdivisionSlots.map((subdivisionSlot) => {
-                    const isMainBeat = subdivisionSlot === 0;
-                    const isActive = slot === activeBeat && subdivisionSlot === activeSubdivision && isRunning;
-
-                    return (
-                      <div
-                        key={subdivisionSlot}
-                        className={[
-                          'rounded-md border transition',
-                          isActive && isAccent && isMainBeat
-                            ? 'border-amber-400/50 bg-amber-400 shadow-[0_0_24px_rgba(251,191,36,0.65)]'
-                            : isActive && isMainBeat
-                              ? 'border-amber-400/30 bg-amber-400/80 shadow-[0_0_18px_rgba(251,191,36,0.4)]'
-                              : isActive
-                                ? 'border-amber-300/40 bg-amber-300/70 shadow-[0_0_16px_rgba(252,211,77,0.3)]'
-                                : isAccent && isMainBeat
-                                  ? 'border-white/10 bg-white/10'
-                                  : isMainBeat
-                                    ? 'border-white/6 bg-white/6'
-                                    : 'border-amber-400/10 bg-amber-400/5',
-                        ].join(' ')}
-                      />
-                    );
-                  })}
-                </div>
-              );
-            })}
+          <div className="mt-3.5">
+            <MetronomeBeatGrid
+              engine={engineRef.current}
+              beatsPerBar={beatsPerBar}
+              subdivision={subdivision}
+              isRunning={isRunning}
+            />
           </div>
 
           {audioError ? <p className="mt-2 text-center text-xs font-semibold text-rose-400">{audioError}</p> : null}
@@ -683,43 +713,14 @@ export function MetronomePage() {
                   </div>
                 </div>
 
-                <div className="mt-5 grid gap-2" style={{ gridTemplateColumns: `repeat(${beatsPerBar}, minmax(0, 1fr))` }}>
-                  {beatSlots.map((slot) => {
-                    const isAccent = slot === 0;
-
-                    return (
-                      <div
-                        key={slot}
-                        className="grid h-7 gap-1"
-                        style={{ gridTemplateColumns: `repeat(${subdivision}, minmax(0, 1fr))` }}
-                      >
-                        {subdivisionSlots.map((subdivisionSlot) => {
-                          const isMainBeat = subdivisionSlot === 0;
-                          const isActive = slot === activeBeat && subdivisionSlot === activeSubdivision && isRunning;
-
-                          return (
-                            <div
-                              key={subdivisionSlot}
-                              className={[
-                                'rounded-md border transition',
-                                isActive && isAccent && isMainBeat
-                                  ? 'border-amber-400/50 bg-amber-400 shadow-[0_0_24px_rgba(251,191,36,0.65)]'
-                                  : isActive && isMainBeat
-                                    ? 'border-amber-400/30 bg-amber-400/80 shadow-[0_0_18px_rgba(251,191,36,0.4)]'
-                                    : isActive
-                                      ? 'border-amber-300/40 bg-amber-300/70 shadow-[0_0_16px_rgba(252,211,77,0.3)]'
-                                      : isAccent && isMainBeat
-                                        ? 'border-white/10 bg-white/10'
-                                        : isMainBeat
-                                          ? 'border-white/6 bg-white/6'
-                                          : 'border-amber-400/10 bg-amber-400/5',
-                              ].join(' ')}
-                            />
-                          );
-                        })}
-                      </div>
-                    );
-                  })}
+                <div className="mt-5">
+                  <MetronomeBeatGrid
+                    engine={engineRef.current}
+                    beatsPerBar={beatsPerBar}
+                    subdivision={subdivision}
+                    isRunning={isRunning}
+                    heightClass="h-7"
+                  />
                 </div>
 
                 {audioError ? <p className="mt-3 text-sm font-semibold text-rose-400 text-center">{audioError}</p> : null}

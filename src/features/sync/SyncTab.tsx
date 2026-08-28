@@ -251,6 +251,7 @@ export function SyncTab() {
   const [importPreview, setImportPreview] = useState<SyncImportPreview | null>(null);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const isImportingRef = useRef(false);
+  const handleIncomingFragmentRef = useRef<(rawValue: string) => Promise<void>>(async () => {});
 
   // Génération du transfert ciblé
   async function handleGenerateTransfer() {
@@ -385,7 +386,7 @@ export function SyncTab() {
           { facingMode: 'environment' },
           { fps: 10, qrbox: { width: 220, height: 220 } },
           (decodedText) => {
-            void handleIncomingFragment(decodedText);
+            void handleIncomingFragmentRef.current(decodedText);
           },
         );
       } catch (scannerError) {
@@ -510,6 +511,7 @@ export function SyncTab() {
     setPendingImportPayload(null);
     setImportPreview(null);
   }
+  handleIncomingFragmentRef.current = handleIncomingFragment;
 
   async function confirmImport() {
     if (!canWrite) return;

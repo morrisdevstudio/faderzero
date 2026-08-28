@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { AppProviders } from '@/app/providers';
 import { AppRouter } from '@/app/router';
@@ -14,10 +14,11 @@ import { clearPendingInviteToken, readPendingInviteToken } from '@/services/supa
 import { processPendingAudioUploads } from '@/services/audio/pendingUploads';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { FzIcon } from '@/ui/icons';
-import { LandingPage } from '@/features/landing/LandingPage';
 import { resolveViewTarget } from '@/utils/domainRouting';
 
 import { SplashScreen } from '@/components/SplashScreen';
+
+const LandingPage = lazy(async () => ({ default: (await import('@/features/landing/LandingPage')).LandingPage }));
 
 function SyncBootstrap() {
   const activeWorkspace = useAuthStore((state) => state.activeWorkspace);
@@ -88,11 +89,22 @@ function SyncBootstrap() {
       }
     }
 
+    let debounceTimer: number | null = null;
+    function scheduleSyncCycle(delayMs = 400) {
+      if (debounceTimer !== null) {
+        window.clearTimeout(debounceTimer);
+      }
+      debounceTimer = window.setTimeout(() => {
+        debounceTimer = null;
+        void runSyncCycle();
+      }, delayMs);
+    }
+
     void runSyncCycle();
 
     const subscription = isOnline
       ? subscribeToWorkspaceChanges(workspaceId, () => {
-          void runSyncCycle();
+          scheduleSyncCycle(400);
         })
       : null;
 
@@ -108,6 +120,9 @@ function SyncBootstrap() {
 
     return () => {
       isDisposed = true;
+      if (debounceTimer !== null) {
+        window.clearTimeout(debounceTimer);
+      }
       subscription?.unsubscribe();
       window.removeEventListener('online', handleOnline);
       window.clearInterval(intervalId);
@@ -241,7 +256,11 @@ export function AppContent() {
     if (!inviteToken) {
       const viewTarget = resolveViewTarget();
       if (viewTarget === 'landing') {
-        return <LandingPage />;
+        return (
+          <Suspense fallback={<SplashScreen animated={false} />}>
+            <LandingPage />
+          </Suspense>
+        );
       }
     }
     return <LoginPage inviteTokenPresent={Boolean(inviteToken)} />;

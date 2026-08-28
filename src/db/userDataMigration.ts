@@ -234,12 +234,33 @@ export async function migrateLegacyData(
   };
 }
 
+async function purgeLegacyDomainData(legacy: FaderZeroDatabase) {
+  try {
+    await legacy.transaction(
+      'rw',
+      [legacy.songs, legacy.setlists, legacy.setlistSongs, legacy.songAssets, legacy.syncQueue],
+      async () => {
+        await Promise.all([
+          legacy.songs.clear(),
+          legacy.setlists.clear(),
+          legacy.setlistSongs.clear(),
+          legacy.songAssets.clear(),
+          legacy.syncQueue.clear(),
+        ]);
+      }
+    );
+  } catch {
+    // Best-effort cleanup of legacy database
+  }
+}
+
 export async function activateUserData(userId: string, workspaceIds: Iterable<string>) {
   const allowedWorkspaceIds = new Set(workspaceIds);
   const expectedDatabaseName = getUserDatabaseName(userId);
   const current = getActiveDatabase();
   const target = current.name === expectedDatabaseName ? current : createDatabase(expectedDatabaseName);
   const report = await migrateLegacyData(getLegacyDatabase(), target, userId, allowedWorkspaceIds);
+  await purgeLegacyDomainData(getLegacyDatabase());
   const previous = getActiveDatabase();
   activateDatabase(target);
   if (previous !== getLegacyDatabase() && previous !== target) previous.close();

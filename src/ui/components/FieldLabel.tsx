@@ -30,6 +30,7 @@ export function FieldLabel({
           *
         </span>
       ) : null}
+      {optional ? ' ' : null}
       {optional ? (
         <span className="ml-1 text-[0.65rem] font-normal normal-case tracking-normal text-white/40">
           (optionnel)

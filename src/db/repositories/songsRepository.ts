@@ -322,7 +322,7 @@ export class SongsRepository {
     }
 
     const timestamp = now();
-    const { deletedAt, ...songRest } = existingSong;
+    const { deletedAt: _deletedAt, ...songRest } = existingSong;
     const restoredSong: SongRecord = {
       ...songRest,
       updatedAt: timestamp,
@@ -351,7 +351,7 @@ export class SongsRepository {
         const relatedEntries = await this.database.setlistSongs.where('songId').equals(id).toArray();
         for (const entry of relatedEntries) {
           if (entry.deletedAt !== undefined) {
-            const { deletedAt: entryDeletedAt, ...entryRest } = entry;
+            const { deletedAt: _entryDeletedAt, ...entryRest } = entry;
             await this.database.setlistSongs.put({
               ...entryRest,
               syncStatus: 'pending',

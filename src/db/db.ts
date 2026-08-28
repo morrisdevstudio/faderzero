@@ -200,18 +200,7 @@ export class FaderZeroDatabase extends Dexie {
           });
       });
 
-    this.version(6)
-      .stores(version6Stores)
-      .upgrade(async (transaction) => {
-        await transaction
-          .table<SetlistRecord, string>('setlists')
-          .toCollection()
-          .modify((setlist) => {
-            if (setlist.closingAnnotation === undefined) {
-              return;
-            }
-          });
-      });
+    this.version(6).stores(version6Stores);
 
     this.version(7)
       .stores(version7Stores)

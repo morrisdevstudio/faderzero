@@ -8,10 +8,10 @@ export type EpkPublicModel = {
   name: string; slug: string; tagline?: string; shortBio?: string; fullBio?: string; city?: string; country?: string;
   genres: string[]; accentColor: string; sectionOrder: EpkSectionId[]; hiddenSections: EpkSectionId[]; heroUrl?: string; logoUrl?: string; editorial: EpkEditorialContent;
   videos: Array<{ id: string; title?: string; provider: 'YOUTUBE' | 'VIMEO'; providerVideoId: string }>;
-  tracks: Array<{ id: string; title: string; description?: string }>;
+  tracks: Array<{ id: string; title: string; description?: string; audioUrl?: string }>;
   photos: Array<{ id: string; previewUrl: string; caption?: string; credit?: string }>;
   documents: Array<{ id: string; assetId: string; title: string; type: string; updatedAt: string }>;
-  contacts: Array<{ name: string; role: string; email?: string; phone?: string; whatsapp?: string }>;
+  contacts: Array<{ name: string; role?: string | undefined; email?: string; phone?: string; whatsapp?: string }>;
   links: Array<{ label: string; url: string }>;
 };
 export const DEFAULT_EPK_SECTION_ORDER: EpkSectionId[] = [...EPK_SECTION_IDS];

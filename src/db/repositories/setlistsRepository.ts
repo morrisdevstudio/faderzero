@@ -276,7 +276,7 @@ export class SetlistsRepository {
     }
 
     const timestamp = now();
-    const { deletedAt, ...setlistRest } = existingSetlist;
+    const { deletedAt: _deletedAt, ...setlistRest } = existingSetlist;
     const restoredSetlist: SetlistRecord = {
       ...setlistRest,
       updatedAt: timestamp,
@@ -305,7 +305,7 @@ export class SetlistsRepository {
         const relatedEntries = await this.database.setlistSongs.where('setlistId').equals(id).toArray();
         for (const entry of relatedEntries) {
           if (entry.deletedAt !== undefined) {
-            const { deletedAt: entryDeletedAt, ...entryRest } = entry;
+            const { deletedAt: _entryDeletedAt, ...entryRest } = entry;
             await this.database.setlistSongs.put({
               ...entryRest,
               syncStatus: 'pending',

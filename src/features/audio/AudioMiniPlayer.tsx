@@ -3,40 +3,43 @@ import { useAudioPlayerStore } from '@/features/audio/audioPlayerStore';
 import { formatSongDuration } from '@/features/songs/songPresentation';
 import { FzIcon } from '@/ui/icons';
 
-function PreviousIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true">
-      <path d="M6 5h2v14H6z" />
-      <path d="m19 6-9 6 9 6z" />
-    </svg>
-  );
-}
-
-function NextIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true">
-      <path d="M16 5h2v14h-2z" />
-      <path d="m5 6 9 6-9 6z" />
-    </svg>
-  );
-}
-
 function formatTime(value: number) {
   return formatSongDuration(Math.floor(value));
+}
+
+function AudioPlayerScrubber() {
+  const currentTime = useAudioPlayerStore((state) => state.currentTime);
+  const duration = useAudioPlayerStore((state) => state.duration);
+  const seek = useAudioPlayerStore((state) => state.seek);
+  const progressValue = duration > 0 ? Math.min(currentTime, duration) : 0;
+
+  return (
+    <div className="mt-2.5 grid grid-cols-[2.7rem_minmax(0,1fr)_2.7rem] items-center gap-2 text-[0.62rem] font-semibold text-white/45">
+      <span>{formatTime(currentTime)}</span>
+      <input
+        type="range"
+        min={0}
+        max={duration || 0}
+        step={1}
+        value={progressValue}
+        onChange={(event) => seek(Number(event.target.value))}
+        aria-label="Position de lecture"
+        className="h-1.5 w-full accent-white"
+      />
+      <span className="text-right">{duration > 0 ? formatTime(duration) : '--:--'}</span>
+    </div>
+  );
 }
 
 export function AudioMiniPlayer() {
   const queue = useAudioPlayerStore((state) => state.queue);
   const currentIndex = useAudioPlayerStore((state) => state.currentIndex);
   const status = useAudioPlayerStore((state) => state.status);
-  const currentTime = useAudioPlayerStore((state) => state.currentTime);
-  const duration = useAudioPlayerStore((state) => state.duration);
   const error = useAudioPlayerStore((state) => state.error);
   const togglePlayPause = useAudioPlayerStore((state) => state.togglePlayPause);
   const stop = useAudioPlayerStore((state) => state.stop);
   const previous = useAudioPlayerStore((state) => state.previous);
   const next = useAudioPlayerStore((state) => state.next);
-  const seek = useAudioPlayerStore((state) => state.seek);
   const currentTrack = currentIndex >= 0 ? queue[currentIndex] : undefined;
 
   if (!currentTrack || status === 'idle') {
@@ -44,9 +47,8 @@ export function AudioMiniPlayer() {
   }
 
   const isPlaying = status === 'playing';
-  const canGoPrevious = currentIndex > 0 || currentTime > 0;
+  const canGoPrevious = currentIndex > 0;
   const canGoNext = currentIndex < queue.length - 1;
-  const progressValue = duration > 0 ? Math.min(currentTime, duration) : 0;
 
   return (
     <aside className="fixed inset-x-0 bottom-[calc(3.8rem+env(safe-area-inset-bottom))] z-30 border-t border-white/10 bg-[#111316]/96 text-white shadow-[0_-22px_48px_rgba(0,0,0,0.42)] backdrop-blur-xl">
@@ -80,7 +82,7 @@ export function AudioMiniPlayer() {
               aria-label="Piste precedente"
               className="flex h-9 w-9 items-center justify-center rounded-full text-white/78 transition hover:bg-white/8 hover:text-white disabled:opacity-35"
             >
-              <PreviousIcon />
+              <FzIcon name="back" usageId="audio-mini-player.previous" size="sm" />
             </button>
             <button
               type="button"
@@ -110,25 +112,12 @@ export function AudioMiniPlayer() {
               aria-label="Piste suivante"
               className="flex h-9 w-9 items-center justify-center rounded-full text-white/78 transition hover:bg-white/8 hover:text-white disabled:opacity-35"
             >
-              <NextIcon />
+              <FzIcon name="next" usageId="audio-mini-player.next" size="sm" />
             </button>
           </div>
         </div>
 
-        <div className="mt-2.5 grid grid-cols-[2.7rem_minmax(0,1fr)_2.7rem] items-center gap-2 text-[0.62rem] font-semibold text-white/45">
-          <span>{formatTime(currentTime)}</span>
-          <input
-            type="range"
-            min={0}
-            max={duration || 0}
-            step={1}
-            value={progressValue}
-            onChange={(event) => seek(Number(event.target.value))}
-            aria-label="Position de lecture"
-            className="h-1.5 w-full accent-white"
-          />
-          <span className="text-right">{duration > 0 ? formatTime(duration) : '--:--'}</span>
-        </div>
+        <AudioPlayerScrubber />
 
         {error ? <p className="mt-2 text-[0.7rem] font-semibold text-rose-300">{error}</p> : null}
       </div>

@@ -2,12 +2,14 @@ import { supabase } from '@/services/supabase/client';
 import { createId } from '@/lib/createId';
 import { createAudioSignedUrl, deleteEpkObject, uploadEpkObject } from '@/services/audio/r2Client';
 import { db } from '@/db/db';
+import { songAssetsRepository } from '@/db/repositories/songAssetsRepository';
+import { getCachedAudioUrl } from '@/features/audio/audioCacheStore';
 import { DEFAULT_EPK_ACCENT, DEFAULT_EPK_EDITORIAL, DEFAULT_EPK_SECTION_ORDER, EPK_SECTION_IDS, type EpkEditorialContent, type EpkPublicModel, type EpkSectionId } from './epkPresentation';
 
 export type EpkStatus = 'DRAFT' | 'PUBLISHED';
 export type EpkTheme = 'stage-dark' | 'midnight-blue' | 'press-ivory' | 'fader-red';
 export type EpkVideoType = 'LIVE' | 'LIVE_SESSION' | 'MUSIC_VIDEO' | 'INTERVIEW' | 'OTHER';
-export type EpkContactRole = 'BAND' | 'BOOKING' | 'MANAGEMENT' | 'TECH' | 'PRESS' | 'PRODUCTION' | 'OTHER';
+export type EpkContactRole = string;
 export type EpkLinkKind = 'SPOTIFY' | 'APPLE_MUSIC' | 'DEEZER' | 'YOUTUBE' | 'INSTAGRAM' | 'FACEBOOK' | 'TIKTOK' | 'WEBSITE' | 'CUSTOM';
 
 export interface EpkRecord {
@@ -43,7 +45,7 @@ export interface EpkContact {
   id: string;
   epkId: string;
   name: string;
-  role: EpkContactRole;
+  role?: string | undefined;
   organisation?: string;
   email?: string;
   phone?: string;
@@ -63,7 +65,7 @@ export interface EpkVideo {
 
 export interface CreateEpkContactInput {
   name: string;
-  role: EpkContactRole;
+  role?: string | undefined;
   organisation?: string;
   email?: string;
   phone?: string;
@@ -82,7 +84,7 @@ export interface EpkLink {
 export type EpkDocumentType = 'TECH_RIDER' | 'STAGE_PLOT' | 'HOSPITALITY_RIDER' | 'PRESS_KIT' | 'LOGO' | 'OTHER';
 export interface EpkPhoto { id: string; epkId: string; previewAssetId: string; originalAssetId: string; credit?: string; caption?: string; position: number; }
 export interface EpkDocument { id: string; epkId: string; assetId: string; title: string; documentType: EpkDocumentType; documentUpdatedAt: string; position: number; }
-export interface EpkTrack { id: string; epkId: string; title: string; description?: string; visibility: 'PUBLIC' | 'UNLISTED'; sourceType: 'SONG_ASSET' | 'EPK_ASSET'; songAssetId?: string; position: number; }
+export interface EpkTrack { id: string; epkId: string; title: string; description?: string; visibility: 'PUBLIC' | 'UNLISTED'; sourceType: 'SONG_ASSET' | 'EPK_ASSET'; songAssetId?: string; audioAssetId?: string; position: number; }
 export interface AvailableEpkTrack { id: string; filename: string; songId?: string; songTitle?: string; isSynced: boolean; }
 
 export interface CreateEpkVideoInput {
@@ -190,7 +192,8 @@ export async function setEpkStatus(epkId: string, status: EpkStatus): Promise<Ep
 }
 
 function toContact(row: Record<string, unknown>): EpkContact {
-  const contact: EpkContact = { id: String(row.id), epkId: String(row.epk_id), name: String(row.name ?? ''), role: row.role === 'BAND' || row.role === 'BOOKING' || row.role === 'MANAGEMENT' || row.role === 'TECH' || row.role === 'PRESS' || row.role === 'PRODUCTION' ? row.role : 'OTHER', position: Number(row.position ?? 0) };
+  const contact: EpkContact = { id: String(row.id), epkId: String(row.epk_id), name: String(row.name ?? ''), position: Number(row.position ?? 0) };
+  if (typeof row.role === 'string' && row.role.trim()) contact.role = row.role.trim();
   if (typeof row.organisation === 'string') contact.organisation = row.organisation;
   if (typeof row.email === 'string') contact.email = row.email;
   if (typeof row.phone === 'string') contact.phone = row.phone;
@@ -206,7 +209,7 @@ export async function listEpkContacts(epkId: string): Promise<EpkContact[]> {
 
 export async function addEpkContact(epkId: string, input: CreateEpkContactInput, position: number): Promise<EpkContact> {
   if (!input.name.trim() || (!input.email?.trim() && !input.phone?.trim() && !input.whatsapp?.trim())) throw new Error('Un nom et un moyen de contact sont requis.');
-  const { data, error } = await supabase.from('epk_contacts').insert({ epk_id: epkId, name: input.name.trim(), role: input.role, organisation: input.organisation?.trim() || null, email: input.email?.trim() || null, phone: input.phone?.trim() || null, whatsapp: input.whatsapp?.trim() || null, position }).select().single();
+  const { data, error } = await supabase.from('epk_contacts').insert({ epk_id: epkId, name: input.name.trim(), role: input.role?.trim() || null, organisation: input.organisation?.trim() || null, email: input.email?.trim() || null, phone: input.phone?.trim() || null, whatsapp: input.whatsapp?.trim() || null, position }).select().single();
   if (error) throw error;
   return toContact(data);
 }
@@ -214,6 +217,20 @@ export async function addEpkContact(epkId: string, input: CreateEpkContactInput,
 export async function deleteEpkContact(contactId: string): Promise<void> {
   const { error } = await supabase.from('epk_contacts').delete().eq('id', contactId);
   if (error) throw error;
+}
+
+export async function updateEpkContact(contactId: string, input: { name?: string | undefined; role?: string | null | undefined; email?: string | null | undefined; phone?: string | null | undefined }): Promise<EpkContact> {
+  const updates: Record<string, unknown> = {
+    updated_at: new Date().toISOString(),
+    client_updated_at: new Date().toISOString(),
+  };
+  if (input.name !== undefined) updates.name = input.name.trim();
+  if (input.role !== undefined) updates.role = input.role?.trim() || null;
+  if (input.email !== undefined) updates.email = input.email?.trim() || null;
+  if (input.phone !== undefined) updates.phone = input.phone?.trim() || null;
+  const { data, error } = await supabase.from('epk_contacts').update(updates).eq('id', contactId).select().single();
+  if (error) throw error;
+  return toContact(data);
 }
 
 export function parseEpkVideoUrl(value: string): Pick<EpkVideo, 'provider' | 'providerVideoId'> | null {
@@ -285,6 +302,23 @@ export async function addEpkLink(epkId: string, input: CreateEpkLinkInput, posit
 export async function deleteEpkLink(linkId: string): Promise<void> {
   const { error } = await supabase.from('epk_links').delete().eq('id', linkId);
   if (error) throw error;
+}
+
+export async function updateEpkLink(linkId: string, input: { label?: string | null | undefined; url?: string | undefined }): Promise<EpkLink> {
+  const updates: Record<string, unknown> = {
+    updated_at: new Date().toISOString(),
+    client_updated_at: new Date().toISOString(),
+  };
+  if (input.label !== undefined) updates.label = input.label?.trim() || null;
+  if (input.url !== undefined) {
+    let url: URL;
+    try { url = new URL(input.url.trim()); } catch { throw new Error('Utilisez une URL https valide.'); }
+    if (url.protocol !== 'https:') throw new Error('Utilisez une URL https valide.');
+    updates.url = url.href;
+  }
+  const { data, error } = await supabase.from('epk_links').update(updates).eq('id', linkId).select().single();
+  if (error) throw error;
+  return toLink(data);
 }
 
 function toPhoto(row: Record<string, unknown>): EpkPhoto {
@@ -446,10 +480,33 @@ export async function listAvailableEpkTracks(workspaceId: string): Promise<Avail
       : { id: asset.id, filename: asset.filename, isSynced: asset.syncStatus === 'synced' });
 }
 
-function toTrack(row: Record<string, unknown>): EpkTrack { return { id: String(row.id), epkId: String(row.epk_id), title: String(row.title ?? ''), visibility: row.visibility === 'UNLISTED' ? 'UNLISTED' : 'PUBLIC', sourceType: row.source_type === 'EPK_ASSET' ? 'EPK_ASSET' : 'SONG_ASSET', ...(typeof row.song_asset_id === 'string' ? { songAssetId: row.song_asset_id } : {}), position: Number(row.position ?? 0), ...(typeof row.description === 'string' ? { description: row.description } : {}) }; }
+function toTrack(row: Record<string, unknown>): EpkTrack { return { id: String(row.id), epkId: String(row.epk_id), title: String(row.title ?? ''), visibility: row.visibility === 'UNLISTED' ? 'UNLISTED' : 'PUBLIC', sourceType: row.source_type === 'EPK_ASSET' ? 'EPK_ASSET' : 'SONG_ASSET', ...(typeof row.song_asset_id === 'string' ? { songAssetId: row.song_asset_id } : {}), ...(typeof row.audio_asset_id === 'string' ? { audioAssetId: row.audio_asset_id } : {}), position: Number(row.position ?? 0), ...(typeof row.description === 'string' ? { description: row.description } : {}) }; }
 export async function listEpkTracks(epkId: string): Promise<EpkTrack[]> { const { data, error } = await supabase.from('epk_tracks').select('*').eq('epk_id', epkId).order('position'); if (error) throw error; return (data ?? []).map(toTrack); }
 export async function addEpkTrack(epkId: string, asset: AvailableEpkTrack, position: number, displayTitle: string): Promise<EpkTrack> { if (!asset.isSynced) throw new Error('Cet audio doit être synchronisé avant de pouvoir être ajouté à un EPK public.'); const { data, error } = await supabase.from('epk_tracks').insert({ epk_id: epkId, title: displayTitle.trim(), position, source_type: 'SONG_ASSET', song_asset_id: asset.id, visibility: 'PUBLIC' }).select().single(); if (error) throw error; return toTrack(data); }
 export async function deleteEpkTrack(trackId: string): Promise<void> { const { error } = await supabase.from('epk_tracks').delete().eq('id', trackId); if (error) throw error; }
+
+export async function getEpkTrackAudioUrl(track: EpkTrack): Promise<string> {
+  if (track.sourceType === 'SONG_ASSET' && track.songAssetId) {
+    try {
+      const cached = await getCachedAudioUrl(track.songAssetId);
+      if (cached) return cached;
+    } catch {
+      // ignore
+    }
+    const local = await songAssetsRepository.getById(track.songAssetId);
+    if (local?.storagePath) {
+      return createAudioSignedUrl(local.storagePath);
+    }
+    const { data, error } = await supabase.from('song_assets').select('storage_path').eq('id', track.songAssetId).single();
+    if (error) throw error;
+    if (!data?.storage_path) throw new Error('Fichier audio introuvable.');
+    return createAudioSignedUrl(data.storage_path);
+  }
+  if (track.sourceType === 'EPK_ASSET' && track.audioAssetId) {
+    return createEpkAssetSignedUrl(track.audioAssetId);
+  }
+  throw new Error('Piste audio introuvable.');
+}
 
 export function getEpkCompleteness(epk: EpkRecord, contactCount: number): number {
   let score = 0;

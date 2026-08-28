@@ -124,7 +124,7 @@ async function loadWorkspaces(userId: string): Promise<LoadedWorkspaces> {
     const workspaces = await getWorkspacesWithTimeout();
     cacheWorkspaces(userId, workspaces);
     return { workspaces, verifiedByServer: true };
-  } catch (error) {
+  } catch {
     if (cachedWorkspaces.length > 0) {
       return { workspaces: cachedWorkspaces, verifiedByServer: false };
     }

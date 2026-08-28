@@ -186,7 +186,7 @@ export const eventsRepository = {
     }
 
     const timestamp = now();
-    const { deletedAt, ...rest } = existing;
+    const { deletedAt: _deletedAt, ...rest } = existing;
     const restored: EventRecord = {
       ...rest,
       updatedAt: timestamp,

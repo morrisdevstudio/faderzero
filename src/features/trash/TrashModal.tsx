@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { FormDialog } from '@/components/FormDialog';
 import { ContentRow } from '@/ui/components/ContentRow';
 import { listTrashedItems, restoreTrashedContent, purgeExpiredTrash, type TrashedItem } from '@/services/supabase/trash';
@@ -21,7 +21,7 @@ export const TrashModal: React.FC<TrashModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [dryRunReport, setDryRunReport] = useState<string | null>(null);
 
-  const loadItems = async () => {
+  const loadItems = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -32,13 +32,13 @@ export const TrashModal: React.FC<TrashModalProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [workspaceId]);
 
   useEffect(() => {
     if (isOpen) {
       void loadItems();
     }
-  }, [isOpen, workspaceId]);
+  }, [isOpen, loadItems]);
 
   if (!isOpen) return null;
 

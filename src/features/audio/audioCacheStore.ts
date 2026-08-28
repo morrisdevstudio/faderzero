@@ -65,6 +65,12 @@ export async function migrateLegacyAudioCache(userId: string, database: FaderZer
     copied += 1;
   }
 
+  if (skipped === 0) {
+    try {
+      await caches.delete(LEGACY_AUDIO_CACHE_NAME);
+    } catch {}
+  }
+
   return { copied, skipped };
 }
 

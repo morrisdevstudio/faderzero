@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type FormEvent, type SVGProps } from 'react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { FormDialog } from '@/components/FormDialog';
 import { songsRepository } from '@/db/repositories/songsRepository';
@@ -15,26 +15,9 @@ import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { canWriteWorkspace } from '@/services/supabase/workspace';
 import { useAuthStore } from '@/stores/authStore';
 import { TextField } from '@/ui/components/TextField';
+import { FzIcon } from '@/ui/icons';
 
-type IconProps = SVGProps<SVGSVGElement>;
 type LocalSaveState = 'idle' | 'dirty' | 'saving' | 'saved' | 'error';
-
-function BackIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="m15 18-6-6 6-6" />
-    </svg>
-  );
-}
-
-function CheckIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <circle cx="12" cy="12" r="9" />
-      <path d="m8 12 2.5 2.5L16 9" />
-    </svg>
-  );
-}
 
 function useKeyboardInset() {
   const [inset, setInset] = useState(0);
@@ -291,7 +274,7 @@ export function SongWriterPage() {
     <div className="fz-writer-page" style={pageStyle}>
       <header className="fz-writer-header">
         <button type="button" onClick={() => void handleBack()} aria-label="Retour au morceau">
-          <BackIcon />
+          <FzIcon name="back" usageId="songwriter.header.back" />
         </button>
         {isDraft ? (
           <div className="fz-writer-draft-title">Nouvelle chanson</div>
@@ -304,7 +287,7 @@ export function SongWriterPage() {
           />
         )}
         <div className={`fz-writer-status is-${statusTone}`} aria-live="polite" title={saveLabel}>
-          <CheckIcon />
+          <FzIcon name="check" usageId="songwriter.header.status" />
           <span>{saveLabel}</span>
         </div>
       </header>

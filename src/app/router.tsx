@@ -2,8 +2,8 @@ import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { AppShell } from '@/components/AppShell';
 import { SplashScreen } from '@/components/SplashScreen';
-import { BookingPage } from '@/features/booking/BookingPage';
 
+const BookingPage = lazy(async () => ({ default: (await import('@/features/booking/BookingPage')).BookingPage }));
 const AccountPage = lazy(async () => ({ default: (await import('@/features/account/AccountPage')).AccountPage }));
 const SongsPage = lazy(async () => ({ default: (await import('@/features/songs/SongsPage')).SongsPage }));
 const MetronomePage = lazy(async () => ({ default: (await import('@/features/metronome/MetronomePage')).MetronomePage }));

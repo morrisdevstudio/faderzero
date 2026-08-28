@@ -1,4 +1,4 @@
-﻿import { assertSupabaseConfig, supabase } from './client';
+import { assertSupabaseConfig, supabase } from './client';
 import type { Session, Subscription } from '@supabase/supabase-js';
 import { assertValidPassword } from './passwordPolicy';
 
@@ -94,7 +94,7 @@ export async function signOut() {
     localStorage.removeItem('faderzero_demo_session');
     assertSupabaseConfig();
     await supabase.auth.signOut();
-  } catch (err) {}
+  } catch {}
 }
 
 export async function requestEmailChange(email: string) {
@@ -142,7 +142,7 @@ export async function getSession() {
     const { data: { session }, error } = await supabase.auth.getSession();
     if (error) throw normalizeAuthError(error);
     if (session) return session;
-  } catch (err) {}
+  } catch {}
 
   localStorage.removeItem('faderzero_demo_session');
 
