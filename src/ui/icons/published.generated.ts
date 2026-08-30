@@ -1,5 +1,5 @@
 import {
-  ArrowLeft, ArrowRight, CalendarDays, CalendarPlus, Check, CloudDownload, Copy, Ellipsis, Eye, EyeOff, ExternalLink, FileDown, Filter,
+  ArrowLeft, ArrowRight, CalendarDays, CalendarPlus, Check, ChevronDown, CloudDownload, Copy, Ellipsis, Eye, EyeOff, ExternalLink, FileDown, Filter,
   House, Library, ListMusic, Maximize, Metronome, Mic, Monitor, Pause, Pencil, Play,
   Mail, MapPin, Music2, Phone, Plus, Settings, Square, Trash2, Upload, Users, X,
   createLucideIcon, type LucideIcon,
@@ -16,6 +16,7 @@ export const publishedIconComponents: Record<string, LucideIcon> = {
   back: ArrowLeft,
   calendar: CalendarDays,
   check: Check,
+  'chevron-down': ChevronDown,
   close: X,
   delete: Trash2,
   download: CloudDownload,

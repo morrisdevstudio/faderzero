@@ -1,5 +1,5 @@
 export const iconRoleKeys = [
-  'add', 'back', 'calendar', 'check', 'close', 'delete', 'download', 'edit',
+  'add', 'back', 'calendar', 'check', 'chevron-down', 'close', 'delete', 'download', 'edit',
   'fullscreen', 'home', 'menu', 'metronome', 'pause', 'play', 'prompter',
   'record', 'setlist', 'settings', 'songs', 'stop', 'upload',
   'show-password', 'hide-password', 'export-pdf',

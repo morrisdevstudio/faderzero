@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { ContactFormDialog, DeleteIconButton, EditIconButton, FactIconPicker, HeroImageField, LinkFormDialog, Links, VideoCard, VideoFormDialog } from './EpkEditorFields';
+import { ContactFormDialog, DeleteIconButton, EditIconButton, EpkUrlDialog, FactIconPicker, HeroImageField, LinkFormDialog, Links, VideoCard, VideoFormDialog } from './EpkEditorFields';
 import { youtubeThumbnailUrl } from './epkMedia';
 import type { EpkVideo } from './epk';
 
@@ -107,6 +107,25 @@ describe('ContactFormDialog', () => {
     fireEvent.click(submit);
 
     expect(onSubmit).toHaveBeenCalledWith('Yann Modifié', 'Management', 'yann@example.com', '0612345678');
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+});
+
+describe('EpkUrlDialog', () => {
+  it('modifie le slug uniquement après validation', () => {
+    const onSubmit = vi.fn();
+    const onClose = vi.fn();
+    render(<EpkUrlDialog slug="kickedtoheaven" saving={false} onClose={onClose} onSubmit={onSubmit} />);
+
+    expect(screen.getByRole('dialog', { name: 'Modifier l’URL' })).toBeInTheDocument();
+    expect(screen.getByText('faderzero.com/')).toBeInTheDocument();
+    const input = screen.getByRole('textbox', { name: 'URL' });
+    expect(input).toHaveValue('kickedtoheaven');
+
+    fireEvent.change(input, { target: { value: 'nouvelle-url' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer les modifications' }));
+
+    expect(onSubmit).toHaveBeenCalledWith('nouvelle-url');
     expect(onClose).toHaveBeenCalledOnce();
   });
 });
@@ -322,4 +341,3 @@ describe('Links modification', () => {
     expect(onUpdate).toHaveBeenCalledWith('link-1', 'Instagram', 'https://instagram.com/nouveau');
   });
 });
-
