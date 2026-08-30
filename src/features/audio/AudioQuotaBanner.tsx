@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import type { Workspace } from '@/services/supabase/workspace';
 import {
   getCachedAudioQuota,
@@ -9,9 +9,10 @@ import {
 interface AudioQuotaBannerProps {
   workspace: Workspace | null;
   isOnline: boolean;
+  action?: ReactNode;
 }
 
-export function AudioQuotaBanner({ workspace, isOnline }: AudioQuotaBannerProps) {
+export function AudioQuotaBanner({ workspace, isOnline, action }: AudioQuotaBannerProps) {
   const [quota, setQuota] = useState<AudioQuotaSnapshot | null>(null);
   const workspaceId = workspace?.id;
   const workspaceRole = workspace?.role;
@@ -53,9 +54,12 @@ export function AudioQuotaBanner({ workspace, isOnline }: AudioQuotaBannerProps)
         <p className="text-[0.68rem] font-black uppercase tracking-[0.14em] text-white">
           Stockage audio
         </p>
-        <p className={warning ? 'text-xs font-black text-amber-300' : 'text-xs font-bold text-white/65'}>
-          {formatQuotaValue(consumedAmount, quota.unit)} / {formatQuotaValue(quota.limitAmount, quota.unit)}
-        </p>
+        <div className="flex items-center gap-2">
+          <p className={warning ? 'whitespace-nowrap text-xs font-black text-amber-300' : 'whitespace-nowrap text-xs font-bold text-white/65'}>
+            {formatQuotaValue(consumedAmount, quota.unit)} / {formatQuotaValue(quota.limitAmount, quota.unit)}
+          </p>
+          {action}
+        </div>
       </div>
       <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-black/35">
         <div

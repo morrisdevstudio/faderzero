@@ -40,6 +40,7 @@ import { isAppOnline } from '@/services/connectivity';
 import { PasswordField } from '@/ui/components/PasswordField';
 import { SelectField } from '@/ui/components/SelectField';
 import { TextField } from '@/ui/components/TextField';
+import { FzIcon } from '@/ui/icons';
 
 const INVITE_ROLE_LABELS: Record<WorkspaceRole, string> = {
   admin: 'Administrateur',
@@ -208,18 +209,6 @@ function formatInviteRemaining(expiresAt: string): string {
   return hours > 0 ? `${hours} h ${minutes} min` : `${minutes} min`;
 }
 
-function ShareIcon() {
-  return (
-    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="18" cy="5" r="3" />
-      <circle cx="6" cy="12" r="3" />
-      <circle cx="18" cy="19" r="3" />
-      <path d="M8.6 13.5l6.8 3.9" />
-      <path d="M15.4 6.6L8.6 10.5" />
-    </svg>
-  );
-}
-
 function CopyIcon() {
   return (
     <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
@@ -366,6 +355,7 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
 
   // Group Management & Trash
   const [expandedWorkspaceId, setExpandedWorkspaceId] = useState<string | null>(() => activeWorkspace?.id ?? null);
+  const [groupSettingsTabs, setGroupSettingsTabs] = useState<Record<string, 'profile' | 'members' | 'admin'>>({});
   const [editingWorkspaceId, setEditingWorkspaceId] = useState<string | null>(null);
   const [memberToRemove, setMemberToRemove] = useState<{ member: WorkspaceMember; workspaceId: string } | null>(null);
   const [memberRemovalLoading, setMemberRemovalLoading] = useState(false);
@@ -1085,6 +1075,7 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
                   const isActive = ws.id === activeWorkspace?.id;
                   const isExpanded = expandedWorkspaceId === ws.id;
                   const badgeColor = getBadgeColor(ws.id, ws.type);
+                  const activeGroupSettingsTab = groupSettingsTabs[ws.id] ?? 'profile';
 
                   return (
                     <div
@@ -1119,7 +1110,7 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
                               )}
                             </div>
                             <p className="text-[0.66rem] uppercase tracking-[0.14em] text-white/40">
-                              {ws.type === 'personal' ? 'Espace personnel' : `Groupe (${INVITE_ROLE_LABELS[ws.role] || ws.role})`}
+                              {ws.type === 'personal' ? 'Espace personnel' : 'Groupe'}
                             </p>
                           </div>
                         </div>
@@ -1147,10 +1138,25 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
                       {/* Unfolded Tile Content */}
                       {isExpanded && (
                         <div className="border-t border-white/10 p-4 space-y-4 bg-white/[0.02]">
-                          <AudioQuotaBanner workspace={ws} isOnline={true} />
+                          {ws.type === 'group' ? (
+                            <div role="tablist" aria-label={`Réglages de ${ws.name}`} className="-mx-4 -mt-4 flex border-b border-white/10 px-3">
+                              {[
+                                { id: 'profile', label: 'Profil groupe', icon: 'settings' as const },
+                                { id: 'members', label: 'Membres', icon: 'users' as const },
+                                ...(canAdministerWorkspace(ws.role) ? [{ id: 'admin', label: 'Admin', icon: 'songs' as const }] : []),
+                              ].map((tab) => {
+                                const selected = activeGroupSettingsTab === tab.id;
+                                return <button key={tab.id} type="button" role="tab" aria-selected={selected} onClick={() => setGroupSettingsTabs((current) => ({ ...current, [ws.id]: tab.id as 'profile' | 'members' | 'admin' }))} className={`flex min-h-11 min-w-0 flex-1 items-center justify-center gap-1.5 whitespace-nowrap border-b-2 px-2 text-xs font-semibold transition ${selected ? 'border-orange-500 text-orange-300' : 'border-transparent text-white/60 hover:text-white'}`}><FzIcon name={tab.icon} usageId={`account.group-tab.${tab.id}`} size="sm" />{tab.label}</button>;
+                              })}
+                            </div>
+                          ) : null}
+
+                          {ws.type === 'group' && activeGroupSettingsTab === 'admin' && canAdministerWorkspace(ws.role) ? <div className="space-y-2"><label htmlFor={`workspaceName-${ws.id}`} className="fz-field-label">Nom du groupe</label><div className="flex gap-2"><div className="min-w-0 flex-1"><TextField id={`workspaceName-${ws.id}`} type="text" value={editingWorkspaceId === ws.id ? editingGroupName : ws.name} onFocus={() => { setEditingWorkspaceId(ws.id); setEditingGroupName(ws.name); }} onChange={(event) => { setEditingWorkspaceId(ws.id); setEditingGroupName(event.target.value); }} /></div><button type="button" onClick={() => void handleUpdateGroupName(ws.id, editingGroupName)} className="min-h-11 rounded-lg bg-orange-500 px-3 text-xs font-bold text-white transition hover:bg-orange-400">Enregistrer</button></div>{groupNameDuplicateWarning && editingWorkspaceId === ws.id ? <p className="text-xs text-amber-400">{groupNameDuplicateWarning}</p> : null}</div> : null}
+
+                          {ws.type !== 'group' || activeGroupSettingsTab === 'admin' ? <AudioQuotaBanner workspace={ws} isOnline={true} action={ws.type === 'group' && canAdministerWorkspace(ws.role) ? <button type="button" aria-label={`Ouvrir la corbeille de ${ws.name}`} onClick={() => { setTrashWorkspaceId(ws.id); setIsTrashOpen(true); }} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-300 transition hover:bg-amber-500/20"><FzIcon name="delete" usageId="account.group.storage.trash" /></button> : undefined} /> : null}
 
                           {/* Pastille Color Selector */}
-                          <div className="space-y-2">
+                          {ws.type !== 'group' || activeGroupSettingsTab === 'profile' ? <div className="space-y-2">
                             <p className="fz-field-label">
                               Couleur de la pastille
                             </p>
@@ -1181,10 +1187,10 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
                                 );
                               })}
                             </div>
-                          </div>
+                          </div> : null}
 
                           {/* Pastille Badge Text Input */}
-                          <div className="space-y-1.5 pt-1">
+                          {ws.type !== 'group' || activeGroupSettingsTab === 'profile' ? <div className="space-y-1.5 pt-1">
                             <label htmlFor={`workspaceBadgeText-${ws.id}`} className="fz-field-label">
                               Texte du badge (3 lettres max)
                             </label>
@@ -1212,36 +1218,17 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
                               placeholder={getWorkspaceInitials(ws.name)}
                             />
                             </div>
-                          </div>
+                          </div> : null}
+
+                          {ws.type === 'group' && activeGroupSettingsTab === 'profile' && canAdministerWorkspace(ws.role) ? <button type="button" aria-label={`Gérer l’EPK public de ${ws.name}`} onClick={() => window.location.assign('/account/epk')} className="flex min-h-11 items-center gap-1.5 rounded-lg border border-fuchsia-500/30 bg-fuchsia-500/10 px-3 text-xs font-semibold text-fuchsia-200 transition hover:bg-fuchsia-500/20">EPK public</button> : null}
 
                           {/* Workspace Administration & Tools (Accessible to all workspaces) */}
                           <div className="space-y-3 pt-2 border-t border-white/10">
-                            <div className="flex items-center justify-between">
+                            {ws.type !== 'group' ? <div className="flex items-center justify-between">
                               <h4 className="text-xs font-bold uppercase tracking-wider text-white/80">
-                                {ws.type === 'group' ? 'Administration' : 'Contenus'}
+                                Contenus
                               </h4>
                               <div className="flex gap-2">
-                                {ws.type === 'group' && canAdministerWorkspace(ws.role) && (
-                                  <button
-                                    type="button"
-                                    aria-label={`Gérer l’EPK public de ${ws.name}`}
-                                    onClick={() => window.location.assign('/account/epk')}
-                                    className="flex items-center gap-1.5 rounded-lg border border-fuchsia-500/30 bg-fuchsia-500/10 px-2.5 py-1 text-[0.68rem] font-semibold text-fuchsia-200 hover:bg-fuchsia-500/20 transition"
-                                  >
-                                    EPK public
-                                  </button>
-                                )}
-                                {ws.type === 'group' && canAdministerWorkspace(ws.role) && (
-                                  <button
-                                    type="button"
-                                    aria-label={`Partager le groupe ${ws.name}`}
-                                    onClick={() => void handleOpenShareDialog(ws)}
-                                    className="flex items-center gap-1.5 rounded-lg border border-orange-500/30 bg-orange-500/10 px-2.5 py-1 text-[0.68rem] font-semibold text-orange-300 hover:bg-orange-500/20 transition"
-                                  >
-                                    <ShareIcon />
-                                    Partager
-                                  </button>
-                                )}
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -1253,67 +1240,22 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
                                   Corbeille
                                 </button>
                               </div>
-                            </div>
+                            </div> : null}
 
                             {ws.type === 'group' && (
                               <>
-                                {canAdministerWorkspace(ws.role) && (
-                                  <div className="space-y-2 pt-3 border-t border-white/10">
-                                    <label htmlFor={`workspaceName-${ws.id}`} className="fz-field-label">
-                                      Nom du groupe
-                                    </label>
-                                    <div className="flex gap-2">
-                                      <div className="min-w-0 flex-1">
-                                      <TextField
-                                        id={`workspaceName-${ws.id}`}
-                                        type="text"
-                                        value={editingWorkspaceId === ws.id ? editingGroupName : ws.name}
-                                        onFocus={() => {
-                                          setEditingWorkspaceId(ws.id);
-                                          setEditingGroupName(ws.name);
-                                        }}
-                                        onChange={(e) => {
-                                          setEditingWorkspaceId(ws.id);
-                                          setEditingGroupName(e.target.value);
-                                        }}
-                                      />
-                                      </div>
-                                      <button
-                                        onClick={() => void handleUpdateGroupName(ws.id, editingGroupName)}
-                                        className="rounded-lg bg-orange-500 px-3 py-1.5 text-xs font-bold text-white hover:bg-orange-400 transition"
-                                      >
-                                        Enregistrer
-                                      </button>
-                                    </div>
-                                    {groupNameDuplicateWarning && editingWorkspaceId === ws.id && (
-                                      <p className="text-xs text-amber-400">{groupNameDuplicateWarning}</p>
-                                    )}
-                                  </div>
-                                )}
+                                {activeGroupSettingsTab === 'members' ? <div className="space-y-3"><div className="flex items-center justify-between gap-3"><p className="fz-field-label">Membres</p>{canAdministerWorkspace(ws.role) ? <button type="button" onClick={() => void handleOpenShareDialog(ws)} className="min-h-11 rounded-lg border border-orange-500/30 bg-orange-500/10 px-3 text-xs font-semibold text-orange-300 transition hover:bg-orange-500/20">Inviter des membres</button> : null}</div><WorkspaceMemberList workspace={ws} canAdmin={canAdministerWorkspace(ws.role)} onMemberRoleChange={(userId, role) => void handleMemberRoleChange(ws.id, userId, role)} onRemoveMember={(m) => setMemberToRemove({ member: m, workspaceId: ws.id })} /><button type="button" onClick={() => void handleLeaveGroup(ws.id)} className="min-h-11 w-full rounded-xl border border-red-500/30 bg-red-500/10 py-2 text-xs font-bold text-red-400 transition hover:bg-red-500/20">Quitter le groupe</button></div> : null}
 
-                                <WorkspaceMemberList
-                                  workspace={ws}
-                                  canAdmin={canAdministerWorkspace(ws.role)}
-                                  onMemberRoleChange={(userId, role) => void handleMemberRoleChange(ws.id, userId, role)}
-                                  onRemoveMember={(m) => setMemberToRemove({ member: m, workspaceId: ws.id })}
-                                />
-
-                                <div className="flex gap-2 pt-2">
-                                  <button
-                                    onClick={() => void handleLeaveGroup(ws.id)}
-                                    className="flex-1 rounded-xl border border-white/10 bg-white/5 py-2 text-xs font-bold text-white/70 hover:bg-white/10 transition"
-                                  >
-                                    Quitter le groupe
-                                  </button>
+                                {activeGroupSettingsTab === 'admin' ? <div className="flex gap-2 pt-2">
                                   {canAdministerWorkspace(ws.role) && (
                                     <button
                                       onClick={() => setWorkspaceToSoftDelete(ws)}
                                       className="flex-1 rounded-xl border border-red-500/30 bg-red-500/10 py-2 text-xs font-bold text-red-400 hover:bg-red-500/20 transition"
                                     >
-                                      Placer en corbeille
+                                      Supprimer le groupe
                                     </button>
                                   )}
-                                </div>
+                                </div> : null}
                               </>
                             )}
                           </div>

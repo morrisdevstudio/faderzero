@@ -234,7 +234,8 @@ describe('AccountPage invitations', () => {
 
     render(<AccountPage />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Partager le groupe Groupe test' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Membres' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Inviter des membres' }));
     const revokeButton = await screen.findByRole('button', { name: 'Révoquer' });
     fireEvent.click(revokeButton);
 
@@ -300,6 +301,7 @@ describe('AccountPage invitations', () => {
 
     render(<AccountPage />);
 
+    fireEvent.click(screen.getByRole('tab', { name: 'Membres' }));
     await waitFor(() => {
       expect(profileMocks.getProfileAvatarUrl).toHaveBeenCalledWith('user-yann/avatar.webp');
       expect(document.querySelector('img[src="https://storage.test/avatar-member.webp"]')).toBeInTheDocument();
@@ -321,6 +323,7 @@ describe('AccountPage invitations', () => {
 
     render(<AccountPage />);
 
+    fireEvent.click(screen.getByRole('tab', { name: 'Membres' }));
     const removeButton = await screen.findByTitle('Retirer le membre');
     fireEvent.click(removeButton);
 

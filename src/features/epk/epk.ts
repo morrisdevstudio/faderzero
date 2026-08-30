@@ -5,6 +5,7 @@ import { db } from '@/db/db';
 import { songAssetsRepository } from '@/db/repositories/songAssetsRepository';
 import { getCachedAudioUrl } from '@/features/audio/audioCacheStore';
 import { DEFAULT_EPK_ACCENT, DEFAULT_EPK_EDITORIAL, DEFAULT_EPK_SECTION_ORDER, EPK_SECTION_IDS, type EpkEditorialContent, type EpkPublicModel, type EpkSectionId } from './epkPresentation';
+import { compressEpkImage, EPK_HERO_IMAGE_SIZE, EPK_PHOTO_IMAGE_SIZE } from './epkImage';
 
 export type EpkStatus = 'DRAFT' | 'PUBLISHED';
 export type EpkTheme = 'stage-dark' | 'midnight-blue' | 'press-ivory' | 'fader-red';
@@ -364,11 +365,9 @@ export async function createEpkAssetSignedUrl(assetId: string): Promise<string> 
 }
 
 export async function uploadEpkHeroImage(epk: EpkRecord, file: File): Promise<EpkRecord> {
-  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 10 * 1024 * 1024) {
-    throw new Error('Choisissez une image JPEG, PNG ou WebP de 10 Mo maximum.');
-  }
+  const image = await compressEpkImage(file, EPK_HERO_IMAGE_SIZE);
   const previousAssetId = epk.heroAssetId;
-  const assetId = await uploadAsset(epk, file, 'image_original');
+  const assetId = await uploadAsset(epk, image, 'image_preview');
   try {
     const saved = await saveEpk({ ...epk, heroAssetId: assetId, featuredType: 'IMAGE', featuredId: assetId });
     if (previousAssetId && previousAssetId !== assetId) await deleteEpkAsset(previousAssetId).catch(() => undefined);
@@ -410,11 +409,10 @@ export async function deleteEpkHeroImage(epk: EpkRecord): Promise<EpkRecord> {
 }
 
 export async function addEpkPhoto(epk: EpkRecord, file: File, input: { credit?: string; caption?: string }, position: number): Promise<EpkPhoto> {
-  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 10 * 1024 * 1024) throw new Error('Choisissez une image JPEG, PNG ou WebP de 10 Mo maximum.');
-  const previewId = await uploadAsset(epk, file, 'image_preview');
+  const image = await compressEpkImage(file, EPK_PHOTO_IMAGE_SIZE);
+  const previewId = await uploadAsset(epk, image, 'image_preview');
   try {
-    const originalId = await uploadAsset(epk, file, 'image_original');
-    const { data, error } = await supabase.from('epk_photos').insert({ epk_id: epk.id, preview_asset_id: previewId, original_asset_id: originalId, credit: input.credit?.trim() || null, caption: input.caption?.trim() || null, position }).select().single();
+    const { data, error } = await supabase.from('epk_photos').insert({ epk_id: epk.id, preview_asset_id: previewId, original_asset_id: previewId, credit: input.credit?.trim() || null, caption: input.caption?.trim() || null, position }).select().single();
     if (error) throw error;
     return toPhoto(data);
   } catch (error) {
