@@ -32,26 +32,6 @@ export function SplashScreen({ subtitle = 'Chargement...', onComplete, animated 
       onAnimationEnd={animated ? complete : undefined}
       className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#000000] text-white select-none"
     >
-      <style>{`
-        @keyframes faderMove {
-          0% { transform: translateY(410px); opacity: 1; }
-          76% { transform: translateY(49px); opacity: 1; }
-          100% { transform: translateY(49px); opacity: 1; }
-        }
-        .animate-fader-cap {
-          transform-box: fill-box;
-          transform-origin: center;
-          transform: translateY(410px);
-          animation: faderMove ${SPLASH_ANIMATION_DURATION_MS}ms cubic-bezier(.45, 0, .15, 1) 1 both;
-          will-change: transform, opacity;
-        }
-        .completed-fader-cap {
-          transform-box: fill-box;
-          transform-origin: center;
-          transform: translateY(49px);
-        }
-      `}</style>
-
       {/* App Title */}
       <h1 className="mb-6 font-sans font-medium text-2xl sm:text-3xl tracking-[0.2em] text-white">
         FADERZERO

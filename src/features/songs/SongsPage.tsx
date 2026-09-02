@@ -876,13 +876,13 @@ export function SongsPage() {
               aria-label="Créer un morceau"
             />
           </> : undefined}
-          search={{
+          search={songSummaries && importedTracks && (songSummaries.length > 0 || importedTracks.length > 0) ? {
             value: searchQuery,
             onChange: setSearchQuery,
             placeholder: 'Rechercher un morceau ou un audio...',
             'aria-label': 'Rechercher dans les morceaux',
-          }}
-          sortAction={<SortMenu
+          } : undefined}
+          sortAction={songSummaries && importedTracks && (songSummaries.length > 0 || importedTracks.length > 0) ? <SortMenu
             value={sortMode}
             onChange={setSortMode}
             label="Trier les morceaux"
@@ -897,7 +897,7 @@ export function SongsPage() {
                 { value: 'Pret', label: 'Prêt' },
               ],
             }}
-          />}
+          /> : undefined}
         />
         {canWrite ? <input
           ref={fileInputRef}
@@ -1065,18 +1065,21 @@ export function SongsPage() {
           <FeatureCard eyebrow="Chargement" title="Lecture des audios non classés" description="Ouverture de la bibliotheque audio locale..." />
         ) : importedTracks.length === 0 && songSummaries?.length === 0 ? (
           <FeatureCard
-            eyebrow="Audio"
-            title="Aucune piste importee"
-            description={canWrite ? 'Importe une ou plusieurs pistes audio pour creer automatiquement les chansons associees.' : 'Aucune piste audio disponible dans ce groupe.'}
+            eyebrow="Morceaux"
+            title="Aucun morceau"
+            description={canWrite ? 'Crée ton premier morceau pour commencer à organiser ton répertoire.' : 'Aucun morceau disponible dans ce groupe.'}
           >
             {canWrite ? <button
               type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isImporting}
-              className="fz-button-primary inline-flex w-full items-center justify-center gap-2 px-4 py-4 text-sm font-black uppercase tracking-[0.16em] disabled:opacity-60"
+              onClick={() => {
+                setNewSongTitle('');
+                setCreateSongError(null);
+                setIsCreateSongOpen(true);
+              }}
+              className="fz-button-primary inline-flex w-full items-center justify-center gap-2 px-4 py-4 text-sm font-black uppercase tracking-[0.16em]"
             >
-              <FzIcon name="upload" usageId="imports.empty.upload" size="sm" />
-              Importer des pistes
+              <FzIcon name="add" usageId="songs.empty.create" size="sm" />
+              Créer un morceau
             </button> : null}
           </FeatureCard>
         ) : visibleSongSummaries?.length === 0 && (statusFilter !== 'all' || filteredImportedTracks?.length === 0) ? (
@@ -1194,7 +1197,7 @@ export function SongsPage() {
                             isOnline,
                           })}
                           aria-label="Actions du fichier audio"
-                          className="flex h-9 w-9 items-center justify-center rounded-full bg-white/6 text-white/75 transition hover:bg-white/10 hover:text-white"
+                          className="flex h-11 w-11 items-center justify-center text-white/75 transition hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--fz-accent)]"
                         >
                           <FzIcon name="menu" usageId="imports.track.menu" size="sm" />
                         </button>
@@ -1326,7 +1329,7 @@ export function SongsPage() {
                                 type="button"
                                 onClick={() => setOpenTrackMenu((current) => current?.asset.id === asset.id ? null : { asset, isPrimary: false, isCached: cachedAssetIds.has(asset.id), isOnline })}
                                 aria-label="Actions du fichier audio"
-                                className="flex h-9 w-9 items-center justify-center rounded-full bg-white/6 text-white/75 transition hover:bg-white/10 hover:text-white"
+                                className="flex h-11 w-11 items-center justify-center text-white/75 transition hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--fz-accent)]"
                               >
                                 <FzIcon name="menu" usageId="imports.asset.menu" size="sm" />
                               </button>

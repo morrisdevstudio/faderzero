@@ -27,6 +27,7 @@ import { CopySongModal } from '@/features/songs/CopySongModal';
 import type { SongStatus } from '@/db/schema';
 import { QuickVoiceRecorder } from '@/features/recorder/QuickVoiceRecorder';
 import { ContentRow } from '@/ui/components/ContentRow';
+import { ContextMenu } from '@/ui/components/ContextMenu';
 import { DetailHeader } from '@/ui/components/DetailHeader';
 import { useUndoToastStore } from '@/stores/undoToastStore';
 import { FzIcon } from '@/ui/icons';
@@ -141,6 +142,7 @@ export function SongDetailPage() {
   const [isCopyModalOpen, setIsCopyModalOpen] = useState(false);
   const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false);
   const [isAudioActionsOpen, setIsAudioActionsOpen] = useState(false);
+  const [assetPendingDeletion, setAssetPendingDeletion] = useState<{ id: string; filename: string } | null>(null);
   const [isVoiceRecorderOpen, setIsVoiceRecorderOpen] = useState(false);
   const [duplicatePrompt, setDuplicatePrompt] = useState<DuplicatePromptState | null>(null);
   const [selectedAssetToLinkId, setSelectedAssetToLinkId] = useState('');
@@ -628,6 +630,44 @@ export function SongDetailPage() {
     }
   }
 
+  async function handleUnlinkAudio(assetId: string, filename: string) {
+    if (!canWrite) return;
+    try {
+      await songAssetsRepository.unlinkFromSong(assetId);
+      if (primaryTrackId === assetId) {
+        try {
+          localStorage.removeItem(getPrimaryTrackStorageKey(currentSong.id));
+        } catch {
+          // The next available track becomes the fallback primary track.
+        }
+        setPrimaryTrackId('');
+      }
+      setAudioNotice(`${filename} n'est plus associé à ce morceau.`);
+    } catch (unlinkError) {
+      setError(unlinkError instanceof Error ? unlinkError.message : "Impossible de dissocier ce fichier audio.");
+    }
+  }
+
+  async function handleDeleteAudio() {
+    if (!canWrite || !assetPendingDeletion) return;
+    const { id, filename } = assetPendingDeletion;
+    try {
+      await songAssetsRepository.softDelete(id);
+      if (primaryTrackId === id) {
+        try {
+          localStorage.removeItem(getPrimaryTrackStorageKey(currentSong.id));
+        } catch {
+          // The next available track becomes the fallback primary track.
+        }
+        setPrimaryTrackId('');
+      }
+      setAudioNotice(`${filename} a été supprimé.`);
+      setAssetPendingDeletion(null);
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : 'Impossible de supprimer ce fichier audio.');
+    }
+  }
+
   return (
     <div className="space-y-4">
       <DetailHeader
@@ -718,8 +758,8 @@ export function SongDetailPage() {
                 <button
                   type="button"
                   onClick={() => setIsAudioActionsOpen(true)}
-                  aria-label="Actions du fichier audio"
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/6 text-white/75 transition hover:bg-white/10 hover:text-white"
+                  aria-label="Gérer les pistes audio"
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white/75 transition hover:bg-white/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--fz-accent)]"
                 >
                   <FzIcon name="menu" usageId="song-detail.primary-audio.menu" size="sm" />
                 </button>
@@ -871,37 +911,53 @@ export function SongDetailPage() {
                       }
                       trailing={
                         <div className="flex shrink-0 items-center gap-1">
-                          <button
-                            type="button"
-                            disabled={isDownloading || (!isCached && !isOnline)}
-                            onClick={() => void handleToggleAudioCache(asset.id, isCached)}
-                            aria-label={isCached ? `Retirer ${asset.filename} du cache hors ligne` : `Mettre ${asset.filename} en cache hors ligne`}
-                            title={isCached ? 'Retirer du cache hors ligne' : isOnline ? 'Mettre en cache hors ligne' : 'Connexion requise pour télécharger'}
-                            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/8 bg-white/5 text-white/75 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
-                          >
-                            {isDownloading ? (
-                              <span className="text-xs font-black text-orange-300" aria-live="polite">
-                                {downloadingAssetIds[asset.id]}%
-                              </span>
-                            ) : (
-                              <FzIcon
-                                name={isCached ? 'delete' : 'download'}
-                                usageId={isCached ? 'song-detail.track.remove-cache' : 'song-detail.track.download'}
-                                size="sm"
-                              />
-                            )}
-                          </button>
                           {canWrite ? (
                             <button
                               type="button"
                               onClick={() => handleSetPrimaryAudio(asset.id)}
-                              aria-label={isPrimary ? `${asset.filename} est la piste principale` : `Définir ${asset.filename} comme piste principale`}
-                              title={isPrimary ? 'Piste principale' : 'Définir comme principale'}
-                              className={["flex h-11 w-11 shrink-0 items-center justify-center rounded-full border transition", isPrimary ? 'border-white/40 bg-white/20 text-white' : 'border-white/8 bg-white/5 text-white/55 hover:bg-white/10 hover:text-white'].join(' ')}
+                              aria-label={isPrimary ? `${asset.filename} est la piste favorite` : `Définir ${asset.filename} comme piste favorite`}
+                              title={isPrimary ? 'Piste favorite' : 'Définir comme favorite'}
+                              className={[
+                                'flex h-11 w-11 shrink-0 items-center justify-center transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-300',
+                                isPrimary ? 'text-amber-300 hover:text-amber-200' : 'text-white/55 hover:text-white',
+                              ].join(' ')}
                             >
-                              <FzIcon name="check" usageId="song-detail.track.primary" size="sm" />
+                              <FzIcon
+                                name="star"
+                                usageId="song-detail.track.favorite"
+                                size="sm"
+                                fill={isPrimary ? 'currentColor' : 'none'}
+                              />
                             </button>
                           ) : null}
+                          <ContextMenu
+                            ariaLabel={`Actions pour ${asset.filename}`}
+                            trigger={<FzIcon name="menu" usageId="song-detail.track.menu" size="sm" />}
+                            items={[
+                              {
+                                id: `download-local-${asset.id}`,
+                                label: isCached ? 'Retirer du local' : 'Télécharger en local',
+                                icon: isCached ? 'delete' : 'download',
+                                disabled: isDownloading || (!isCached && !isOnline),
+                                onSelect: () => void handleToggleAudioCache(asset.id, isCached),
+                              },
+                              ...(canWrite ? [
+                                {
+                                  id: `unlink-audio-${asset.id}`,
+                                  label: 'Dissocier du morceau',
+                                  icon: 'edit' as const,
+                                  onSelect: () => void handleUnlinkAudio(asset.id, asset.filename),
+                                },
+                                {
+                                  id: `delete-audio-${asset.id}`,
+                                  label: 'Supprimer',
+                                  icon: 'delete' as const,
+                                  tone: 'danger' as const,
+                                  onSelect: () => setAssetPendingDeletion({ id: asset.id, filename: asset.filename }),
+                                },
+                              ] : []),
+                            ]}
+                          />
                         </div>
                       }
                     />
@@ -1013,6 +1069,15 @@ export function SongDetailPage() {
           }}
         />
       ) : null}
+
+      <ConfirmDialog
+        isOpen={assetPendingDeletion !== null}
+        title="Supprimer ce fichier audio ?"
+        description={assetPendingDeletion ? `${assetPendingDeletion.filename} sera définitivement supprimé de la bibliothèque.` : ''}
+        confirmLabel="Supprimer"
+        onConfirm={() => void handleDeleteAudio()}
+        onCancel={() => setAssetPendingDeletion(null)}
+      />
 
       <ConfirmDialog
         isOpen={canWrite && isDeleteDialogOpen}

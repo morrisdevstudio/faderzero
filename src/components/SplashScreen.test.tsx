@@ -14,6 +14,7 @@ describe('SplashScreen', () => {
     const fader = container.querySelector('.animate-fader-cap');
 
     expect(fader).toBeInTheDocument();
+    expect(container.querySelector('style')).not.toBeInTheDocument();
     expect(screen.getByRole('status', { name: 'Chargement de FaderZero' })).toBeInTheDocument();
 
     act(() => {

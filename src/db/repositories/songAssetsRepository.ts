@@ -143,6 +143,36 @@ export class SongAssetsRepository {
     return linkedAsset;
   }
 
+  async unlinkFromSong(assetId: string) {
+    const existing = await this.database.songAssets.get(assetId);
+    if (!existing) {
+      throw new Error(`Song asset not found: ${assetId}`);
+    }
+
+    const timestamp = now();
+    const { songId: _songId, ...unlinkedAsset } = existing;
+    const updatedAsset: SongAssetRecord = {
+      ...unlinkedAsset,
+      updatedAt: timestamp,
+      syncStatus: 'pending',
+    };
+
+    await this.database.transaction('rw', this.database.songAssets, this.database.syncQueue, async () => {
+      await this.database.songAssets.put(updatedAsset);
+      await enqueueMutation(
+        this.database,
+        updatedAsset.workspaceId,
+        'songAsset',
+        updatedAsset.id,
+        'update',
+        { songId: null, updatedAt: timestamp },
+        existing.serverVersion
+      );
+    });
+
+    return updatedAsset;
+  }
+
   async softDelete(id: string) {
     const existing = await this.database.songAssets.get(id);
     if (!existing) {

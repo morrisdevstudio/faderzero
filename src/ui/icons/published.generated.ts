@@ -1,7 +1,7 @@
 import {
   ArrowLeft, ArrowRight, CalendarDays, CalendarPlus, Check, ChevronDown, CloudDownload, Copy, Ellipsis, Eye, EyeOff, ExternalLink, FileDown, Filter,
   House, Library, ListMusic, Maximize, Metronome, Mic, Monitor, Pause, Pencil, Play,
-  Mail, MapPin, Music2, Phone, Plus, Settings, Square, Trash2, Upload, Users, X,
+  Mail, MapPin, Music2, Phone, Plus, Settings, Square, Star, Trash2, Upload, Users, X,
   createLucideIcon, type LucideIcon,
 } from 'lucide-react';
 const PhonePlus = createLucideIcon('PhonePlus', [
@@ -48,6 +48,7 @@ export const publishedIconComponents: Record<string, LucideIcon> = {
   location: MapPin,
   users: Users,
   music: Music2,
+  star: Star,
 };
 
 export const publishedIconUsageOverrides: Record<string, LucideIcon> = {};

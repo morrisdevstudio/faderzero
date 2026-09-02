@@ -34,6 +34,33 @@
   box-sizing: border-box;
 }
 
+@keyframes faderMove {
+  0% {
+    transform: translateY(410px);
+    opacity: 1;
+  }
+
+  76%,
+  100% {
+    transform: translateY(49px);
+    opacity: 1;
+  }
+}
+
+.animate-fader-cap {
+  transform-box: fill-box;
+  transform-origin: center;
+  transform: translateY(410px);
+  animation: faderMove 3600ms cubic-bezier(.45, 0, .15, 1) 1 both;
+  will-change: transform, opacity;
+}
+
+.completed-fader-cap {
+  transform-box: fill-box;
+  transform-origin: center;
+  transform: translateY(49px);
+}
+
 html,
 body,
 #root {
