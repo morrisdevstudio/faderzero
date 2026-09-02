@@ -19,6 +19,7 @@ import { resolveViewTarget } from '@/utils/domainRouting';
 import { SplashScreen } from '@/components/SplashScreen';
 
 const LandingPage = lazy(async () => ({ default: (await import('@/features/landing/LandingPage')).LandingPage }));
+const LegalPage = lazy(async () => ({ default: (await import('@/features/legal/LegalPage')).LegalPage }));
 
 export function normalizeOAuthCallbackPath() {
   if (window.location.pathname !== '/auth/callback') return;
@@ -233,6 +234,7 @@ export function AppContent() {
   const [animatedUserId, setAnimatedUserId] = useState<string | null>(null);
   const [enteredUserId, setEnteredUserId] = useState<string | null>(null);
   const sessionUserId = session?.user.id ?? null;
+  const viewTarget = resolveViewTarget();
 
   useEffect(() => {
     initialize();
@@ -255,13 +257,16 @@ export function AppContent() {
     }
   }, [animatedUserId, initialized, loading, sessionUserId]);
 
+  if (viewTarget === 'legal') {
+    return <Suspense fallback={<SplashScreen animated={false} />}><LegalPage /></Suspense>;
+  }
+
   if (!initialized && !sessionUserId) {
     return <SplashScreen key="session-initialization" />;
   }
 
   if (!session) {
     if (!inviteToken) {
-      const viewTarget = resolveViewTarget();
       if (viewTarget === 'landing') {
         return (
           <Suspense fallback={<SplashScreen animated={false} />}>

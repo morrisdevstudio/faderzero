@@ -63,7 +63,7 @@ export function LandingFooter({ content, currentLang, onSelectLang }: LandingFoo
             </ul>
           </div>
 
-          {/* Language and Legal */}
+          {/* Language and legal links */}
           <div className="md:col-span-3 space-y-3">
             <h4 className="text-xs font-black uppercase tracking-[0.16em] text-white/40">
               Langue / Language
@@ -90,6 +90,14 @@ export function LandingFooter({ content, currentLang, onSelectLang }: LandingFoo
                 English
               </button>
             </div>
+            <nav aria-label={content.footer.legalTitle}>
+              <h4 className="pt-3 text-xs font-black uppercase tracking-[0.16em] text-white/40">{content.footer.legalTitle}</h4>
+              <ul className="mt-2 space-y-2 text-xs font-bold text-white/70">
+                <li><a className="hover:text-white" href="/legal-notices">{content.footer.legalNotices}</a></li>
+                <li><a className="hover:text-white" href="/privacy">{content.footer.privacy}</a></li>
+                <li><a className="hover:text-white" href="/terms">{content.footer.terms}</a></li>
+              </ul>
+            </nav>
             <p className="text-[0.7rem] text-white/40 pt-4">
               {content.footer.copyright}
             </p>

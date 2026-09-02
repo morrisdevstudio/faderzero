@@ -23,7 +23,12 @@ const RESERVED_TOP_PATHS = new Set([
   'assets',
   'media',
   'preview',
+  'legal-notices',
+  'privacy',
+  'terms',
 ]);
+
+const LEGAL_PATHS = new Set(['/legal-notices', '/privacy', '/terms']);
 
 export function isAppHostname(hostname = window.location.hostname): boolean {
   const normalized = hostname.toLowerCase();
@@ -41,7 +46,7 @@ export function isLandingHostname(hostname = window.location.hostname): boolean 
   return false;
 }
 
-export type ViewTarget = 'landing' | 'app' | 'epk';
+export type ViewTarget = 'landing' | 'legal' | 'app' | 'epk';
 
 export function resolveViewTarget(
   pathname = window.location.pathname,
@@ -52,6 +57,7 @@ export function resolveViewTarget(
   const explicitView = params.get('view');
   if (explicitView === 'landing') return 'landing';
   if (explicitView === 'app') return 'app';
+  if (LEGAL_PATHS.has(pathname)) return 'legal';
 
   // Local previews keep the explicit landing route; production uses /fr and /en.
   if (pathname === '/landing' || pathname.startsWith('/landing/') || pathname === '/fr' || pathname.startsWith('/fr/') || pathname === '/en' || pathname.startsWith('/en/')) {
