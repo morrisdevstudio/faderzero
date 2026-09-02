@@ -16,7 +16,12 @@ type EpkRow = { id: string; display_name: string; slug: string; tagline: string 
 type PublicAsset = { storage_path: string; mime_type: string; kind: string };
 type PublicTrack = { audio_asset_id: string; epk_assets: PublicAsset };
 const PHOTO_CAROUSEL_SCRIPT = `<script>document.querySelectorAll('[data-photo-carousel]').forEach(function(carousel){var track=carousel.querySelector('[data-photo-track]');if(!track)return;var count=track.children.length;var index=0;var position=carousel.querySelector('[data-photo-position]');function render(){if(position)position.textContent=(index+1)+' / '+count}function move(direction){index=(index+direction+count)%count;track.scrollTo({left:track.clientWidth*index,behavior:'smooth'});render()}var previous=carousel.querySelector('[data-photo-prev]');var next=carousel.querySelector('[data-photo-next]');if(previous)previous.addEventListener('click',function(){move(-1)});if(next)next.addEventListener('click',function(){move(1)});track.addEventListener('scroll',function(){index=Math.max(0,Math.min(count-1,Math.round(track.scrollLeft/track.clientWidth)));render()});if(count>1&&!matchMedia('(prefers-reduced-motion: reduce)').matches){setInterval(function(){move(1)},5000)}});</script>`;
-const RESERVED_PAGE_SLUGS = new Set(['account', 'assets', 'booking', 'calendar', 'home', 'imports', 'landing', 'login', 'metronome', 'musiques', 'prompter', 'songs', 'setlists', 'sync']);
+const RESERVED_PAGE_SLUGS = new Set(['account', 'assets', 'booking', 'calendar', 'en', 'fr', 'home', 'imports', 'landing', 'login', 'metronome', 'musiques', 'prompter', 'robots.txt', 'sitemap.xml', 'songs', 'setlists', 'sync']);
+
+const LANDING_SEO = {
+  fr: { title: 'FaderZero — Le cockpit de scène des groupes', description: 'Préparez vos répétitions et concerts : setlists, paroles, prompteur, métronome et audio, même hors connexion.', locale: 'fr_FR' },
+  en: { title: 'FaderZero — The stage cockpit for bands', description: 'Prepare rehearsals and gigs with setlists, lyrics, prompter, metronome, and audio—even offline.', locale: 'en_US' },
+} as const;
 
 function forwardToPages(request: Request, env: WorkerEnv): Promise<Response> {
   const pagesOrigin = env.PAGES_ORIGIN || 'https://faderzero.pages.dev';
@@ -32,9 +37,46 @@ function forwardToPages(request: Request, env: WorkerEnv): Promise<Response> {
   }));
 }
 
+function preferredLandingLanguage(request: Request): 'fr' | 'en' {
+  const candidates = (request.headers.get('accept-language') ?? '')
+    .split(',')
+    .map((entry, index) => {
+      const [language, ...parameters] = entry.trim().split(';');
+      const quality = Number(parameters.find((parameter) => parameter.trim().startsWith('q='))?.trim().slice(2) ?? '1');
+      return { language: language?.toLowerCase() ?? '', quality: Number.isFinite(quality) ? quality : 0, index };
+    })
+    .filter((candidate) => candidate.quality > 0)
+    .sort((left, right) => right.quality - left.quality || left.index - right.index);
+  for (const candidate of candidates) {
+    if (candidate.language === 'fr' || candidate.language.startsWith('fr-')) return 'fr';
+    if (candidate.language === 'en' || candidate.language.startsWith('en-')) return 'en';
+  }
+  return 'fr';
+}
+
+async function forwardLandingPage(request: Request, env: WorkerEnv, language: 'fr' | 'en'): Promise<Response> {
+  const response = await forwardToPages(request, env);
+  const seo = LANDING_SEO[language];
+  const alternate = language === 'fr' ? 'en' : 'fr';
+  const html = (await response.text()).replace('<html lang="en">', `<html lang="${language}">`).replace('</head>', `<meta name="description" content="${seo.description}"><link rel="canonical" href="https://faderzero.com/${language}"><link rel="alternate" hreflang="fr" href="https://faderzero.com/fr"><link rel="alternate" hreflang="en" href="https://faderzero.com/en"><link rel="alternate" hreflang="x-default" href="https://faderzero.com/fr"><meta property="og:type" content="website"><meta property="og:title" content="${seo.title}"><meta property="og:description" content="${seo.description}"><meta property="og:url" content="https://faderzero.com/${language}"><meta property="og:locale" content="${seo.locale}"><meta property="og:locale:alternate" content="${LANDING_SEO[alternate].locale}"></head>`).replace('<title>FaderZero PWA</title>', `<title>${seo.title}</title>`);
+  const headers = new Headers(response.headers);
+  headers.set('content-type', 'text/html; charset=utf-8');
+  headers.delete('content-length');
+  headers.delete('content-encoding');
+  headers.delete('etag');
+  return new Response(html, { status: response.status, headers });
+}
+
 export default {
   async fetch(request: Request, env: WorkerEnv, ctx?: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
+    if (request.method === 'GET' && url.pathname === '/') {
+      const destination = new URL(`/${preferredLandingLanguage(request)}`, url);
+      return new Response(null, { status: 302, headers: { location: destination.toString(), vary: 'Accept-Language' } });
+    }
+    if (request.method === 'GET' && (url.pathname === '/fr' || url.pathname === '/en')) {
+      return forwardLandingPage(request, env, url.pathname.slice(1) as 'fr' | 'en');
+    }
     const sessionMatch = url.pathname.match(/^\/api\/public\/([a-z0-9]+(?:-[a-z0-9]+)*)\/tracks\/([0-9a-f-]+)\/session$/);
     if (request.method === 'POST' && sessionMatch) return createTrackSession(request, env, sessionMatch[1]!, sessionMatch[2]!);
     const downloadSessionMatch = url.pathname.match(/^\/api\/public\/([a-z0-9]+(?:-[a-z0-9]+)*)\/documents\/([0-9a-f-]+)\/session$/);

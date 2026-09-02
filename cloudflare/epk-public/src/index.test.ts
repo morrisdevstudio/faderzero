@@ -11,6 +11,19 @@ const env = {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('EPK public worker', () => {
+  it('redirects the apex to the visitor language and forwards language landing pages', async () => {
+    const root = await worker.fetch(new Request('https://faderzero.com/', { headers: { 'accept-language': 'en-GB,en;q=0.9' } }), env);
+    expect(root.headers.get('location')).toBe('https://faderzero.com/en');
+    const frenchFirst = await worker.fetch(new Request('https://faderzero.com/', { headers: { 'accept-language': 'fr-FR,fr;q=0.9,en;q=0.8' } }), env);
+    expect(frenchFirst.headers.get('location')).toBe('https://faderzero.com/fr');
+    expect((await worker.fetch(new Request('https://faderzero.com/'), env)).headers.get('location')).toBe('https://faderzero.com/fr');
+
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('<html lang="en"><head><title>FaderZero PWA</title></head><body></body></html>', { headers: { etag: 'old', 'content-length': '5' } })));
+    const landing = await worker.fetch(new Request('https://faderzero.com/fr'), env);
+    expect(await landing.text()).toContain('https://faderzero.com/fr');
+    expect(landing.headers.get('etag')).toBeNull();
+  });
+
   it('forwards an absent slug to Cloudflare Pages', async () => {
     const fetchMock = vi.fn(async () => Response.json([]));
     vi.stubGlobal('fetch', fetchMock);
@@ -93,4 +106,3 @@ describe('EPK public worker', () => {
     expect(html).not.toContain('Fiche technique'); // espacePro was in hiddenSections!
   });
 });
-

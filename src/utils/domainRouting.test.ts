@@ -17,6 +17,8 @@ describe('domainRouting', () => {
 
   it('resolves view target based on path, hostname and query params', () => {
     expect(resolveViewTarget('/', 'faderzero.com', '')).toBe('landing');
+    expect(resolveViewTarget('/fr', 'faderzero.com', '')).toBe('landing');
+    expect(resolveViewTarget('/en', 'faderzero.com', '')).toBe('landing');
     expect(resolveViewTarget('/landing', 'app.faderzero.com', '')).toBe('landing');
     expect(resolveViewTarget('/', 'localhost', '?view=landing')).toBe('landing');
     expect(resolveViewTarget('/', 'localhost', '?view=app')).toBe('app');

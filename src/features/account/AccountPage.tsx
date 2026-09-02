@@ -32,6 +32,7 @@ import {
 } from '@/services/supabase/profile';
 import { assertValidPassword, getPasswordRequirements } from '@/services/supabase/passwordPolicy';
 import { getAccountDeletionToken } from '@/services/supabase/accountDeletion';
+import { hasGoogleIdentity } from '@/services/supabase/auth';
 import { TrashModal } from '@/features/trash/TrashModal';
 import { AudioQuotaBanner } from '@/features/audio/AudioQuotaBanner';
 import { SyncTab } from '@/features/sync/SyncTab';
@@ -322,6 +323,7 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
     workspaces,
     activeWorkspace,
     loading,
+    linkGoogleIdentity,
     updatePassword,
     completePasswordRecovery,
     requestEmailChange,
@@ -349,6 +351,7 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
   const [profileLoading, setProfileLoading] = useState(false);
   const [localProfileError, setLocalProfileError] = useState<string | null>(null);
   const [profileFeedback, setProfileFeedback] = useState<string | null>(null);
+  const [googleLinked, setGoogleLinked] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [avatarLoadError, setAvatarLoadError] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
@@ -401,6 +404,14 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
       });
 
     return () => { active = false; };
+  }, [session?.user.id]);
+
+  useEffect(() => {
+    if (!session?.user.id) {
+      setGoogleLinked(false);
+      return;
+    }
+    void hasGoogleIdentity().then(setGoogleLinked).catch(() => setGoogleLinked(false));
   }, [session?.user.id]);
 
   useEffect(() => {
@@ -525,6 +536,16 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
       setConfirmPassword('');
     } catch (passwordError) {
       setLocalPasswordError(passwordError instanceof Error ? passwordError.message : 'Impossible de modifier le mot de passe.');
+    }
+  }
+
+  async function handleLinkGoogle() {
+    if (loading || googleLinked) return;
+    clearFeedback();
+    try {
+      await linkGoogleIdentity();
+    } catch (identityError) {
+      setLocalProfileError(identityError instanceof Error ? identityError.message : 'Impossible d’associer Google.');
     }
   }
 
@@ -907,6 +928,27 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
                   {loading ? 'Demande...' : 'Demander le changement'}
                 </button>
               </form>
+            </div>
+          </section>
+
+          <section className="space-y-3">
+            <div>
+              <h2 className="text-lg font-black uppercase tracking-[0.16em] text-white">Connexion Google</h2>
+              <p className="mt-1 text-sm leading-relaxed text-[var(--fz-text-muted)]">
+                {googleLinked
+                  ? 'Google est associé à ce compte.'
+                  : 'Associez Google pour pouvoir vous connecter avec ce compte Google.'}
+              </p>
+            </div>
+            <div className="rounded-[1.6rem] border border-white/10 bg-white/[0.045] p-5">
+              <button
+                type="button"
+                onClick={() => void handleLinkGoogle()}
+                disabled={loading || googleLinked}
+                className="w-full rounded-[1rem] border border-white/20 bg-white px-4 py-3 text-[0.72rem] font-black uppercase tracking-[0.18em] text-[#15161a] transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {googleLinked ? 'Google associé' : loading ? 'Redirection…' : 'Associer Google'}
+              </button>
             </div>
           </section>
 

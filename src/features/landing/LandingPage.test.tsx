@@ -29,6 +29,9 @@ describe('LandingPage', () => {
 
     // FAQ Section
     expect(screen.getByText(/QUESTIONS FRÉQUENTES/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Une offre claire pour chaque projet musical/i })).toBeInTheDocument();
+    expect(screen.getByText('20 h')).toBeInTheDocument();
+    expect(screen.getByText(/Sans création de groupe/i)).toBeInTheDocument();
   });
 
   it('switches seamlessly to English when toggling language', () => {
@@ -42,6 +45,7 @@ describe('LandingPage', () => {
     expect(screen.getByText(/The live stage cockpit/)).toBeInTheDocument();
     expect(screen.getByText(/for bands and gigging musicians/)).toBeInTheDocument();
     expect(screen.getByText(/OFFLINE-FIRST ARCHITECTURE/)).toBeInTheDocument();
+    expect(screen.getAllByText(/Available early 2027/i).length).toBeGreaterThan(0);
   });
 
   it('allows interacting with the demo tabs (Prompter, Setlist, Metronome)', () => {

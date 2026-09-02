@@ -5,6 +5,8 @@ import {
   getSession,
   signOut as apiSignOut,
   signInWithPassword as apiSignInWithPassword,
+  signInWithGoogle as apiSignInWithGoogle,
+  linkGoogleIdentity as apiLinkGoogleIdentity,
   signUpWithPassword as apiSignUpWithPassword,
   changePassword as apiChangePassword,
   completePasswordRecovery as apiCompletePasswordRecovery,
@@ -49,6 +51,8 @@ interface AuthState {
 
   initialize: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
+  linkGoogleIdentity: () => Promise<void>;
   signUp: (displayName: string, email: string, password: string) => Promise<PasswordSignUpResult>;
   requestPasswordReset: (email: string) => Promise<void>;
   resendSignupConfirmation: (email: string) => Promise<void>;
@@ -282,6 +286,26 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         return;
       }
       set({ loading: false });
+    } catch (err: any) {
+      set({ error: err.message, loading: false });
+      throw err;
+    }
+  },
+
+  signInWithGoogle: async () => {
+    set({ loading: true, error: null, infoMessage: null });
+    try {
+      await apiSignInWithGoogle();
+    } catch (err: any) {
+      set({ error: err.message, loading: false });
+      throw err;
+    }
+  },
+
+  linkGoogleIdentity: async () => {
+    set({ loading: true, error: null, infoMessage: null });
+    try {
+      await apiLinkGoogleIdentity();
     } catch (err: any) {
       set({ error: err.message, loading: false });
       throw err;

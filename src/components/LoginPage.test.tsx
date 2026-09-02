@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const authMocks = vi.hoisted(() => ({
   signIn: vi.fn(),
+  signInWithGoogle: vi.fn(),
   signUp: vi.fn(),
   requestPasswordReset: vi.fn(),
   resendSignupConfirmation: vi.fn(),
@@ -99,6 +100,17 @@ describe('LoginPage inscription et récupération', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Se connecter' }));
 
     expect(await screen.findByText('Identifiant ou mot de passe incorrect.')).toBeInTheDocument();
+  });
+
+  it('déclenche la connexion Google depuis l’écran de connexion', async () => {
+    authMocks.signInWithGoogle.mockResolvedValue(undefined);
+    render(<LoginPage />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Continuer avec Google' }));
+
+    await waitFor(() => {
+      expect(authMocks.signInWithGoogle).toHaveBeenCalledOnce();
+    });
   });
 
   it('lance la récupération depuis un message non discriminant', async () => {

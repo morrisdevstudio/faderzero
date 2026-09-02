@@ -4,6 +4,10 @@ export type Language = 'fr' | 'en';
 
 export const LANDING_CONTENT = {
   fr: {
+    seo: {
+      title: 'FaderZero — Le cockpit de scène des groupes',
+      description: 'Préparez vos répétitions et concerts : setlists, paroles, prompteur, métronome et audio, même hors connexion.',
+    },
     nav: {
       prompter: 'Prompteur',
       setlists: 'Setlists',
@@ -13,7 +17,7 @@ export const LANDING_CONTENT = {
       faq: 'FAQ',
       login: 'Connexion',
       startFree: 'Ouvrir l’app',
-      createGroup: 'Créer mon groupe',
+      createGroup: 'Créer un compte gratuit',
     },
     hero: {
       badge: 'PWA Mobile-First · 100% Hors-ligne · Conçu pour la scène',
@@ -49,6 +53,23 @@ export const LANDING_CONTENT = {
       badge: 'FONCTIONNALITÉS CLÉS',
       title: 'Tous vos outils de répétition et de concert au même endroit',
       subtitle: 'Une interface sombre taillée pour les conditions de scène, sans fioritures inutiles.',
+    },
+    pricing: {
+      badge: 'OFFRES 2027',
+      title: 'Une offre claire pour chaque projet musical',
+      subtitle: 'Les offres Groupe et Pro arrivent début 2027. Tous les prix sont par groupe.',
+      perGroup: 'par groupe',
+      monthly: 'Mensuel',
+      annual: 'Annuel',
+      includedAudio: 'Audio inclus',
+      epk: 'EPK',
+      launch: 'Disponible début 2027',
+      cta: 'Créer un compte gratuit',
+      plans: [
+        { name: 'Gratuit', monthly: '0 €', annual: '0 €', audio: '1 h', epk: 'Non', group: 'Sans création de groupe' },
+        { name: 'Groupe', monthly: '3 €', annual: '30 €', audio: '20 h', epk: 'Non', group: 'Par groupe' },
+        { name: 'Pro', monthly: '5 €', annual: '50 €', audio: '50 h', epk: 'Oui', group: 'Par groupe' },
+      ],
     },
     demo: {
       badge: 'VRAIE EXPÉRIENCE APPLICATION',
@@ -99,7 +120,7 @@ export const LANDING_CONTENT = {
         },
         {
           q: 'FaderZero est-il gratuit ?',
-          a: 'Oui, l’inscription et l’ensemble des fonctionnalités de répétition et de scène sont entièrement gratuites.',
+          a: 'Oui, la création de compte et les outils personnels sont gratuits. Les offres Groupe et Pro, destinées aux espaces partagés, arrivent début 2027.',
         },
       ],
     },
@@ -113,6 +134,10 @@ export const LANDING_CONTENT = {
     },
   },
   en: {
+    seo: {
+      title: 'FaderZero — The stage cockpit for bands',
+      description: 'Prepare rehearsals and gigs with setlists, lyrics, prompter, metronome, and audio—even offline.',
+    },
     nav: {
       prompter: 'Prompter',
       setlists: 'Setlists',
@@ -122,7 +147,7 @@ export const LANDING_CONTENT = {
       faq: 'FAQ',
       login: 'Sign in',
       startFree: 'Open app',
-      createGroup: 'Create free band',
+      createGroup: 'Create a free account',
     },
     hero: {
       badge: 'Mobile-First PWA · 100% Offline-Ready · Built for Stage',
@@ -158,6 +183,23 @@ export const LANDING_CONTENT = {
       badge: 'CORE FEATURES',
       title: 'All your rehearsal and stage tools in one place',
       subtitle: 'A high-contrast dark interface tailored for stage darkness, with zero clutter.',
+    },
+    pricing: {
+      badge: '2027 PLANS',
+      title: 'A clear plan for every musical project',
+      subtitle: 'Group and Pro plans arrive in early 2027. All prices apply per group.',
+      perGroup: 'per group',
+      monthly: 'Monthly',
+      annual: 'Annual',
+      includedAudio: 'Included audio',
+      epk: 'EPK',
+      launch: 'Available early 2027',
+      cta: 'Create a free account',
+      plans: [
+        { name: 'Free', monthly: '€0', annual: '€0', audio: '1 h', epk: 'No', group: 'No group creation' },
+        { name: 'Group', monthly: '€3', annual: '€30', audio: '20 h', epk: 'No', group: 'Per group' },
+        { name: 'Pro', monthly: '€5', annual: '€50', audio: '50 h', epk: 'Yes', group: 'Per group' },
+      ],
     },
     demo: {
       badge: 'REAL APP EXPERIENCE',
@@ -208,7 +250,7 @@ export const LANDING_CONTENT = {
         },
         {
           q: 'Is FaderZero free?',
-          a: 'Yes, account creation and all stage and rehearsal features are 100% free.',
+          a: 'Yes, account creation and personal tools are free. Group and Pro plans for shared workspaces arrive in early 2027.',
         },
       ],
     },
@@ -226,6 +268,8 @@ export const LANDING_CONTENT = {
 export function useLandingLanguage() {
   const [lang, setLang] = useState<Language>(() => {
     try {
+      const routeLanguage = window.location.pathname.split('/').filter(Boolean)[0];
+      if (routeLanguage === 'fr' || routeLanguage === 'en') return routeLanguage;
       const saved = localStorage.getItem('fz_landing_lang');
       if (saved === 'fr' || saved === 'en') return saved;
       if (typeof navigator !== 'undefined' && navigator.language?.startsWith('fr')) {
@@ -247,5 +291,13 @@ export function useLandingLanguage() {
 
   const content = LANDING_CONTENT[lang];
 
-  return { lang, setLang, content };
+  function selectLanguage(nextLanguage: Language) {
+    const hostname = window.location.hostname.toLowerCase();
+    if (hostname === 'faderzero.com' || hostname === 'www.faderzero.com') {
+      window.history.replaceState({}, '', `/${nextLanguage}`);
+    }
+    setLang(nextLanguage);
+  }
+
+  return { lang, setLang: selectLanguage, content };
 }

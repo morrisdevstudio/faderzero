@@ -5,6 +5,9 @@ const authMocks = vi.hoisted(() => ({
   resetPasswordForEmail: vi.fn(),
   getSession: vi.fn(),
   signInWithPassword: vi.fn(),
+  signInWithOAuth: vi.fn(),
+  linkIdentity: vi.fn(),
+  getUserIdentities: vi.fn(),
   updateUser: vi.fn(),
   signOut: vi.fn(),
   resend: vi.fn(),
@@ -22,6 +25,9 @@ import {
   requestEmailChange,
   requestPasswordReset,
   resendSignupConfirmation,
+  signInWithGoogle,
+  linkGoogleIdentity,
+  hasGoogleIdentity,
   signUpWithPassword,
 } from '@/services/supabase/auth';
 
@@ -31,6 +37,9 @@ describe('service Auth', () => {
     authMocks.resetPasswordForEmail.mockReset();
     authMocks.getSession.mockReset();
     authMocks.signInWithPassword.mockReset();
+    authMocks.signInWithOAuth.mockReset();
+    authMocks.linkIdentity.mockReset();
+    authMocks.getUserIdentities.mockReset();
     authMocks.updateUser.mockReset();
     authMocks.signOut.mockReset();
     authMocks.resend.mockReset();
@@ -43,6 +52,33 @@ describe('service Auth', () => {
       { email: 'nouveau@example.test' },
       { emailRedirectTo: `${window.location.origin}/account` },
     );
+  });
+
+  it('redirige la connexion Google vers le callback de la PWA', async () => {
+    authMocks.signInWithOAuth.mockResolvedValue({ data: {}, error: null });
+
+    await signInWithGoogle();
+
+    expect(authMocks.signInWithOAuth).toHaveBeenCalledWith({
+      provider: 'google',
+      options: { redirectTo: `${window.location.origin}/auth/callback?view=app` },
+    });
+  });
+
+  it('associe Google et lit les identités déjà rattachées', async () => {
+    authMocks.linkIdentity.mockResolvedValue({ data: {}, error: null });
+    authMocks.getUserIdentities.mockResolvedValue({
+      data: { identities: [{ provider: 'email' }, { provider: 'google' }] },
+      error: null,
+    });
+
+    await linkGoogleIdentity();
+    await expect(hasGoogleIdentity()).resolves.toBe(true);
+
+    expect(authMocks.linkIdentity).toHaveBeenCalledWith({
+      provider: 'google',
+      options: { redirectTo: `${window.location.origin}/auth/callback?view=app` },
+    });
   });
 
   it('vérifie le mot de passe courant puis révoque toutes les sessions', async () => {

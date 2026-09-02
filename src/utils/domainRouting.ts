@@ -16,6 +16,8 @@ const RESERVED_TOP_PATHS = new Set([
   'imports',
   'musiques',
   'landing',
+  'fr',
+  'en',
   'login',
   'api',
   'assets',
@@ -51,8 +53,8 @@ export function resolveViewTarget(
   if (explicitView === 'landing') return 'landing';
   if (explicitView === 'app') return 'app';
 
-  // If explicit route /landing
-  if (pathname === '/landing' || pathname.startsWith('/landing/')) {
+  // Local previews keep the explicit landing route; production uses /fr and /en.
+  if (pathname === '/landing' || pathname.startsWith('/landing/') || pathname === '/fr' || pathname.startsWith('/fr/') || pathname === '/en' || pathname.startsWith('/en/')) {
     return 'landing';
   }
 
@@ -100,5 +102,5 @@ export function getLandingUrl(path = ''): string {
     return cleanPath === '/' ? '/landing' : `/landing${cleanPath}`;
   }
 
-  return `https://faderzero.com${cleanPath === '/' ? '' : cleanPath}`;
+  return `https://faderzero.com${cleanPath === '/' ? '/fr' : cleanPath}`;
 }

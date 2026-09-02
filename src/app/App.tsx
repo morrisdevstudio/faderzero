@@ -20,6 +20,13 @@ import { SplashScreen } from '@/components/SplashScreen';
 
 const LandingPage = lazy(async () => ({ default: (await import('@/features/landing/LandingPage')).LandingPage }));
 
+export function normalizeOAuthCallbackPath() {
+  if (window.location.pathname !== '/auth/callback') return;
+  const search = new URLSearchParams(window.location.search);
+  search.set('view', 'app');
+  window.history.replaceState({}, '', `/?${search.toString()}${window.location.hash}`);
+}
+
 function SyncBootstrap() {
   const activeWorkspace = useAuthStore((state) => state.activeWorkspace);
   const session = useAuthStore((state) => state.session);
@@ -295,6 +302,7 @@ export function AppContent() {
 }
 
 export function App() {
+  normalizeOAuthCallbackPath();
   return (
     <AppProviders>
       <SyncBootstrap />

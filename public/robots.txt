@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://faderzero.com/sitemap.xml

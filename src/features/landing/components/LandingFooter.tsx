@@ -72,7 +72,8 @@ export function LandingFooter({ content, currentLang, onSelectLang }: LandingFoo
               <button
                 type="button"
                 onClick={() => onSelectLang('fr')}
-                className={`rounded-lg px-3 py-1.5 text-xs font-black transition ${
+                aria-pressed={currentLang === 'fr'}
+                className={`flex min-h-11 items-center rounded-lg px-3 py-1.5 text-xs font-black transition ${
                   currentLang === 'fr' ? 'bg-white/20 text-white' : 'border border-white/10 text-white/50 hover:text-white'
                 }`}
               >
@@ -81,7 +82,8 @@ export function LandingFooter({ content, currentLang, onSelectLang }: LandingFoo
               <button
                 type="button"
                 onClick={() => onSelectLang('en')}
-                className={`rounded-lg px-3 py-1.5 text-xs font-black transition ${
+                aria-pressed={currentLang === 'en'}
+                className={`flex min-h-11 items-center rounded-lg px-3 py-1.5 text-xs font-black transition ${
                   currentLang === 'en' ? 'bg-white/20 text-white' : 'border border-white/10 text-white/50 hover:text-white'
                 }`}
               >

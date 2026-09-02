@@ -50,6 +50,35 @@ export async function signInWithPassword(email: string, password: string) {
   return data;
 }
 
+function getOAuthRedirectUrl(): string {
+  return `${window.location.origin}/auth/callback?view=app`;
+}
+
+export async function signInWithGoogle(): Promise<void> {
+  assertSupabaseConfig();
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: getOAuthRedirectUrl() },
+  });
+  if (error) throw normalizeAuthError(error);
+}
+
+export async function linkGoogleIdentity(): Promise<void> {
+  assertSupabaseConfig();
+  const { error } = await supabase.auth.linkIdentity({
+    provider: 'google',
+    options: { redirectTo: getOAuthRedirectUrl() },
+  });
+  if (error) throw normalizeAuthError(error);
+}
+
+export async function hasGoogleIdentity(): Promise<boolean> {
+  assertSupabaseConfig();
+  const { data, error } = await supabase.auth.getUserIdentities();
+  if (error) throw normalizeAuthError(error);
+  return data.identities.some((identity) => identity.provider === 'google');
+}
+
 export async function signUpWithPassword(
   displayName: string,
   email: string,

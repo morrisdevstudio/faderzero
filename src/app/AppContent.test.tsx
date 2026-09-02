@@ -1,7 +1,7 @@
 import { act, render, screen } from '@testing-library/react';
 import type { Session } from '@supabase/supabase-js';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { AppContent } from '@/app/App';
+import { AppContent, normalizeOAuthCallbackPath } from '@/app/App';
 import { SPLASH_ANIMATION_DURATION_MS } from '@/components/SplashScreen';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -56,6 +56,17 @@ describe('AppContent splash authentication gate', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    window.history.replaceState({}, '', '/');
+  });
+
+  it('ramène le callback OAuth vers la PWA sans perdre le fragment de session', () => {
+    window.history.replaceState({}, '', '/auth/callback?view=app#access_token=test-token');
+
+    normalizeOAuthCallbackPath();
+
+    expect(window.location.pathname).toBe('/');
+    expect(window.location.search).toBe('?view=app');
+    expect(window.location.hash).toBe('#access_token=test-token');
   });
 
   it('termine le splash avant d’afficher l’accueil pour une session existante', async () => {

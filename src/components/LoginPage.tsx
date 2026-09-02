@@ -24,6 +24,7 @@ export function LoginPage({ inviteTokenPresent = false }: LoginPageProps) {
 
   const {
     signIn,
+    signInWithGoogle,
     signUp,
     requestPasswordReset,
     resendSignupConfirmation,
@@ -78,6 +79,17 @@ export function LoginPage({ inviteTokenPresent = false }: LoginPageProps) {
       await resendSignupConfirmation(pendingConfirmationEmail);
     } catch (err) {
       setLocalError(err instanceof Error ? err.message : "Impossible de renvoyer l'e-mail.");
+    }
+  }
+
+  async function handleGoogleSignIn() {
+    if (loading || configError) return;
+    setLocalError(null);
+    clearFeedback();
+    try {
+      await signInWithGoogle();
+    } catch (err) {
+      setLocalError(err instanceof Error ? err.message : 'Impossible de se connecter avec Google.');
     }
   }
 
@@ -145,6 +157,24 @@ export function LoginPage({ inviteTokenPresent = false }: LoginPageProps) {
           <h2 className="text-lg font-black uppercase tracking-[0.18em] text-white">{title}</h2>
           <p className="mt-1.5 text-[0.76rem] leading-relaxed text-white/55">{subtitle}</p>
         </div>
+
+        {mode !== 'forgot' ? (
+          <>
+            <button
+              type="button"
+              onClick={() => void handleGoogleSignIn()}
+              disabled={loading || Boolean(configError)}
+              className="w-full rounded-[1.1rem] border border-white/20 bg-white px-4 py-3.5 text-[0.72rem] font-black uppercase tracking-[0.16em] text-[#15161a] transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Continuer avec Google
+            </button>
+            <div className="my-5 flex items-center gap-3 text-[0.65rem] font-bold uppercase tracking-[0.14em] text-white/35">
+              <span className="h-px flex-1 bg-white/10" />
+              ou par e-mail
+              <span className="h-px flex-1 bg-white/10" />
+            </div>
+          </>
+        ) : null}
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">

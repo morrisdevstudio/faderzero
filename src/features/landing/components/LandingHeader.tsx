@@ -98,7 +98,9 @@ export function LandingHeader({ content, currentLang, onSelectLang }: LandingHea
             <button
               type="button"
               onClick={() => onSelectLang('fr')}
-              className={`rounded px-1.5 py-0.5 transition ${
+              aria-label="Passer en français"
+              aria-pressed={currentLang === 'fr'}
+              className={`flex h-11 w-11 items-center justify-center rounded transition ${
                 currentLang === 'fr' ? 'bg-white/20 text-white font-black' : 'text-white/50'
               }`}
             >
@@ -107,7 +109,9 @@ export function LandingHeader({ content, currentLang, onSelectLang }: LandingHea
             <button
               type="button"
               onClick={() => onSelectLang('en')}
-              className={`rounded px-1.5 py-0.5 transition ${
+              aria-label="Switch to English"
+              aria-pressed={currentLang === 'en'}
+              className={`flex h-11 w-11 items-center justify-center rounded transition ${
                 currentLang === 'en' ? 'bg-white/20 text-white font-black' : 'text-white/50'
               }`}
             >

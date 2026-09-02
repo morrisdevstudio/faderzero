@@ -8,16 +8,18 @@ import { LandingInteractiveDemo } from './components/LandingInteractiveDemo';
 import { LandingUseCases } from './components/LandingUseCases';
 import { LandingFaq } from './components/LandingFaq';
 import { LandingFooter } from './components/LandingFooter';
+import { LandingPricing } from './components/LandingPricing';
 
 export function LandingPage() {
   const { lang, setLang, content } = useLandingLanguage();
 
   useEffect(() => {
-    document.title =
-      lang === 'fr'
-        ? 'FaderZero — Le hub tout-en-un pour groupes et musiciens de scène (Offline-First PWA)'
-        : 'FaderZero — The all-in-one hub for bands & stage musicians (Offline-First PWA)';
-  }, [lang]);
+    document.documentElement.lang = lang;
+    document.title = content.seo.title;
+    const description = document.querySelector('meta[name="description"]') ?? document.head.appendChild(document.createElement('meta'));
+    description.setAttribute('name', 'description');
+    description.setAttribute('content', content.seo.description);
+  }, [content.seo.description, content.seo.title, lang]);
 
   return (
     <div className="min-h-screen bg-[#0c0d10] text-[#f5f0ea] selection:bg-[#ff3a63] selection:text-white font-sans antialiased overflow-x-hidden">
@@ -39,6 +41,8 @@ export function LandingPage() {
 
         {/* Band and Artist Use Cases */}
         <LandingUseCases content={content} />
+
+        <LandingPricing content={content} />
 
         {/* FAQ */}
         <LandingFaq content={content} />
