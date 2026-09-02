@@ -1,13 +1,16 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const policy = JSON.parse(readFileSync(`${root}/cloudflare/free-tier-policy.json`, 'utf8'));
 const wranglerFiles = [
   'cloudflare/audio-worker/wrangler.jsonc',
-  'cloudflare/audio-worker/wrangler.local.jsonc',
   'cloudflare/epk-public/wrangler.jsonc',
 ];
+// Local overrides are gitignored; validate them when present without requiring
+// developer-specific configuration in clean CI/Pages checkouts.
+const localWranglerPath = 'cloudflare/audio-worker/wrangler.local.jsonc';
+if (existsSync(`${root}/${localWranglerPath}`)) wranglerFiles.push(localWranglerPath);
 const wranglerConfigs = wranglerFiles.map((path) => ({
   path,
   contents: readFileSync(`${root}/${path}`, 'utf8'),

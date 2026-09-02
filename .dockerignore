@@ -4,6 +4,7 @@
 .agents
 .cert
 .wrangler
+cloudflare/audio-worker/wrangler.local.jsonc
 node_modules
 dist
 dist-ssr
