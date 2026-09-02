@@ -55,7 +55,7 @@ describe('EPK public worker', () => {
 
   it('serves an image preview through the asset owning relation', async () => {
     const mediaBucket = {
-      get: vi.fn(async () => ({ body: new Blob(['image']), size: 5, httpEtag: 'etag', range: undefined })),
+      get: vi.fn(async () => ({ body: new Response('image').body, size: 5, httpEtag: 'etag', range: undefined })),
     };
     let requestedUrl = '';
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
@@ -69,6 +69,8 @@ describe('EPK public worker', () => {
     expect(response.status).toBe(200);
     expect(requestedUrl).toContain('epks%21epk_assets_epk_id_fkey%21inner');
     expect(mediaBucket.get).toHaveBeenCalledWith('workspaces/w/epks/e/image.jpg', expect.anything());
+    expect(response.headers.get('content-type')).toBe('image/jpeg');
+    expect(await response.text()).toBe('image');
   });
 
   it('renders snapshot with location, respects hiddenSections and sets comprehensive CSP headers', async () => {
