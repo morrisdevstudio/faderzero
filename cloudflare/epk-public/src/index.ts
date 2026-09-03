@@ -95,7 +95,7 @@ export default {
         if (cached) return cached;
       }
       const epk = await loadPublishedEpk(slug, env);
-      if (!epk) return forwardToPages(request, env);
+      if (!epk) return (await epkSlugExists(slug, env)) ? notPublished() : forwardToPages(request, env);
       const response = url.searchParams.get('format') === 'json'
         ? Response.json(toPublicDto(epk), { headers: publicHeaders('application/json; charset=utf-8') })
         : new Response(renderHtml(epk, url), { headers: publicHeaders('text/html; charset=utf-8') });
@@ -122,6 +122,17 @@ async function loadPublishedEpk(slug: string, env: WorkerEnv): Promise<EpkRow | 
   if (!response.ok) throw new Error(`Supabase returned ${response.status}`);
   const body: unknown = await response.json();
   return Array.isArray(body) && isEpkRow(body[0]) ? body[0] : null;
+}
+
+async function epkSlugExists(slug: string, env: WorkerEnv): Promise<boolean> {
+  const url = new URL(`${env.SUPABASE_URL}/rest/v1/epks`);
+  url.searchParams.set('select', 'slug');
+  url.searchParams.set('slug', `eq.${slug}`);
+  url.searchParams.set('limit', '1');
+  const response = await fetch(url, { headers: serviceHeaders(env) });
+  if (!response.ok) return false;
+  const body: unknown = await response.json();
+  return Array.isArray(body) && body.length > 0;
 }
 
 async function loadPublishedAsset(assetId: string, env: WorkerEnv, allowedKinds: string[]): Promise<PublicAsset | null> {
@@ -302,6 +313,11 @@ function renderSnapshotHtml(snapshot: Record<string, unknown>, epk: EpkRow, url:
 
 function publicHeaders(contentType: string): Headers { return new Headers({ 'content-type': contentType, 'cache-control': 'public, max-age=60, s-maxage=300', 'content-security-policy': "default-src 'none'; img-src 'self' data:; media-src 'self' blob:; connect-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; frame-src https://www.youtube-nocookie.com https://player.vimeo.com; base-uri 'none'; frame-ancestors 'none'", 'x-content-type-options': 'nosniff', 'referrer-policy': 'strict-origin-when-cross-origin' }); }
 function unavailable(): Response { return new Response('<!doctype html><title>EPK indisponible</title><h1>EPK indisponible</h1>', { status: 404, headers: publicHeaders('text/html; charset=utf-8') }); }
+function notPublished(): Response {
+  const headers = publicHeaders('text/html; charset=utf-8');
+  headers.set('cache-control', 'no-store');
+  return new Response('<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Page publique non publiée</title><style>body{margin:0;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px;background:#09090b;color:#fff;font:16px Inter,Segoe UI,sans-serif;text-align:center}h1{margin:0;font-size:clamp(1.6rem,6vw,2.4rem);font-weight:900}p{margin:0;max-width:44ch;color:#a1a1aa}</style></head><body><h1>Page publique non publiée</h1><p>Cette page existe mais n’est pas encore publiée. Son administrateur doit la publier depuis FaderZero pour la rendre visible.</p></body></html>', { status: 404, headers });
+}
 function escapeHtml(value: string): string { return value.replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[character] ?? character); }
 function escapeAttribute(value: string): string { return escapeHtml(value).replace(/`/g, '&#096;'); }
 function isEpkRow(value: unknown): value is EpkRow { return typeof value === 'object' && value !== null && typeof (value as Record<string, unknown>).id === 'string' && typeof (value as Record<string, unknown>).display_name === 'string' && Array.isArray((value as Record<string, unknown>).genres) && Array.isArray((value as Record<string, unknown>).epk_contacts) && Array.isArray((value as Record<string, unknown>).epk_videos) && Array.isArray((value as Record<string, unknown>).epk_links) && Array.isArray((value as Record<string, unknown>).epk_photos) && Array.isArray((value as Record<string, unknown>).epk_documents) && Array.isArray((value as Record<string, unknown>).epk_tracks); }

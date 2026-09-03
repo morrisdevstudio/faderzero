@@ -186,12 +186,6 @@ export async function publishEpkDraft(epkId: string, expectedRevision: number): 
   return toRecord(data[0] as Record<string, unknown>);
 }
 
-export async function setEpkStatus(epkId: string, status: EpkStatus): Promise<EpkRecord> {
-  const { data, error } = await supabase.from('epks').update({ status }).eq('id', epkId).select().single();
-  if (error) throw error;
-  return toRecord(data);
-}
-
 function toContact(row: Record<string, unknown>): EpkContact {
   const contact: EpkContact = { id: String(row.id), epkId: String(row.epk_id), name: String(row.name ?? ''), position: Number(row.position ?? 0) };
   if (typeof row.role === 'string' && row.role.trim()) contact.role = row.role.trim();
@@ -398,11 +392,6 @@ export async function deleteEpkHeroImage(epk: EpkRecord): Promise<EpkRecord> {
     delete next.featuredId;
     delete next.featuredType;
   }
-  if (next.status === 'PUBLISHED') {
-    await setEpkStatus(next.id, 'DRAFT');
-    next.status = 'DRAFT';
-  }
-
   const saved = await saveEpk(next);
   await deleteEpkAsset(assetId).catch(() => undefined);
   return saved;

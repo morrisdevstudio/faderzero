@@ -31,7 +31,18 @@ describe('EPK public worker', () => {
     const response = await worker.fetch(new Request('https://epk.example/unknown-group'), env);
 
     expect(response.status).toBe(200);
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('answers an explicit 404 when the slug exists but is not published', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => Response.json(String(input).includes('select=slug') ? [{ slug: 'kickedtoheaven' }] : []));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const response = await worker.fetch(new Request('https://faderzero.com/kickedtoheaven'), env);
+
+    expect(response.status).toBe(404);
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    expect(await response.text()).toContain('Page publique non publiée');
   });
 
   it('renders only published public fields and embeds videos directly', async () => {
