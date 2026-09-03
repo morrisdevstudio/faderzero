@@ -2,13 +2,14 @@ import { useEffect } from 'react';
 import { useLandingLanguage } from './i18n/landingContent';
 import { LandingHeader } from './components/LandingHeader';
 import { LandingHero } from './components/LandingHero';
+import { LandingFooter } from './components/LandingFooter';
+import { LandingPricing } from './components/LandingPricing';
+import { LandingNarrative } from './components/LandingNarrative';
 import { LandingOfflineBanner } from './components/LandingOfflineBanner';
 import { LandingFeaturesGrid } from './components/LandingFeaturesGrid';
 import { LandingInteractiveDemo } from './components/LandingInteractiveDemo';
 import { LandingUseCases } from './components/LandingUseCases';
 import { LandingFaq } from './components/LandingFaq';
-import { LandingFooter } from './components/LandingFooter';
-import { LandingPricing } from './components/LandingPricing';
 
 export function LandingPage() {
   const { lang, setLang, content } = useLandingLanguage();
@@ -28,23 +29,21 @@ export function LandingPage() {
 
       <main>
         {/* Hero with interactive preview */}
-        <LandingHero content={content} />
+        <LandingHero content={content} lang={lang} />
 
-        {/* Offline superpower banner */}
-        <LandingOfflineBanner content={content} />
-
-        {/* 6 Core Pillars Grid */}
-        <LandingFeaturesGrid content={content} />
-
-        {/* Live Interactive Sandbox */}
-        <LandingInteractiveDemo content={content} />
-
-        {/* Band and Artist Use Cases */}
-        <LandingUseCases content={content} />
+        {lang === 'fr' ? (
+          <LandingNarrative />
+        ) : (
+          <>
+            <LandingOfflineBanner content={content} />
+            <LandingFeaturesGrid content={content} />
+            <LandingInteractiveDemo content={content} />
+            <LandingUseCases content={content} />
+          </>
+        )}
 
         <LandingPricing content={content} />
 
-        {/* FAQ */}
         <LandingFaq content={content} />
       </main>
 

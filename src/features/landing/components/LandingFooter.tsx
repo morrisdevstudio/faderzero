@@ -36,25 +36,21 @@ export function LandingFooter({ content, currentLang, onSelectLang }: LandingFoo
             </h4>
             <ul className="space-y-2 text-xs font-bold text-white/70">
               <li>
+                <a href={currentLang === 'fr' ? '#workflow' : '#offline'} className="hover:text-white transition">
+                  Workflow
+                </a>
+              </li>
+              <li>
+                <a href={currentLang === 'fr' ? '#stage' : '#use-cases'} className="hover:text-white transition">
+                  {currentLang === 'fr' ? 'Sur scène' : 'On stage'}
+                </a>
+              </li>
+              <li>
                 <a href="#features" className="hover:text-white transition">
-                  {content.nav.setlists}
+                  {currentLang === 'fr' ? 'Fonctions' : 'Features'}
                 </a>
               </li>
-              <li>
-                <a href="#offline" className="hover:text-white transition">
-                  {content.nav.offline}
-                </a>
-              </li>
-              <li>
-                <a href="#demo" className="hover:text-white transition">
-                  {content.demo.tabs.prompter}
-                </a>
-              </li>
-              <li>
-                <a href="#faq" className="hover:text-white transition">
-                  {content.nav.faq}
-                </a>
-              </li>
+              <li><a href="#pricing" className="hover:text-white transition">{currentLang === 'fr' ? 'Tarifs' : 'Pricing'}</a></li>
               <li>
                 <a href={appUrl} className="text-rose-400 hover:text-rose-300 font-black transition">
                   → {content.footer.openApp}

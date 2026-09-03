@@ -1,0 +1,1181 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#090a0c" />
+  <meta name="description" content="FaderZero réunit morceaux, audio, setlists, calendrier, prompteur et métronome dans un espace pensé pour les groupes, la répétition et la scène." />
+  <title>FaderZero — Du premier riff au dernier rappel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter+Tight:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090a0c;
+      --bg-2: #0e1014;
+      --panel: #111319;
+      --panel-2: #171a21;
+      --text: #f5f0ea;
+      --muted: #a8afba;
+      --dim: #69717c;
+      --line: rgba(255,255,255,.10);
+      --line-strong: rgba(255,255,255,.18);
+      --accent: #ff3a63;
+      --accent-soft: #ff7a96;
+      --amber: #f7b955;
+      --sky: #59c7ff;
+      --green: #57dc8d;
+      --violet: #9e8cff;
+      --cyan: #4fe6df;
+      --max: 1180px;
+      --radius: 28px;
+      --shadow: 0 35px 100px rgba(0,0,0,.48);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; background: var(--bg); }
+    body {
+      margin: 0;
+      min-width: 320px;
+      color: var(--text);
+      background:
+        radial-gradient(900px 540px at 50% -80px, rgba(255,58,99,.10), transparent 68%),
+        var(--bg);
+      font-family: "Inter Tight", Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: 99;
+      pointer-events: none;
+      opacity: .035;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.7'/%3E%3C/svg%3E");
+      mix-blend-mode: soft-light;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    button { font: inherit; }
+    .wrap { width: min(calc(100% - 40px), var(--max)); margin: 0 auto; }
+    .mono { font-family: "DM Mono", ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+    .nav {
+      position: fixed;
+      z-index: 50;
+      top: 18px;
+      left: 0;
+      right: 0;
+    }
+    .nav-inner {
+      width: min(calc(100% - 28px), 980px);
+      margin: 0 auto;
+      min-height: 62px;
+      padding: 8px 10px 8px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border: 1px solid rgba(255,255,255,.11);
+      border-radius: 20px;
+      background: rgba(10,11,14,.72);
+      backdrop-filter: blur(22px) saturate(120%);
+      box-shadow: 0 18px 55px rgba(0,0,0,.25);
+    }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-logo { width: 96px; height: 40px; color: white; display: block; }
+    .nav-links { display: flex; align-items: center; gap: 6px; }
+    .nav-link {
+      padding: 11px 13px;
+      border-radius: 12px;
+      color: #b9bec6;
+      font-size: 14px;
+      font-weight: 650;
+      transition: .2s ease;
+    }
+    .nav-link:hover { background: rgba(255,255,255,.055); color: white; }
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      min-height: 46px;
+      padding: 0 18px;
+      border: 1px solid transparent;
+      border-radius: 14px;
+      font-weight: 800;
+      letter-spacing: -.01em;
+      transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease, background .2s ease;
+    }
+    .button:hover { transform: translateY(-1px); }
+    .button-primary {
+      color: white;
+      background: var(--accent);
+      box-shadow: 0 10px 30px rgba(255,58,99,.26);
+    }
+    .button-primary:hover { box-shadow: 0 14px 38px rgba(255,58,99,.36); }
+    .button-ghost {
+      color: #d9dde2;
+      border-color: var(--line);
+      background: rgba(255,255,255,.025);
+    }
+    .button-ghost:hover { border-color: var(--line-strong); background: rgba(255,255,255,.05); }
+
+    .hero {
+      position: relative;
+      min-height: 900px;
+      display: grid;
+      align-items: center;
+      padding: 150px 0 90px;
+      overflow: clip;
+    }
+    .hero::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      bottom: 0;
+      width: min(1200px, 100%);
+      height: 1px;
+      transform: translateX(-50%);
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.12), transparent);
+    }
+    .stage-beam {
+      position: absolute;
+      top: -300px;
+      left: 50%;
+      width: 760px;
+      height: 1200px;
+      transform: translateX(-5%) rotate(10deg);
+      background: linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,58,99,.035) 45%, transparent 80%);
+      clip-path: polygon(42% 0, 60% 0, 92% 100%, 5% 100%);
+      filter: blur(12px);
+      pointer-events: none;
+      opacity: .9;
+    }
+    .hero-grid {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: minmax(0, .92fr) minmax(460px, 1.08fr);
+      align-items: center;
+      gap: 54px;
+    }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      margin-bottom: 24px;
+      color: #b6bbc4;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+    .eyebrow::before {
+      content: "";
+      width: 26px;
+      height: 2px;
+      background: var(--accent);
+      box-shadow: 0 0 15px rgba(255,58,99,.75);
+    }
+    h1, h2, h3, p { margin-top: 0; }
+    .hero h1 {
+      max-width: 720px;
+      margin-bottom: 24px;
+      font-size: clamp(56px, 7vw, 94px);
+      line-height: .88;
+      letter-spacing: -.064em;
+      font-weight: 900;
+    }
+    .hero h1 .muted-line { color: #717680; }
+    .hero-copy {
+      max-width: 620px;
+      margin-bottom: 32px;
+      color: #b2b8c1;
+      font-size: 19px;
+      line-height: 1.58;
+      font-weight: 520;
+    }
+    .hero-actions { display: flex; flex-wrap: wrap; gap: 11px; }
+    .micro-trust {
+      margin-top: 28px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 18px;
+      color: #7d848e;
+      font: 500 11px/1.4 "DM Mono", monospace;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+    .micro-trust span { display: inline-flex; align-items: center; gap: 7px; }
+    .micro-trust i {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #6ee7a2;
+      box-shadow: 0 0 10px rgba(110,231,162,.6);
+    }
+
+    .device-stage {
+      position: relative;
+      min-height: 650px;
+      perspective: 1600px;
+    }
+    .orbit {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 600px;
+      height: 600px;
+      transform: translate(-50%, -47%);
+      border-radius: 50%;
+      background:
+        radial-gradient(circle, rgba(255,58,99,.13), rgba(255,58,99,.035) 43%, transparent 70%);
+      filter: blur(2px);
+    }
+    .device-shadow {
+      position: absolute;
+      left: 50%;
+      bottom: 38px;
+      width: 440px;
+      height: 90px;
+      transform: translateX(-50%);
+      border-radius: 50%;
+      background: rgba(0,0,0,.72);
+      filter: blur(25px);
+    }
+    .phone {
+      position: absolute;
+      width: 272px;
+      aspect-ratio: 9 / 19.2;
+      padding: 9px;
+      border-radius: 43px;
+      background: linear-gradient(145deg, #333842, #0c0d11 20%, #20242b 75%, #07080a);
+      border: 1px solid rgba(255,255,255,.19);
+      box-shadow:
+        inset 0 0 0 1px rgba(255,255,255,.06),
+        0 35px 80px rgba(0,0,0,.55);
+      transform-style: preserve-3d;
+    }
+    .phone::before {
+      content: "";
+      position: absolute;
+      z-index: 5;
+      left: 50%;
+      top: 16px;
+      width: 84px;
+      height: 22px;
+      transform: translateX(-50%);
+      border-radius: 20px;
+      background: #020203;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.03);
+    }
+    .phone-screen {
+      height: 100%;
+      overflow: hidden;
+      border-radius: 35px;
+      background:
+        radial-gradient(circle at 16% 12%, rgba(255,58,99,.09), transparent 25%),
+        linear-gradient(180deg,#12141a,#07080b 34%);
+      border: 1px solid rgba(255,255,255,.04);
+      position: relative;
+      padding: 39px 13px 13px;
+    }
+    .phone-left { left: 4%; top: 128px; transform: rotateY(18deg) rotateZ(-8deg) scale(.84); opacity: .68; }
+    .phone-main { left: 31%; top: 25px; z-index: 4; transform: rotateY(-5deg) rotateZ(2deg); }
+    .phone-right { right: -2%; top: 138px; transform: rotateY(-19deg) rotateZ(8deg) scale(.84); opacity: .74; }
+
+    .app-top {
+      height: 36px;
+      margin: -6px -3px 9px;
+      padding: 0 3px 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+    .app-wordmark { width: 72px; height: 30px; color: white; }
+    .group-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #c6cbd2;
+      font-size: 8px;
+      font-weight: 800;
+      letter-spacing: .04em;
+    }
+    .group-dot { width: 16px; height: 16px; display:grid; place-items:center; border-radius:50%; background:#24bfd4; color:#081013; font-size:6px; font-weight:900; }
+
+    .app-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 8px 1px 9px;
+    }
+    .app-title { font-size: 15px; font-weight: 900; letter-spacing: -.035em; }
+    .mini-add { width: 27px; height: 27px; display:grid; place-items:center; border-radius: 10px; color:white; background:var(--accent); font-weight:900; font-size:15px; box-shadow:0 6px 15px rgba(255,58,99,.26); }
+
+    .hero-song {
+      padding: 12px;
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 17px;
+      background: linear-gradient(145deg, rgba(255,255,255,.07), rgba(255,255,255,.015));
+      box-shadow: 0 12px 24px rgba(0,0,0,.18);
+    }
+    .hero-song-head, .song-line, .event-line { display:flex; align-items:center; justify-content:space-between; gap:9px; }
+    .workspace-name { display:flex; align-items:center; gap:6px; font-size:7px; font-weight:800; color:#dce0e4; }
+    .tiny-avatar { width:14px; height:14px; border-radius:50%; display:grid; place-items:center; background:#3a79ff; font-size:5px; font-weight:900; }
+    .timestamp { font-size:6px; color:#727a85; }
+    .hero-song-main { margin-top:10px; display:flex; gap:10px; align-items:center; }
+    .play {
+      flex: 0 0 auto;
+      width:34px; height:34px; border-radius:12px;
+      display:grid; place-items:center;
+      background:rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.10);
+      font-size:11px;
+    }
+    .song-name { font-size:12px; font-weight:900; line-height:1.1; }
+    .song-meta { margin-top:4px; color:#969da7; font-size:7px; }
+    .pill { display:inline-flex; align-items:center; padding:3px 6px; border-radius:99px; background:rgba(87,220,141,.12); color:#78eaa6; font-size:5.5px; font-weight:800; text-transform:uppercase; letter-spacing:.05em; }
+
+    .tool-title {
+      margin: 12px 0 7px;
+      color:#777f89;
+      font: 800 6.5px/1 "DM Mono", monospace;
+      letter-spacing:.12em;
+      text-transform: uppercase;
+    }
+    .tool-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:5px; }
+    .tool {
+      padding:7px 3px 6px;
+      display:flex; flex-direction:column; align-items:center; gap:4px;
+      border:1px solid rgba(255,255,255,.07);
+      border-radius:11px;
+      background:rgba(255,255,255,.025);
+      color:#c5cad1;
+      font-size:5.8px;
+      font-weight:700;
+    }
+    .tool-icon { width:24px; height:24px; border-radius:8px; display:grid; place-items:center; font-size:10px; }
+    .rose { color:#ff597a; background:rgba(255,58,99,.13); }
+    .amber { color:#f7bc5f; background:rgba(247,185,85,.13); }
+    .sky { color:#69cfff; background:rgba(89,199,255,.12); }
+    .green { color:#66df98; background:rgba(87,220,141,.12); }
+    .violet { color:#b1a2ff; background:rgba(158,140,255,.12); }
+    .cyan { color:#70e6e0; background:rgba(79,230,223,.11); }
+
+    .mini-section { margin-top:12px; }
+    .mini-section-head { margin-bottom:6px; display:flex; align-items:center; justify-content:space-between; }
+    .mini-section-head b { font-size:7px; text-transform:uppercase; letter-spacing:.08em; }
+    .mini-section-head span { font-size:6px; color:#7b838d; }
+    .event-line, .song-line {
+      margin-top:4px;
+      padding:7px 8px;
+      border:1px solid rgba(255,255,255,.06);
+      border-radius:10px;
+      background:rgba(255,255,255,.022);
+    }
+    .event-date { width:28px; color:#f8bd60; font-size:6px; font-weight:800; text-transform:uppercase; }
+    .line-main { min-width:0; flex:1; }
+    .line-main b { display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:7px; }
+    .line-main span { display:block; margin-top:2px; color:#777f89; font-size:5.5px; }
+    .line-side { color:#808893; font:500 5.5px "DM Mono", monospace; }
+
+    .bottom-nav {
+      position:absolute;
+      left:0; right:0; bottom:0;
+      min-height:52px;
+      padding:7px 9px 6px;
+      display:grid;
+      grid-template-columns:repeat(5,1fr);
+      align-items:end;
+      background:rgba(8,9,12,.96);
+      border-top:1px solid rgba(255,255,255,.08);
+      backdrop-filter:blur(12px);
+    }
+    .nav-item { text-align:center; color:#5f6670; font-size:5px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; }
+    .nav-item i { width:17px; height:17px; margin:0 auto 2px; border-radius:6px; display:grid; place-items:center; font-style:normal; font-size:8px; }
+    .nav-item.active { color:var(--accent); }
+    .record-dot { width:30px !important; height:30px !important; margin-top:-18px !important; border-radius:50% !important; background:#e53542; color:white; box-shadow:0 0 18px rgba(229,53,66,.5); border:2px solid #ff6872; }
+
+    .setlist-title { font-size: 13px; font-weight:900; margin-bottom:2px; }
+    .setlist-sub { font-size:6.5px; color:#87909b; }
+    .pink-action { margin:10px 0; padding:9px; border-radius:13px; text-align:center; background:var(--accent); font-size:7px; font-weight:900; box-shadow:0 8px 18px rgba(255,58,99,.24); }
+    .set-row {
+      position:relative;
+      margin-bottom:5px;
+      padding:9px 8px;
+      display:flex; align-items:center; gap:8px;
+      border:1px solid rgba(255,255,255,.07);
+      border-radius:11px;
+      background:#12151b;
+    }
+    .set-num { width:21px; height:21px; display:grid; place-items:center; border-radius:50%; background:rgba(255,255,255,.06); color:#b5bbc3; font:500 7px "DM Mono",monospace; }
+    .set-info { flex:1; min-width:0; }
+    .set-info b { display:block; font-size:7.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .set-info span { display:block; margin-top:3px; color:#7d858f; font-size:5.5px; }
+    .bpm { color:#f5bd62; font:500 5.5px "DM Mono",monospace; }
+    .transition-note { margin:-1px 0 4px 31px; color:#727985; font-size:5.5px; font-style:italic; }
+
+    .prompt-bar { display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,.08); padding-bottom:8px; color:#848c96; font-size:9px; }
+    .prompt-brand { text-align:center; }
+    .prompt-brand b { display:block; color:white; font-size:8px; letter-spacing:.12em; }
+    .prompt-brand span { display:block; margin-top:2px; font-size:5.5px; text-transform:uppercase; letter-spacing:.08em; }
+    .prompt-song { padding:10px 0 8px; text-align:center; border-bottom:1px solid rgba(255,255,255,.05); }
+    .prompt-song b { font-size:10px; }
+    .prompt-song span { display:block; margin-top:3px; color:#707985; font:500 6px "DM Mono",monospace; }
+    .lyrics { padding:13px 4px; text-align:center; }
+    .lyrics h5 { margin:11px 0 5px; color:#63df98; font-size:7px; }
+    .lyrics p { margin:0 0 4px; color:#f5f6f7; font-size:7.5px; line-height:1.28; font-weight:600; }
+
+    .signal {
+      position:absolute;
+      right:18px;
+      top:18px;
+      display:flex;
+      gap:2px;
+      align-items:end;
+    }
+    .signal span { width:2px; background:#67707b; border-radius:2px; }
+    .signal span:nth-child(1){height:4px}.signal span:nth-child(2){height:6px}.signal span:nth-child(3){height:8px}.signal span:nth-child(4){height:10px;background:#ff596f}
+
+    .section { padding: 112px 0; position:relative; }
+    .section-label {
+      margin-bottom: 18px;
+      color: #7b838e;
+      font: 500 11px/1.2 "DM Mono", monospace;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+    .section h2 {
+      max-width: 850px;
+      margin-bottom: 22px;
+      font-size: clamp(42px, 6vw, 76px);
+      line-height: .98;
+      letter-spacing: -.052em;
+      font-weight: 900;
+    }
+    .section-lead {
+      max-width: 670px;
+      color: #9da5af;
+      font-size: 18px;
+      line-height: 1.65;
+    }
+
+    .proof-strip {
+      border-bottom:1px solid var(--line);
+      background:#0b0c0f;
+    }
+    .proof-grid {
+      min-height: 118px;
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      align-items:center;
+    }
+    .proof {
+      min-height: 58px;
+      padding:0 28px;
+      display:flex; flex-direction:column; justify-content:center;
+      border-right:1px solid var(--line);
+    }
+    .proof:first-child { padding-left:0; }
+    .proof:last-child { border-right:0; }
+    .proof b { font-size:15px; letter-spacing:-.02em; }
+    .proof span { margin-top:6px; color:#6f7782; font:500 9px "DM Mono",monospace; text-transform:uppercase; letter-spacing:.07em; }
+
+    .workflow {
+      margin-top: 64px;
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+    }
+    .workflow-card {
+      min-height: 390px;
+      padding: 30px 28px;
+      position:relative;
+      overflow:hidden;
+      border-right:1px solid var(--line);
+      background:linear-gradient(180deg,rgba(255,255,255,.022),transparent);
+    }
+    .workflow-card:last-child { border-right:0; }
+    .workflow-num { color:#5c646f; font:500 10px "DM Mono",monospace; }
+    .workflow-card h3 { margin:80px 0 13px; font-size:32px; letter-spacing:-.04em; }
+    .workflow-card p { max-width:310px; color:#8f97a2; line-height:1.6; }
+    .wf-icon {
+      position:absolute;
+      right:-30px;
+      bottom:-30px;
+      width:180px; height:180px;
+      border:1px solid rgba(255,255,255,.07);
+      border-radius:50%;
+      display:grid;
+      place-items:center;
+      color:rgba(255,255,255,.14);
+      font:500 64px "DM Mono",monospace;
+      box-shadow:inset 0 0 50px rgba(255,255,255,.02);
+    }
+    .workflow-card:nth-child(2) .wf-icon { color:rgba(255,58,99,.22); border-color:rgba(255,58,99,.14); }
+    .workflow-card:nth-child(3) .wf-icon { color:rgba(247,185,85,.18); border-color:rgba(247,185,85,.12); }
+
+    .stage-section {
+      padding: 120px 0;
+      background:
+        radial-gradient(850px 580px at 74% 45%, rgba(255,58,99,.11), transparent 70%),
+        linear-gradient(180deg,#0a0b0e,#060709);
+      border-top:1px solid rgba(255,255,255,.05);
+      border-bottom:1px solid rgba(255,255,255,.07);
+      overflow:hidden;
+    }
+    .stage-grid {
+      display:grid;
+      grid-template-columns:.82fr 1.18fr;
+      align-items:center;
+      gap:80px;
+    }
+    .stage-copy h2 { font-size:clamp(48px,6vw,78px); line-height:.94; letter-spacing:-.055em; }
+    .stage-copy p { max-width:520px; color:#9fa6b0; font-size:18px; line-height:1.65; }
+    .stage-list { margin:32px 0 0; padding:0; list-style:none; }
+    .stage-list li { padding:15px 0; display:flex; gap:12px; border-bottom:1px solid rgba(255,255,255,.08); color:#cbd0d6; font-size:14px; }
+    .stage-list b { width:24px; color:var(--accent); font:500 10px "DM Mono",monospace; }
+
+    .stage-devices {
+      position:relative;
+      min-height:630px;
+    }
+    .stage-devices .phone { width:286px; }
+    .stage-prompt { left:15%; top:22px; z-index:3; transform:rotate(-4deg); }
+    .stage-metro { right:3%; top:118px; transform:rotate(7deg) scale(.92); opacity:.82; }
+    .metro-screen { padding-top:42px; }
+    .metro-title { margin-top:8px; display:flex; align-items:center; justify-content:space-between; }
+    .metro-title b { font-size:11px; }
+    .metro-title span { color:#818a95; font-size:6px; }
+    .tempo-card { margin:12px 0; padding:12px; border-radius:16px; border:1px solid rgba(255,255,255,.08); background:#14171d; }
+    .tempo-head { display:flex; align-items:center; justify-content:space-between; }
+    .tempo-number { font:500 31px "DM Mono",monospace; }
+    .tempo-number small { color:#777f8a; font-size:6px; }
+    .metro-play { width:39px; height:39px; border-radius:50%; display:grid; place-items:center; background:#f5b847; color:#17120a; font-size:10px; box-shadow:0 0 20px rgba(245,184,71,.28); }
+    .beat-grid { margin-top:10px; display:grid; grid-template-columns:repeat(4,1fr); gap:4px; }
+    .beat-grid i { height:6px; border-radius:4px; background:rgba(255,255,255,.08); }
+    .beat-grid i:first-child { background:#f5b847; box-shadow:0 0 10px rgba(245,184,71,.5); }
+    .metro-row { margin-bottom:5px; padding:8px; border-radius:10px; display:flex; justify-content:space-between; align-items:center; background:#12151b; border:1px solid rgba(255,255,255,.06); }
+    .metro-row.active { border-color:rgba(245,184,71,.6); }
+    .metro-row b { font-size:7px; }
+    .metro-row span { color:#f2bb5d; font:500 5.8px "DM Mono",monospace; }
+
+    .offline-grid {
+      margin-top: 60px;
+      display:grid;
+      grid-template-columns:1.08fr .92fr;
+      min-height:560px;
+      border:1px solid var(--line);
+      border-radius:30px;
+      overflow:hidden;
+      background:var(--panel);
+      box-shadow:var(--shadow);
+    }
+    .offline-visual {
+      position:relative;
+      overflow:hidden;
+      background:
+        radial-gradient(circle at 24% 32%, rgba(255,58,99,.12), transparent 34%),
+        linear-gradient(145deg,#11141a,#08090c);
+    }
+    .offline-visual::before {
+      content:"";
+      position:absolute;
+      inset:0;
+      opacity:.33;
+      background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);
+      background-size:28px 28px;
+    }
+    .sync-card {
+      position:absolute;
+      left:50%; top:50%;
+      width:min(76%,440px);
+      transform:translate(-50%,-50%);
+      padding:22px;
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:22px;
+      background:rgba(14,16,21,.82);
+      backdrop-filter:blur(20px);
+      box-shadow:0 28px 65px rgba(0,0,0,.42);
+    }
+    .sync-head { display:flex; align-items:center; justify-content:space-between; gap:16px; padding-bottom:16px; border-bottom:1px solid var(--line); }
+    .sync-head b { font-size:16px; }
+    .offline-badge { padding:6px 9px; border-radius:99px; color:#ff8398; background:rgba(255,58,99,.11); font:500 8px "DM Mono",monospace; text-transform:uppercase; }
+    .sync-item { margin-top:14px; display:flex; align-items:center; gap:11px; }
+    .sync-icon { width:34px; height:34px; border-radius:11px; display:grid; place-items:center; background:rgba(255,255,255,.055); color:#aeb4bc; font-size:13px; }
+    .sync-item b { display:block; font-size:11px; }
+    .sync-item span { display:block; margin-top:2px; color:#6f7781; font-size:9px; }
+    .sync-status { margin-left:auto; color:#65df98 !important; font:500 8px "DM Mono",monospace; }
+    .offline-copy { padding:64px 58px; display:flex; flex-direction:column; justify-content:center; }
+    .offline-copy h3 { font-size:43px; line-height:1; letter-spacing:-.045em; margin-bottom:18px; }
+    .offline-copy p { color:#949ca6; font-size:17px; line-height:1.65; }
+    .offline-note { margin-top:25px; color:#646c77; font:500 9px/1.7 "DM Mono",monospace; text-transform:uppercase; letter-spacing:.07em; }
+
+    .feature-grid {
+      margin-top:58px;
+      display:grid;
+      grid-template-columns:repeat(12,1fr);
+      gap:12px;
+    }
+    .feature {
+      min-height:230px;
+      padding:24px;
+      position:relative;
+      overflow:hidden;
+      border:1px solid var(--line);
+      border-radius:22px;
+      background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.015));
+    }
+    .feature:nth-child(1), .feature:nth-child(4) { grid-column:span 7; }
+    .feature:nth-child(2), .feature:nth-child(3) { grid-column:span 5; }
+    .feature:nth-child(5), .feature:nth-child(6), .feature:nth-child(7) { grid-column:span 4; min-height:210px; }
+    .feature-icon { width:42px; height:42px; margin-bottom:38px; border-radius:13px; display:grid; place-items:center; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.07); color:white; font:500 16px "DM Mono",monospace; }
+    .feature h3 { margin-bottom:8px; font-size:23px; letter-spacing:-.035em; }
+    .feature p { max-width:430px; margin:0; color:#838b96; line-height:1.58; font-size:14px; }
+    .feature .corner {
+      position:absolute; right:20px; top:18px;
+      color:#59616b; font:500 8px "DM Mono",monospace;
+      letter-spacing:.08em; text-transform:uppercase;
+    }
+
+    .epk {
+      padding:120px 0;
+      position:relative;
+      overflow:hidden;
+      border-top:1px solid var(--line);
+    }
+    .epk-grid { display:grid; grid-template-columns:.8fr 1.2fr; gap:70px; align-items:center; }
+    .epk-copy h2 { font-size:clamp(42px,6vw,70px); line-height:.98; letter-spacing:-.05em; }
+    .epk-copy p { color:#959da8; font-size:17px; line-height:1.65; }
+    .browser {
+      position:relative;
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,.14);
+      border-radius:24px;
+      background:#0d0f13;
+      box-shadow:0 35px 90px rgba(0,0,0,.45);
+      transform:rotate(1.8deg);
+    }
+    .browser-bar { height:42px; display:flex; align-items:center; gap:7px; padding:0 13px; border-bottom:1px solid var(--line); background:#121419; }
+    .browser-bar i { width:8px; height:8px; border-radius:50%; background:#3a3f48; }
+    .address { margin-left:8px; width:48%; height:19px; border-radius:7px; background:rgba(255,255,255,.045); }
+    .epk-hero { min-height:320px; padding:54px; display:flex; flex-direction:column; justify-content:end; background:radial-gradient(circle at 65% 20%,rgba(255,58,99,.18),transparent 27%),linear-gradient(140deg,#181b22,#090a0c 58%); }
+    .epk-kicker { color:#ff6a86; font:500 8px "DM Mono",monospace; text-transform:uppercase; letter-spacing:.13em; }
+    .epk-name { margin:11px 0 5px; font-size:48px; line-height:.9; font-weight:900; letter-spacing:-.055em; }
+    .epk-sub { color:#858d98; font-size:12px; }
+    .epk-links { margin-top:22px; display:flex; gap:7px; }
+    .epk-link { padding:8px 10px; border-radius:8px; background:white; color:#101216; font-size:7px; font-weight:900; }
+    .epk-link.alt { color:#cbd0d6; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.08); }
+
+    .final {
+      padding: 150px 0 110px;
+      text-align:center;
+      position:relative;
+      overflow:hidden;
+    }
+    .final::before {
+      content:"";
+      position:absolute;
+      left:50%; top:35px;
+      width:700px; height:440px;
+      transform:translateX(-50%);
+      background:radial-gradient(circle,rgba(255,58,99,.15),transparent 67%);
+      pointer-events:none;
+    }
+    .final .section-label { position:relative; }
+    .final h2 { position:relative; max-width:900px; margin:0 auto 24px; font-size:clamp(52px,7vw,94px); line-height:.9; letter-spacing:-.06em; }
+    .final p { position:relative; max-width:640px; margin:0 auto 31px; color:#969ea8; font-size:18px; line-height:1.6; }
+    .final-actions { position:relative; display:flex; justify-content:center; flex-wrap:wrap; gap:10px; }
+
+    footer { border-top:1px solid var(--line); }
+    .footer-inner { min-height:110px; display:flex; align-items:center; justify-content:space-between; gap:30px; color:#646c77; font-size:12px; }
+    .footer-brand { display:flex; align-items:center; gap:14px; color:#9299a2; }
+    .footer-brand .brand-logo { width:78px; height:auto; color:#777f89; }
+    .footer-links { display:flex; gap:20px; }
+    .footer-links a:hover { color:white; }
+
+    [data-reveal] { opacity:0; transform:translateY(20px); transition:opacity .65s ease, transform .65s cubic-bezier(.2,.7,.2,1); }
+    [data-reveal].is-visible { opacity:1; transform:none; }
+
+    @media (max-width: 980px) {
+      .nav-links .nav-link { display:none; }
+      .hero { min-height:auto; padding-top:140px; }
+      .hero-grid { grid-template-columns:1fr; gap:30px; }
+      .hero-copy { max-width:680px; }
+      .device-stage { min-height:640px; max-width:660px; width:100%; margin:0 auto; }
+      .proof-grid { grid-template-columns:1fr 1fr; }
+      .proof { padding:20px 24px; border-bottom:1px solid var(--line); }
+      .proof:nth-child(2){border-right:0}
+      .proof:nth-child(3),.proof:nth-child(4){border-bottom:0}
+      .workflow { grid-template-columns:1fr; }
+      .workflow-card { min-height:300px; border-right:0; border-bottom:1px solid var(--line); }
+      .workflow-card:last-child{border-bottom:0}
+      .workflow-card h3 { margin-top:55px; }
+      .stage-grid, .epk-grid { grid-template-columns:1fr; }
+      .stage-devices { max-width:650px; width:100%; margin:0 auto; }
+      .offline-grid { grid-template-columns:1fr; }
+      .offline-visual { min-height:440px; }
+      .offline-copy { padding:48px 40px; }
+      .feature:nth-child(n) { grid-column:span 6; }
+      .feature:nth-child(7) { grid-column:span 12; }
+    }
+
+    @media (max-width: 680px) {
+      .wrap { width:min(calc(100% - 28px), var(--max)); }
+      .nav { top:10px; }
+      .nav-inner { min-height:56px; padding-left:13px; border-radius:17px; }
+      .brand-logo { width:78px; height:auto; }
+      .nav .button { min-height:40px; padding:0 13px; font-size:12px; }
+      .hero { padding:120px 0 60px; }
+      .hero h1 { font-size:clamp(50px,16vw,70px); }
+      .hero-copy { font-size:17px; }
+      .hero-actions .button { width:100%; }
+      .micro-trust { gap:9px 14px; }
+      .device-stage { min-height:555px; margin-top:10px; transform:scale(.9); transform-origin:top center; width:111%; margin-left:-5.5%; }
+      .phone { width:248px; }
+      .phone-left { left:-8%; }
+      .phone-main { left:27%; }
+      .phone-right { right:-13%; }
+      .proof-grid { grid-template-columns:1fr; }
+      .proof { padding:20px 4px; border-right:0; border-bottom:1px solid var(--line) !important; }
+      .proof:last-child{border-bottom:0!important}
+      .section { padding:84px 0; }
+      .section h2 { font-size:clamp(42px,13vw,62px); }
+      .section-lead { font-size:16px; }
+      .workflow { margin-top:42px; }
+      .workflow-card { padding:24px 20px; }
+      .stage-section { padding:90px 0 60px; }
+      .stage-grid { gap:30px; }
+      .stage-copy h2 { font-size:clamp(46px,14vw,68px); }
+      .stage-copy p { font-size:16px; }
+      .stage-devices { min-height:555px; transform:scale(.86); transform-origin:top center; width:116%; margin-left:-8%; }
+      .stage-prompt { left:5%; }
+      .stage-metro { right:-8%; }
+      .offline-grid { margin-top:40px; }
+      .offline-visual { min-height:390px; }
+      .sync-card { width:86%; padding:17px; }
+      .offline-copy { padding:38px 24px; }
+      .offline-copy h3 { font-size:37px; }
+      .feature-grid { grid-template-columns:1fr; }
+      .feature:nth-child(n) { grid-column:auto; min-height:210px; }
+      .epk { padding:90px 0; }
+      .epk-grid { gap:40px; }
+      .browser { transform:none; }
+      .epk-hero { min-height:280px; padding:28px; }
+      .epk-name { font-size:39px; }
+      .final { padding:110px 0 80px; }
+      .final h2 { font-size:clamp(50px,15vw,74px); }
+      .final-actions .button { width:100%; }
+      .footer-inner { padding:28px 0; flex-direction:column; align-items:flex-start; }
+      .footer-links { flex-wrap:wrap; gap:12px 18px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior:auto; }
+      *, *::before, *::after { animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; }
+      [data-reveal] { opacity:1; transform:none; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav" aria-label="Navigation principale">
+    <div class="nav-inner">
+      <a class="brand" href="#top" aria-label="FaderZero — accueil">
+        <svg class="brand-logo" viewBox="0 0 96 40" fill="currentColor" aria-hidden="true">
+          <rect x="4" y="0" width="2" height="40" rx=".5"/>
+          <rect x="0" y="10" width="10" height="12" rx="1.5"/>
+          <text x="16" y="17" textLength="76" lengthAdjust="spacing" font-family="Inter Tight, sans-serif" font-weight="900" font-size="16">FADER</text>
+          <text x="16" y="35" textLength="76" lengthAdjust="spacing" font-family="Inter Tight, sans-serif" font-weight="900" font-size="16">ZERO</text>
+        </svg>
+      </a>
+      <div class="nav-links">
+        <a class="nav-link" href="#workflow">Workflow</a>
+        <a class="nav-link" href="#stage">Sur scène</a>
+        <a class="nav-link" href="#features">Fonctions</a>
+        <a class="button button-primary" href="https://fader.pages.dev/?view=app">Ouvrir l’app <span aria-hidden="true">↗</span></a>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <section class="hero" id="top">
+      <div class="stage-beam"></div>
+      <div class="wrap hero-grid">
+        <div class="hero-content" data-reveal>
+          <div class="eyebrow">L’espace de travail du groupe</div>
+          <h1>Du premier riff<br><span class="muted-line">au dernier rappel.</span></h1>
+          <p class="hero-copy">Morceaux, audio, setlists, calendrier, prompteur et métronome dans un seul espace pensé pour la répétition et la scène — même quand le réseau décroche.</p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="https://fader.pages.dev/?view=app">Essayer FaderZero <span aria-hidden="true">→</span></a>
+            <a class="button button-ghost" href="#workflow">Découvrir le workflow</a>
+          </div>
+          <div class="micro-trust" aria-label="Points clés">
+            <span><i></i> Offline-first</span>
+            <span><i></i> PWA mobile</span>
+            <span><i></i> Espace partagé</span>
+          </div>
+        </div>
+
+        <div class="device-stage" aria-label="Aperçus de l'interface FaderZero" data-reveal>
+          <div class="orbit"></div>
+          <div class="device-shadow"></div>
+
+          <div class="phone phone-left" aria-hidden="true">
+            <div class="phone-screen">
+              <div class="app-top">
+                <svg class="app-wordmark" viewBox="0 0 96 40" fill="currentColor">
+                  <rect x="4" y="0" width="2" height="40"/><rect x="0" y="10" width="10" height="12" rx="1.5"/>
+                  <text x="16" y="17" textLength="76" font-family="Inter Tight,sans-serif" font-weight="900" font-size="16">FADER</text>
+                  <text x="16" y="35" textLength="76" font-family="Inter Tight,sans-serif" font-weight="900" font-size="16">ZERO</text>
+                </svg>
+                <div class="group-badge"><span class="group-dot">ND</span>NIGHT DRIVE</div>
+              </div>
+              <div class="app-title-row">
+                <div><div class="setlist-title">Live — Nantes</div><div class="setlist-sub">7 morceaux · 31:40</div></div>
+                <div style="color:#7c858f;font-size:10px">•••</div>
+              </div>
+              <div class="pink-action">+ Ajouter des morceaux</div>
+              <div class="set-row"><div class="set-num">1</div><div class="set-info"><b>Last Call</b><span>Mi mineur · 04:12</span></div><div class="bpm">128 BPM</div></div>
+              <div class="transition-note">Intro batterie → départ direct</div>
+              <div class="set-row"><div class="set-num">2</div><div class="set-info"><b>Blackout</b><span>Ré · 03:38</span></div><div class="bpm">142 BPM</div></div>
+              <div class="transition-note">Pas de blanc</div>
+              <div class="set-row"><div class="set-num">3</div><div class="set-info"><b>Runaway Lights</b><span>La · 04:05</span></div><div class="bpm">116 BPM</div></div>
+              <div class="set-row"><div class="set-num">4</div><div class="set-info"><b>No Signal</b><span>Do# · 03:47</span></div><div class="bpm">136 BPM</div></div>
+              <div class="bottom-nav">
+                <div class="nav-item"><i>⌂</i>Accueil</div>
+                <div class="nav-item"><i>□</i>Agenda</div>
+                <div class="nav-item"><i class="record-dot">●</i></div>
+                <div class="nav-item"><i>♫</i>Morceaux</div>
+                <div class="nav-item active"><i>≡</i>Setlist</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="phone phone-main">
+            <div class="phone-screen">
+              <div class="signal"><span></span><span></span><span></span><span></span></div>
+              <div class="app-top">
+                <svg class="app-wordmark" viewBox="0 0 96 40" fill="currentColor" aria-hidden="true">
+                  <rect x="4" y="0" width="2" height="40"/><rect x="0" y="10" width="10" height="12" rx="1.5"/>
+                  <text x="16" y="17" textLength="76" font-family="Inter Tight,sans-serif" font-weight="900" font-size="16">FADER</text>
+                  <text x="16" y="35" textLength="76" font-family="Inter Tight,sans-serif" font-weight="900" font-size="16">ZERO</text>
+                </svg>
+                <div class="group-badge"><span class="group-dot">ND</span>NIGHT DRIVE</div>
+              </div>
+
+              <div class="app-title-row"><div class="app-title">Accueil</div></div>
+
+              <div class="hero-song">
+                <div class="hero-song-head">
+                  <div class="workspace-name"><span class="tiny-avatar">ND</span>Night Drive</div>
+                  <div class="timestamp">Il y a 12 min</div>
+                </div>
+                <div class="hero-song-main">
+                  <div class="play">▶</div>
+                  <div style="min-width:0;flex:1"><div class="song-name">No Signal</div><div class="song-meta"><span style="color:#f6be64">136 BPM</span> · Do# · 03:47</div></div>
+                  <span class="pill">Prêt</span>
+                </div>
+              </div>
+
+              <div class="tool-title">Fonctions & outils</div>
+              <div class="tool-grid">
+                <div class="tool"><div class="tool-icon rose">●</div><span>Enregistrer</span></div>
+                <div class="tool"><div class="tool-icon amber">⌁</div><span>Métronome</span></div>
+                <div class="tool"><div class="tool-icon sky">▤</div><span>Prompteur</span></div>
+                <div class="tool"><div class="tool-icon green">＋</div><span>Nouveau</span></div>
+                <div class="tool"><div class="tool-icon violet">♫</div><span>Morceaux</span></div>
+                <div class="tool"><div class="tool-icon rose">≡</div><span>Setlists</span></div>
+                <div class="tool"><div class="tool-icon cyan">□</div><span>Calendrier</span></div>
+                <div class="tool"><div class="tool-icon sky">↗</div><span>EPK</span></div>
+              </div>
+
+              <div class="mini-section">
+                <div class="mini-section-head"><b>Prochainement</b><span>Voir tout</span></div>
+                <div class="event-line"><div class="event-date">SAM<br>12</div><div class="line-main"><b>Répétition générale</b><span>Studio B · 19:30</span></div><div class="line-side">2j</div></div>
+                <div class="event-line"><div class="event-date" style="color:#ff6681">VEN<br>18</div><div class="line-main"><b>Live — Le Ferrailleur</b><span>Balance · 17:45</span></div><div class="line-side">8j</div></div>
+              </div>
+
+              <div class="mini-section">
+                <div class="mini-section-head"><b>Derniers morceaux</b><span>6 titres</span></div>
+                <div class="song-line"><div class="line-main"><b>Blackout</b><span>Master 03 · hier</span></div><div class="line-side">142</div></div>
+              </div>
+
+              <div class="bottom-nav">
+                <div class="nav-item active"><i>⌂</i>Accueil</div>
+                <div class="nav-item"><i>□</i>Agenda</div>
+                <div class="nav-item"><i class="record-dot">●</i></div>
+                <div class="nav-item"><i>♫</i>Morceaux</div>
+                <div class="nav-item"><i>≡</i>Setlist</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="phone phone-right" aria-hidden="true">
+            <div class="phone-screen">
+              <div class="prompt-bar"><span>×</span><div class="prompt-brand"><b>FADERZERO</b><span>Prompteur · Night Drive</span></div><span>⛶</span></div>
+              <div class="prompt-song"><b>No Signal</b><span>136 BPM · 03:47 · C#</span></div>
+              <div class="lyrics">
+                <h5>Couplet</h5>
+                <p>La salle s’éteint, les amplis grondent</p>
+                <p>On compte quatre et tout s’effondre</p>
+                <p>Plus rien à suivre que le tempo</p>
+                <p>Et la lumière au bord du plateau</p>
+                <h5>Refrain</h5>
+                <p>Pas de signal, pas de détour</p>
+                <p>On joue plus fort jusqu’au retour</p>
+                <p>Les yeux devant, le son dans l’air</p>
+                <p>On sait exactement quoi faire</p>
+              </div>
+              <div style="position:absolute;left:13px;right:13px;bottom:18px;display:flex;justify-content:space-between;color:#6f7781;font-size:7px"><span>← Précédent</span><span style="color:white">Suivant →</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="proof-strip" aria-label="Caractéristiques essentielles">
+      <div class="wrap proof-grid">
+        <div class="proof"><b>Pensé mobile</b><span>PWA mobile-first</span></div>
+        <div class="proof"><b>Joue sans réseau</b><span>Audio & données en cache</span></div>
+        <div class="proof"><b>Conçu pour un groupe</b><span>Espaces, rôles, invitations</span></div>
+        <div class="proof"><b>Du local au cloud</b><span>Sync quand ça revient</span></div>
+      </div>
+    </section>
+
+    <section class="section" id="workflow">
+      <div class="wrap">
+        <div class="section-label">01 — Le workflow</div>
+        <h2 data-reveal>Une app qui suit le groupe. Pas l’inverse.</h2>
+        <p class="section-lead" data-reveal>FaderZero rassemble ce qui finit d’habitude dans six apps, trois conversations et un dossier Drive. Le morceau reste le point central, de l’idée brute jusqu’à la scène.</p>
+
+        <div class="workflow" data-reveal>
+          <article class="workflow-card">
+            <div class="workflow-num">01 / CAPTURE</div>
+            <h3>Enregistre l’idée.</h3>
+            <p>Un mémo vocal au milieu de la répétition. Il reste attaché au bon morceau, avec les notes, le BPM, la tonalité et les paroles.</p>
+            <div class="wf-icon">REC</div>
+          </article>
+          <article class="workflow-card">
+            <div class="workflow-num">02 / PRÉPARE</div>
+            <h3>Construis le set.</h3>
+            <p>Réordonne les titres, note les transitions, garde les pistes utiles à portée de main et prépare la soirée sans multiplier les fichiers.</p>
+            <div class="wf-icon">≡</div>
+          </article>
+          <article class="workflow-card">
+            <div class="workflow-num">03 / JOUE</div>
+            <h3>Passe en mode scène.</h3>
+            <p>Prompteur plein écran, métronome, Tap Tempo et contenu disponible hors connexion. Sur scène, l’outil s’efface derrière le concert.</p>
+            <div class="wf-icon">▶</div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="stage-section" id="stage">
+      <div class="wrap stage-grid">
+        <div class="stage-copy" data-reveal>
+          <div class="section-label">02 — Live mode</div>
+          <h2>Sur scène,<br>zéro friction.</h2>
+          <p>Les outils utiles au concert sont lisibles, directs et accessibles en quelques secondes. Pas de tableau de bord à administrer pendant que le public attend.</p>
+          <ul class="stage-list">
+            <li><b>01</b> Prompteur plein écran avec informations du morceau</li>
+            <li><b>02</b> Métronome et Tap Tempo directement dans l’app</li>
+            <li><b>03</b> Setlists annotées et réordonnables</li>
+            <li><b>04</b> Pistes téléchargées lisibles sans réseau</li>
+          </ul>
+        </div>
+
+        <div class="stage-devices" data-reveal>
+          <div class="orbit"></div>
+          <div class="phone stage-prompt">
+            <div class="phone-screen">
+              <div class="prompt-bar"><span>×</span><div class="prompt-brand"><b>FADERZERO</b><span>Prompteur · Night Drive</span></div><span>⛶</span></div>
+              <div class="prompt-song"><b>Last Call</b><span>128 BPM · 04:12 · Em</span></div>
+              <div class="lyrics" style="padding-top:18px">
+                <h5>Intro</h5>
+                <p style="color:#7d858f">8 mesures · batterie seule</p>
+                <h5>Couplet</h5>
+                <p>Les néons tombent sur la route</p>
+                <p>Le dernier verre chasse le doute</p>
+                <p>On entend déjà les amplis</p>
+                <p>Rappeler tout ce qu’on s’est dit</p>
+                <h5>Refrain</h5>
+                <p>One last call before we go</p>
+                <p>Turn it up and steal the show</p>
+                <p>One more night, one more wall</p>
+                <p>We’re still here for the last call</p>
+              </div>
+              <div style="position:absolute;left:13px;right:13px;bottom:18px;display:flex;justify-content:space-between;color:#6f7781;font-size:7px"><span>← Blackout</span><span style="color:white">No Signal →</span></div>
+            </div>
+          </div>
+
+          <div class="phone stage-metro">
+            <div class="phone-screen metro-screen">
+              <div class="prompt-bar"><span>×</span><div class="prompt-brand"><b>FADERZERO</b><span>Métronome · Set live</span></div><span>⛶</span></div>
+              <div class="metro-title"><b>Live — Nantes</b><span>7 morceaux</span></div>
+              <div class="tempo-card">
+                <div class="tempo-head">
+                  <div class="tempo-number">128 <small>BPM</small></div>
+                  <div class="metro-play">▶</div>
+                  <div class="mono" style="font-size:13px;font-weight:500">4/4</div>
+                </div>
+                <div class="beat-grid"><i></i><i></i><i></i><i></i></div>
+              </div>
+              <div class="metro-row active"><b>1 · Last Call</b><span>128 BPM</span></div>
+              <div class="metro-row"><b>2 · Blackout</b><span>142 BPM</span></div>
+              <div class="metro-row"><b>3 · Runaway Lights</b><span>116 BPM</span></div>
+              <div class="metro-row"><b>4 · No Signal</b><span>136 BPM</span></div>
+              <div class="metro-row"><b>5 · Paper Crown</b><span>124 BPM</span></div>
+              <div style="margin-top:11px;padding:9px;border-radius:11px;border:1px solid rgba(255,255,255,.07);text-align:center;color:#8d959e;font-size:7px">TAP TEMPO</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="offline">
+      <div class="wrap">
+        <div class="section-label">03 — Offline first</div>
+        <h2 data-reveal>Quand le réseau lâche,<br>le groupe continue.</h2>
+        <p class="section-lead" data-reveal>Les données métier vivent aussi sur l’appareil. Les changements attendent la connexion suivante et les pistes mises en cache restent disponibles.</p>
+
+        <div class="offline-grid" data-reveal>
+          <div class="offline-visual">
+            <div class="sync-card">
+              <div class="sync-head">
+                <b>Prêt pour la scène</b>
+                <span class="offline-badge">Hors ligne</span>
+              </div>
+              <div class="sync-item"><div class="sync-icon">♫</div><div><b>Setlist — Live Nantes</b><span>7 morceaux disponibles</span></div><span class="sync-status">LOCAL</span></div>
+              <div class="sync-item"><div class="sync-icon">▶</div><div><b>Pistes audio</b><span>5 fichiers téléchargés</span></div><span class="sync-status">OK</span></div>
+              <div class="sync-item"><div class="sync-icon">▤</div><div><b>Paroles & notes</b><span>Dernière synchro 18:42</span></div><span class="sync-status">OK</span></div>
+              <div class="sync-item"><div class="sync-icon">↻</div><div><b>Modifications</b><span>2 changements en attente</span></div><span style="margin-left:auto;color:#f7bd61;font:500 8px 'DM Mono',monospace">QUEUE</span></div>
+            </div>
+          </div>
+          <div class="offline-copy">
+            <h3>La connexion devient une option, pas une condition.</h3>
+            <p>Répète dans une cave, joue dans une salle saturée, prépare un set dans le train. FaderZero garde le nécessaire localement et synchronise les changements dès que possible.</p>
+            <div class="offline-note">Données locales · File de synchronisation · Audio en cache · Transfert QR</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="features">
+      <div class="wrap">
+        <div class="section-label">04 — Tout au même endroit</div>
+        <h2 data-reveal>Moins d’outils.<br>Plus de musique.</h2>
+        <p class="section-lead" data-reveal>Chaque fonction a une raison d’être dans le flux réel d’un groupe. Rien n’est là pour remplir une fiche produit.</p>
+
+        <div class="feature-grid">
+          <article class="feature" data-reveal>
+            <span class="corner">Répertoire</span><div class="feature-icon rose">♫</div>
+            <h3>Morceaux & paroles</h3>
+            <p>Statut, tonalité, BPM, durée, notes et paroles restent regroupés autour du morceau, avec l’audio qui va avec.</p>
+          </article>
+          <article class="feature" data-reveal>
+            <span class="corner">Audio</span><div class="feature-icon amber">▶</div>
+            <h3>Pistes & mémos</h3>
+            <p>Importe, compresse, écoute et télécharge les pistes utiles. Capture aussi une idée vocale sans casser le rythme de la répétition.</p>
+          </article>
+          <article class="feature" data-reveal>
+            <span class="corner">Live</span><div class="feature-icon sky">▤</div>
+            <h3>Prompteur</h3>
+            <p>Un affichage dédié à la scène pour les paroles et les infos essentielles du morceau.</p>
+          </article>
+          <article class="feature" data-reveal>
+            <span class="corner">Préparation</span><div class="feature-icon rose">≡</div>
+            <h3>Setlists</h3>
+            <p>Crée, réordonne et annote tes sets. Exporte-les en PDF quand il faut les partager hors de l’app.</p>
+          </article>
+          <article class="feature" data-reveal>
+            <span class="corner">Timing</span><div class="feature-icon amber">⌁</div>
+            <h3>Métronome</h3>
+            <p>Tempo, Tap Tempo et accès direct depuis le workflow de répétition ou de scène.</p>
+          </article>
+          <article class="feature" data-reveal>
+            <span class="corner">Équipe</span><div class="feature-icon green">◎</div>
+            <h3>Collaboration</h3>
+            <p>Espaces partagés, rôles et invitations pour que tout le groupe travaille sur la même base.</p>
+          </article>
+          <article class="feature" data-reveal>
+            <span class="corner">Agenda</span><div class="feature-icon cyan">□</div>
+            <h3>Répètes & concerts</h3>
+            <p>Planifie les événements du groupe sans séparer l’agenda du reste de la préparation musicale.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="epk" id="epk">
+      <div class="wrap epk-grid">
+        <div class="epk-copy" data-reveal>
+          <div class="section-label">05 — Côté pro</div>
+          <h2>Et quand il faut se présenter, le groupe est déjà prêt.</h2>
+          <p>FaderZero permet aussi de publier un EPK public : un lien propre pour envoyer bio, musique, médias, informations professionnelles et contact.</p>
+          <a class="button button-ghost" href="https://fader.pages.dev/?view=app" style="margin-top:16px">Créer l’espace du groupe <span aria-hidden="true">→</span></a>
+        </div>
+
+        <div class="browser" data-reveal aria-label="Aperçu d'un EPK public">
+          <div class="browser-bar"><i></i><i></i><i></i><div class="address"></div></div>
+          <div class="epk-hero">
+            <div class="epk-kicker">Electronic press kit</div>
+            <div class="epk-name">NIGHT<br>DRIVE</div>
+            <div class="epk-sub">Rock · Nantes, FR · Booking 2026</div>
+            <div class="epk-links"><span class="epk-link">ÉCOUTER</span><span class="epk-link alt">FICHE TECHNIQUE</span><span class="epk-link alt">CONTACT</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="final">
+      <div class="wrap">
+        <div class="section-label">FaderZero</div>
+        <h2 data-reveal>Le groupe dans la poche.<br>Le concert dans la tête.</h2>
+        <p data-reveal>Un espace clair pour écrire, répéter, préparer et jouer. Conçu pour être utile quand ça compte vraiment.</p>
+        <div class="final-actions" data-reveal>
+          <a class="button button-primary" href="https://fader.pages.dev/?view=app">Ouvrir FaderZero <span aria-hidden="true">↗</span></a>
+          <a class="button button-ghost" href="#top">Revenir en haut ↑</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap footer-inner">
+      <div class="footer-brand">
+        <svg class="brand-logo" viewBox="0 0 96 40" fill="currentColor" aria-hidden="true">
+          <rect x="4" y="0" width="2" height="40"/><rect x="0" y="10" width="10" height="12" rx="1.5"/>
+          <text x="16" y="17" textLength="76" font-family="Inter Tight,sans-serif" font-weight="900" font-size="16">FADER</text>
+          <text x="16" y="35" textLength="76" font-family="Inter Tight,sans-serif" font-weight="900" font-size="16">ZERO</text>
+        </svg>
+        <span>Pour les groupes. Pour la scène.</span>
+      </div>
+      <div class="footer-links">
+        <a href="https://github.com/morrisdevstudio/faderzero" target="_blank" rel="noreferrer">GitHub</a>
+        <a href="https://fader.pages.dev/?view=app">Application</a>
+        <span>© 2026 FaderZero</span>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    const reveal = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-visible');
+          reveal.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12 });
+
+    document.querySelectorAll('[data-reveal]').forEach((el) => reveal.observe(el));
+  </script>
+</body>
+</html>

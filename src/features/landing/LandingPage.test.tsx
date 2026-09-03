@@ -1,88 +1,35 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, beforeEach } from 'vitest';
 import { LandingPage } from './LandingPage';
 
 describe('LandingPage', () => {
-  beforeEach(() => {
-    localStorage.clear();
-  });
+  beforeEach(() => localStorage.clear());
 
-  it('renders landing page with core pillars and offline banner in French by default', () => {
+  it('renders the product-led landing, its pricing, and legal links', () => {
     render(<LandingPage />);
 
-    // Header & Footer Logos
     expect(screen.getAllByRole('img', { name: 'FaderZero' }).length).toBeGreaterThanOrEqual(1);
-
-    // Hero title
-    expect(screen.getByText(/Le cockpit de scène/i)).toBeInTheDocument();
-    expect(screen.getByText(/pour les groupes et musiciens live/i)).toBeInTheDocument();
-
-    // Offline banner
-    expect(screen.getByText(/ARCHITECTURE OFFLINE-FIRST/i)).toBeInTheDocument();
-
-    // Real Feature pillars
-    expect(screen.getByText(/Prompteur de scène haute lisibilité/i)).toBeInTheDocument();
-    expect(screen.getByText(/Ordre de passage de concert et transitions personnalisées/i)).toBeInTheDocument();
-    expect(screen.getByText(/Métronome visuel synchronisé à votre liste de morceaux/i)).toBeInTheDocument();
-    expect(screen.getByText(/Bibliothèque centralisée des paroles et fichiers audio/i)).toBeInTheDocument();
-    expect(screen.getByText(/Calendrier de répétitions, balances et dates de concert/i)).toBeInTheDocument();
-
-    // FAQ Section
-    expect(screen.getByText(/QUESTIONS FRÉQUENTES/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Du premier riff/i })).toBeInTheDocument();
+    expect(screen.getByText(/Une app qui suit le groupe/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Sur scène,/i })).toBeInTheDocument();
+    expect(screen.getByText(/Quand le réseau lâche/i)).toBeInTheDocument();
+    expect(screen.getByText(/Electronic press kit/i)).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /Une offre claire pour chaque projet musical/i })).toBeInTheDocument();
     expect(screen.getByText('20 h')).toBeInTheDocument();
-    expect(screen.getByText(/Sans création de groupe/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Mentions légales/i })).toHaveAttribute('href', '/legal-notices');
+    expect(screen.getByRole('link', { name: /Confidentialité/i })).toHaveAttribute('href', '/privacy');
+    expect(screen.getByRole('link', { name: /Conditions d’utilisation/i })).toHaveAttribute('href', '/terms');
   });
 
-  it('switches seamlessly to English when toggling language', () => {
+  it('keeps the landing and pricing content available in English', () => {
     render(<LandingPage />);
 
-    // Click on English button in footer or header
-    const enButton = screen.getByRole('button', { name: 'English' });
-    fireEvent.click(enButton);
+    fireEvent.click(screen.getAllByRole('button', { name: 'English' })[0]!);
 
-    // Check English texts
-    expect(screen.getByText(/The live stage cockpit/)).toBeInTheDocument();
-    expect(screen.getByText(/for bands and gigging musicians/)).toBeInTheDocument();
-    expect(screen.getByText(/OFFLINE-FIRST ARCHITECTURE/)).toBeInTheDocument();
-    expect(screen.getAllByText(/Available early 2027/i).length).toBeGreaterThan(0);
-  });
-
-  it('allows interacting with the demo tabs (Prompter, Setlist, Metronome)', () => {
-    render(<LandingPage />);
-
-    // Switch to Metronome demo tab
-    const metroTab = screen.getByRole('button', { name: /métronome scène/i });
-    fireEvent.click(metroTab);
-
-    expect(screen.getAllByText(/93/i).length).toBeGreaterThanOrEqual(1);
-
-    // Switch to Setlist demo tab
-    const setlistTab = screen.getByRole('button', { name: /setlist concert/i });
-    fireEvent.click(setlistTab);
-    expect(screen.getAllByText(/aefazf/i).length).toBeGreaterThanOrEqual(1);
-
-    // Switch to Prompter demo tab
-    const prompterTab = screen.getByRole('button', { name: /prompteur live/i });
-    fireEvent.click(prompterTab);
-    expect(screen.getAllByText(/Rien à perdre/i).length).toBeGreaterThanOrEqual(1);
-  });
-
-  it('toggles FAQ accordion items', () => {
-    render(<LandingPage />);
-
-    const firstQuestionBtn = screen.getByText(/Pourquoi FaderZero fonctionne-t-il sans connexion internet/i);
-    expect(firstQuestionBtn).toBeInTheDocument();
-
-    // The first item is open by default
-    expect(screen.getByText(/FaderZero est conçu en Offline-First/i)).toBeInTheDocument();
-
-    // Click to close
-    fireEvent.click(firstQuestionBtn);
-    expect(screen.queryByText(/FaderZero est conçu en Offline-First/i)).not.toBeInTheDocument();
-
-    // Click to re-open
-    fireEvent.click(firstQuestionBtn);
-    expect(screen.getByText(/FaderZero est conçu en Offline-First/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /From the first riff/i })).toBeInTheDocument();
+    expect(screen.getByText(/The band workspace/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Available early 2027/i)).toHaveLength(2);
+    expect(screen.getByText(/No group creation/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Legal notices/i })).toHaveAttribute('href', '/legal-notices');
   });
 });

@@ -15,13 +15,21 @@ export function LandingHeader({ content, currentLang, onSelectLang }: LandingHea
   const appLoginUrl = getAppUrl('/?view=app');
   const appSignupUrl = getAppUrl('/?view=app');
 
-  const navLinks = [
-    { href: '#prompter-showcase', label: content.nav.prompter },
-    { href: '#features', label: content.nav.setlists },
-    { href: '#offline', label: content.nav.offline },
-    { href: '#demo', label: content.demo.tabs.prompter },
-    { href: '#faq', label: content.nav.faq },
-  ];
+  const navLinks = currentLang === 'fr'
+    ? [
+        { href: '#workflow', label: 'Workflow' },
+        { href: '#stage', label: 'Sur scène' },
+        { href: '#features', label: 'Fonctions' },
+        { href: '#offline', label: content.nav.offline },
+        { href: '#pricing', label: 'Tarifs' },
+      ]
+    : [
+        { href: '#offline', label: content.nav.offline },
+        { href: '#features', label: 'Features' },
+        { href: '#demo', label: content.demo.tabs.prompter },
+        { href: '#pricing', label: 'Pricing' },
+        { href: '#faq', label: content.nav.faq },
+      ];
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-white/10 bg-[#0c0d10]/85 backdrop-blur-xl transition-all">
@@ -70,7 +78,7 @@ export function LandingHeader({ content, currentLang, onSelectLang }: LandingHea
               className={`rounded-lg px-2 py-1 transition ${
                 currentLang === 'en' ? 'bg-white/20 text-white font-black' : 'text-white/50 hover:text-white'
               }`}
-              aria-label="Switch to English"
+              aria-label="English"
             >
               EN
             </button>
@@ -109,7 +117,7 @@ export function LandingHeader({ content, currentLang, onSelectLang }: LandingHea
             <button
               type="button"
               onClick={() => onSelectLang('en')}
-              aria-label="Switch to English"
+              aria-label="English"
               aria-pressed={currentLang === 'en'}
               className={`flex h-11 w-11 items-center justify-center rounded transition ${
                 currentLang === 'en' ? 'bg-white/20 text-white font-black' : 'text-white/50'
