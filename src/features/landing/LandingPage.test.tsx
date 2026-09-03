@@ -27,7 +27,10 @@ describe('LandingPage', () => {
     fireEvent.click(screen.getAllByRole('button', { name: 'English' })[0]!);
 
     expect(screen.getByRole('heading', { name: /From the first riff/i })).toBeInTheDocument();
-    expect(screen.getByText(/The band workspace/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/The band workspace/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByRole('heading', { name: /An app that follows the band/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /On stage,.*zero friction/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /When the network drops,.*band keeps going/i })).toBeInTheDocument();
     expect(screen.getAllByText(/Available early 2027/i)).toHaveLength(2);
     expect(screen.getByText(/No group creation/i)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Legal notices/i })).toHaveAttribute('href', '/legal-notices');

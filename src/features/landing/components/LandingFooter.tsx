@@ -36,12 +36,12 @@ export function LandingFooter({ content, currentLang, onSelectLang }: LandingFoo
             </h4>
             <ul className="space-y-2 text-xs font-bold text-white/70">
               <li>
-                <a href={currentLang === 'fr' ? '#workflow' : '#offline'} className="hover:text-white transition">
+                <a href="#workflow" className="hover:text-white transition">
                   Workflow
                 </a>
               </li>
               <li>
-                <a href={currentLang === 'fr' ? '#stage' : '#use-cases'} className="hover:text-white transition">
+                <a href="#stage" className="hover:text-white transition">
                   {currentLang === 'fr' ? 'Sur scène' : 'On stage'}
                 </a>
               </li>

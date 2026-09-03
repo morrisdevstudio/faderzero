@@ -5,10 +5,6 @@ import { LandingHero } from './components/LandingHero';
 import { LandingFooter } from './components/LandingFooter';
 import { LandingPricing } from './components/LandingPricing';
 import { LandingNarrative } from './components/LandingNarrative';
-import { LandingOfflineBanner } from './components/LandingOfflineBanner';
-import { LandingFeaturesGrid } from './components/LandingFeaturesGrid';
-import { LandingInteractiveDemo } from './components/LandingInteractiveDemo';
-import { LandingUseCases } from './components/LandingUseCases';
 import { LandingFaq } from './components/LandingFaq';
 
 export function LandingPage() {
@@ -31,16 +27,7 @@ export function LandingPage() {
         {/* Hero with interactive preview */}
         <LandingHero content={content} lang={lang} />
 
-        {lang === 'fr' ? (
-          <LandingNarrative />
-        ) : (
-          <>
-            <LandingOfflineBanner content={content} />
-            <LandingFeaturesGrid content={content} />
-            <LandingInteractiveDemo content={content} />
-            <LandingUseCases content={content} />
-          </>
-        )}
+        <LandingNarrative lang={lang} />
 
         <LandingPricing content={content} />
 
