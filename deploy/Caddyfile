@@ -4,7 +4,7 @@ localhost:8443, faderzero-server.tailfba668.ts.net:8443 {
   encode zstd gzip
 
   header {
-    Content-Security-Policy "default-src 'self'; base-uri 'self'; connect-src 'self' https: wss:; font-src 'self' data:; img-src 'self' data: blob: https://faderzero-audio-api.admin-morris-studio.workers.dev; media-src 'self' blob: https://faderzero-audio-api.admin-morris-studio.workers.dev; object-src 'none'; script-src 'self'; style-src 'self'; frame-ancestors 'none'; form-action 'self'; upgrade-insecure-requests"
+    Content-Security-Policy "default-src 'self'; base-uri 'self'; connect-src 'self' https: wss:; font-src 'self' data:; img-src 'self' data: blob: https://faderzero-audio-api.admin-morris-studio.workers.dev https://i.ytimg.com https://img.youtube.com; media-src 'self' blob: https://faderzero-audio-api.admin-morris-studio.workers.dev; object-src 'none'; script-src 'self'; style-src 'self'; frame-src https://www.youtube-nocookie.com https://player.vimeo.com; frame-ancestors 'none'; form-action 'self'; upgrade-insecure-requests"
     X-Content-Type-Options "nosniff"
     Referrer-Policy "no-referrer"
     Permissions-Policy "camera=(), microphone=(self), geolocation=(), payment=(), usb=()"

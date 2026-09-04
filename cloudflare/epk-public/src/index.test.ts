@@ -6,17 +6,17 @@ const env = {
   SUPABASE_SECRET_KEY: 'service-role-test-key',
   MEDIA_SIGNING_SECRET: 'media-signing-test-key',
   MEDIA_BUCKET: {},
-} as never;
+};
 
 afterEach(() => vi.unstubAllGlobals());
 
 describe('EPK public worker', () => {
   it('redirects the apex to the visitor language and forwards language landing pages', async () => {
-    const root = await worker.fetch(new Request('https://faderzero.com/', { headers: { 'accept-language': 'en-GB,en;q=0.9' } }), env);
+    const root = await worker.fetch(new Request('https://faderzero.com/', { headers: { 'accept-language': 'en-GB,en;q=0.9' } }), env as never);
     expect(root.headers.get('location')).toBe('https://faderzero.com/en');
 
     vi.stubGlobal('fetch', vi.fn(async () => new Response('<html lang="en"><head><title>FaderZero PWA</title></head><body></body></html>', { headers: { etag: 'old', 'content-length': '5' } })));
-    const landing = await worker.fetch(new Request('https://faderzero.com/fr'), env);
+    const landing = await worker.fetch(new Request('https://faderzero.com/fr'), env as never);
     expect(await landing.text()).toContain('https://faderzero.com/fr');
     expect(landing.headers.get('etag')).toBeNull();
   });
@@ -25,7 +25,7 @@ describe('EPK public worker', () => {
     const fetchMock = vi.fn(async (_input: RequestInfo | URL) => new Response('<html><head></head><body></body></html>'));
     vi.stubGlobal('fetch', fetchMock);
 
-    const response = await worker.fetch(new Request('https://faderzero.com/kickedtoheaven?verify=7'), env);
+    const response = await worker.fetch(new Request('https://faderzero.com/kickedtoheaven?verify=7'), env as never);
 
     expect(response.status).toBe(200);
     const forwardedRequest = fetchMock.mock.calls[0]?.[0] as Request;

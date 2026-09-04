@@ -5,7 +5,7 @@ type PagesContext = {
   next: () => Promise<Response>;
 };
 
-type PublishedRow = { display_name: string; slug: string; status: string; published_revision: number; published_snapshot: unknown };
+type PublishedRow = { display_name: string; slug: string; status: string; published_revision: number; published_snapshot: unknown; hero_asset_id?: string | null };
 const APP_ORIGIN = 'https://app.faderzero.com';
 const PUBLIC_ORIGIN = 'https://faderzero.com';
 const DEFAULT_MEDIA_ORIGIN = 'https://media.faderzero.com';
@@ -26,7 +26,7 @@ export const onRequestGet = async (context: PagesContext): Promise<Response> => 
   const shell = await context.next();
   if (!shell.ok) return shell;
   const html = await shell.text();
-  const model = withPublicMedia(row.published_snapshot, context.env.EPK_PUBLIC_MEDIA_ORIGIN ?? DEFAULT_MEDIA_ORIGIN);
+  const model = withPublicMedia(row.published_snapshot, context.env.EPK_PUBLIC_MEDIA_ORIGIN ?? DEFAULT_MEDIA_ORIGIN, row.hero_asset_id);
   if (requestUrl.searchParams.get('format') === 'json') {
     return Response.json(model, { headers: publicHeaders(row.published_revision) });
   }
@@ -45,7 +45,7 @@ export const onRequestHead = async (context: PagesContext): Promise<Response> =>
 
 async function loadEpk(env: PagesContext['env'], slug: string): Promise<PublishedRow | null> {
   const endpoint = new URL(`${env.SUPABASE_URL}/rest/v1/epks`);
-  endpoint.searchParams.set('select', 'display_name,slug,status,published_revision,published_snapshot');
+  endpoint.searchParams.set('select', 'display_name,slug,status,published_revision,published_snapshot,hero_asset_id');
   endpoint.searchParams.set('slug', `eq.${slug}`);
   endpoint.searchParams.set('limit', '1');
   const response = await fetch(endpoint, { headers: { apikey: env.SUPABASE_SECRET_KEY, authorization: `Bearer ${env.SUPABASE_SECRET_KEY}` } });
@@ -54,18 +54,20 @@ async function loadEpk(env: PagesContext['env'], slug: string): Promise<Publishe
   return rows[0] ?? null;
 }
 
-function withPublicMedia(snapshot: unknown, mediaOrigin?: string): Record<string, unknown> {
+function withPublicMedia(snapshot: unknown, mediaOrigin?: string, heroAssetId?: string | null): Record<string, unknown> {
   const model = isRecord(snapshot) ? structuredClone(snapshot) : {};
-  if (!mediaOrigin) return model;
-  const origin = mediaOrigin.replace(/\/$/, '');
-  const mediaUrl = (key: unknown) => typeof key === 'string' && key.startsWith('epks/') ? `${origin}/${key}` : undefined;
-  const heroUrl = mediaUrl(model.heroPublicKey);
+  const origin = mediaOrigin?.replace(/\/$/, '');
+  const mediaUrl = (key: unknown) => origin && typeof key === 'string' && key.startsWith('epks/') ? `${origin}/${key}` : undefined;
+  const previewUrl = (assetId: unknown) => typeof assetId === 'string' && isUuid(assetId) ? `/media/preview/${assetId}` : undefined;
+  const heroId = typeof model.heroAssetId === 'string' ? model.heroAssetId : heroAssetId;
+  const heroUrl = mediaUrl(model.heroPublicKey) ?? previewUrl(heroId);
   if (heroUrl) model.heroUrl = heroUrl;
+  if (typeof heroId === 'string' && isUuid(heroId)) model.heroAssetId = heroId;
   for (const key of ['tracks', 'photos', 'documents'] as const) {
     if (!Array.isArray(model[key])) continue;
     model[key] = model[key].map((item) => {
       if (!isRecord(item)) return item;
-      const url = mediaUrl(item.publicKey);
+      const url = mediaUrl(item.publicKey) ?? (key === 'photos' ? previewUrl(item.previewAssetId) : undefined);
       return url ? { ...item, [key === 'photos' ? 'previewUrl' : key === 'documents' ? 'url' : 'audioUrl']: url } : item;
     });
   }
@@ -76,6 +78,7 @@ function socialMetadata(model: Record<string, unknown>, url: URL): string {
   const title = stringValue(model.name) || 'FaderZero';
   const description = stringValue(model.shortBio) || stringValue(model.tagline) || title;
   const image = stringValue(model.heroUrl);
+  const ogImage = image?.startsWith('/') ? `${PUBLIC_ORIGIN}${image}` : image;
   const tags = [
     `<title>${escapeHtml(title)}</title>`,
     `<meta name="description" content="${escapeHtml(description)}">`,
@@ -84,7 +87,7 @@ function socialMetadata(model: Record<string, unknown>, url: URL): string {
     `<meta property="og:url" content="${escapeHtml(url.origin + url.pathname)}">`,
     '<meta property="og:type" content="website">',
   ];
-  if (image) tags.push(`<meta property="og:image" content="${escapeHtml(image)}">`);
+  if (ogImage) tags.push(`<meta property="og:image" content="${escapeHtml(ogImage)}">`);
   return tags.join('');
 }
 
@@ -95,7 +98,7 @@ function publicHeaders(revision: number, nonce?: string): Record<string, string>
     'x-fz-epk-revision': String(revision),
     'access-control-allow-origin': APP_ORIGIN,
     vary: 'Origin',
-    'content-security-policy': `default-src 'self'; base-uri 'self'; connect-src 'self' https:; font-src 'self' data:; frame-ancestors 'none'; frame-src https://www.youtube-nocookie.com https://player.vimeo.com; img-src 'self' data: https://media.faderzero.com; media-src 'self' blob: https://media.faderzero.com; object-src 'none'; script-src ${scriptSource}; style-src 'self'; form-action 'self'; upgrade-insecure-requests`,
+    'content-security-policy': `default-src 'self'; base-uri 'self'; connect-src 'self' https:; font-src 'self' data:; frame-ancestors 'none'; frame-src https://www.youtube-nocookie.com https://player.vimeo.com; img-src 'self' data: https://media.faderzero.com https://i.ytimg.com https://img.youtube.com; media-src 'self' blob: https://media.faderzero.com; object-src 'none'; script-src ${scriptSource}; style-src 'self'; form-action 'self'; upgrade-insecure-requests`,
     'referrer-policy': 'strict-origin-when-cross-origin',
     'x-content-type-options': 'nosniff',
   };
@@ -104,6 +107,7 @@ function redirectToLanding() { return Response.redirect('https://faderzero.com/f
 function notPublished(): Response {
   return new Response('<!doctype html><title>Page publique non publiée</title><meta name="robots" content="noindex"><h1>Page publique non publiée</h1>', { status: 404, headers: { ...publicHeaders(0), 'content-type': 'text/html; charset=UTF-8' } });
 }
+function isUuid(value: string): boolean { return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value); }
 function isRecord(value: unknown): value is Record<string, unknown> { return typeof value === 'object' && value !== null && !Array.isArray(value); }
 function stringValue(value: unknown): string | undefined { return typeof value === 'string' ? value : undefined; }
 function safeJson(value: unknown): string { return JSON.stringify(value).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026').replace(/\\u2028/g, '\\u2028').replace(/\\u2029/g, '\\u2029'); }

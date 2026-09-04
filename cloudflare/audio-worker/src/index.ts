@@ -243,7 +243,7 @@ async function uploadObject(
 }
 
 const EPK_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
-const EPK_DOCUMENT_TYPES = new Set(['application/pdf']);
+const EPK_DOCUMENT_TYPES = new Set(['application/pdf', 'application/zip', 'application/x-zip-compressed', 'application/x-zip']);
 const MAX_EPK_IMAGE_BYTES = 10 * 1024 * 1024;
 const MAX_EPK_DOCUMENT_BYTES = 15 * 1024 * 1024;
 

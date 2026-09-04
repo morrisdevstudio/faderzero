@@ -4,7 +4,7 @@ import { createAudioSignedUrl, deleteEpkObject, publishEpkMedia, uploadEpkObject
 import { db } from '@/db/db';
 import { songAssetsRepository } from '@/db/repositories/songAssetsRepository';
 import { getCachedAudioUrl } from '@/features/audio/audioCacheStore';
-import { DEFAULT_EPK_ACCENT, DEFAULT_EPK_EDITORIAL, DEFAULT_EPK_SECTION_ORDER, EPK_SECTION_IDS, type EpkEditorialContent, type EpkPublicModel, type EpkSectionId } from './epkPresentation';
+import { DEFAULT_EPK_ACCENT, DEFAULT_EPK_EDITORIAL, DEFAULT_EPK_SECTION_ORDER, EPK_SECTION_IDS, isEpkDocumentIcon, DEFAULT_EPK_DOCUMENT_ICON, normalizedEpkFactIcon, type EpkDocumentIcon, type EpkEditorialContent, type EpkPublicModel, type EpkSectionId } from './epkPresentation';
 import { compressEpkImage, EPK_HERO_IMAGE_SIZE, EPK_PHOTO_IMAGE_SIZE } from './epkImage';
 
 export type EpkStatus = 'DRAFT' | 'PUBLISHED';
@@ -82,9 +82,8 @@ export interface EpkLink {
   position: number;
 }
 
-export type EpkDocumentType = 'TECH_RIDER' | 'STAGE_PLOT' | 'HOSPITALITY_RIDER' | 'PRESS_KIT' | 'LOGO' | 'OTHER';
 export interface EpkPhoto { id: string; epkId: string; previewAssetId: string; originalAssetId: string; credit?: string; caption?: string; position: number; }
-export interface EpkDocument { id: string; epkId: string; assetId: string; title: string; documentType: EpkDocumentType; documentUpdatedAt: string; position: number; }
+export interface EpkDocument { id: string; epkId: string; assetId: string; title: string; description?: string; icon: EpkDocumentIcon; documentUpdatedAt: string; position: number; }
 export interface EpkTrack { id: string; epkId: string; title: string; description?: string; visibility: 'PUBLIC' | 'UNLISTED'; sourceType: 'SONG_ASSET' | 'EPK_ASSET'; songAssetId?: string; audioAssetId?: string; position: number; }
 export interface AvailableEpkTrack { id: string; filename: string; songId?: string; songTitle?: string; isSynced: boolean; }
 
@@ -144,7 +143,9 @@ function toEditorial(value: unknown): EpkEditorialContent {
   const facts = Array.isArray(data.facts) ? data.facts.flatMap((fact, index) => {
     if (!fact || typeof fact !== 'object' || Array.isArray(fact)) return [];
     const item = fact as Record<string, unknown>; const icon = item.icon;
-    return typeof item.title === 'string' && typeof item.value === 'string' && (icon === 'location' || icon === 'users' || icon === 'calendar' || icon === 'music') ? [{ id: typeof item.id === 'string' ? item.id : `fact-${index}`, title: item.title, value: item.value, icon: icon as EpkEditorialContent['facts'][number]['icon'] }] : [];
+    return typeof item.title === 'string' && typeof item.value === 'string'
+      ? [{ id: typeof item.id === 'string' ? item.id : `fact-${index}`, title: item.title, value: item.value, icon: normalizedEpkFactIcon(icon) }]
+      : [];
   }) : [];
   return { bioTitle: text('bioTitle'), musicTitle: text('musicTitle'), proTitle: text('proTitle'), proDescription: text('proDescription'), contactTitle: text('contactTitle'), facts };
 }
@@ -335,11 +336,32 @@ export async function listEpkPhotos(epkId: string): Promise<EpkPhoto[]> {
   return (data ?? []).map(toPhoto);
 }
 
+const EPK_DOCUMENT_MAX_BYTES = 15 * 1024 * 1024;
+const EPK_ZIP_TYPES = new Set(['application/zip', 'application/x-zip-compressed', 'application/x-zip']);
+
+function isEpkDocumentFile(file: File): boolean {
+  const type = file.type.toLowerCase();
+  const name = file.name.toLowerCase();
+  return type === 'application/pdf' || name.endsWith('.pdf') || EPK_ZIP_TYPES.has(type) || name.endsWith('.zip');
+}
+
+function epkDocumentExtension(file: File): 'pdf' | 'zip' {
+  const type = file.type.toLowerCase();
+  const name = file.name.toLowerCase();
+  return EPK_ZIP_TYPES.has(type) || name.endsWith('.zip') ? 'zip' : 'pdf';
+}
+
+function withEpkDocumentType(file: File): File {
+  const mime = epkDocumentExtension(file) === 'zip' ? 'application/zip' : 'application/pdf';
+  if (file.type === mime) return file;
+  return new File([file], file.name, { type: mime, lastModified: file.lastModified });
+}
+
 function extensionFor(file: File): string {
   if (file.type === 'image/jpeg') return 'jpg';
   if (file.type === 'image/png') return 'png';
   if (file.type === 'image/webp') return 'webp';
-  return 'pdf';
+  return epkDocumentExtension(file);
 }
 
 async function uploadAsset(epk: EpkRecord, file: File, kind: 'image_preview' | 'image_original' | 'document'): Promise<string> {
@@ -427,8 +449,17 @@ export async function deleteEpkPhoto(photo: EpkPhoto): Promise<void> {
 }
 
 function toDocument(row: Record<string, unknown>): EpkDocument {
-  const allowed: EpkDocumentType[] = ['TECH_RIDER', 'STAGE_PLOT', 'HOSPITALITY_RIDER', 'PRESS_KIT', 'LOGO', 'OTHER'];
-  return { id: String(row.id), epkId: String(row.epk_id), assetId: String(row.asset_id), title: String(row.title ?? ''), documentType: allowed.includes(row.document_type as EpkDocumentType) ? row.document_type as EpkDocumentType : 'OTHER', documentUpdatedAt: String(row.document_updated_at ?? ''), position: Number(row.position ?? 0) };
+  const description = typeof row.description === 'string' ? row.description.trim() : '';
+  return {
+    id: String(row.id),
+    epkId: String(row.epk_id),
+    assetId: String(row.asset_id),
+    title: String(row.title ?? ''),
+    ...(description ? { description } : {}),
+    icon: isEpkDocumentIcon(row.icon) ? row.icon : DEFAULT_EPK_DOCUMENT_ICON,
+    documentUpdatedAt: String(row.document_updated_at ?? ''),
+    position: Number(row.position ?? 0),
+  };
 }
 
 export async function listEpkDocuments(epkId: string): Promise<EpkDocument[]> {
@@ -437,15 +468,47 @@ export async function listEpkDocuments(epkId: string): Promise<EpkDocument[]> {
   return (data ?? []).map(toDocument);
 }
 
-export async function addEpkDocument(epk: EpkRecord, file: File, input: { title: string; documentType: EpkDocumentType; documentUpdatedAt: string }, position: number): Promise<EpkDocument> {
-  if (file.type !== 'application/pdf' || file.size > 15 * 1024 * 1024) throw new Error('Choisissez un PDF de 15 Mo maximum.');
+export async function addEpkDocument(epk: EpkRecord, file: File, input: { title: string; description?: string; icon: EpkDocumentIcon; documentUpdatedAt: string }, position: number): Promise<EpkDocument> {
+  if (!isEpkDocumentFile(file) || file.size > EPK_DOCUMENT_MAX_BYTES) throw new Error('Choisissez un PDF ou un ZIP de 15 Mo maximum.');
   if (!input.title.trim()) throw new Error('Le titre du document est requis.');
-  const assetId = await uploadAsset(epk, file, 'document');
-  const { data, error } = await supabase.from('epk_documents').insert({ epk_id: epk.id, asset_id: assetId, title: input.title.trim(), document_type: input.documentType, document_updated_at: input.documentUpdatedAt || undefined, position }).select().single();
+  if (!isEpkDocumentIcon(input.icon)) throw new Error('Choisissez une icône.');
+  const assetId = await uploadAsset(epk, withEpkDocumentType(file), 'document');
+  const description = input.description?.trim() || null;
+  const { data, error } = await supabase.from('epk_documents').insert({ epk_id: epk.id, asset_id: assetId, title: input.title.trim(), description, icon: input.icon, document_type: 'OTHER', document_updated_at: input.documentUpdatedAt || undefined, position }).select().single();
   if (!error) return toDocument(data);
   const { data: asset } = await supabase.from('epk_assets').select('storage_path').eq('id', assetId).single();
   await supabase.from('epk_assets').delete().eq('id', assetId);
   if (asset?.storage_path) await deleteEpkObject(asset.storage_path).catch(() => undefined);
+  throw error;
+}
+
+export async function updateEpkDocument(epk: EpkRecord, document: EpkDocument, input: { title: string; description?: string; icon: EpkDocumentIcon }, file?: File): Promise<EpkDocument> {
+  if (!input.title.trim()) throw new Error('Le titre du document est requis.');
+  if (!isEpkDocumentIcon(input.icon)) throw new Error('Choisissez une icône.');
+  if (file && (!isEpkDocumentFile(file) || file.size > EPK_DOCUMENT_MAX_BYTES)) throw new Error('Choisissez un PDF ou un ZIP de 15 Mo maximum.');
+  const description = input.description?.trim() || null;
+  const documentUpdatedAt = new Date().toISOString().slice(0, 10);
+  let assetId = document.assetId;
+  let previousPath: string | undefined;
+  if (file) {
+    const { data: current, error: currentError } = await supabase.from('epk_assets').select('storage_path').eq('id', document.assetId).single();
+    if (currentError) throw currentError;
+    previousPath = current.storage_path;
+    assetId = await uploadAsset(epk, withEpkDocumentType(file), 'document');
+  }
+  const { data, error } = await supabase.from('epk_documents').update({ title: input.title.trim(), description, icon: input.icon, asset_id: assetId, document_updated_at: documentUpdatedAt }).eq('id', document.id).select().single();
+  if (!error) {
+    if (file && previousPath) {
+      await supabase.from('epk_assets').delete().eq('id', document.assetId);
+      await deleteEpkObject(previousPath).catch(() => undefined);
+    }
+    return toDocument(data);
+  }
+  if (file && assetId !== document.assetId) {
+    const { data: asset } = await supabase.from('epk_assets').select('storage_path').eq('id', assetId).single();
+    await supabase.from('epk_assets').delete().eq('id', assetId);
+    if (asset?.storage_path) await deleteEpkObject(asset.storage_path).catch(() => undefined);
+  }
   throw error;
 }
 

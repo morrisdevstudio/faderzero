@@ -27,6 +27,7 @@ describe('bannière publique', () => {
 
     expect(container.querySelector('.epk-chip')).toHaveTextContent('Rock');
     expect(container.querySelector('.epk-hero-content > p')).not.toBeInTheDocument();
+    expect(container.querySelector('a[href="#espace-pro"] svg')).toHaveClass('lucide-folder');
   });
 });
 
@@ -156,5 +157,78 @@ describe('lecteur audio public', () => {
         '/api/public/kickedtoheaven/tracks/13c0bd29-2584-43c0-bcf5-067182171508/audio',
       );
     });
+  });
+});
+
+describe('médias publics', () => {
+  it('affiche les photos via /media/preview quand le snapshot n’a pas de previewUrl', () => {
+    const previewId = 'fc1fdb33-f7c8-4506-8812-d9df05cb9f1d';
+    const modelWithPhotos: EpkPublicModel = {
+      ...publicModel,
+      photos: [{ id: '2c8aae7a-f045-47e2-a9fa-37a373132402', previewAssetId: previewId }],
+    };
+
+    const { container } = render(createElement(EpkPublicView, { model: modelWithPhotos }));
+    expect(container.querySelector('.epk-photo-carousel img')).toHaveAttribute('src', `/media/preview/${previewId}`);
+  });
+
+  it('affiche la miniature YouTube et charge l’iframe au clic', () => {
+    const modelWithVideo: EpkPublicModel = {
+      ...publicModel,
+      videos: [{ id: '09192ea1-74e3-4e67-b3ff-b1bf744b1600', title: 'black cat', provider: 'YOUTUBE', providerVideoId: 'l-JEg4MlMRk' }],
+    };
+
+    const { container } = render(createElement(EpkPublicView, { model: modelWithVideo }));
+    expect(container.querySelector('.epk-video-poster img')).toHaveAttribute('src', 'https://i.ytimg.com/vi/l-JEg4MlMRk/hqdefault.jpg');
+    expect(container.querySelector('.epk-video iframe')).not.toBeInTheDocument();
+
+    fireEvent.click(container.querySelector('.epk-video-poster')!);
+    expect(container.querySelector('.epk-video iframe')).toHaveAttribute('src', 'https://www.youtube-nocookie.com/embed/l-JEg4MlMRk?autoplay=1');
+  });
+});
+
+describe('espace pro public', () => {
+  it('affiche l’icône choisie et la description, pas le type', () => {
+    const modelWithDocument: EpkPublicModel = {
+      ...publicModel,
+      documents: [
+        {
+          id: 'doc-1',
+          assetId: 'asset-1',
+          title: 'Rider technique',
+          description: 'Pour les salles',
+          icon: 'file-music',
+          updatedAt: '2026-09-04',
+        },
+      ],
+    };
+
+    const { container } = render(createElement(EpkPublicView, { model: modelWithDocument }));
+    const section = container.querySelector('#espace-pro');
+    expect(section?.querySelector('svg')).toHaveClass('lucide-file-music');
+    expect(section).toHaveTextContent('Rider technique');
+    expect(section).toHaveTextContent('Pour les salles');
+    expect(section).not.toHaveTextContent('TECH_RIDER');
+  });
+
+  it('utilise l’icône document si le snapshot n’a pas d’icône', () => {
+    const modelWithLegacyDocument: EpkPublicModel = {
+      ...publicModel,
+      documents: [
+        {
+          id: 'doc-2',
+          assetId: 'asset-2',
+          title: 'Ancien fichier',
+          type: 'TECH_RIDER',
+          updatedAt: '2026-01-01',
+        },
+      ],
+    };
+
+    const { container } = render(createElement(EpkPublicView, { model: modelWithLegacyDocument }));
+    const section = container.querySelector('#espace-pro');
+    expect(section?.querySelector('svg')).toHaveClass('lucide-file-text');
+    expect(section).toHaveTextContent('Ancien fichier');
+    expect(section).not.toHaveTextContent('TECH_RIDER');
   });
 });
