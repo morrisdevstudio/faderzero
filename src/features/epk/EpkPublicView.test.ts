@@ -233,3 +233,14 @@ describe('espace pro public', () => {
     expect(section).not.toHaveTextContent('TECH_RIDER');
   });
 });
+
+describe('thème public', () => {
+  it('conserve le sombre par défaut et applique le clair au changement du modèle', () => {
+    const { container, rerender } = render(createElement(EpkPublicView, { model: publicModel }));
+    expect(container.querySelector('.epk-demo')).toHaveAttribute('data-theme', 'dark');
+    rerender(createElement(EpkPublicView, { model: { ...publicModel, theme: 'press-ivory' } }));
+    expect(container.querySelector('.epk-demo')).toHaveAttribute('data-theme', 'light');
+    rerender(createElement(EpkPublicView, { model: { ...publicModel, theme: 'stage-dark' } }));
+    expect(container.querySelector('.epk-demo')).toHaveAttribute('data-theme', 'dark');
+  });
+});

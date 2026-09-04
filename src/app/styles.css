@@ -454,8 +454,8 @@ body::before {
       to right,
       var(--fz-accent) 0,
       var(--fz-accent) var(--fz-audio-progress, 0%),
-      rgba(255, 255, 255, 0.16) var(--fz-audio-progress, 0%),
-      rgba(255, 255, 255, 0.16) 100%
+      var(--fz-audio-track, rgba(255, 255, 255, 0.16)) var(--fz-audio-progress, 0%),
+      var(--fz-audio-track, rgba(255, 255, 255, 0.16)) 100%
     )
     center / 100% 0.22rem no-repeat;
 }
@@ -466,7 +466,7 @@ body::before {
   appearance: none;
   border: 0;
   border-radius: 999px;
-  background: #fff;
+  background: var(--fz-audio-thumb, #fff);
   box-shadow: 0 1px 5px rgba(0, 0, 0, 0.45);
   transition: transform 150ms ease-out;
 }
@@ -483,7 +483,7 @@ body::before {
   height: 1rem;
   border: 0;
   border-radius: 999px;
-  background: #fff;
+  background: var(--fz-audio-thumb, #fff);
   box-shadow: 0 1px 5px rgba(0, 0, 0, 0.45);
   transition: transform 150ms ease-out;
 }

@@ -28,6 +28,7 @@ export function isEpkDocumentIcon(value: unknown): value is EpkDocumentIcon {
 export type EpkEditorialContent = { bioTitle: string; musicTitle: string; proTitle: string; proDescription: string; contactTitle: string; facts: EpkFact[] };
 export const DEFAULT_EPK_EDITORIAL: EpkEditorialContent = { bioTitle: 'Biographie', musicTitle: 'À écouter', proTitle: 'Espace pro', proDescription: 'Documents et ressources à destination des professionnels.', contactTitle: 'Contact', facts: [] };
 export type EpkPublicModel = {
+  theme?: 'stage-dark' | 'midnight-blue' | 'press-ivory' | 'fader-red';
   name: string; slug: string; tagline?: string; shortBio?: string; fullBio?: string; city?: string; country?: string;
   genres: string[]; accentColor: string; sectionOrder: EpkSectionId[]; hiddenSections: EpkSectionId[]; heroUrl?: string; heroAssetId?: string; logoUrl?: string; editorial: EpkEditorialContent;
   videos: Array<{ id: string; title?: string; provider: 'YOUTUBE' | 'VIMEO'; providerVideoId: string }>;

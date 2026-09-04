@@ -197,6 +197,7 @@ export function EpkPage() {
     ...(epk.city ? { city: epk.city } : {}),
     ...(epk.country ? { country: epk.country } : {}),
     genres: epk.genres,
+    theme: epk.theme,
     accentColor: epk.accentColor ?? DEFAULT_EPK_ACCENT,
     ...(epk.heroAssetId && epkAssetUrls[epk.heroAssetId] ? { heroUrl: epkAssetUrls[epk.heroAssetId] } : {}),
     sectionOrder: epk.sectionOrder ?? DEFAULT_EPK_SECTION_ORDER,

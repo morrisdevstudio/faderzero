@@ -5,7 +5,7 @@ describe('public EPK Pages Function', () => {
   it('embeds only the published snapshot and prevents HTML caching', async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify([{
       display_name: 'Kicked To Heaven', slug: 'kickedtoheaven', status: 'PUBLISHED', published_revision: 7,
-      published_snapshot: { name: 'Kicked To Heaven', slug: 'kickedtoheaven', heroPublicKey: 'epks/kicked/hero.webp', genres: [], accentColor: '#ff3a63', sectionOrder: [], hiddenSections: [], editorial: {}, tracks: [], videos: [], photos: [], documents: [], contacts: [], links: [] },
+      published_snapshot: { name: 'Kicked To Heaven', slug: 'kickedtoheaven', heroPublicKey: 'epks/kicked/hero.webp', theme: 'press-ivory', genres: [], accentColor: '#ff3a63', sectionOrder: [], hiddenSections: [], editorial: {}, tracks: [], videos: [], photos: [], documents: [], contacts: [], links: [] },
     }])));
     vi.stubGlobal('fetch', fetchMock);
     const response = await onRequestGet({
@@ -19,6 +19,7 @@ describe('public EPK Pages Function', () => {
     expect(response.headers.get('x-content-type-options')).toBe('nosniff');
     const html = await response.text();
     expect(html).toContain('window.__FZ_EPK_MODEL__');
+    expect(html).toContain('"theme":"press-ivory"');
     expect(html).toContain('https://media.faderzero.com/epks/kicked/hero.webp');
     expect(html).toContain('https://faderzero.com/kickedtoheaven');
     expect(response.headers.get('content-security-policy')).toContain('https://i.ytimg.com');

@@ -26,7 +26,7 @@ const titles: Record<EpkSectionId, string> = { banniere: 'Bannière', bio: 'Biog
 export function EpkPublicView({ model, editing = false, onEditSection }: Props) {
   const accent = /^#[0-9a-f]{6}$/i.test(model.accentColor) ? model.accentColor : '#ff3a63';
   const style = { '--epk-accent': accent, '--epk-on-accent': epkOnAccentColor(accent) } as CSSProperties;
-  return <article className="epk-demo" style={style}><main>{normalizedSectionOrder(model.sectionOrder).map((section) => <Section key={section} section={section} model={model} visible={isEpkSectionVisible(model, section)} editing={editing} {...(onEditSection ? { onEditSection } : {})} />)}</main><footer>Propulsé par <strong>FaderZero</strong></footer></article>;
+  return <article className="epk-demo" data-theme={model.theme === 'press-ivory' ? 'light' : 'dark'} style={style}><main>{normalizedSectionOrder(model.sectionOrder).map((section) => <Section key={section} section={section} model={model} visible={isEpkSectionVisible(model, section)} editing={editing} {...(onEditSection ? { onEditSection } : {})} />)}</main><footer>Propulsé par <strong>FaderZero</strong></footer></article>;
 }
 
 function EpkAudioPlayer({ model }: { model: EpkPublicModel }) {
