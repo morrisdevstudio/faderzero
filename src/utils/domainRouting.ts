@@ -24,11 +24,12 @@ const RESERVED_TOP_PATHS = new Set([
   'media',
   'preview',
   'legal-notices',
+  'cookies',
   'privacy',
   'terms',
 ]);
 
-const LEGAL_PATHS = new Set(['/legal-notices', '/privacy', '/terms']);
+const LEGAL_PATHS = new Set(['/legal-notices', '/cookies', '/privacy', '/terms']);
 
 export function isAppHostname(hostname = window.location.hostname): boolean {
   const normalized = hostname.toLowerCase();

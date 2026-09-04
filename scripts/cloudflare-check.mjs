@@ -1,9 +1,11 @@
 import { spawnSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { readFileSync, rmSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const projectRoot = fileURLToPath(new URL('..', import.meta.url));
+const distHost = fileURLToPath(new URL('../dist', import.meta.url));
 const imageName = 'faderzero-cloudflare-check:local';
+const containerName = 'faderzero-cloudflare-check-local';
 const publicEnvPath = fileURLToPath(new URL('../.env.deploy.example', import.meta.url));
 const publicEnvKeys = ['VITE_SUPABASE_URL', 'VITE_SUPABASE_ANON_KEY', 'VITE_AUDIO_API_URL'];
 
@@ -57,6 +59,8 @@ try {
 console.log(`[cloudflare-check] Docker ${dockerInfo.stdout.trim()} détecté.`);
 console.log('[cloudflare-check] Construction propre de l’environnement Cloudflare Pages...');
 
+run('docker', ['rm', '-f', containerName]);
+
 const buildStatus = run('docker', [
   'build', '--platform', 'linux/amd64', '--pull', '--no-cache',
   '--file', 'Dockerfile.cloudflare-check', '--tag', imageName, '.',
@@ -64,7 +68,7 @@ const buildStatus = run('docker', [
 if (buildStatus !== 0) process.exit(buildStatus);
 
 const runStatus = run('docker', [
-  'run', '--rm', '--platform', 'linux/amd64',
+  'run', '--name', containerName, '--platform', 'linux/amd64',
   '--env', 'CI=true',
   '--env', 'CF_PAGES=1',
   '--env', 'CF_PAGES_BRANCH=local-pre-push',
@@ -74,4 +78,17 @@ const runStatus = run('docker', [
   ...publicEnvironment,
   imageName,
 ]);
+
+if (runStatus === 0) {
+  rmSync(distHost, { recursive: true, force: true });
+  const copyStatus = run('docker', ['cp', `${containerName}:/workspace/dist`, distHost]);
+  run('docker', ['rm', '-f', containerName]);
+  if (copyStatus !== 0) {
+    console.error('[cloudflare-check] Impossible d’exporter dist hors du conteneur.');
+    process.exit(copyStatus);
+  }
+  process.exit(0);
+}
+
+run('docker', ['rm', '-f', containerName]);
 process.exit(runStatus);

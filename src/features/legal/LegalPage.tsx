@@ -1,11 +1,13 @@
 import { useEffect } from 'react';
 import legalNotices from '../../../docs/legal/LEGAL_NOTICES.md?raw';
+import cookiePolicy from '../../../docs/legal/COOKIE_POLICY.md?raw';
 import privacyPolicy from '../../../docs/legal/PRIVACY_POLICY.md?raw';
 import terms from '../../../docs/legal/TERMS_OF_SERVICE.md?raw';
 import { getLandingUrl } from '@/utils/domainRouting';
 
 const documents = {
   '/legal-notices': { title: 'Mentions légales / Legal Notices', content: legalNotices },
+  '/cookies': { title: 'Politique cookies / Cookie Policy', content: cookiePolicy },
   '/privacy': { title: 'Politique de confidentialité / Privacy Policy', content: privacyPolicy },
   '/terms': { title: 'Conditions générales d’utilisation / Terms of Service', content: terms },
 } as const;

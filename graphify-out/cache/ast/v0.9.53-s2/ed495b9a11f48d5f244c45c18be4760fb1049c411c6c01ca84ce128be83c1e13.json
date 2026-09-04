@@ -1,0 +1,1 @@
+{"nodes": [{"id": "$graphify-root$_supabase_migrations_20260722125535_epic_3_profile_avatars_sql", "label": "20260722125535_epic_3_profile_avatars.sql", "file_type": "code", "source_file": "supabase/migrations/20260722125535_epic_3_profile_avatars.sql", "source_location": null}], "edges": []}

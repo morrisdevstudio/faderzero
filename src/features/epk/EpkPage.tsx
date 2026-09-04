@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { DetailHeader } from '@/ui/components/DetailHeader';
 import { Button } from '@/ui/components/Button';
 import { FzIcon } from '@/ui/icons';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { useAuthStore } from '@/stores/authStore';
 import { canAdministerWorkspace } from '@/services/supabase/workspace';
-import { addEpkContact, addEpkDocument, addEpkLink, addEpkPhoto, addEpkTrack, addEpkVideo, createEpk, createEpkAssetSignedUrl, deleteEpkContact, deleteEpkDocument, deleteEpkHeroImage, deleteEpkLink, deleteEpkPhoto, deleteEpkTrack, deleteEpkVideo, getEpk, getEpkTrackAudioUrl, listAvailableEpkTracks, listEpkContacts, listEpkDocuments, listEpkLinks, listEpkPhotos, listEpkTracks, listEpkVideos, publishEpkDraft, saveEpk, updateEpkContact, updateEpkLink, uploadEpkHeroImage, type AvailableEpkTrack, type EpkContact, type EpkDocument, type EpkDocumentType, type EpkLink, type EpkPhoto, type EpkRecord, type EpkTrack, type EpkVideo, type EpkVideoType } from './epk';
+import { addEpkContact, addEpkDocument, addEpkLink, addEpkPhoto, addEpkTrack, addEpkVideo, createEpk, createEpkAssetSignedUrl, deleteEpkContact, deleteEpkDocument, deleteEpkHeroImage, deleteEpkLink, deleteEpkPhoto, deleteEpkTrack, deleteEpkVideo, getEpk, getEpkTrackAudioUrl, listAvailableEpkTracks, listEpkContacts, listEpkDocuments, listEpkLinks, listEpkPhotos, listEpkTracks, listEpkVideos, publishEpkDraft, saveEpk, unpublishEpk, updateEpkContact, updateEpkLink, uploadEpkHeroImage, type AvailableEpkTrack, type EpkContact, type EpkDocument, type EpkDocumentType, type EpkLink, type EpkPhoto, type EpkRecord, type EpkTrack, type EpkVideo, type EpkVideoType } from './epk';
 import { EpkPublicView } from './EpkPublicView';
 import { EpkEditorFields } from './EpkEditorFields';
 import { DEFAULT_EPK_ACCENT, DEFAULT_EPK_EDITORIAL, DEFAULT_EPK_SECTION_ORDER, type EpkPublicModel } from './epkPresentation';
@@ -18,6 +19,7 @@ export function EpkPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [confirmUnpublish, setConfirmUnpublish] = useState(false);
   const [contacts, setContacts] = useState<EpkContact[]>([]);
   const [videos, setVideos] = useState<EpkVideo[]>([]);
   const [links, setLinks] = useState<EpkLink[]>([]);
@@ -63,13 +65,22 @@ export function EpkPage() {
   }
   async function publishPresentation() {
     if (!epk) return;
+    if (!navigator.onLine) { setMessage('La publication nécessite une connexion Internet.'); return; }
     setSaving(true); setMessage(null);
     try {
       const saved = await saveEpk(epk);
       const value = await publishEpkDraft(saved.id, saved.draftRevision ?? 0);
       setEpk(value);
-      setMessage('Page publique mise à jour.');
+      const verified = await verifyPublishedRevision(value.slug, value.publishedRevision);
+      setMessage(verified ? 'Publié' : 'La publication prend plus de temps — Réessayer');
     } catch (error) { setMessage(getEpkErrorMessage(error, 'Publication impossible.')); }
+    finally { setSaving(false); }
+  }
+  async function removePublication() {
+    if (!epk) return;
+    setSaving(true); setMessage(null);
+    try { setEpk(await unpublishEpk(epk.id)); setConfirmUnpublish(false); setMessage('Page publique retirée.'); }
+    catch (error) { setMessage(getEpkErrorMessage(error, 'Retrait impossible.')); }
     finally { setSaving(false); }
   }
   function updateDraft(next: EpkRecord) {
@@ -177,11 +188,19 @@ export function EpkPage() {
     links: links.map((link) => ({ label: link.label || link.kind, url: link.url })),
   };
   if (showPreview) return <div className="flex h-[100dvh] flex-col overflow-hidden bg-[#09090b]"><EpkLiveHeader subtitle="EPK · Aperçu" onBack={() => navigate('/account?tab=groupe')} backLabel="Retour aux paramètres" onEdit={() => setShowPreview(false)} /><main className="min-h-0 flex-1 overflow-y-auto"><EpkPublicView model={previewModel} /></main></div>;
-  return <div className="flex h-[100dvh] flex-col overflow-hidden bg-[#09090b]"><EpkLiveHeader subtitle="EPK · Éditeur" onBack={() => navigate('/account?tab=groupe')} backLabel="Quitter l’éditeur EPK" onPreview={() => setShowPreview(true)} /><main className="min-h-0 flex-1 overflow-y-auto px-4 pb-8 pt-4"><div className="mx-auto w-full max-w-md"><EpkEditorFields epk={epk} onChange={updateDraft} onSave={() => void savePresentation()} onPublish={() => void publishPresentation()} saving={saving} tracks={tracks} availableTracks={availableTracks} videos={videos} photos={photos} {...(epk.heroAssetId && epkAssetUrls[epk.heroAssetId] ? { heroPreviewUrl: epkAssetUrls[epk.heroAssetId] } : {})} photoPreviewUrls={epkAssetUrls} documents={documents} contacts={contacts} links={links} onAddTrack={(id, title) => void addEditorTrack(id, title)} onRemoveTrack={(item) => void removeTrack(item)} onAddVideo={(url, title, type) => void addEditorVideo(url, title, type)} onRemoveVideo={(item) => void removeVideo(item)} onUploadHero={(file) => void uploadHero(file)} onRemoveHero={() => void removeHero()} onUploadPhoto={(file) => void addEditorPhoto(file)} onRemovePhoto={(item) => void removePhoto(item)} onUploadDocument={(file, title, type) => void addEditorDocument(file, title, type)} onRemoveDocument={(item) => void removeDocument(item)} onAddContact={(name, role, email, phone) => void addEditorContact(name, role, email, phone)} onUpdateContact={(id, name, role, email, phone) => void updateEditorContact(id, name, role, email, phone)} onRemoveContact={(item) => void removeContact(item)} onAddLink={(name, url) => void addEditorLink(name, url)} onUpdateLink={(id, name, url) => void updateEditorLink(id, name, url)} onRemoveLink={(item) => void removeLink(item)} />{message ? <p className="mt-3 text-center text-sm text-white/65" role="status">{message}</p> : null}</div></main></div>;
+  return <div className="flex h-[100dvh] flex-col overflow-hidden bg-[#09090b]"><EpkLiveHeader subtitle="EPK · Éditeur" onBack={() => navigate('/account?tab=groupe')} backLabel="Quitter l’éditeur EPK" onPreview={() => setShowPreview(true)} /><main className="min-h-0 flex-1 overflow-y-auto px-4 pb-8 pt-4"><div className="mx-auto w-full max-w-md"><EpkEditorFields epk={epk} onChange={updateDraft} onSave={() => void savePresentation()} onPublish={() => void publishPresentation()} onUnpublish={() => setConfirmUnpublish(true)} onViewPublished={() => window.open(`https://faderzero.com/${epk.slug}`, '_blank', 'noopener,noreferrer')} saving={saving} tracks={tracks} availableTracks={availableTracks} videos={videos} photos={photos} {...(epk.heroAssetId && epkAssetUrls[epk.heroAssetId] ? { heroPreviewUrl: epkAssetUrls[epk.heroAssetId] } : {})} photoPreviewUrls={epkAssetUrls} documents={documents} contacts={contacts} links={links} onAddTrack={(id, title) => void addEditorTrack(id, title)} onRemoveTrack={(item) => void removeTrack(item)} onAddVideo={(url, title, type) => void addEditorVideo(url, title, type)} onRemoveVideo={(item) => void removeVideo(item)} onUploadHero={(file) => void uploadHero(file)} onRemoveHero={() => void removeHero()} onUploadPhoto={(file) => void addEditorPhoto(file)} onRemovePhoto={(item) => void removePhoto(item)} onUploadDocument={(file, title, type) => void addEditorDocument(file, title, type)} onRemoveDocument={(item) => void removeDocument(item)} onAddContact={(name, role, email, phone) => void addEditorContact(name, role, email, phone)} onUpdateContact={(id, name, role, email, phone) => void updateEditorContact(id, name, role, email, phone)} onRemoveContact={(item) => void removeContact(item)} onAddLink={(name, url) => void addEditorLink(name, url)} onUpdateLink={(id, name, url) => void updateEditorLink(id, name, url)} onRemoveLink={(item) => void removeLink(item)} />{message ? <p className="mt-3 text-center text-sm text-white/65" role="status">{message}</p> : null}</div></main><ConfirmDialog isOpen={confirmUnpublish} title="Retirer la page publique ?" description="La page ne sera plus accessible publiquement." confirmLabel="Retirer" isBusy={saving} onCancel={() => setConfirmUnpublish(false)} onConfirm={() => void removePublication()} /></div>;
+}
+
+async function verifyPublishedRevision(slug: string, revision: number | undefined): Promise<boolean> {
+  if (!revision) return false;
+  try {
+    const response = await fetch(`https://faderzero.com/${encodeURIComponent(slug)}?verify=${revision}`, { cache: 'no-store' });
+    return response.status === 204 && response.headers.get('x-fz-epk-revision') === String(revision);
+  } catch { return false; }
 }
 
 function EpkLiveHeader({ subtitle, onBack, backLabel, onPreview, onEdit }: { subtitle: string; onBack: () => void; backLabel: string; onPreview?: () => void; onEdit?: () => void }) {
-  return <header className="sticky top-0 z-30 shrink-0 border-b border-white/10 bg-[var(--fz-bg)]/98 backdrop-blur-sm"><div className="mx-auto w-full max-w-md px-4 pb-2 pt-3"><div className="relative flex h-11 items-center"><button type="button" onClick={onBack} aria-label={backLabel} className="absolute left-0 z-10 flex h-11 w-11 items-center justify-center text-white/72 transition hover:text-white"><FzIcon name="close" usageId="epk.live.close" size="md" /></button><div className="pointer-events-none absolute inset-x-0 min-w-0 px-16 text-center"><p className="truncate text-[0.72rem] font-black uppercase tracking-[0.26em] text-[var(--fz-text-muted)]">FaderZero</p><p className="mt-1 truncate text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-white/55">{subtitle}</p></div>{onPreview ? <button type="button" onClick={onPreview} aria-label="Visualiser la page EPK" className="absolute right-0 z-10 flex h-11 w-11 items-center justify-center text-white/72 transition hover:text-white"><FzIcon name="show-password" usageId="epk.live.preview" size="md" /></button> : null}{onEdit ? <button type="button" onClick={onEdit} aria-label="Modifier la page EPK" className="absolute right-0 z-10 flex h-11 w-11 items-center justify-center text-white/72 transition hover:text-white"><FzIcon name="edit" usageId="epk.live.edit" size="md" /></button> : null}</div></div></header>;
+  return <header className="sticky top-0 z-30 shrink-0 border-b border-white/10 bg-[var(--fz-bg)]/98 backdrop-blur-sm"><div className="mx-auto w-full max-w-md px-4 pb-2 pt-3"><div className="relative flex h-11 items-center"><button type="button" onClick={onBack} aria-label={backLabel} className="absolute left-0 z-10 flex h-11 w-11 items-center justify-center text-white/72 transition hover:text-white"><FzIcon name="close" usageId="epk.live.close" size="md" /></button><div className="pointer-events-none absolute inset-x-0 min-w-0 px-16 text-center"><p className="truncate text-[0.72rem] font-black uppercase tracking-[0.26em] text-[var(--fz-text-muted)]">FaderZero</p><p className="mt-1 truncate text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-white/55">{subtitle}</p></div>{onPreview ? <button type="button" onClick={onPreview} aria-label="Aperçu du brouillon" title="Aperçu du brouillon" className="absolute right-0 z-10 flex h-11 w-11 items-center justify-center text-white/72 transition hover:text-white"><FzIcon name="show-password" usageId="epk.live.preview" size="md" /></button> : null}{onEdit ? <button type="button" onClick={onEdit} aria-label="Modifier la page EPK" className="absolute right-0 z-10 flex h-11 w-11 items-center justify-center text-white/72 transition hover:text-white"><FzIcon name="edit" usageId="epk.live.edit" size="md" /></button> : null}</div></div></header>;
 }
 
 const EPK_ERROR_MESSAGES: Record<string, string> = {

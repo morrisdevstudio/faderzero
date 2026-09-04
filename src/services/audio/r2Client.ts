@@ -74,7 +74,14 @@ export function createR2AudioClient(dependencies: R2AudioClientDependencies) {
     return body.signedUrl;
   }
 
-  return { uploadObject, uploadEpkObject, deleteEpkObject, createSignedUrl };
+  async function publishEpk(epkId: string, expectedRevision: number): Promise<unknown> {
+    const accessToken = await dependencies.getAccessToken();
+    const response = await dependencies.fetch(`${apiUrl}/epk-publications/${encodeURIComponent(epkId)}`, { method: 'POST', headers: { authorization: `Bearer ${accessToken}`, 'content-type': 'application/json' }, body: JSON.stringify({ expectedRevision }) });
+    if (!response.ok) throw await createApiError(response, 'Publication EPK impossible');
+    return response.json();
+  }
+
+  return { uploadObject, uploadEpkObject, deleteEpkObject, createSignedUrl, publishEpk };
 }
 
 const r2AudioClient = createR2AudioClient({
@@ -110,6 +117,11 @@ export async function deleteEpkObject(key: string): Promise<void> {
 export async function createAudioSignedUrl(key: string): Promise<string> {
   assertAudioApiConfig();
   return r2AudioClient.createSignedUrl(key);
+}
+
+export async function publishEpkMedia(epkId: string, expectedRevision: number): Promise<unknown> {
+  assertAudioApiConfig();
+  return r2AudioClient.publishEpk(epkId, expectedRevision);
 }
 
 function assertAudioApiConfig(): void {

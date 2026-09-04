@@ -1,0 +1,1 @@
+{"nodes": [{"id": "$graphify-root$_supabase_migrations_20260807111500_design_icon_foreign_key_indexes_sql", "label": "20260807111500_design_icon_foreign_key_indexes.sql", "file_type": "code", "source_file": "supabase/migrations/20260807111500_design_icon_foreign_key_indexes.sql", "source_location": null}], "edges": []}

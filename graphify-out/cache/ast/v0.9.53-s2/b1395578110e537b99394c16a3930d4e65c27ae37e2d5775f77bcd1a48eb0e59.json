@@ -1,0 +1,1 @@
+{"nodes": [{"id": "$graphify-root$_supabase_migrations_20260807135807_add_password_and_pdf_icon_roles_sql", "label": "20260807135807_add_password_and_pdf_icon_roles.sql", "file_type": "code", "source_file": "supabase/migrations/20260807135807_add_password_and_pdf_icon_roles.sql", "source_location": null}], "edges": []}

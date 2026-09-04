@@ -1,6 +1,6 @@
 import { supabase } from '@/services/supabase/client';
 import { createId } from '@/lib/createId';
-import { createAudioSignedUrl, deleteEpkObject, uploadEpkObject } from '@/services/audio/r2Client';
+import { createAudioSignedUrl, deleteEpkObject, publishEpkMedia, uploadEpkObject } from '@/services/audio/r2Client';
 import { db } from '@/db/db';
 import { songAssetsRepository } from '@/db/repositories/songAssetsRepository';
 import { getCachedAudioUrl } from '@/features/audio/audioCacheStore';
@@ -180,9 +180,15 @@ export async function saveEpkDraft(epk: EpkRecord, expectedRevision: number): Pr
 }
 
 export async function publishEpkDraft(epkId: string, expectedRevision: number): Promise<EpkRecord> {
-  const { data, error } = await supabase.rpc('publish_epk', { p_epk_id: epkId, p_expected_revision: expectedRevision });
-  if (error) throw error;
+  const data = await publishEpkMedia(epkId, expectedRevision);
   if (!data || !Array.isArray(data) || !data[0]) throw new Error('Publication EPK impossible.');
+  return toRecord(data[0] as Record<string, unknown>);
+}
+
+export async function unpublishEpk(epkId: string): Promise<EpkRecord> {
+  const { data, error } = await supabase.rpc('unpublish_epk', { p_epk_id: epkId });
+  if (error) throw error;
+  if (!data || !Array.isArray(data) || !data[0]) throw new Error('Retrait de la page publique impossible.');
   return toRecord(data[0] as Record<string, unknown>);
 }
 

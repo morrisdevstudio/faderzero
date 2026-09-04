@@ -6,6 +6,7 @@
   "workerCpuTargetMilliseconds": 8,
   "allowedR2Buckets": [
     "faderzero-audio",
-    "faderzero-audio-backup-20260720"
+    "faderzero-audio-backup-20260720",
+    "faderzero-epk-public"
   ]
 }

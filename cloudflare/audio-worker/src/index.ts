@@ -47,6 +47,11 @@ export default {
         return await createSignedUrl(request, env);
       }
 
+      const publicationMatch = url.pathname.match(/^\/epk-publications\/([0-9a-f-]{36})$/i);
+      if (publicationMatch && request.method === 'POST') {
+        return await publishEpkMedia(request, env, publicationMatch[1]!);
+      }
+
       if (url.pathname.startsWith('/objects/')) {
         const details = parseObjectKey(url.pathname.slice('/objects/'.length));
         if (!details) {
@@ -82,6 +87,68 @@ export default {
     ctx.waitUntil(auditR2Objects(env));
   },
 } satisfies ExportedHandler<WorkerEnv>;
+
+type PublicMedia = { heroPublicKey: string | undefined; photos: Array<{ id: string; publicKey: string }>; documents: Array<{ id: string; publicKey: string }>; tracks: Array<{ id: string; publicKey: string }> };
+
+async function publishEpkMedia(request: Request, env: WorkerEnv, epkId: string): Promise<Response> {
+  const user = await authenticate(request, env);
+  if (!user) return jsonResponse(request, env, { error: 'Unauthorized' }, 401);
+  const body = await request.json().catch(() => null);
+  const expectedRevision = isRecord(body) ? Number(body.expectedRevision) : NaN;
+  if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 0) return jsonResponse(request, env, { error: 'Invalid revision' }, 400);
+
+  const epks = await serviceRows(env, 'epks', `select=id,workspace_id,draft_revision,hero_asset_id& id=eq.${epkId}`.replace('& ', '&'));
+  const epk = epks[0];
+  if (!isRecord(epk) || typeof epk.workspace_id !== 'string' || Number(epk.draft_revision) !== expectedRevision) return jsonResponse(request, env, { error: 'EPK_DRAFT_CONFLICT' }, 409);
+  if ((await getWorkspaceRole(user, epk.workspace_id, env)) !== 'admin') return jsonResponse(request, env, { error: 'Forbidden' }, 403);
+
+  const assets = await serviceRows(env, 'epk_assets', `select=id,storage_path,mime_type&epk_id=eq.${epkId}`);
+  const assetById = new Map(assets.filter(isRecord).flatMap((asset) => typeof asset.id === 'string' && typeof asset.storage_path === 'string' ? [[asset.id, asset]] : []));
+  const [photos, documents, tracks] = await Promise.all([
+    serviceRows(env, 'epk_photos', `select=id,preview_asset_id&epk_id=eq.${epkId}`),
+    serviceRows(env, 'epk_documents', `select=id,asset_id&epk_id=eq.${epkId}`),
+    serviceRows(env, 'epk_tracks', `select=id,source_type,audio_asset_id,song_asset_id&epk_id=eq.${epkId}&visibility=eq.PUBLIC`),
+  ]);
+  const songIds = tracks.filter(isRecord).map((track) => track.song_asset_id).filter((id): id is string => typeof id === 'string');
+  const songs = songIds.length ? await serviceRows(env, 'song_assets', `select=id,storage_path,mime_type&id=in.(${songIds.join(',')})`) : [];
+  for (const song of songs) if (isRecord(song) && typeof song.id === 'string' && typeof song.storage_path === 'string') assetById.set(song.id, song);
+
+  const copied: string[] = [];
+  const copy = async (assetId: unknown): Promise<string | undefined> => {
+    if (typeof assetId !== 'string') return undefined;
+    const asset = assetById.get(assetId);
+    if (!asset || typeof asset.storage_path !== 'string') throw new Error('EPK_MEDIA_MISSING');
+    const key = `epks/${epkId}/revisions/${expectedRevision}/${assetId}`;
+    if (await env.EPK_PUBLIC_BUCKET.head(key)) return key;
+    const source = await env.AUDIO_BUCKET.get(asset.storage_path);
+    if (!source) throw new Error('EPK_MEDIA_MISSING');
+    const contentType = typeof asset.mime_type === 'string' ? asset.mime_type : source.httpMetadata?.contentType;
+    await env.EPK_PUBLIC_BUCKET.put(key, source.body, { httpMetadata: contentType ? { contentType, cacheControl: 'public, max-age=31536000, immutable' } : { cacheControl: 'public, max-age=31536000, immutable' } });
+    copied.push(key);
+    return key;
+  };
+  try {
+    const media: PublicMedia = { heroPublicKey: undefined, photos: [], documents: [], tracks: [] };
+    media.heroPublicKey = await copy(epk.hero_asset_id);
+    for (const photo of photos) if (isRecord(photo)) { const key = await copy(photo.preview_asset_id); if (key && typeof photo.id === 'string') media.photos.push({ id: photo.id, publicKey: key }); }
+    for (const document of documents) if (isRecord(document)) { const key = await copy(document.asset_id); if (key && typeof document.id === 'string') media.documents.push({ id: document.id, publicKey: key }); }
+    for (const track of tracks) if (isRecord(track)) { const key = await copy(track.source_type === 'SONG_ASSET' ? track.song_asset_id : track.audio_asset_id); if (key && typeof track.id === 'string') media.tracks.push({ id: track.id, publicKey: key }); }
+    const response = await callSupabaseRpc(env, user.accessToken, 'publish_epk_with_media', { p_epk_id: epkId, p_expected_revision: expectedRevision, p_public_media: media as unknown as Record<string, unknown> });
+    if (!response.ok) throw new Error(await response.text());
+    return new Response(await response.text(), { status: 200, headers: { ...corsHeaders(request, env), 'content-type': 'application/json' } });
+  } catch (error) {
+    await env.EPK_PUBLIC_BUCKET.delete(copied).catch(() => undefined);
+    return jsonResponse(request, env, { error: error instanceof Error ? error.message : 'Publication failed' }, 422);
+  }
+}
+
+async function serviceRows(env: WorkerEnv, table: string, query: string): Promise<unknown[]> {
+  if (!env.SUPABASE_SECRET_KEY) throw new Error('SUPABASE_SECRET_KEY missing');
+  const response = await fetch(`${env.SUPABASE_URL}/rest/v1/${table}?${query}`, { headers: { apikey: env.SUPABASE_SECRET_KEY, authorization: `Bearer ${env.SUPABASE_SECRET_KEY}` } });
+  if (!response.ok) throw new Error(`Supabase ${table} lookup failed`);
+  const value: unknown = await response.json();
+  return Array.isArray(value) ? value : [];
+}
 
 async function uploadObject(
   request: Request,

@@ -20,6 +20,7 @@ import { SplashScreen } from '@/components/SplashScreen';
 
 const LandingPage = lazy(async () => ({ default: (await import('@/features/landing/LandingPage')).LandingPage }));
 const LegalPage = lazy(async () => ({ default: (await import('@/features/legal/LegalPage')).LegalPage }));
+const EpkPublicPage = lazy(async () => ({ default: (await import('@/features/epk/EpkPublicPage')).EpkPublicPage }));
 
 export function normalizeOAuthCallbackPath() {
   if (window.location.pathname !== '/auth/callback') return;
@@ -308,10 +309,17 @@ export function AppContent() {
 
 export function App() {
   normalizeOAuthCallbackPath();
+  const isPublicEpk = resolveViewTarget() === 'epk';
   return (
     <AppProviders>
-      <SyncBootstrap />
-      <AppContent />
+      {isPublicEpk ? (
+        <Suspense fallback={<SplashScreen animated={false} />}><EpkPublicPage /></Suspense>
+      ) : (
+        <>
+          <SyncBootstrap />
+          <AppContent />
+        </>
+      )}
     </AppProviders>
   );
 }

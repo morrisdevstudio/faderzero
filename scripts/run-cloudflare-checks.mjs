@@ -2,6 +2,7 @@ import { spawnSync } from 'node:child_process';
 import os from 'node:os';
 
 const expected = { platform: 'linux', arch: 'x64', node: 'v22.16.0', npm: '10.9.2' };
+const wrangler = ['--yes', 'wrangler@4.118.0'];
 
 function capture(command, args) {
   const result = spawnSync(command, args, { encoding: 'utf8' });
@@ -26,18 +27,26 @@ console.log(`  Node.js: ${process.version}`);
 console.log(`  npm: ${expected.npm}`);
 
 const checks = [
-  ['Politique Cloudflare gratuite', ['run', 'check:cloudflare:costs']],
-  ['TypeScript', ['run', 'typecheck']],
-  ['EPK Worker TypeScript', ['run', 'typecheck:epk']],
-  ['Lint', ['run', 'lint']],
-  ['Tests', ['test']],
-  ['EPK Worker tests', ['run', 'test:epk']],
-  ['Build Cloudflare Pages', ['run', 'build']],
+  ['Politique Cloudflare gratuite', 'npm', ['run', 'check:cloudflare:costs']],
+  ['TypeScript', 'npm', ['run', 'typecheck']],
+  ['Audio Worker TypeScript', 'npm', ['run', 'typecheck:worker']],
+  ['EPK Worker TypeScript', 'npm', ['run', 'typecheck:epk']],
+  ['Lint', 'npm', ['run', 'lint']],
+  ['Tests', 'npm', ['test']],
+  ['Audio Worker tests', 'npm', ['run', 'test:worker']],
+  ['EPK Worker tests', 'npm', ['run', 'test:epk']],
+  ['En-têtes de sécurité', 'npm', ['run', 'security:headers']],
+  ['Audio Worker types', 'npx', [...wrangler, 'types', '--check', '--config', 'cloudflare/audio-worker/wrangler.jsonc', 'cloudflare/audio-worker/worker-configuration.d.ts']],
+  ['EPK Worker types', 'npx', [...wrangler, 'types', '--check', '--config', 'cloudflare/epk-public/wrangler.jsonc', 'cloudflare/epk-public/worker-configuration.d.ts']],
+  ['Audio Worker dry-run', 'npx', [...wrangler, 'deploy', '--dry-run', '--config', 'cloudflare/audio-worker/wrangler.jsonc']],
+  ['EPK Worker dry-run', 'npx', [...wrangler, 'deploy', '--dry-run', '--config', 'cloudflare/epk-public/wrangler.jsonc']],
+  ['Pages Functions', 'npx', [...wrangler, 'pages', 'functions', 'build', '--outdir', '/tmp/pages-functions']],
+  ['Build Cloudflare Pages', 'npm', ['run', 'build:deploy']],
 ];
 
-for (const [label, args] of checks) {
+for (const [label, command, args] of checks) {
   console.log(`\n[cloudflare-check] ${label}...`);
-  const result = spawnSync('npm', args, { stdio: 'inherit' });
+  const result = spawnSync(command, args, { stdio: 'inherit' });
   if (result.error) {
     console.error(`[cloudflare-check] ${label}: ${result.error.message}`);
     process.exit(1);

@@ -10,7 +10,7 @@ export type EpkPublicModel = {
   videos: Array<{ id: string; title?: string; provider: 'YOUTUBE' | 'VIMEO'; providerVideoId: string }>;
   tracks: Array<{ id: string; title: string; description?: string; audioUrl?: string }>;
   photos: Array<{ id: string; previewUrl: string; caption?: string; credit?: string }>;
-  documents: Array<{ id: string; assetId: string; title: string; type: string; updatedAt: string }>;
+  documents: Array<{ id: string; assetId: string; title: string; type: string; updatedAt: string; url?: string }>;
   contacts: Array<{ name: string; role?: string | undefined; email?: string; phone?: string; whatsapp?: string }>;
   links: Array<{ label: string; url: string }>;
 };

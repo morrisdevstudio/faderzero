@@ -673,6 +673,24 @@
     .epk-link { padding:8px 10px; border-radius:8px; background:white; color:#101216; font-size:7px; font-weight:900; }
     .epk-link.alt { color:#cbd0d6; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.08); }
 
+    .pricing { padding:120px 0; border-top:1px solid var(--line); background:linear-gradient(180deg,#0a0b0e,#090a0c); }
+    .pricing-head { max-width:680px; }
+    .pricing-head h2 { margin-bottom:18px; font-size:clamp(44px,6vw,74px); line-height:.95; letter-spacing:-.055em; }
+    .pricing-head p { max-width:560px; color:#969ea8; font-size:17px; line-height:1.65; }
+    .pricing-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:56px; }
+    .price-card { min-height:385px; padding:27px; display:flex; flex-direction:column; border:1px solid var(--line); border-radius:22px; background:linear-gradient(145deg,rgba(255,255,255,.045),rgba(255,255,255,.012)); }
+    .price-card.featured { border-color:rgba(255,58,99,.52); background:linear-gradient(160deg,rgba(255,58,99,.13),rgba(255,255,255,.018)); box-shadow:0 20px 55px rgba(255,58,99,.09); }
+    .price-card-top { display:flex; align-items:start; justify-content:space-between; gap:12px; }
+    .price-name { font-size:22px; font-weight:900; letter-spacing:-.035em; }
+    .price-note { padding:5px 7px; border-radius:99px; background:rgba(255,58,99,.13); color:#ff92a8; font:500 8px "DM Mono",monospace; letter-spacing:.06em; text-transform:uppercase; white-space:nowrap; }
+    .price { margin:33px 0 3px; font-size:44px; line-height:1; font-weight:900; letter-spacing:-.055em; }
+    .price span { margin-left:4px; color:#848c97; font-size:11px; font-weight:700; letter-spacing:0; }
+    .price-annual { color:#ff839e; font:500 10px "DM Mono",monospace; }
+    .price-details { margin:27px 0 0; padding:20px 0 0; border-top:1px solid var(--line); display:grid; gap:13px; }
+    .price-detail { display:flex; align-items:center; justify-content:space-between; gap:12px; color:#929aa5; font-size:12px; }
+    .price-detail b { color:#eef0f2; font-size:12px; }
+    .price-card .button { margin-top:auto; width:100%; }
+
     .final {
       padding: 150px 0 110px;
       text-align:center;
@@ -711,6 +729,7 @@
       .device-stage { min-height:640px; max-width:660px; width:100%; margin:0 auto; }
       .proof-grid { grid-template-columns:1fr 1fr; }
       .proof { padding:20px 24px; border-bottom:1px solid var(--line); }
+      .proof:first-child { padding-left:24px; }
       .proof:nth-child(2){border-right:0}
       .proof:nth-child(3),.proof:nth-child(4){border-bottom:0}
       .workflow { grid-template-columns:1fr; }
@@ -769,6 +788,9 @@
       .browser { transform:none; }
       .epk-hero { min-height:280px; padding:28px; }
       .epk-name { font-size:39px; }
+      .pricing { padding:84px 0; }
+      .pricing-grid { grid-template-columns:1fr; margin-top:38px; }
+      .price-card { min-height:0; }
       .final { padding:110px 0 80px; }
       .final h2 { font-size:clamp(50px,15vw,74px); }
       .final-actions .button { width:100%; }
@@ -817,7 +839,6 @@
           </div>
           <div class="micro-trust" aria-label="Points clés">
             <span><i></i> Offline-first</span>
-            <span><i></i> PWA mobile</span>
             <span><i></i> Espace partagé</span>
           </div>
         </div>
@@ -1134,6 +1155,39 @@
       </div>
     </section>
 
+    <section class="pricing" id="pricing">
+      <div class="wrap">
+        <div class="pricing-head" data-reveal>
+          <div class="section-label">06 — Tarifs</div>
+          <h2>Une offre claire pour chaque projet musical.</h2>
+          <p>Les offres Groupe et Pro arrivent début 2027. Tous les prix sont indiqués par groupe.</p>
+        </div>
+        <div class="pricing-grid" data-reveal>
+          <article class="price-card">
+            <div class="price-card-top"><h3 class="price-name">Gratuit</h3></div>
+            <div class="price">0 €<span>/ mois</span></div>
+            <div class="price-annual">0 € / an · Sans création de groupe</div>
+            <div class="price-details"><div class="price-detail"><span>Audio inclus</span><b>1 h</b></div><div class="price-detail"><span>EPK</span><b>Non</b></div></div>
+            <a class="button button-ghost" href="https://fader.pages.dev/?view=app">Créer un compte <span aria-hidden="true">→</span></a>
+          </article>
+          <article class="price-card">
+            <div class="price-card-top"><h3 class="price-name">Groupe</h3><span class="price-note">Début 2027</span></div>
+            <div class="price">3 €<span>/ mois</span></div>
+            <div class="price-annual">30 € / an · Par groupe</div>
+            <div class="price-details"><div class="price-detail"><span>Audio inclus</span><b>20 h</b></div><div class="price-detail"><span>EPK</span><b>Non</b></div></div>
+            <a class="button button-ghost" href="https://fader.pages.dev/?view=app">Créer un compte <span aria-hidden="true">→</span></a>
+          </article>
+          <article class="price-card featured">
+            <div class="price-card-top"><h3 class="price-name">Pro</h3><span class="price-note">Début 2027</span></div>
+            <div class="price">5 €<span>/ mois</span></div>
+            <div class="price-annual">50 € / an · Par groupe</div>
+            <div class="price-details"><div class="price-detail"><span>Audio inclus</span><b>50 h</b></div><div class="price-detail"><span>EPK</span><b>Oui</b></div></div>
+            <a class="button button-primary" href="https://fader.pages.dev/?view=app">Créer un compte <span aria-hidden="true">→</span></a>
+          </article>
+        </div>
+      </div>
+    </section>
+
     <section class="final">
       <div class="wrap">
         <div class="section-label">FaderZero</div>
@@ -1158,6 +1212,10 @@
         <span>Pour les groupes. Pour la scène.</span>
       </div>
       <div class="footer-links">
+        <a href="/legal-notices">Mentions légales</a>
+        <a href="/cookies">Politique cookies</a>
+        <a href="/privacy">Confidentialité</a>
+        <a href="/terms">Conditions d’utilisation</a>
         <a href="https://github.com/morrisdevstudio/faderzero" target="_blank" rel="noreferrer">GitHub</a>
         <a href="https://fader.pages.dev/?view=app">Application</a>
         <span>© 2026 FaderZero</span>
