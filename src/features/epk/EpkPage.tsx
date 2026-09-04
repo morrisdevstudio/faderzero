@@ -6,7 +6,7 @@ import { FzIcon } from '@/ui/icons';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { useAuthStore } from '@/stores/authStore';
 import { canAdministerWorkspace } from '@/services/supabase/workspace';
-import { addEpkContact, addEpkDocument, addEpkLink, addEpkPhoto, addEpkTrack, addEpkVideo, createEpk, createEpkAssetSignedUrl, deleteEpkContact, deleteEpkDocument, deleteEpkHeroImage, deleteEpkLink, deleteEpkPhoto, deleteEpkTrack, deleteEpkVideo, getEpk, getEpkTrackAudioUrl, listAvailableEpkTracks, listEpkContacts, listEpkDocuments, listEpkLinks, listEpkPhotos, listEpkTracks, listEpkVideos, publishEpkDraft, saveEpk, unpublishEpk, updateEpkContact, updateEpkDocument, updateEpkLink, uploadEpkHeroImage, type AvailableEpkTrack, type EpkContact, type EpkDocument, type EpkLink, type EpkPhoto, type EpkRecord, type EpkTrack, type EpkVideo, type EpkVideoType } from './epk';
+import { addEpkContact, addEpkDocument, addEpkLink, addEpkPhoto, addEpkTrack, addEpkVideo, createEpk, createEpkAssetSignedUrl, deleteEpkContact, deleteEpkDocument, deleteEpkHeroImage, deleteEpkLink, deleteEpkPhoto, deleteEpkTrack, deleteEpkVideo, epkHasUnpublishedChanges, epkUnpublishedLeavePrompt, getEpk, getEpkTrackAudioUrl, listAvailableEpkTracks, listEpkContacts, listEpkDocuments, listEpkLinks, listEpkPhotos, listEpkTracks, listEpkVideos, publishEpkDraft, saveEpk, unpublishEpk, updateEpkContact, updateEpkDocument, updateEpkLink, uploadEpkHeroImage, type AvailableEpkTrack, type EpkContact, type EpkDocument, type EpkLink, type EpkPhoto, type EpkRecord, type EpkTrack, type EpkVideo, type EpkVideoType } from './epk';
 import { EpkPublicView } from './EpkPublicView';
 import { EpkEditorFields } from './EpkEditorFields';
 import { DEFAULT_EPK_ACCENT, DEFAULT_EPK_EDITORIAL, DEFAULT_EPK_SECTION_ORDER, type EpkDocumentIcon, type EpkPublicModel } from './epkPresentation';
@@ -20,6 +20,8 @@ export function EpkPage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [confirmUnpublish, setConfirmUnpublish] = useState(false);
+  const [confirmLeave, setConfirmLeave] = useState(false);
+  const [dirtyThisSession, setDirtyThisSession] = useState(false);
   const [contacts, setContacts] = useState<EpkContact[]>([]);
   const [videos, setVideos] = useState<EpkVideo[]>([]);
   const [links, setLinks] = useState<EpkLink[]>([]);
@@ -56,23 +58,44 @@ export function EpkPage() {
     finally { setSaving(false); }
   }
 
-  async function savePresentation() {
-    if (!epk) return;
-    setSaving(true); setMessage(null);
-    try { await saveEpk(epk); setMessage('Présentation enregistrée.'); }
-    catch (error) { setMessage(error instanceof Error ? error.message : 'Enregistrement impossible.'); }
-    finally { setSaving(false); }
+  function noteUnpublishedChanges() {
+    setDirtyThisSession(true);
   }
-  async function publishPresentation() {
+  function flushPendingAutosave() {
+    if (autosaveTimer.current !== null) {
+      window.clearTimeout(autosaveTimer.current);
+      autosaveTimer.current = null;
+    }
+  }
+  function requestLeave() {
+    if (!epk || !epkHasUnpublishedChanges(dirtyThisSession, epk)) {
+      navigate('/account?tab=groupe');
+      return;
+    }
+    setConfirmLeave(true);
+  }
+  async function leaveWithoutPublishing() {
+    flushPendingAutosave();
+    setConfirmLeave(false);
+    if (epk) {
+      try { await saveEpk(epk); } catch { /* still leave */ }
+    }
+    navigate('/account?tab=groupe');
+  }
+  async function publishPresentation(options?: { leaveAfter?: boolean }) {
     if (!epk) return;
     if (!navigator.onLine) { setMessage('La publication nécessite une connexion Internet.'); return; }
+    flushPendingAutosave();
     setSaving(true); setMessage(null);
     try {
       const saved = await saveEpk(epk);
       const value = await publishEpkDraft(saved.id, saved.draftRevision ?? 0);
       setEpk(value);
+      setDirtyThisSession(false);
+      setConfirmLeave(false);
       const verified = await verifyPublishedRevision(value.slug, value.publishedRevision);
       setMessage(verified ? 'Publié' : 'La publication prend plus de temps — Réessayer');
+      if (options?.leaveAfter) navigate('/account?tab=groupe');
     } catch (error) { setMessage(getEpkErrorMessage(error, 'Publication impossible.')); }
     finally { setSaving(false); }
   }
@@ -85,6 +108,7 @@ export function EpkPage() {
   }
   function updateDraft(next: EpkRecord) {
     setEpk(next);
+    noteUnpublishedChanges();
     if (autosaveTimer.current !== null) window.clearTimeout(autosaveTimer.current);
     autosaveTimer.current = window.setTimeout(() => {
       setSaving(true); setMessage(null);
@@ -129,36 +153,36 @@ export function EpkPage() {
   }, [tracks]);
   async function removeContact(contact: EpkContact) {
     setSaving(true); setMessage(null);
-    try { await deleteEpkContact(contact.id); setContacts((items) => items.filter((item) => item.id !== contact.id)); setMessage('Contact supprimé.'); }
+    try { await deleteEpkContact(contact.id); setContacts((items) => items.filter((item) => item.id !== contact.id)); noteUnpublishedChanges(); setMessage('Contact supprimé.'); }
     catch (error) { setMessage(error instanceof Error ? error.message : 'Suppression impossible.'); }
     finally { setSaving(false); }
   }
   async function removeVideo(video: EpkVideo) {
     setSaving(true); setMessage(null);
-    try { await deleteEpkVideo(video.id); setVideos((items) => items.filter((item) => item.id !== video.id)); setMessage('Vidéo supprimée.'); }
+    try { await deleteEpkVideo(video.id); setVideos((items) => items.filter((item) => item.id !== video.id)); noteUnpublishedChanges(); setMessage('Vidéo supprimée.'); }
     catch (error) { setMessage(error instanceof Error ? error.message : 'Suppression impossible.'); }
     finally { setSaving(false); }
   }
   async function removeLink(link: EpkLink) {
     setSaving(true); setMessage(null);
-    try { await deleteEpkLink(link.id); setLinks((items) => items.filter((item) => item.id !== link.id)); setMessage('Lien supprimé.'); }
+    try { await deleteEpkLink(link.id); setLinks((items) => items.filter((item) => item.id !== link.id)); noteUnpublishedChanges(); setMessage('Lien supprimé.'); }
     catch (error) { setMessage(error instanceof Error ? error.message : 'Suppression impossible.'); }
     finally { setSaving(false); }
   }
-  async function removePhoto(photo: EpkPhoto) { setSaving(true); setMessage(null); try { await deleteEpkPhoto(photo); setPhotos((items) => items.filter((item) => item.id !== photo.id)); setMessage('Photo supprimée.'); } catch (error) { setMessage(error instanceof Error ? error.message : 'Suppression impossible.'); } finally { setSaving(false); } }
-  async function removeDocument(document: EpkDocument) { setSaving(true); setMessage(null); try { await deleteEpkDocument(document); setDocuments((items) => items.filter((item) => item.id !== document.id)); setMessage('Document supprimé.'); } catch (error) { setMessage(error instanceof Error ? error.message : 'Suppression impossible.'); } finally { setSaving(false); } }
-  async function removeTrack(track: EpkTrack) { setSaving(true); setMessage(null); try { await deleteEpkTrack(track.id); setTracks((items) => items.filter((item) => item.id !== track.id)); setMessage('Piste supprimée.'); } catch (error) { setMessage(error instanceof Error ? error.message : 'Suppression impossible.'); } finally { setSaving(false); } }
-  async function uploadHero(file: File) { if (!epk) return; if (autosaveTimer.current !== null) { window.clearTimeout(autosaveTimer.current); autosaveTimer.current = null; } setSaving(true); setMessage(null); try { const value = await uploadEpkHeroImage(epk, file); setEpk(value); setMessage('Bannière importée.'); } catch (error) { setMessage(error instanceof Error ? error.message : 'Import de la bannière impossible.'); } finally { setSaving(false); } }
-  async function removeHero() { if (!epk?.heroAssetId) return; if (autosaveTimer.current !== null) { window.clearTimeout(autosaveTimer.current); autosaveTimer.current = null; } const wasPublished = epk.status === 'PUBLISHED'; setSaving(true); setMessage(null); try { const value = await deleteEpkHeroImage(epk); setEpk(value); setMessage(wasPublished ? 'Bannière supprimée. La page publique reste en ligne, sans bannière.' : 'Bannière supprimée.'); } catch (error) { setMessage(error instanceof Error ? error.message : 'Suppression de la bannière impossible.'); } finally { setSaving(false); } }
-  async function addEditorPhoto(file: File) { if (!epk) return; setSaving(true); setMessage(null); try { const photo = await addEpkPhoto(epk, file, {}, photos.length); setPhotos((items) => [...items, photo]); setMessage('Photo ajoutée.'); } catch (error) { setMessage(error instanceof Error ? error.message : 'Ajout de la photo impossible.'); } finally { setSaving(false); } }
-  async function addEditorDocument(file: File, title: string, description: string, icon: EpkDocumentIcon) { if (!epk) return; setSaving(true); setMessage(null); try { const document = await addEpkDocument(epk, file, { title, ...(description.trim() ? { description: description.trim() } : {}), icon, documentUpdatedAt: new Date().toISOString().slice(0, 10) }, documents.length); setDocuments((items) => [...items, document]); setMessage('Fichier ajouté.'); } catch (error) { setMessage(error instanceof Error ? error.message : 'Ajout du fichier impossible.'); } finally { setSaving(false); } }
-  async function updateEditorDocument(item: EpkDocument, title: string, description: string, icon: EpkDocumentIcon, file?: File) { if (!epk) return; setSaving(true); setMessage(null); try { const document = await updateEpkDocument(epk, item, { title, description, icon }, file); setDocuments((items) => items.map((entry) => (entry.id === document.id ? document : entry))); setMessage('Fichier mis à jour.'); } catch (error) { setMessage(error instanceof Error ? error.message : 'Mise à jour du fichier impossible.'); } finally { setSaving(false); } }
-  async function addEditorContact(name: string, role: string, email?: string, phone?: string) { if (!epk) return; setSaving(true); setMessage(null); try { const position = contacts.reduce((highest, c) => Math.max(highest, c.position), -1) + 1; const contact = await addEpkContact(epk.id, { name, ...(role.trim() ? { role: role.trim() } : {}), ...(email?.trim() ? { email: email.trim() } : {}), ...(phone?.trim() ? { phone: phone.trim() } : {}) }, position); setContacts((items) => [...items, contact]); setMessage('Contact ajouté.'); } catch (error) { setMessage(getEpkErrorMessage(error, 'Ajout du contact impossible.')); } finally { setSaving(false); } }
-  async function updateEditorContact(contactId: string, name: string, role: string, email?: string, phone?: string) { if (!epk) return; setSaving(true); setMessage(null); try { const contact = await updateEpkContact(contactId, { name, ...(role.trim() ? { role: role.trim() } : { role: null }), ...(email?.trim() ? { email: email.trim() } : { email: null }), ...(phone?.trim() ? { phone: phone.trim() } : { phone: null }) }); setContacts((items) => items.map((item) => (item.id === contactId ? contact : item))); setMessage('Contact mis à jour.'); } catch (error) { setMessage(getEpkErrorMessage(error, 'Mise à jour du contact impossible.')); } finally { setSaving(false); } }
-  async function addEditorLink(name: string, url: string) { if (!epk) return; setSaving(true); setMessage(null); try { const position = links.reduce((highest, link) => Math.max(highest, link.position), -1) + 1; const link = await addEpkLink(epk.id, { kind: 'CUSTOM', label: name, url }, position); setLinks((items) => [...items, link]); setMessage('Lien ajouté.'); } catch (error) { setMessage(getEpkErrorMessage(error, 'Ajout du lien impossible.')); } finally { setSaving(false); } }
-  async function updateEditorLink(linkId: string, name: string, url: string) { if (!epk) return; setSaving(true); setMessage(null); try { const link = await updateEpkLink(linkId, { label: name, url }); setLinks((items) => items.map((item) => (item.id === linkId ? link : item))); setMessage('Lien mis à jour.'); } catch (error) { setMessage(getEpkErrorMessage(error, 'Mise à jour du lien impossible.')); } finally { setSaving(false); } }
-  async function addEditorTrack(id: string, title: string) { if (!epk) return; const track = availableTracks.find((item) => item.id === id); if (!track) return; setSaving(true); setMessage(null); try { const value = await addEpkTrack(epk.id, track, tracks.length, title); setTracks((items) => [...items, value]); setMessage('Piste ajoutée.'); } catch (error) { setMessage(error instanceof Error ? error.message : 'Ajout de la piste impossible.'); } finally { setSaving(false); } }
-  async function addEditorVideo(url: string, title: string, type: EpkVideoType) { if (!epk) return; setSaving(true); setMessage(null); try { const value = await addEpkVideo(epk.id, { url, title, videoType: type }, videos.length); setVideos((items) => [...items, value]); setMessage('Vidéo ajoutée.'); } catch (error) { setMessage(error instanceof Error ? error.message : 'Ajout de la vidéo impossible.'); } finally { setSaving(false); } }
+  async function removePhoto(photo: EpkPhoto) { setSaving(true); setMessage(null); try { await deleteEpkPhoto(photo); setPhotos((items) => items.filter((item) => item.id !== photo.id)); noteUnpublishedChanges(); setMessage('Photo supprimée.'); } catch (error) { setMessage(error instanceof Error ? error.message : 'Suppression impossible.'); } finally { setSaving(false); } }
+  async function removeDocument(document: EpkDocument) { setSaving(true); setMessage(null); try { await deleteEpkDocument(document); setDocuments((items) => items.filter((item) => item.id !== document.id)); noteUnpublishedChanges(); setMessage('Document supprimé.'); } catch (error) { setMessage(error instanceof Error ? error.message : 'Suppression impossible.'); } finally { setSaving(false); } }
+  async function removeTrack(track: EpkTrack) { setSaving(true); setMessage(null); try { await deleteEpkTrack(track.id); setTracks((items) => items.filter((item) => item.id !== track.id)); noteUnpublishedChanges(); setMessage('Piste supprimée.'); } catch (error) { setMessage(error instanceof Error ? error.message : 'Suppression impossible.'); } finally { setSaving(false); } }
+  async function uploadHero(file: File) { if (!epk) return; if (autosaveTimer.current !== null) { window.clearTimeout(autosaveTimer.current); autosaveTimer.current = null; } setSaving(true); setMessage(null); try { const value = await uploadEpkHeroImage(epk, file); setEpk(value); noteUnpublishedChanges(); setMessage('Bannière importée.'); } catch (error) { setMessage(error instanceof Error ? error.message : 'Import de la bannière impossible.'); } finally { setSaving(false); } }
+  async function removeHero() { if (!epk?.heroAssetId) return; if (autosaveTimer.current !== null) { window.clearTimeout(autosaveTimer.current); autosaveTimer.current = null; } const wasPublished = epk.status === 'PUBLISHED'; setSaving(true); setMessage(null); try { const value = await deleteEpkHeroImage(epk); setEpk(value); noteUnpublishedChanges(); setMessage(wasPublished ? 'Bannière supprimée. La page publique reste en ligne, sans bannière.' : 'Bannière supprimée.'); } catch (error) { setMessage(error instanceof Error ? error.message : 'Suppression de la bannière impossible.'); } finally { setSaving(false); } }
+  async function addEditorPhoto(file: File) { if (!epk) return; setSaving(true); setMessage(null); try { const photo = await addEpkPhoto(epk, file, {}, photos.length); setPhotos((items) => [...items, photo]); noteUnpublishedChanges(); setMessage('Photo ajoutée.'); } catch (error) { setMessage(error instanceof Error ? error.message : 'Ajout de la photo impossible.'); } finally { setSaving(false); } }
+  async function addEditorDocument(file: File, title: string, description: string, icon: EpkDocumentIcon) { if (!epk) return; setSaving(true); setMessage(null); try { const document = await addEpkDocument(epk, file, { title, ...(description.trim() ? { description: description.trim() } : {}), icon, documentUpdatedAt: new Date().toISOString().slice(0, 10) }, documents.length); setDocuments((items) => [...items, document]); noteUnpublishedChanges(); setMessage('Fichier ajouté.'); } catch (error) { setMessage(error instanceof Error ? error.message : 'Ajout du fichier impossible.'); } finally { setSaving(false); } }
+  async function updateEditorDocument(item: EpkDocument, title: string, description: string, icon: EpkDocumentIcon, file?: File) { if (!epk) return; setSaving(true); setMessage(null); try { const document = await updateEpkDocument(epk, item, { title, description, icon }, file); setDocuments((items) => items.map((entry) => (entry.id === document.id ? document : entry))); noteUnpublishedChanges(); setMessage('Fichier mis à jour.'); } catch (error) { setMessage(error instanceof Error ? error.message : 'Mise à jour du fichier impossible.'); } finally { setSaving(false); } }
+  async function addEditorContact(name: string, role: string, email?: string, phone?: string) { if (!epk) return; setSaving(true); setMessage(null); try { const position = contacts.reduce((highest, c) => Math.max(highest, c.position), -1) + 1; const contact = await addEpkContact(epk.id, { name, ...(role.trim() ? { role: role.trim() } : {}), ...(email?.trim() ? { email: email.trim() } : {}), ...(phone?.trim() ? { phone: phone.trim() } : {}) }, position); setContacts((items) => [...items, contact]); noteUnpublishedChanges(); setMessage('Contact ajouté.'); } catch (error) { setMessage(getEpkErrorMessage(error, 'Ajout du contact impossible.')); } finally { setSaving(false); } }
+  async function updateEditorContact(contactId: string, name: string, role: string, email?: string, phone?: string) { if (!epk) return; setSaving(true); setMessage(null); try { const contact = await updateEpkContact(contactId, { name, ...(role.trim() ? { role: role.trim() } : { role: null }), ...(email?.trim() ? { email: email.trim() } : { email: null }), ...(phone?.trim() ? { phone: phone.trim() } : { phone: null }) }); setContacts((items) => items.map((item) => (item.id === contactId ? contact : item))); noteUnpublishedChanges(); setMessage('Contact mis à jour.'); } catch (error) { setMessage(getEpkErrorMessage(error, 'Mise à jour du contact impossible.')); } finally { setSaving(false); } }
+  async function addEditorLink(name: string, url: string) { if (!epk) return; setSaving(true); setMessage(null); try { const position = links.reduce((highest, link) => Math.max(highest, link.position), -1) + 1; const link = await addEpkLink(epk.id, { kind: 'CUSTOM', label: name, url }, position); setLinks((items) => [...items, link]); noteUnpublishedChanges(); setMessage('Lien ajouté.'); } catch (error) { setMessage(getEpkErrorMessage(error, 'Ajout du lien impossible.')); } finally { setSaving(false); } }
+  async function updateEditorLink(linkId: string, name: string, url: string) { if (!epk) return; setSaving(true); setMessage(null); try { const link = await updateEpkLink(linkId, { label: name, url }); setLinks((items) => items.map((item) => (item.id === linkId ? link : item))); noteUnpublishedChanges(); setMessage('Lien mis à jour.'); } catch (error) { setMessage(getEpkErrorMessage(error, 'Mise à jour du lien impossible.')); } finally { setSaving(false); } }
+  async function addEditorTrack(id: string, title: string) { if (!epk) return; const track = availableTracks.find((item) => item.id === id); if (!track) return; setSaving(true); setMessage(null); try { const value = await addEpkTrack(epk.id, track, tracks.length, title); setTracks((items) => [...items, value]); noteUnpublishedChanges(); setMessage('Piste ajoutée.'); } catch (error) { setMessage(error instanceof Error ? error.message : 'Ajout de la piste impossible.'); } finally { setSaving(false); } }
+  async function addEditorVideo(url: string, title: string, type: EpkVideoType) { if (!epk) return; setSaving(true); setMessage(null); try { const value = await addEpkVideo(epk.id, { url, title, videoType: type }, videos.length); setVideos((items) => [...items, value]); noteUnpublishedChanges(); setMessage('Vidéo ajoutée.'); } catch (error) { setMessage(error instanceof Error ? error.message : 'Ajout de la vidéo impossible.'); } finally { setSaving(false); } }
 
   if (!isAdmin) return <div className="p-4 text-sm text-white/65">L’EPK public est réservé aux administrateurs d’un groupe.</div>;
   if (loading) return <div className="p-4 text-sm text-white/65">Chargement de l’EPK…</div>;
@@ -188,8 +212,13 @@ export function EpkPage() {
     contacts: contacts.map((contact) => ({ name: contact.name, ...(contact.role ? { role: contact.role } : {}), ...(contact.email ? { email: contact.email } : {}), ...(contact.phone ? { phone: contact.phone } : {}), ...(contact.whatsapp ? { whatsapp: contact.whatsapp } : {}) })),
     links: links.map((link) => ({ label: link.label || link.kind, url: link.url })),
   };
-  if (showPreview) return <div className="flex h-[100dvh] flex-col overflow-hidden bg-[#09090b]"><EpkLiveHeader subtitle="EPK · Aperçu" onBack={() => navigate('/account?tab=groupe')} backLabel="Retour aux paramètres" onEdit={() => setShowPreview(false)} /><main className="min-h-0 flex-1 overflow-y-auto"><EpkPublicView model={previewModel} /></main></div>;
-  return <div className="flex h-[100dvh] flex-col overflow-hidden bg-[#09090b]"><EpkLiveHeader subtitle="EPK · Éditeur" onBack={() => navigate('/account?tab=groupe')} backLabel="Quitter l’éditeur EPK" onPreview={() => setShowPreview(true)} /><main className="min-h-0 flex-1 overflow-y-auto px-4 pb-8 pt-4"><div className="mx-auto w-full max-w-md"><EpkEditorFields epk={epk} onChange={updateDraft} onSave={() => void savePresentation()} onPublish={() => void publishPresentation()} onUnpublish={() => setConfirmUnpublish(true)} onViewPublished={() => window.open(`https://faderzero.com/${epk.slug}`, '_blank', 'noopener,noreferrer')} saving={saving} tracks={tracks} availableTracks={availableTracks} videos={videos} photos={photos} {...(epk.heroAssetId && epkAssetUrls[epk.heroAssetId] ? { heroPreviewUrl: epkAssetUrls[epk.heroAssetId] } : {})} photoPreviewUrls={epkAssetUrls} documents={documents} contacts={contacts} links={links} onAddTrack={(id, title) => void addEditorTrack(id, title)} onRemoveTrack={(item) => void removeTrack(item)} onAddVideo={(url, title, type) => void addEditorVideo(url, title, type)} onRemoveVideo={(item) => void removeVideo(item)} onUploadHero={(file) => void uploadHero(file)} onRemoveHero={() => void removeHero()} onUploadPhoto={(file) => void addEditorPhoto(file)} onRemovePhoto={(item) => void removePhoto(item)} onUploadDocument={(file, title, description, icon) => void addEditorDocument(file, title, description, icon)} onUpdateDocument={(item, title, description, icon, file) => void updateEditorDocument(item, title, description, icon, file)} onRemoveDocument={(item) => void removeDocument(item)} onAddContact={(name, role, email, phone) => void addEditorContact(name, role, email, phone)} onUpdateContact={(id, name, role, email, phone) => void updateEditorContact(id, name, role, email, phone)} onRemoveContact={(item) => void removeContact(item)} onAddLink={(name, url) => void addEditorLink(name, url)} onUpdateLink={(id, name, url) => void updateEditorLink(id, name, url)} onRemoveLink={(item) => void removeLink(item)} />{message ? <p className="mt-3 text-center text-sm text-white/65" role="status">{message}</p> : null}</div></main><ConfirmDialog isOpen={confirmUnpublish} title="Retirer la page publique ?" description="La page ne sera plus accessible publiquement." confirmLabel="Retirer" isBusy={saving} onCancel={() => setConfirmUnpublish(false)} onConfirm={() => void removePublication()} /></div>;
+  const leavePrompt = epkUnpublishedLeavePrompt(epk.status);
+  const epkDialogs = <>
+    <ConfirmDialog isOpen={confirmLeave} title={leavePrompt.title} description={leavePrompt.description} confirmLabel={leavePrompt.confirmLabel} cancelLabel="Quitter" closeLabel="Fermer et rester dans l’éditeur" confirmVariant="primary" isBusy={saving} onDismiss={() => setConfirmLeave(false)} onCancel={() => void leaveWithoutPublishing()} onConfirm={() => void publishPresentation({ leaveAfter: true })} />
+    <ConfirmDialog isOpen={confirmUnpublish} title="Retirer la page publique ?" description="La page ne sera plus accessible publiquement." confirmLabel="Retirer" isBusy={saving} onCancel={() => setConfirmUnpublish(false)} onConfirm={() => void removePublication()} />
+  </>;
+  if (showPreview) return <div className="flex h-[100dvh] flex-col overflow-hidden bg-[#09090b]"><EpkLiveHeader subtitle="EPK · Aperçu" onBack={requestLeave} backLabel="Retour aux paramètres" onEdit={() => setShowPreview(false)} /><main className="min-h-0 flex-1 overflow-y-auto"><EpkPublicView model={previewModel} /></main>{message ? <p className="px-4 py-2 text-center text-sm text-white/65" role="status">{message}</p> : null}{epkDialogs}</div>;
+  return <div className="flex h-[100dvh] flex-col overflow-hidden bg-[#09090b]"><EpkLiveHeader subtitle="EPK · Éditeur" onBack={requestLeave} backLabel="Quitter l’éditeur EPK" onPreview={() => setShowPreview(true)} /><main className="min-h-0 flex-1 overflow-y-auto px-4 pb-8 pt-4"><div className="mx-auto w-full max-w-md"><EpkEditorFields epk={epk} onChange={updateDraft} onPublish={() => void publishPresentation()} onUnpublish={() => setConfirmUnpublish(true)} onViewPublished={() => window.open(`https://faderzero.com/${epk.slug}`, '_blank', 'noopener,noreferrer')} saving={saving} tracks={tracks} availableTracks={availableTracks} videos={videos} photos={photos} {...(epk.heroAssetId && epkAssetUrls[epk.heroAssetId] ? { heroPreviewUrl: epkAssetUrls[epk.heroAssetId] } : {})} photoPreviewUrls={epkAssetUrls} documents={documents} contacts={contacts} links={links} onAddTrack={(id, title) => void addEditorTrack(id, title)} onRemoveTrack={(item) => void removeTrack(item)} onAddVideo={(url, title, type) => void addEditorVideo(url, title, type)} onRemoveVideo={(item) => void removeVideo(item)} onUploadHero={(file) => void uploadHero(file)} onRemoveHero={() => void removeHero()} onUploadPhoto={(file) => void addEditorPhoto(file)} onRemovePhoto={(item) => void removePhoto(item)} onUploadDocument={(file, title, description, icon) => void addEditorDocument(file, title, description, icon)} onUpdateDocument={(item, title, description, icon, file) => void updateEditorDocument(item, title, description, icon, file)} onRemoveDocument={(item) => void removeDocument(item)} onAddContact={(name, role, email, phone) => void addEditorContact(name, role, email, phone)} onUpdateContact={(id, name, role, email, phone) => void updateEditorContact(id, name, role, email, phone)} onRemoveContact={(item) => void removeContact(item)} onAddLink={(name, url) => void addEditorLink(name, url)} onUpdateLink={(id, name, url) => void updateEditorLink(id, name, url)} onRemoveLink={(item) => void removeLink(item)} />{message ? <p className="mt-3 text-center text-sm text-white/65" role="status">{message}</p> : null}</div></main>{epkDialogs}</div>;
 }
 
 async function verifyPublishedRevision(slug: string, revision: number | undefined): Promise<boolean> {

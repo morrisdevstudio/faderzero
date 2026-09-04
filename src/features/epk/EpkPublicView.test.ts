@@ -179,6 +179,7 @@ describe('médias publics', () => {
     };
 
     const { container } = render(createElement(EpkPublicView, { model: modelWithVideo }));
+    expect(container.querySelector('.epk-videos')).toHaveClass('epk-videos-one');
     expect(container.querySelector('.epk-video-poster img')).toHaveAttribute('src', 'https://i.ytimg.com/vi/l-JEg4MlMRk/hqdefault.jpg');
     expect(container.querySelector('.epk-video iframe')).not.toBeInTheDocument();
 

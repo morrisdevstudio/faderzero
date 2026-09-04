@@ -13,7 +13,7 @@ describe('LandingPage', () => {
     expect(screen.getByText(/Electronic press kit/i)).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /Une offre claire pour chaque projet musical/i })).toBeInTheDocument();
     expect(screen.getByText('20 h')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Ouvrir FaderZero/i })).toHaveAttribute('href', 'https://fader.pages.dev/?view=app');
+    expect(screen.getByRole('link', { name: /Ouvrir FaderZero/i })).toHaveAttribute('href', 'https://app.faderzero.com');
     expect(screen.getByRole('link', { name: 'Mentions légales' })).toHaveAttribute('href', '/legal-notices');
     expect(screen.getByRole('link', { name: 'Politique cookies' })).toHaveAttribute('href', '/cookies');
     expect(document.head.querySelector('[data-faderzero-landing-reference]')).not.toBeInTheDocument();

@@ -8,7 +8,7 @@ interface __BaseEnv_Env {
 	SUPABASE_URL: "https://lragtkgshbnwvufjqnzm.supabase.co";
 	SUPABASE_PUBLISHABLE_KEY: "sb_publishable_ABQdDKDfgTgs-fulb8jxBQ_yiemTlfW";
 	EPK_PUBLIC_MEDIA_ORIGIN: "https://media.faderzero.com";
-	ALLOWED_ORIGINS: "http://localhost:5173,https://localhost:5173,http://192.168.1.23:5173,https://app.faderzero.com,https://fader.pages.dev,https://faderzero.pages.dev,https://*.faderzero.pages.dev,https://faderzero-server.tailfba668.ts.net:8443";
+	ALLOWED_ORIGINS: "http://localhost:5173,https://localhost:5173,http://192.168.1.23:5173,https://app.faderzero.com,https://faderzero.pages.dev,https://*.faderzero.pages.dev,https://faderzero-server.tailfba668.ts.net:8443";
 }
 declare namespace Cloudflare {
 	interface GlobalProps {

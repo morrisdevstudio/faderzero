@@ -2,7 +2,9 @@
 
 FaderZero est une PWA mobile-first pour les musiciens et les groupes : répertoire, paroles, setlists, médias, outils de scène et collaboration restent disponibles même lorsque la connexion est instable.
 
-Application : [fader.pages.dev](https://fader.pages.dev)
+Application : [app.faderzero.com](https://app.faderzero.com)
+
+Site : [faderzero.com](https://faderzero.com)
 
 ## Ce que permet l’application
 
@@ -26,7 +28,7 @@ La connexion avec Google est également disponible :
 - depuis le compte, afin d’associer Google à un compte e-mail existant ;
 - avec retour sécurisé vers `/auth/callback`, qui restaure l’affichage de l’application après l’authentification.
 
-Pour l’activer, configurez le fournisseur Google dans Supabase Auth et autorisez l’URL de redirection de chaque environnement, par exemple `https://fader.pages.dev/auth/callback`.
+Pour l’activer, configurez le fournisseur Google dans Supabase Auth et autorisez l’URL de redirection de chaque environnement, par exemple `https://app.faderzero.com/auth/callback`.
 
 ## Hors ligne et synchronisation
 

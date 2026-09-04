@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { deleteEpkHeroImage, getEpkCompleteness, normalizeEpkSlug, parseEpkVideoUrl, validateEpkDraft, type EpkRecord } from './epk';
+import { deleteEpkHeroImage, epkHasUnpublishedChanges, epkUnpublishedLeavePrompt, getEpkCompleteness, normalizeEpkSlug, parseEpkVideoUrl, validateEpkDraft, type EpkRecord } from './epk';
 import { DEFAULT_EPK_EDITORIAL } from './epkPresentation';
 
 const supabaseMock = vi.hoisted(() => ({ updates: [] as Record<string, unknown>[] }));
@@ -26,6 +26,15 @@ vi.mock('@/services/audio/r2Client', () => ({
 describe('EPK helpers', () => {
   it('normalizes accented public slugs', () => {
     expect(normalizeEpkSlug(' Les Étoiles Noires! ')).toBe('les-etoiles-noires');
+  });
+
+  it('detects unpublished editor changes and leave-prompt copy', () => {
+    expect(epkHasUnpublishedChanges(false, { status: 'DRAFT', draftRevision: 1, publishedRevision: 0 })).toBe(false);
+    expect(epkHasUnpublishedChanges(true, { status: 'DRAFT', draftRevision: 1, publishedRevision: 0 })).toBe(true);
+    expect(epkHasUnpublishedChanges(false, { status: 'PUBLISHED', draftRevision: 3, publishedRevision: 2 })).toBe(true);
+    expect(epkHasUnpublishedChanges(false, { status: 'PUBLISHED', draftRevision: 2, publishedRevision: 2 })).toBe(false);
+    expect(epkUnpublishedLeavePrompt('PUBLISHED').confirmLabel).toBe('Mettre à jour');
+    expect(epkUnpublishedLeavePrompt('DRAFT').confirmLabel).toBe('Publier');
   });
 
   it('rejects reserved slugs and invalid genres', () => {

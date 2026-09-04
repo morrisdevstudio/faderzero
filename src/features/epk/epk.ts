@@ -105,6 +105,26 @@ export function normalizeEpkSlug(value: string): string {
   return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 }
 
+export function epkHasUnpublishedChanges(dirtyThisSession: boolean, epk: Pick<EpkRecord, 'status' | 'draftRevision' | 'publishedRevision'>): boolean {
+  if (dirtyThisSession) return true;
+  return epk.status === 'PUBLISHED' && (epk.draftRevision ?? 0) !== (epk.publishedRevision ?? 0);
+}
+
+export function epkUnpublishedLeavePrompt(status: EpkRecord['status']): { title: string; description: string; confirmLabel: string } {
+  if (status === 'PUBLISHED') {
+    return {
+      title: 'Mettre à jour la page publique ?',
+      description: 'Les modifications sont enregistrées en brouillon. Mettez à jour la page publique pour les rendre visibles.',
+      confirmLabel: 'Mettre à jour',
+    };
+  }
+  return {
+    title: 'Publier la page ?',
+    description: 'Les modifications sont enregistrées en brouillon. Publiez la page pour la rendre visible.',
+    confirmLabel: 'Publier',
+  };
+}
+
 export function validateEpkDraft(epk: Pick<EpkRecord, 'displayName' | 'slug' | 'genres'>): string | null {
   if (!epk.displayName.trim()) return 'Le nom public du groupe est requis.';
   if (!epk.slug || RESERVED_SLUGS.has(epk.slug)) return 'Ce slug est indisponible.';
