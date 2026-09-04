@@ -630,15 +630,15 @@
     "semantic_hash": "4f32d2c003917fd875e377a695d1abc9"
   },
   "src/features/landing/LandingPage.test.tsx": {
-    "mtime": 1788540392.8478787,
-    "seen": 1788540768.0338626,
-    "ast_hash": "67d5235658006d180cb7eee5fd18ed3a",
+    "mtime": 1788524111.8840547,
+    "seen": 1788531559.7349393,
+    "ast_hash": "24728a859f98940b20e35cc701d2208a",
     "semantic_hash": ""
   },
   "src/features/landing/LandingPage.tsx": {
-    "mtime": 1788540377.411086,
-    "seen": 1788540768.0338626,
-    "ast_hash": "7baed5761c588c3fe5d585f4379698ef",
+    "mtime": 1788519950.3650908,
+    "seen": 1788531559.7349393,
+    "ast_hash": "a5aef883e0b13e6168f5def84cadaee6",
     "semantic_hash": ""
   },
   "src/features/landing/components/LandingFaq.tsx": {
@@ -2130,9 +2130,9 @@
     "semantic_hash": ""
   },
   "docs/landing page demo.html": {
-    "mtime": 1788540495.9102275,
-    "seen": 1788540768.0338626,
-    "ast_hash": "adf4afba248bbf803a380d4d0aae0698",
+    "mtime": 1788525670.9170895,
+    "seen": 1788531559.7356892,
+    "ast_hash": "7d4f53916ee89983237a702dec3f74e6",
     "semantic_hash": ""
   },
   "docs/legal/LEGAL_NOTICES.md": {

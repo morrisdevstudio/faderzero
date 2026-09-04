@@ -23423,19 +23423,6 @@
       "source_location": "L3"
     },
     {
-      "id": "d_app_en_dev_faderzeropwa_src_ui_components_addbutton_addbuttonprops",
-      "label": "AddButtonProps",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 15,
-      "community_name": "react",
-      "file_type": "code",
-      "norm_label": "addbuttonprops",
-      "source_file": "../../src/ui/components/AddButton.tsx",
-      "source_location": "L4"
-    },
-    {
       "id": "d_app_en_dev_faderzeropwa_src_ui_components_fieldlabel_fieldlabelprops",
       "label": "FieldLabelProps",
       "_callable": true,
@@ -23462,17 +23449,17 @@
       "source_location": "L3"
     },
     {
-      "id": "src_features_audio_audioquotabanner_audioquotabannerprops",
-      "label": "AudioQuotaBannerProps",
+      "id": "src_components_splashscreen_splashscreenprops",
+      "label": "SplashScreenProps",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 15,
       "community_name": "react",
       "file_type": "code",
-      "norm_label": "audioquotabannerprops",
-      "source_file": "src/features/audio/AudioQuotaBanner.tsx",
-      "source_location": "L9"
+      "norm_label": "splashscreenprops",
+      "source_file": "src/components/SplashScreen.tsx",
+      "source_location": "L6"
     },
     {
       "id": "src_hooks_uselongpress_uselongpressoptions",
@@ -59641,17 +59628,17 @@
       "source_location": "L1703"
     },
     {
-      "id": "src_components_splashscreen_splashscreenprops",
-      "label": "SplashScreenProps",
+      "id": "d_app_en_dev_faderzeropwa_src_ui_components_addbutton_addbuttonprops",
+      "label": "AddButtonProps",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 860,
-      "community_name": "src/components/SplashScreen.tsx",
+      "community_name": "../src/ui/components/AddButton.tsx",
       "file_type": "code",
-      "norm_label": "splashscreenprops",
-      "source_file": "src/components/SplashScreen.tsx",
-      "source_location": "L6"
+      "norm_label": "addbuttonprops",
+      "source_file": "../../src/ui/components/AddButton.tsx",
+      "source_location": "L4"
     },
     {
       "id": "src_components_undotoast_undotoastprops",
@@ -59704,6 +59691,19 @@
       "norm_label": "detailheaderprops",
       "source_file": "src/ui/components/DetailHeader.tsx",
       "source_location": "L4"
+    },
+    {
+      "id": "src_features_audio_audioquotabanner_audioquotabannerprops",
+      "label": "AudioQuotaBannerProps",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 875,
+      "community_name": "src/features/audio/AudioQuotaBanner.tsx",
+      "file_type": "code",
+      "norm_label": "audioquotabannerprops",
+      "source_file": "src/features/audio/AudioQuotaBanner.tsx",
+      "source_location": "L9"
     },
     {
       "id": "src_ui_components_selectfield_selectfieldprops",
@@ -66526,18 +66526,6 @@
       "source_location": "L9"
     },
     {
-      "id": "d_app_en_dev_faderzeropwa_src_ui_components_addbutton_addbutton",
-      "label": "AddButton()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 15,
-      "community_name": "react",
-      "file_type": "code",
-      "norm_label": "addbutton()",
-      "source_file": "../../src/ui/components/AddButton.tsx",
-      "source_location": "L8"
-    },
-    {
       "id": "d_app_en_dev_faderzeropwa_src_ui_components_fieldlabel_fieldlabel",
       "label": "FieldLabel()",
       "_callable": true,
@@ -66574,28 +66562,52 @@
       "source_location": "L10"
     },
     {
-      "id": "src_features_audio_audioquotabanner_audioquotabanner",
-      "label": "AudioQuotaBanner()",
+      "id": "src_components_splashscreen_splashscreen",
+      "label": "SplashScreen()",
       "_callable": true,
       "_origin": "ast",
       "community": 15,
       "community_name": "react",
       "file_type": "code",
-      "norm_label": "audioquotabanner()",
-      "source_file": "src/features/audio/AudioQuotaBanner.tsx",
-      "source_location": "L15"
+      "norm_label": "splashscreen()",
+      "source_file": "src/components/SplashScreen.tsx",
+      "source_location": "L12"
     },
     {
-      "id": "src_features_audio_audioquotabanner_formatquotavalue",
-      "label": "formatQuotaValue()",
+      "id": "src_components_workspaceselectionpage_workspaceselectionpage",
+      "label": "WorkspaceSelectionPage()",
       "_callable": true,
       "_origin": "ast",
       "community": 15,
       "community_name": "react",
       "file_type": "code",
-      "norm_label": "formatquotavalue()",
-      "source_file": "src/features/audio/AudioQuotaBanner.tsx",
-      "source_location": "L79"
+      "norm_label": "workspaceselectionpage()",
+      "source_file": "src/components/WorkspaceSelectionPage.tsx",
+      "source_location": "L6"
+    },
+    {
+      "id": "src_components_workspaceselectionpage_workspaceselectionpage_handlecreate",
+      "label": "handleCreate()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 15,
+      "community_name": "react",
+      "file_type": "code",
+      "norm_label": "handlecreate()",
+      "source_file": "src/components/WorkspaceSelectionPage.tsx",
+      "source_location": "L13"
+    },
+    {
+      "id": "src_components_workspaceselectionpage_workspaceselectionpage_handlejoinwithlink",
+      "label": "handleJoinWithLink()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 15,
+      "community_name": "react",
+      "file_type": "code",
+      "norm_label": "handlejoinwithlink()",
+      "source_file": "src/components/WorkspaceSelectionPage.tsx",
+      "source_location": "L24"
     },
     {
       "id": "src_features_events_calendarpage_test_locationprobe",
@@ -66631,7 +66643,31 @@
       "file_type": "code",
       "norm_label": "landingpage()",
       "source_file": "src/features/landing/LandingPage.tsx",
-      "source_location": "L6"
+      "source_location": "L8"
+    },
+    {
+      "id": "src_features_legal_legalpage_legalpage",
+      "label": "LegalPage()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 15,
+      "community_name": "react",
+      "file_type": "code",
+      "norm_label": "legalpage()",
+      "source_file": "src/features/legal/LegalPage.tsx",
+      "source_location": "L30"
+    },
+    {
+      "id": "src_features_legal_legalpage_markdowndocument",
+      "label": "MarkdownDocument()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 15,
+      "community_name": "react",
+      "file_type": "code",
+      "norm_label": "markdowndocument()",
+      "source_file": "src/features/legal/LegalPage.tsx",
+      "source_location": "L15"
     },
     {
       "id": "src_features_setlists_setlistspage_setlistspage",
@@ -66668,18 +66704,6 @@
       "norm_label": "uselongpress()",
       "source_file": "src/hooks/useLongPress.ts",
       "source_location": "L9"
-    },
-    {
-      "id": "src_ui_components_faderlogo_faderlogo",
-      "label": "FaderLogo()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 15,
-      "community_name": "react",
-      "file_type": "code",
-      "norm_label": "faderlogo()",
-      "source_file": "src/ui/components/FaderLogo.tsx",
-      "source_location": "L3"
     },
     {
       "id": "d_app_en_dev_faderzeropwa_cloudflare_epk_public_worker_configuration_d_durableobjectnamespace_get",
@@ -114154,16 +114178,16 @@
       "source_location": "L1709"
     },
     {
-      "id": "src_components_splashscreen_splashscreen",
-      "label": "SplashScreen()",
+      "id": "d_app_en_dev_faderzeropwa_src_ui_components_addbutton_addbutton",
+      "label": "AddButton()",
       "_callable": true,
       "_origin": "ast",
       "community": 860,
-      "community_name": "src/components/SplashScreen.tsx",
+      "community_name": "../src/ui/components/AddButton.tsx",
       "file_type": "code",
-      "norm_label": "splashscreen()",
-      "source_file": "src/components/SplashScreen.tsx",
-      "source_location": "L12"
+      "norm_label": "addbutton()",
+      "source_file": "../../src/ui/components/AddButton.tsx",
+      "source_location": "L8"
     },
     {
       "id": "src_app_appcontent_test_finishsplash",
@@ -114442,40 +114466,28 @@
       "source_location": "L13"
     },
     {
-      "id": "src_components_workspaceselectionpage_workspaceselectionpage",
-      "label": "WorkspaceSelectionPage()",
+      "id": "src_features_audio_audioquotabanner_audioquotabanner",
+      "label": "AudioQuotaBanner()",
       "_callable": true,
       "_origin": "ast",
       "community": 875,
-      "community_name": "WorkspaceSelectionPage",
+      "community_name": "src/features/audio/AudioQuotaBanner.tsx",
       "file_type": "code",
-      "norm_label": "workspaceselectionpage()",
-      "source_file": "src/components/WorkspaceSelectionPage.tsx",
-      "source_location": "L6"
+      "norm_label": "audioquotabanner()",
+      "source_file": "src/features/audio/AudioQuotaBanner.tsx",
+      "source_location": "L15"
     },
     {
-      "id": "src_components_workspaceselectionpage_workspaceselectionpage_handlecreate",
-      "label": "handleCreate()",
+      "id": "src_features_audio_audioquotabanner_formatquotavalue",
+      "label": "formatQuotaValue()",
       "_callable": true,
       "_origin": "ast",
       "community": 875,
-      "community_name": "WorkspaceSelectionPage",
+      "community_name": "src/features/audio/AudioQuotaBanner.tsx",
       "file_type": "code",
-      "norm_label": "handlecreate()",
-      "source_file": "src/components/WorkspaceSelectionPage.tsx",
-      "source_location": "L13"
-    },
-    {
-      "id": "src_components_workspaceselectionpage_workspaceselectionpage_handlejoinwithlink",
-      "label": "handleJoinWithLink()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 875,
-      "community_name": "WorkspaceSelectionPage",
-      "file_type": "code",
-      "norm_label": "handlejoinwithlink()",
-      "source_file": "src/components/WorkspaceSelectionPage.tsx",
-      "source_location": "L24"
+      "norm_label": "formatquotavalue()",
+      "source_file": "src/features/audio/AudioQuotaBanner.tsx",
+      "source_location": "L79"
     },
     {
       "id": "d_app_en_dev_faderzeropwa_cloudflare_epk_public_worker_configuration_d_urlpattern_constructor",
@@ -116602,28 +116614,16 @@
       "source_location": "L10"
     },
     {
-      "id": "src_features_legal_legalpage_legalpage",
-      "label": "LegalPage()",
+      "id": "src_ui_components_faderlogo_faderlogo",
+      "label": "FaderLogo()",
       "_callable": true,
       "_origin": "ast",
       "community": 944,
-      "community_name": "LegalPage.tsx",
+      "community_name": "src/ui/components/FaderLogo.tsx",
       "file_type": "code",
-      "norm_label": "legalpage()",
-      "source_file": "src/features/legal/LegalPage.tsx",
-      "source_location": "L30"
-    },
-    {
-      "id": "src_features_legal_legalpage_markdowndocument",
-      "label": "MarkdownDocument()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 944,
-      "community_name": "LegalPage.tsx",
-      "file_type": "code",
-      "norm_label": "markdowndocument()",
-      "source_file": "src/features/legal/LegalPage.tsx",
-      "source_location": "L15"
+      "norm_label": "faderlogo()",
+      "source_file": "src/ui/components/FaderLogo.tsx",
+      "source_location": "L3"
     },
     {
       "id": "d_app_en_dev_faderzeropwa_cloudflare_audio_worker_worker_configuration_d_extendableevent_waituntil",
@@ -122202,28 +122202,6 @@
       "source_location": "L1"
     },
     {
-      "id": "ext_src_ui_components_addbutton_test_tsx",
-      "label": "../src/ui/components/AddButton.test.tsx",
-      "_origin": "ast",
-      "community": 15,
-      "community_name": "react",
-      "file_type": "code",
-      "norm_label": "../src/ui/components/addbutton.test.tsx",
-      "source_file": "../../src/ui/components/AddButton.test.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "ext_src_ui_components_addbutton_tsx",
-      "label": "../src/ui/components/AddButton.tsx",
-      "_origin": "ast",
-      "community": 15,
-      "community_name": "react",
-      "file_type": "code",
-      "norm_label": "../src/ui/components/addbutton.tsx",
-      "source_file": "../../src/ui/components/AddButton.tsx",
-      "source_location": "L1"
-    },
-    {
       "id": "ext_src_ui_components_fieldlabel_test_tsx",
       "label": "../src/ui/components/FieldLabel.test.tsx",
       "_origin": "ast",
@@ -122268,14 +122246,36 @@
       "source_location": "L1"
     },
     {
-      "id": "src_features_audio_audioquotabanner",
-      "label": "src/features/audio/AudioQuotaBanner.tsx",
+      "id": "src_components_splashscreen",
+      "label": "src/components/SplashScreen.tsx",
       "_origin": "ast",
       "community": 15,
       "community_name": "react",
       "file_type": "code",
-      "norm_label": "src/features/audio/audioquotabanner.tsx",
-      "source_file": "src/features/audio/AudioQuotaBanner.tsx",
+      "norm_label": "src/components/splashscreen.tsx",
+      "source_file": "src/components/SplashScreen.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_components_splashscreen_splash_animation_duration_ms",
+      "label": "SPLASH_ANIMATION_DURATION_MS",
+      "_origin": "ast",
+      "community": 15,
+      "community_name": "react",
+      "file_type": "code",
+      "norm_label": "splash_animation_duration_ms",
+      "source_file": "src/components/SplashScreen.tsx",
+      "source_location": "L3"
+    },
+    {
+      "id": "src_components_workspaceselectionpage",
+      "label": "src/components/WorkspaceSelectionPage.tsx",
+      "_origin": "ast",
+      "community": 15,
+      "community_name": "react",
+      "file_type": "code",
+      "norm_label": "src/components/workspaceselectionpage.tsx",
+      "source_file": "src/components/WorkspaceSelectionPage.tsx",
       "source_location": "L1"
     },
     {
@@ -122323,6 +122323,28 @@
       "source_location": "L1"
     },
     {
+      "id": "src_features_legal_legalpage",
+      "label": "LegalPage.tsx",
+      "_origin": "ast",
+      "community": 15,
+      "community_name": "react",
+      "file_type": "code",
+      "norm_label": "legalpage.tsx",
+      "source_file": "src/features/legal/LegalPage.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_features_legal_legalpage_documents",
+      "label": "documents",
+      "_origin": "ast",
+      "community": 15,
+      "community_name": "react",
+      "file_type": "code",
+      "norm_label": "documents",
+      "source_file": "src/features/legal/LegalPage.tsx",
+      "source_location": "L8"
+    },
+    {
       "id": "src_features_setlists_setlistspage",
       "label": "src/features/setlists/SetlistsPage.tsx",
       "_origin": "ast",
@@ -122353,28 +122375,6 @@
       "file_type": "code",
       "norm_label": "src/main.tsx",
       "source_file": "src/main.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_ui_components_faderlogo",
-      "label": "src/ui/components/FaderLogo.tsx",
-      "_origin": "ast",
-      "community": 15,
-      "community_name": "react",
-      "file_type": "code",
-      "norm_label": "src/ui/components/faderlogo.tsx",
-      "source_file": "src/ui/components/FaderLogo.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_ui_components_faderlogo_test",
-      "label": "src/ui/components/FaderLogo.test.tsx",
-      "_origin": "ast",
-      "community": 15,
-      "community_name": "react",
-      "file_type": "code",
-      "norm_label": "src/ui/components/faderlogo.test.tsx",
-      "source_file": "src/ui/components/FaderLogo.test.tsx",
       "source_location": "L1"
     },
     {
@@ -135880,6 +135880,39 @@
       "source_location": "L1"
     },
     {
+      "id": "epkpublicpage",
+      "label": "@/features/epk/EpkPublicPage",
+      "_origin": "ast",
+      "community": 653,
+      "community_name": "src/app/App.tsx",
+      "confidence": "EXTRACTED",
+      "file_type": "code",
+      "norm_label": "@/features/epk/epkpublicpage",
+      "source_file": "@/features/epk/EpkPublicPage"
+    },
+    {
+      "id": "landingpage",
+      "label": "@/features/landing/LandingPage",
+      "_origin": "ast",
+      "community": 653,
+      "community_name": "src/app/App.tsx",
+      "confidence": "EXTRACTED",
+      "file_type": "code",
+      "norm_label": "@/features/landing/landingpage",
+      "source_file": "@/features/landing/LandingPage"
+    },
+    {
+      "id": "legalpage",
+      "label": "@/features/legal/LegalPage",
+      "_origin": "ast",
+      "community": 653,
+      "community_name": "src/app/App.tsx",
+      "confidence": "EXTRACTED",
+      "file_type": "code",
+      "norm_label": "@/features/legal/legalpage",
+      "source_file": "@/features/legal/LegalPage"
+    },
+    {
       "id": "src_app_app",
       "label": "src/app/App.tsx",
       "_origin": "ast",
@@ -140341,26 +140374,26 @@
       "source_location": "L49"
     },
     {
-      "id": "src_components_splashscreen",
-      "label": "src/components/SplashScreen.tsx",
+      "id": "ext_src_ui_components_addbutton_test_tsx",
+      "label": "../src/ui/components/AddButton.test.tsx",
       "_origin": "ast",
       "community": 860,
-      "community_name": "src/components/SplashScreen.tsx",
+      "community_name": "../src/ui/components/AddButton.tsx",
       "file_type": "code",
-      "norm_label": "src/components/splashscreen.tsx",
-      "source_file": "src/components/SplashScreen.tsx",
+      "norm_label": "../src/ui/components/addbutton.test.tsx",
+      "source_file": "../../src/ui/components/AddButton.test.tsx",
       "source_location": "L1"
     },
     {
-      "id": "src_components_splashscreen_splash_animation_duration_ms",
-      "label": "SPLASH_ANIMATION_DURATION_MS",
+      "id": "ext_src_ui_components_addbutton_tsx",
+      "label": "../src/ui/components/AddButton.tsx",
       "_origin": "ast",
       "community": 860,
-      "community_name": "src/components/SplashScreen.tsx",
+      "community_name": "../src/ui/components/AddButton.tsx",
       "file_type": "code",
-      "norm_label": "splash_animation_duration_ms",
-      "source_file": "src/components/SplashScreen.tsx",
-      "source_location": "L3"
+      "norm_label": "../src/ui/components/addbutton.tsx",
+      "source_file": "../../src/ui/components/AddButton.tsx",
+      "source_location": "L1"
     },
     {
       "id": "githooks_post_checkout",
@@ -140889,14 +140922,14 @@
       "source_location": "L1"
     },
     {
-      "id": "src_components_workspaceselectionpage",
-      "label": "src/components/WorkspaceSelectionPage.tsx",
+      "id": "src_features_audio_audioquotabanner",
+      "label": "src/features/audio/AudioQuotaBanner.tsx",
       "_origin": "ast",
       "community": 875,
-      "community_name": "WorkspaceSelectionPage",
+      "community_name": "src/features/audio/AudioQuotaBanner.tsx",
       "file_type": "code",
-      "norm_label": "src/components/workspaceselectionpage.tsx",
-      "source_file": "src/components/WorkspaceSelectionPage.tsx",
+      "norm_label": "src/features/audio/audioquotabanner.tsx",
+      "source_file": "src/features/audio/AudioQuotaBanner.tsx",
       "source_location": "L1"
     },
     {
@@ -141736,26 +141769,26 @@
       "source_location": "L1"
     },
     {
-      "id": "src_features_legal_legalpage",
-      "label": "LegalPage.tsx",
+      "id": "src_ui_components_faderlogo",
+      "label": "src/ui/components/FaderLogo.tsx",
       "_origin": "ast",
       "community": 944,
-      "community_name": "LegalPage.tsx",
+      "community_name": "src/ui/components/FaderLogo.tsx",
       "file_type": "code",
-      "norm_label": "legalpage.tsx",
-      "source_file": "src/features/legal/LegalPage.tsx",
+      "norm_label": "src/ui/components/faderlogo.tsx",
+      "source_file": "src/ui/components/FaderLogo.tsx",
       "source_location": "L1"
     },
     {
-      "id": "src_features_legal_legalpage_documents",
-      "label": "documents",
+      "id": "src_ui_components_faderlogo_test",
+      "label": "src/ui/components/FaderLogo.test.tsx",
       "_origin": "ast",
       "community": 944,
-      "community_name": "LegalPage.tsx",
+      "community_name": "src/ui/components/FaderLogo.tsx",
       "file_type": "code",
-      "norm_label": "documents",
-      "source_file": "src/features/legal/LegalPage.tsx",
-      "source_location": "L8"
+      "norm_label": "src/ui/components/faderlogo.test.tsx",
+      "source_file": "src/ui/components/FaderLogo.test.tsx",
+      "source_location": "L1"
     },
     {
       "id": "supabase_migrations_20260717142743_configure_rls",
@@ -253001,7 +253034,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/features/landing/LandingPage.tsx",
-      "source_location": "L6",
+      "source_location": "L8",
       "weight": 1.0
     },
     {
@@ -262671,6 +262704,33 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "../../src/features/recorder/QuickVoiceRecorder.test.tsx"
+    },
+    {
+      "source": "src_app_app",
+      "target": "epkpublicpage",
+      "relation": "dynamic_import",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/App.tsx"
+    },
+    {
+      "source": "src_app_app",
+      "target": "landingpage",
+      "relation": "dynamic_import",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/App.tsx"
+    },
+    {
+      "source": "src_app_app",
+      "target": "legalpage",
+      "relation": "dynamic_import",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/App.tsx"
     },
     {
       "source": "src_features_recorder_quickvoicerecorder_test",
@@ -298836,5 +298896,5 @@
       "source_file": ".github/workflows/ci.yml"
     }
   ],
-  "built_at_commit": "75a995ea977e3ba1abfc85ce0d6e20463b1d543a"
+  "built_at_commit": "dea53c494eeb8a5e7ed8850e93206d76a993bf94"
 }
