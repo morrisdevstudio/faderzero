@@ -16,5 +16,7 @@ describe('LandingPage', () => {
     expect(screen.getByRole('link', { name: /Ouvrir FaderZero/i })).toHaveAttribute('href', 'https://fader.pages.dev/?view=app');
     expect(screen.getByRole('link', { name: 'Mentions légales' })).toHaveAttribute('href', '/legal-notices');
     expect(screen.getByRole('link', { name: 'Politique cookies' })).toHaveAttribute('href', '/cookies');
+    expect(document.head.querySelector('[data-faderzero-landing-reference]')).not.toBeInTheDocument();
+    expect(document.head.querySelector('link[href*="fonts.googleapis.com"]')).not.toBeInTheDocument();
   });
 });
