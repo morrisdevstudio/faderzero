@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { BrandIcon, FzIcon } from '@/ui/icons';
-import { isAppHostname } from '@/utils/domainRouting';
+import { isAppHostname, getLandingUrl } from '@/utils/domainRouting';
 import { brandForLink, normalizeBrandLabel, socialBrands } from './epkBrands';
 import { youtubeThumbnailUrl } from './epkMedia';
 import { epkOnAccentColor, isEpkDocumentIcon, isEpkSectionVisible, normalizedSectionOrder, DEFAULT_EPK_DOCUMENT_ICON, normalizedEpkFactIcon, type EpkPublicModel, type EpkSectionId } from './epkPresentation';
@@ -26,7 +26,7 @@ const titles: Record<EpkSectionId, string> = { banniere: 'Bannière', bio: 'Biog
 export function EpkPublicView({ model, editing = false, onEditSection }: Props) {
   const accent = /^#[0-9a-f]{6}$/i.test(model.accentColor) ? model.accentColor : '#ff3a63';
   const style = { '--epk-accent': accent, '--epk-on-accent': epkOnAccentColor(accent) } as CSSProperties;
-  return <article className="epk-demo" data-theme={model.theme === 'press-ivory' ? 'light' : 'dark'} style={style}><main>{normalizedSectionOrder(model.sectionOrder).map((section) => <Section key={section} section={section} model={model} visible={isEpkSectionVisible(model, section)} editing={editing} {...(onEditSection ? { onEditSection } : {})} />)}</main><footer>Propulsé par <strong>FaderZero</strong></footer></article>;
+  return <article className="epk-demo" data-theme={model.theme === 'press-ivory' ? 'light' : 'dark'} style={style}><main>{normalizedSectionOrder(model.sectionOrder).map((section) => <Section key={section} section={section} model={model} visible={isEpkSectionVisible(model, section)} editing={editing} {...(onEditSection ? { onEditSection } : {})} />)}</main><footer>Propulsé par <a href={getLandingUrl()} className="epk-footer-brand">FaderZero</a></footer></article>;
 }
 
 function EpkAudioPlayer({ model }: { model: EpkPublicModel }) {

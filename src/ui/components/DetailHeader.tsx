@@ -7,10 +7,11 @@ interface DetailHeaderProps {
   onBack: () => void;
   backLabel: string;
   actions?: ReactNode;
+  leading?: ReactNode;
   titleInteraction?: Omit<ComponentPropsWithoutRef<'h1'>, 'children' | 'className' | 'style'> | undefined;
 }
 
-export function DetailHeader({ title, subtitle, onBack, backLabel, actions, titleInteraction }: DetailHeaderProps) {
+export function DetailHeader({ title, subtitle, onBack, backLabel, actions, leading, titleInteraction }: DetailHeaderProps) {
   return (
     <header
       className="sticky z-30 -mx-1 -mt-5 border-b border-white/8 bg-[var(--fz-bg)] px-1 pb-4 pt-2"
@@ -26,7 +27,9 @@ export function DetailHeader({ title, subtitle, onBack, backLabel, actions, titl
           <FzIcon name="back" usageId="detail-header.back" size="md" />
         </button>
 
-        <div className="min-w-0 text-left">
+        <div className="flex min-w-0 items-center gap-3 text-left">
+          {leading ? <div className="shrink-0">{leading}</div> : null}
+          <div className="min-w-0 flex-1">
           <h1
             {...titleInteraction}
             className={[
@@ -37,6 +40,7 @@ export function DetailHeader({ title, subtitle, onBack, backLabel, actions, titl
             {title}
           </h1>
           {subtitle ? <p className="mt-0.5 truncate text-xs text-[var(--fz-text-muted)]">{subtitle}</p> : null}
+          </div>
         </div>
 
         {actions ? (

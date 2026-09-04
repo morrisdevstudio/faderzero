@@ -1,4 +1,6 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import type { ReactNode } from 'react';
+import { BrowserRouter } from 'react-router-dom';
+import { act, fireEvent, render as renderUI, screen, waitFor, within } from '@testing-library/react';
 import { vi } from 'vitest';
 import { AccountPage } from '@/features/account/AccountPage';
 import { useAuthStore } from '@/stores/authStore';
@@ -77,7 +79,15 @@ const profile = {
   updatedAt: '2026-07-22T10:00:00.000Z',
 };
 
-describe('AccountPage invitations', () => {
+function render(ui: ReactNode) { return renderUI(<BrowserRouter>{ui}</BrowserRouter>); }
+function openProfile() { fireEvent.click(screen.getByRole('button', { name: /Profil Photo et pseudo/ })); }
+function openSecurity() { fireEvent.click(screen.getByRole('button', { name: /Connexion et sécurité E-mail/ })); }
+function openMembers() {
+  fireEvent.click(screen.getByRole('button', { name: 'Réglages de Groupe test' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Membres et invitations' }));
+}
+const initialAuthState = useAuthStore.getState();
+describe('AccountPage', () => {
   beforeEach(() => {
     window.history.replaceState({}, '', '/account');
     workspaceMocks.listWorkspaceInvites.mockReset();
@@ -90,6 +100,7 @@ describe('AccountPage invitations', () => {
     profileMocks.getProfileAvatarUrl.mockReset();
     profileMocks.uploadCurrentProfileAvatar.mockReset();
     useAuthStore.setState({
+      ...initialAuthState,
       session: null,
       workspaces: [adminWorkspace],
       activeWorkspace: adminWorkspace,
@@ -109,12 +120,12 @@ describe('AccountPage invitations', () => {
 
     render(<AccountPage />);
 
+    openProfile();
     const input = await screen.findByRole('textbox', { name: 'Pseudo public' });
     expect(input).toHaveValue('Yann');
     expect(screen.getByText('Pseudo public')).toHaveClass('fz-field-label');
     expect(screen.getByRole('button', { name: "Changer l'avatar de Yann" })).toHaveTextContent('YA');
-    expect(screen.getByText('private@example.test')).toBeInTheDocument();
-    expect(screen.getByText('E-mail privé — visible uniquement ici')).toBeInTheDocument();
+    expect(screen.queryByText('private@example.test')).not.toBeInTheDocument();
 
     fireEvent.change(input, { target: { value: '  Élodie !  ' } });
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer le pseudo' }));
@@ -136,6 +147,7 @@ describe('AccountPage invitations', () => {
     useAuthStore.setState({ session: userSession });
 
     render(<AccountPage />);
+    openProfile();
     const avatarButton = await screen.findByRole('button', { name: "Changer l'avatar de Yann" });
     const fileInput = screen.getByLabelText('Choisir une photo de profil');
     const clickSpy = vi.spyOn(fileInput, 'click');
@@ -167,7 +179,8 @@ describe('AccountPage invitations', () => {
 
     render(<AccountPage />);
 
-    expect(screen.getByRole('heading', { name: /Mes groupes/i })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Mon espace' }));
+    expect(screen.getByRole('heading', { name: 'Mon espace' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Partager le groupe Mon espace' })).not.toBeInTheDocument();
   });
 
@@ -183,10 +196,10 @@ describe('AccountPage invitations', () => {
 
     render(<AccountPage />);
 
+    openSecurity();
+    fireEvent.click(screen.getByRole('button', { name: 'Adresse e-mail' }));
+    expect(screen.getByText('private@example.test')).toBeInTheDocument();
     expect(screen.getByText('Nouvelle adresse e-mail')).toHaveClass('fz-field-label');
-    expect(screen.getByText('Mot de passe actuel')).toHaveClass('fz-field-label');
-    expect(screen.getByText('Nouveau mot de passe')).toHaveClass('fz-field-label');
-    expect(screen.getByText('Confirmer le nouveau mot de passe')).toHaveClass('fz-field-label');
 
     fireEvent.change(screen.getByRole('textbox', { name: 'Nouvelle adresse e-mail' }), {
       target: { value: 'Nouvelle@Example.test' },
@@ -197,6 +210,11 @@ describe('AccountPage invitations', () => {
       expect(requestEmailChange).toHaveBeenCalledWith('nouvelle@example.test');
     });
 
+    fireEvent.click(screen.getByRole('button', { name: 'Retour à la sécurité' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Mot de passe' }));
+    expect(screen.getByText('Mot de passe actuel')).toHaveClass('fz-field-label');
+    expect(screen.getByText('Nouveau mot de passe')).toHaveClass('fz-field-label');
+    expect(screen.getByText('Confirmer le nouveau mot de passe')).toHaveClass('fz-field-label');
     fireEvent.change(screen.getByLabelText('Mot de passe actuel'), { target: { value: 'Ancien123' } });
     fireEvent.change(screen.getByLabelText('Nouveau mot de passe'), { target: { value: 'Nouveau123' } });
     fireEvent.change(screen.getByLabelText('Confirmer le nouveau mot de passe'), { target: { value: 'Nouveau123' } });
@@ -212,6 +230,8 @@ describe('AccountPage invitations', () => {
     useAuthStore.setState({ requestAccountDeletion });
     render(<AccountPage />);
 
+    openSecurity();
+    fireEvent.click(screen.getByRole('button', { name: 'Supprimer mon compte' }));
     fireEvent.click(screen.getByRole('button', { name: 'Envoyer le lien de suppression' }));
     const dialog = screen.getByRole('dialog', { name: 'Envoyer le lien de suppression ?' });
     expect(requestAccountDeletion).not.toHaveBeenCalled();
@@ -234,7 +254,7 @@ describe('AccountPage invitations', () => {
 
     render(<AccountPage />);
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Membres' }));
+    openMembers();
     fireEvent.click(screen.getByRole('button', { name: 'Inviter des membres' }));
     const revokeButton = await screen.findByRole('button', { name: 'Révoquer' });
     fireEvent.click(revokeButton);
@@ -275,6 +295,8 @@ describe('AccountPage invitations', () => {
 
     render(<AccountPage />);
 
+    fireEvent.click(screen.getByRole('button', { name: 'Ajouter un groupe' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Créer un groupe' }));
     const input = screen.getByPlaceholderText('Nom du groupe');
     fireEvent.change(input, { target: { value: 'Nouveau Groupe Rock' } });
     fireEvent.click(screen.getByRole('button', { name: /Cr.er un nouveau groupe/i }));
@@ -301,7 +323,7 @@ describe('AccountPage invitations', () => {
 
     render(<AccountPage />);
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Membres' }));
+    openMembers();
     await waitFor(() => {
       expect(profileMocks.getProfileAvatarUrl).toHaveBeenCalledWith('user-yann/avatar.webp');
       expect(document.querySelector('img[src="https://storage.test/avatar-member.webp"]')).toBeInTheDocument();
@@ -323,7 +345,7 @@ describe('AccountPage invitations', () => {
 
     render(<AccountPage />);
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Membres' }));
+    openMembers();
     const removeButton = await screen.findByTitle('Retirer le membre');
     fireEvent.click(removeButton);
 
@@ -338,17 +360,17 @@ describe('AccountPage invitations', () => {
     });
   });
 
-  it('bascule entre les 3 onglets (Compte, Groupe, Sync)', async () => {
-    window.history.replaceState({}, '', '/account?tab=compte');
+  it('affiche les groupes, le compte puis les données et ouvre la synchronisation', () => {
     render(<AccountPage />);
-
-    expect(screen.getByText('Espace personnel')).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: /Groupe/i }));
-    expect(screen.getByRole('heading', { name: /Mes groupes/i })).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: /Sync/i }));
+    expect(screen.getByRole('heading', { name: 'Paramètres' })).toBeInTheDocument();
+    const sections = Array.from(document.querySelectorAll('section[aria-labelledby]')).map(section => section.getAttribute('aria-labelledby'));
+    expect(sections).toEqual(['settings-groups', 'settings-account', 'settings-data']);
+    expect(screen.getByRole('button', { name: 'Réglages de Groupe test' })).toBeInTheDocument();
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Synchronisation' }));
     expect(screen.getByText('Synchronisation Cloud')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Retour aux paramètres' }));
+    expect(screen.getByRole('heading', { name: 'Paramètres' })).toBeInTheDocument();
   });
 
   it('affiche le bouton Corbeille pour l’espace personnel', async () => {
@@ -370,7 +392,122 @@ describe('AccountPage invitations', () => {
 
     render(<AccountPage defaultTab="groupe" />);
 
-    expect(screen.getByText('Mon Espace')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Mon espace' }));
     expect(screen.getByRole('button', { name: 'Corbeille' })).toBeInTheDocument();
+  });
+
+  it('affiche un état vide et permet de rejoindre un groupe avec un lien', async () => {
+    const joinWorkspaceByInvite = vi.fn().mockResolvedValue(adminWorkspace);
+    useAuthStore.setState({ workspaces: [], activeWorkspace: null, joinWorkspaceByInvite });
+    render(<AccountPage />);
+    expect(screen.getByText('Tu n’as pas encore de groupe.')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Ajouter un groupe' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Rejoindre un groupe' }));
+    fireEvent.change(screen.getByLabelText('Rejoindre un groupe avec un lien'), { target: { value: 'https://example.test/account?invite=test-token' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Ajouter ce groupe' }));
+    await waitFor(() => expect(joinWorkspaceByInvite).toHaveBeenCalledWith('test-token'));
+    expect(screen.getByText(/Groupe rejoint/)).toBeInTheDocument();
+  });
+
+  it('ouvre le groupe choisi, avec les icônes de Mon espace et de l’EPK', () => {
+    const otherGroup = { ...adminWorkspace, id: 'other', name: 'Autre groupe' };
+    const personal = { ...adminWorkspace, id: 'personal', type: 'personal' as const };
+    useAuthStore.setState({ workspaces: [adminWorkspace, otherGroup, personal] });
+    render(<AccountPage />);
+    expect(screen.getByRole('button', { name: 'Mon espace' }).querySelector('[data-icon-usage="account.menu.personal"]')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Réglages de Autre groupe' }));
+    expect(useAuthStore.getState().activeWorkspace?.id).toBe('other');
+    expect(screen.getByRole('heading', { name: 'Autre groupe' })).toBeInTheDocument();
+    const epk = screen.getByRole('button', { name: /Kit de presse public/ });
+    expect(epk.querySelector('[data-icon-usage="account.menu.epk"]')).toBeInTheDocument();
+    fireEvent.click(epk);
+    expect(window.location.pathname).toBe('/account/epk');
+    expect(useAuthStore.getState().activeWorkspace?.id).toBe('other');
+  });
+
+  it.each(['member', 'guest'] as const)('préserve les droits du rôle %s, même via un lien direct', () => {
+    const workspace = { ...adminWorkspace, role: 'member' as const };
+    useAuthStore.setState({ workspaces: [workspace], activeWorkspace: workspace });
+    window.history.replaceState({}, '', '/account?view=group-admin&workspace=workspace-test');
+    render(<AccountPage />);
+    expect(screen.getByRole('heading', { name: 'Groupe test' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Administration/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Kit de presse/ })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Membres et invitations' }));
+    expect(screen.queryByRole('button', { name: 'Inviter des membres' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Quitter le groupe' })).toBeInTheDocument();
+  });
+
+  it('revient à l’accueil pour un groupe inconnu ou devenu inaccessible', () => {
+    window.history.replaceState({}, '', '/account?view=group-members&workspace=unknown');
+    render(<AccountPage />);
+    expect(screen.getByRole('heading', { name: 'Paramètres' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Réglages de Groupe test' }));
+    act(() => useAuthStore.setState({ workspaces: [], activeWorkspace: null }));
+    expect(screen.getByRole('heading', { name: 'Paramètres' })).toBeInTheDocument();
+    expect(window.location.search).toBe('');
+  });
+
+  it('restaure une sous-vue au rechargement et suit le retour navigateur', async () => {
+    window.history.replaceState({}, '', '/account?view=group-identity&workspace=workspace-test&invite=keep');
+    const mounted = render(<AccountPage />);
+    expect(screen.getByRole('heading', { name: 'Identité du groupe' })).toBeInTheDocument();
+    mounted.unmount();
+    render(<AccountPage />);
+    expect(screen.getByRole('heading', { name: 'Identité du groupe' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Retour au groupe' }));
+    expect(screen.getByRole('heading', { name: 'Groupe test' })).toBeInTheDocument();
+    expect(new URLSearchParams(window.location.search).get('invite')).toBe('keep');
+    await act(async () => {
+      window.history.back();
+      await new Promise(resolve => setTimeout(resolve, 25));
+    });
+    expect(screen.getByRole('heading', { name: 'Identité du groupe' })).toBeInTheDocument();
+  });
+
+  it.each(['/sync', '/account?tab=sync'])('conserve %s et permet le retour vers /account', (url) => {
+    window.history.replaceState({}, '', url);
+    render(<AccountPage defaultTab="sync" />);
+    expect(screen.getByText('Synchronisation Cloud')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Retour aux paramètres' }));
+    expect(window.location.pathname).toBe('/account');
+  });
+
+  it('ouvre directement la récupération du mot de passe et conserve sa validation', async () => {
+    const completePasswordRecovery = vi.fn().mockResolvedValue(undefined);
+    useAuthStore.setState({ completePasswordRecovery });
+    window.history.replaceState({}, '', '/account?reset-password=1&view=profile');
+    render(<AccountPage />);
+    expect(screen.queryByLabelText('Mot de passe actuel')).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Nouveau mot de passe'), { target: { value: 'Nouveau123' } });
+    fireEvent.change(screen.getByLabelText('Confirmer le nouveau mot de passe'), { target: { value: 'Different123' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Mettre a jour le mot de passe' }));
+    expect(completePasswordRecovery).not.toHaveBeenCalled();
+    expect(await screen.findByText('Les mots de passe ne correspondent pas.')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Confirmer le nouveau mot de passe'), { target: { value: 'Nouveau123' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Mettre a jour le mot de passe' }));
+    await waitFor(() => expect(completePasswordRecovery).toHaveBeenCalledWith('Nouveau123'));
+  });
+
+  it('ouvre un lien de suppression sans supprimer avant confirmation', async () => {
+    const deleteCurrentAccount = vi.fn().mockResolvedValue(undefined);
+    useAuthStore.setState({ deleteCurrentAccount });
+    const token = 'a'.repeat(64);
+    window.history.replaceState({}, '', '/account?delete-account=' + token);
+    render(<AccountPage />);
+    fireEvent.click(screen.getByRole('button', { name: 'Supprimer définitivement' }));
+    expect(deleteCurrentAccount).not.toHaveBeenCalled();
+    const dialog = screen.getByRole('dialog', { name: 'Supprimer définitivement le compte ?' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Supprimer définitivement' }));
+    await waitFor(() => expect(deleteCurrentAccount).toHaveBeenCalledWith(token));
+  });
+
+  it('affiche une erreur Google dans l’écran Google', async () => {
+    useAuthStore.setState({ linkGoogleIdentity: vi.fn().mockRejectedValue(new Error('Association impossible')) });
+    render(<AccountPage />);
+    openSecurity();
+    fireEvent.click(screen.getByRole('button', { name: 'Connexion Google' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Associer Google' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Association impossible');
   });
 });

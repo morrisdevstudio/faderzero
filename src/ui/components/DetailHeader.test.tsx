@@ -33,4 +33,10 @@ describe('DetailHeader', () => {
 
     expect(screen.getByRole('button', { name: 'Ajouter une proposition' })).toBeInTheDocument();
   });
+
+  it('renders optional leading identity content before the title', () => {
+    render(<DetailHeader title="Groupe 1" leading={<span data-testid="group-badge">G1</span>} onBack={() => {}} backLabel="Retour" />);
+    const badge = screen.getByTestId('group-badge');
+    expect(badge.parentElement?.nextElementSibling).toHaveTextContent('Groupe 1');
+  });
 });

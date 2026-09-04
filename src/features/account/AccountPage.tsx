@@ -1,4 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Button } from '@/ui/components/Button';
+import { ContentRow } from '@/ui/components/ContentRow';
+import { PageHeader } from '@/ui/components/PageHeader';
+import { DetailHeader } from '@/ui/components/DetailHeader';
+import { StatusPill } from '@/ui/components/StatusPill';
+import { readSettingsView, settingsParent, settingsTitles, settingsUrl, type SettingsTab, type SettingsView } from './settingsNavigation';
 import { FormDialog } from '@/components/FormDialog';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { useAuthStore } from '@/stores/authStore';
@@ -219,35 +226,6 @@ function CopyIcon() {
   );
 }
 
-function AccountTabIcon({ className = 'h-4 w-4' }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-      <circle cx="12" cy="7" r="4" />
-    </svg>
-  );
-}
-
-function GroupTabIcon({ className = 'h-4 w-4' }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M17 21v-2a4 4 0 0 0-3-3.87" />
-      <path d="M7 21v-2a4 4 0 0 1 3-3.87" />
-      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-      <circle cx="9" cy="7" r="4" />
-    </svg>
-  );
-}
-
-function SyncTabIcon({ className = 'h-4 w-4' }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21.5 2v6h-6" />
-      <path d="M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
-    </svg>
-  );
-}
-
 function fallbackCopyTextToClipboard(text: string) {
   const textArea = document.createElement('textarea');
   textArea.value = text;
@@ -288,35 +266,15 @@ function fallbackCopyTextToClipboard(text: string) {
   return copied;
 }
 
-type SettingsTab = 'compte' | 'groupe' | 'sync';
-
-function getInitialTab(defaultTab?: SettingsTab): SettingsTab {
-  if (defaultTab) return defaultTab;
-  try {
-    const params = new URLSearchParams(window.location.search);
-    const tab = params.get('tab') as SettingsTab | null;
-    if (tab === 'compte' || tab === 'groupe' || tab === 'sync') {
-      return tab;
-    }
-  } catch {}
-  return 'compte';
-}
-
 interface AccountPageProps {
   defaultTab?: SettingsTab;
 }
 
 export function AccountPage({ defaultTab }: AccountPageProps = {}) {
-  const [activeTab, setActiveTabState] = useState<SettingsTab>(() => getInitialTab(defaultTab));
-
-  const setActiveTab = (tab: SettingsTab) => {
-    setActiveTabState(tab);
-    try {
-      const url = new URL(window.location.href);
-      url.searchParams.set('tab', tab);
-      window.history.replaceState({}, '', url.toString());
-    } catch {}
-  };
+  const location = useLocation();
+  const navigate = useNavigate();
+  const accountDeletionToken = getAccountDeletionToken(location.search);
+  const requestedView = readSettingsView(location.search, defaultTab, Boolean(accountDeletionToken));
 
   const {
     session,
@@ -338,6 +296,29 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
 
   const { getBadgeColor, setBadgeColor, getBadgeText, setBadgeText } = useWorkspaceBadgeColors();
 
+  const workspaceId = new URLSearchParams(location.search).get('workspace');
+  const selectedWorkspace = workspaces.find((ws) => ws.id === workspaceId);
+  const needsGroup = requestedView === 'group' || requestedView.startsWith('group-');
+  const needsPersonal = requestedView === 'personal';
+  const workspaceMissing = (needsGroup && selectedWorkspace?.type !== 'group') || (needsPersonal && selectedWorkspace?.type !== 'personal');
+  const view: SettingsView = workspaceMissing ? 'home'
+    : requestedView === 'group-admin' && selectedWorkspace && !canAdministerWorkspace(selectedWorkspace.role) ? 'group'
+    : requestedView;
+  const openView = (next: SettingsView, id?: string) => navigate(settingsUrl(next, location.search, id));
+
+  useEffect(() => {
+    if (loading) return;
+    if (view !== requestedView) {
+      navigate(settingsUrl(view, location.search, selectedWorkspace?.id), { replace: true });
+      return;
+    }
+    if ((needsGroup || needsPersonal) && selectedWorkspace && selectedWorkspace.id !== activeWorkspace?.id) {
+      clearFeedback();
+      setActiveWorkspace(selectedWorkspace);
+    }
+  }, [view, requestedView, loading, location.search, navigate, selectedWorkspace, activeWorkspace?.id, needsGroup, needsPersonal, clearFeedback, setActiveWorkspace]);
+
+
   const cachedAssetIds = useAudioCacheStore((state) => state.cachedAssetIds);
   const checkCacheStatus = useAudioCacheStore((state) => state.checkCacheStatus);
   const clearCache = useAudioCacheStore((state) => state.clearCache);
@@ -345,7 +326,6 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
   const [isConfirmDeletionRequestOpen, setIsConfirmDeletionRequestOpen] = useState(false);
   const [isConfirmFinalDeletionOpen, setIsConfirmFinalDeletionOpen] = useState(false);
   const [localDeletionError, setLocalDeletionError] = useState<string | null>(null);
-  const [accountDeletionToken] = useState(() => getAccountDeletionToken());
   const [profile, setProfile] = useState<Profile | null>(null);
   const [displayName, setDisplayName] = useState('');
   const [profileLoading, setProfileLoading] = useState(false);
@@ -357,8 +337,6 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
   // Group Management & Trash
-  const [expandedWorkspaceId, setExpandedWorkspaceId] = useState<string | null>(() => activeWorkspace?.id ?? null);
-  const [groupSettingsTabs, setGroupSettingsTabs] = useState<Record<string, 'profile' | 'members' | 'admin'>>({});
   const [editingWorkspaceId, setEditingWorkspaceId] = useState<string | null>(null);
   const [memberToRemove, setMemberToRemove] = useState<{ member: WorkspaceMember; workspaceId: string } | null>(null);
   const [memberRemovalLoading, setMemberRemovalLoading] = useState(false);
@@ -443,8 +421,9 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [localEmailError, setLocalEmailError] = useState<string | null>(null);
-  const [isPasswordRecovery] = useState(() => new URLSearchParams(window.location.search).get('reset-password') === '1');
+  const isPasswordRecovery = new URLSearchParams(location.search).get('reset-password') === '1';
   const [workspaceName, setWorkspaceName] = useState('');
+  const [workspaceFeedback, setWorkspaceFeedback] = useState('');
   const [localPasswordError, setLocalPasswordError] = useState<string | null>(null);
   const [localWorkspaceError, setLocalWorkspaceError] = useState<string | null>(null);
   const [shareWorkspace, setShareWorkspace] = useState<Workspace | null>(null);
@@ -526,7 +505,7 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
       }
       if (isPasswordRecovery) {
         await completePasswordRecovery(newPassword);
-        window.history.replaceState({}, '', '/');
+        navigate('/', { replace: true });
       } else {
         if (!currentPassword) throw new Error('Saisissez votre mot de passe actuel.');
         await updatePassword(currentPassword, newPassword);
@@ -585,7 +564,7 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
     clearFeedback();
     try {
       await deleteCurrentAccount(accountDeletionToken);
-      window.history.replaceState({}, '', '/');
+      navigate('/', { replace: true });
     } catch (deletionError) {
       setLocalDeletionError(deletionError instanceof Error ? deletionError.message : 'Impossible de supprimer le compte.');
       setIsConfirmFinalDeletionOpen(false);
@@ -601,6 +580,7 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
       return;
     }
     setLocalWorkspaceError(null);
+    setWorkspaceFeedback('');
     clearFeedback();
     try {
       if (isAppOnline()) {
@@ -611,6 +591,7 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
         }
       }
       await createWorkspace(normalizedName);
+      setWorkspaceFeedback('Groupe créé.');
       setWorkspaceName('');
     } catch (err: any) {
       setLocalWorkspaceError(err.message || 'Echec de création de groupe.');
@@ -763,71 +744,50 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
     ? getGeneratedAvatar(profile.displayName, profile.id)
     : null;
   const newPasswordRequirements = getPasswordRequirements(newPassword);
+  function menuRow(title: string, next: SettingsView, icon: string, subtitle?: string, id?: string) {
+    return <ContentRow mode="button" title={title} subtitle={subtitle} leading={<FzIcon name={icon} usageId={'account.menu.' + next} />} trailing={<FzIcon name="next" usageId="account.menu.next" />} onClick={() => openView(next, id)} />;
+  }
 
   return (
-    <div className="space-y-4">
-      {/* Tab Navigation Bar */}
-      <nav className="flex rounded-[1.2rem] border border-white/10 bg-black/25 p-1.5 shadow-[0_16px_32px_rgba(0,0,0,0.24)]" aria-label="Onglets paramètres">
-        <button
-          type="button"
-          onClick={() => setActiveTab('compte')}
-          className={[
-            'flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-black uppercase tracking-[0.14em] transition-all',
-            activeTab === 'compte'
-              ? 'fz-button-primary shadow-[0_4px_16px_rgba(255,58,99,0.3)]'
-              : 'text-white/60 hover:text-white hover:bg-white/5',
-          ].join(' ')}
-        >
-          <AccountTabIcon />
-          Compte
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('groupe')}
-          className={[
-            'flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-black uppercase tracking-[0.14em] transition-all',
-            activeTab === 'groupe'
-              ? 'fz-button-primary shadow-[0_4px_16px_rgba(255,58,99,0.3)]'
-              : 'text-white/60 hover:text-white hover:bg-white/5',
-          ].join(' ')}
-        >
-          <GroupTabIcon />
-          Groupe
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('sync')}
-          className={[
-            'flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-black uppercase tracking-[0.14em] transition-all',
-            activeTab === 'sync'
-              ? 'fz-button-primary shadow-[0_4px_16px_rgba(255,58,99,0.3)]'
-              : 'text-white/60 hover:text-white hover:bg-white/5',
-          ].join(' ')}
-        >
-          <SyncTabIcon />
-          Sync
-        </button>
-      </nav>
+    <div className="mx-auto w-full max-w-[640px] space-y-6">
+      {view === 'home' ? <PageHeader icon={<FzIcon name="settings" usageId="account.header" size="xl" />} title="Paramètres" />
+        : view === 'sync' ? <Button variant="ghost" leadingIcon={<FzIcon name="back" usageId="account.sync.back" />} onClick={() => openView('home')}>Retour aux paramètres</Button>
+        : <DetailHeader title={view === 'group' ? selectedWorkspace?.name ?? 'Groupe' : isPasswordRecovery && view === 'password' ? 'Nouveau mot de passe' : settingsTitles[view]} subtitle={view.startsWith('group-') ? selectedWorkspace?.name : undefined} leading={view === 'group' && selectedWorkspace ? <span aria-label={`Badge de ${selectedWorkspace.name}`} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-xs font-black text-white" style={{ backgroundColor: getBadgeColor(selectedWorkspace.id, selectedWorkspace.type).hex }}>{getBadgeText(selectedWorkspace.id, selectedWorkspace.name)}</span> : undefined} onBack={() => openView(settingsParent(view), selectedWorkspace?.id)} backLabel={settingsParent(view) === 'group' ? 'Retour au groupe' : settingsParent(view) === 'security' ? 'Retour à la sécurité' : settingsParent(view) === 'add-group' ? 'Retour à Ajouter un groupe' : 'Retour aux paramètres'} />}
 
-      {/* TAB 1: COMPTE */}
-      {activeTab === 'compte' && (
-        <>
-          {/* Account Profile Section */}
-          <section className="space-y-3">
-            <div>
-              <div className="flex items-center gap-2.5">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-white shrink-0">
-                  <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-                  <circle cx="12" cy="7" r="4" />
-                </svg>
-                <h1 className="text-[1.45rem] font-black uppercase tracking-[0.18em] text-white">Espace personnel</h1>
-              </div>
-              <p className="mt-1 text-sm leading-relaxed text-[var(--fz-text-muted)]">
-                Gère ton accès, choisis ton groupe actif et crée de nouveaux espaces de travail.
-              </p>
-            </div>
-
-            <div className="rounded-[1.6rem] border border-white/10 bg-white/[0.045] p-5 shadow-[0_24px_48px_rgba(0,0,0,0.18)] space-y-4">
+      {view === 'home' && <>
+        <section aria-labelledby="settings-groups"><h2 id="settings-groups" className="fz-field-label">Groupes</h2>
+          {workspaces.filter(ws => ws.type === 'group').map(ws => <ContentRow key={ws.id} mode="button" title={ws.name} aria-label={'Réglages de ' + ws.name} leading={<span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-xs font-black text-white" style={{ backgroundColor: getBadgeColor(ws.id, ws.type).hex }}>{getBadgeText(ws.id, ws.name)}</span>} status={activeWorkspace?.id === ws.id ? <StatusPill label="Actif" tone="accent" /> : undefined} trailing={<FzIcon name="next" usageId="account.group.open" />} onClick={() => { clearFeedback(); setActiveWorkspace(ws); openView('group', ws.id); }} />)}
+          {loading ? <p role="status" className="py-3 text-sm text-[var(--fz-text-muted)]">Chargement des groupes…</p> : !workspaces.some(ws => ws.type === 'group') ? <p className="py-3 text-sm text-[var(--fz-text-muted)]">Tu n’as pas encore de groupe.</p> : null}
+          {menuRow('Ajouter un groupe', 'add-group', 'add')}
+        </section>
+        <section aria-labelledby="settings-account"><h2 id="settings-account" className="fz-field-label">Mon compte</h2>
+          {menuRow('Profil', 'profile', 'user-round', 'Photo et pseudo')}
+          {menuRow('Connexion et sécurité', 'security', 'settings', 'E-mail, Google et mot de passe')}
+          {workspaces.filter(ws => ws.type === 'personal').map(ws => <ContentRow key={ws.id} mode="button" title="Mon espace" leading={<FzIcon name="folder" usageId="account.menu.personal" />} trailing={<FzIcon name="next" usageId="account.personal.open" />} onClick={() => openView('personal', ws.id)} />)}
+        </section>
+        <section aria-labelledby="settings-data"><h2 id="settings-data" className="fz-field-label">Données</h2>
+          {menuRow('Synchronisation', 'sync', 'cable')}
+        </section>
+      </>}
+      {view === 'security' && <section aria-label="Connexion et sécurité">
+        {menuRow('Adresse e-mail', 'email', 'email')}
+        {menuRow('Connexion Google', 'google', 'user-round')}
+        {menuRow('Mot de passe', 'password', 'settings')}
+        <Button variant="ghost" onClick={() => openView('delete-account')}>Supprimer mon compte</Button>
+      </section>}
+      {view === 'add-group' && <section aria-label="Ajouter un groupe">
+        {menuRow('Créer un groupe', 'create-group', 'add')}
+        {menuRow('Rejoindre un groupe', 'join-group', 'users')}
+      </section>}
+      {view === 'group' && selectedWorkspace && <section aria-label="Réglages du groupe">
+        {menuRow('Identité du groupe', 'group-identity', 'settings', 'Nom et badge', selectedWorkspace.id)}
+        {menuRow('Membres et invitations', 'group-members', 'users', undefined, selectedWorkspace.id)}
+        {canAdministerWorkspace(selectedWorkspace.role) && <>
+          <ContentRow mode="button" title="Kit de presse public" subtitle="Gérer l’EPK" leading={<FzIcon name="file-text" usageId="account.menu.epk" />} trailing={<FzIcon name="next" usageId="account.epk.open" />} onClick={() => { setActiveWorkspace(selectedWorkspace); navigate('/account/epk'); }} />
+          {menuRow('Administration', 'group-admin', 'wrench', 'Stockage et gestion du groupe', selectedWorkspace.id)}
+        </>}
+      </section>}
+      {view === 'profile' && (<section className="space-y-3"><div className="space-y-4">
               {localProfileError && <p className="text-xs text-red-400">{localProfileError}</p>}
 
               <form onSubmit={handleProfileSubmit} className="space-y-3">
@@ -876,34 +836,25 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
                     />
                   </div>
                 </div>
-                <button
+                <Button
                   type="submit"
                   disabled={profileLoading || !profile || displayName.trim() === profile.displayName}
-                  className="mt-3 w-full rounded-[0.9rem] border border-orange-500/25 bg-orange-500/12 px-4 py-2.5 text-[0.68rem] font-black uppercase tracking-[0.18em] text-orange-200 transition hover:bg-orange-500/20 disabled:border-white/10 disabled:bg-white/5 disabled:text-white/30"
+                  variant="primary" fullWidth
                 >
                   {profileLoading ? 'Enregistrement...' : 'Enregistrer le pseudo'}
-                </button>
+                </Button>
                 {profileFeedback ? <p className="mt-2 text-[0.75rem] text-emerald-300">{profileFeedback}</p> : null}
               </form>
 
-              {session?.user.email && (
+
+            </div>
+          </section>)}
+{view === 'email' && (<section className="space-y-3">              {session?.user.email && (
                 <div className="pt-3 border-t border-white/10">
                   <p className="text-[0.62rem] font-black uppercase tracking-[0.2em] text-white/45">E-mail privé — visible uniquement ici</p>
                   <p className="mt-1 text-sm font-semibold text-white">{session.user.email}</p>
                 </div>
-              )}
-            </div>
-          </section>
-
-          {/* Identity / Email Change Section */}
-          <section className="space-y-3">
-            <div>
-              <h2 className="text-lg font-black uppercase tracking-[0.16em] text-white">Changer d’adresse e-mail</h2>
-              <p className="mt-1 text-sm leading-relaxed text-[var(--fz-text-muted)]">
-                Le changement sera effectif uniquement après confirmation depuis l’ancienne et la nouvelle adresse.
-              </p>
-            </div>
-            <div className="rounded-[1.6rem] border border-white/10 bg-white/[0.045] p-5">
+              )}<p className="text-sm text-[var(--fz-text-muted)]">Le changement sera effectif uniquement après confirmation depuis l’ancienne et la nouvelle adresse.</p><div className="space-y-4">
               {localEmailError && <p className="mt-2 text-xs text-red-400">{localEmailError}</p>}
               <form onSubmit={handleEmailSubmit} className="mt-4 space-y-3">
                 <div>
@@ -920,49 +871,30 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
                     disabled={loading}
                   />
                 </div>
-                <button
+                <Button
                   type="submit"
                   disabled={loading || !newEmail.trim()}
-                  className="w-full rounded-[1rem] border border-orange-500/25 bg-orange-500/12 px-4 py-3 text-[0.72rem] font-black uppercase tracking-[0.18em] text-orange-200 transition hover:bg-orange-500/20 disabled:border-white/10 disabled:bg-white/5 disabled:text-white/35"
+                  variant="primary" fullWidth
                 >
                   {loading ? 'Demande...' : 'Demander le changement'}
-                </button>
+                </Button>
               </form>
             </div>
-          </section>
-
-          <section className="space-y-3">
-            <div>
-              <h2 className="text-lg font-black uppercase tracking-[0.16em] text-white">Connexion Google</h2>
-              <p className="mt-1 text-sm leading-relaxed text-[var(--fz-text-muted)]">
-                {googleLinked
-                  ? 'Google est associé à ce compte.'
-                  : 'Associez Google pour pouvoir vous connecter avec ce compte Google.'}
-              </p>
-            </div>
-            <div className="rounded-[1.6rem] border border-white/10 bg-white/[0.045] p-5">
-              <button
+          </section>)}
+{view === 'google' && (<section className="space-y-3">{localProfileError && <p role="alert" className="text-sm text-red-400">{localProfileError}</p>}
+<p className="text-sm text-[var(--fz-text-muted)]">{googleLinked ? 'Google est associé à ce compte.' : 'Associez Google pour pouvoir vous connecter avec ce compte Google.'}</p>
+<div className="space-y-4">
+              <Button
                 type="button"
                 onClick={() => void handleLinkGoogle()}
                 disabled={loading || googleLinked}
-                className="w-full rounded-[1rem] border border-white/20 bg-white px-4 py-3 text-[0.72rem] font-black uppercase tracking-[0.18em] text-[#15161a] transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-50"
+                variant="secondary" fullWidth
               >
                 {googleLinked ? 'Google associé' : loading ? 'Redirection…' : 'Associer Google'}
-              </button>
+              </Button>
             </div>
-          </section>
-
-          {/* Security / Password Change Section */}
-          <section className="space-y-3">
-            <div>
-              <h2 className="text-lg font-black uppercase tracking-[0.16em] text-white">
-                {isPasswordRecovery ? 'Définir un nouveau mot de passe' : 'Changer de mot de passe'}
-              </h2>
-              <p className="mt-1 text-sm leading-relaxed text-[var(--fz-text-muted)]">
-                Toutes les sessions seront révoquées après la modification.
-              </p>
-            </div>
-            <div className="rounded-[1.6rem] border border-white/10 bg-white/[0.045] p-5">
+          </section>)}
+{view === 'password' && (<section className="space-y-3"><p className="text-sm text-[var(--fz-text-muted)]">Toutes les sessions seront révoquées après la modification.</p><div className="space-y-4">
               {localPasswordError && <p className="mt-2 text-xs text-red-400">{localPasswordError}</p>}
               <form onSubmit={handlePasswordSubmit} className="mt-4 space-y-3">
                 {!isPasswordRecovery ? (
@@ -1019,186 +951,70 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
                     hidePasswordLabel="Masquer la confirmation du nouveau mot de passe"
                   />
                 </div>
-                <button
+                <Button
                   type="submit"
                   disabled={loading || (!isPasswordRecovery && !currentPassword) || !newPassword || !confirmPassword}
-                  className="w-full rounded-[1rem] border border-orange-500/25 bg-orange-500/12 px-4 py-3 text-[0.72rem] font-black uppercase tracking-[0.18em] text-orange-200 transition hover:bg-orange-500/20 disabled:border-white/10 disabled:bg-white/5 disabled:text-white/35"
+                  variant="primary" fullWidth
                 >
                   {loading ? 'Mise à jour...' : 'Mettre a jour le mot de passe'}
-                </button>
+                </Button>
               </form>
             </div>
-          </section>
-
-          {/* Sign Out Section */}
-          <section className="space-y-3">
-            <div>
-              <h2 className="text-lg font-black uppercase tracking-[0.16em] text-white">Déconnexion</h2>
-              <p className="mt-1 text-sm leading-relaxed text-[var(--fz-text-muted)]">
-                Ferme ta session sur cet appareil. Tes données locales et morceaux en cache restent conservés.
-              </p>
-            </div>
-            <div className="rounded-[1.6rem] border border-white/10 bg-white/[0.045] p-5">
-              <button
+          </section>)}
+{view === 'home' && (<section className="space-y-3"><p className="text-sm text-[var(--fz-text-muted)]">Ferme ta session sur cet appareil. Tes données locales et morceaux en cache restent conservés.</p><div className="space-y-4">
+              <Button
                 type="button"
                 onClick={() => void signOut()}
                 disabled={loading}
-                className="w-full rounded-[1rem] border border-white/15 bg-white/5 px-4 py-3 text-[0.72rem] font-black uppercase tracking-[0.18em] text-white transition hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-300 disabled:opacity-40"
+                variant="ghost" fullWidth
               >
                 Se déconnecter
-              </button>
+              </Button>
             </div>
-          </section>
-
-          {/* Account Deletion Section */}
-          <section className="space-y-3">
-            <div>
-              <h2 className="text-lg font-black uppercase tracking-[0.16em] text-white">Supprimer le compte</h2>
-            </div>
-            <div className="rounded-[1.6rem] border border-red-500/20 bg-red-500/[0.055] p-5">
+          </section>)}
+{view === 'delete-account' && (<section className="space-y-3"><div className="space-y-4">
               {localDeletionError && <p className="mt-2 text-xs text-red-400">{localDeletionError}</p>}
               {accountDeletionToken ? (
                 <>
                   <p className="mt-2 text-sm leading-relaxed text-red-100/75">
                     Le lien e-mail a été ouvert. La confirmation finale supprimera Mon espace et votre identité, mais conservera les groupes partagés.
                   </p>
-                  <button
+                  <Button
                     type="button"
                     onClick={() => setIsConfirmFinalDeletionOpen(true)}
                     disabled={loading}
-                    className="mt-4 w-full rounded-[1rem] border border-red-400/35 bg-red-500/18 px-4 py-3 text-[0.72rem] font-black uppercase tracking-[0.18em] text-red-100 transition hover:bg-red-500/28 disabled:opacity-40"
+                    variant="danger" fullWidth
                   >
                     Supprimer définitivement
-                  </button>
+                  </Button>
                 </>
               ) : (
                 <>
                   <p className="mt-2 text-sm leading-relaxed text-[var(--fz-text-muted)]">
                     La demande est impossible si vous êtes le dernier administrateur d’un groupe. Un lien valable une heure sera envoyé par e-mail.
                   </p>
-                  <button
+                  <Button
                     type="button"
                     onClick={() => setIsConfirmDeletionRequestOpen(true)}
                     disabled={loading}
-                    className="mt-4 w-full rounded-[1rem] border border-red-500/25 bg-red-500/10 px-4 py-3 text-[0.72rem] font-black uppercase tracking-[0.18em] text-red-200 transition hover:bg-red-500/18 disabled:opacity-40"
+                    variant="danger" fullWidth
                   >
                     Envoyer le lien de suppression
-                  </button>
+                  </Button>
                 </>
               )}
             </div>
-          </section>
-        </>
-      )}
+          </section>)}
+      {(view === 'personal' || view === 'group-identity' || view === 'group-members' || view === 'group-admin') && selectedWorkspace && <section className="space-y-4">
+        {groupActionError && <p role="alert" className="text-sm text-red-400">{groupActionError}</p>}
+        {workspaces.filter(ws => ws.id === selectedWorkspace.id).map(ws => {
+          const badgeColor = getBadgeColor(ws.id, ws.type);
+          return <div key={ws.id} className="space-y-4">                          {ws.type === 'group' && view === 'group-identity' && canAdministerWorkspace(ws.role) ? <div className="space-y-2"><label htmlFor={`workspaceName-${ws.id}`} className="fz-field-label">Nom du groupe</label><div className="flex gap-2"><div className="min-w-0 flex-1"><TextField id={`workspaceName-${ws.id}`} type="text" value={editingWorkspaceId === ws.id ? editingGroupName : ws.name} onFocus={() => { setEditingWorkspaceId(ws.id); setEditingGroupName(ws.name); }} onChange={(event) => { setEditingWorkspaceId(ws.id); setEditingGroupName(event.target.value); }} /></div><Button type="button" onClick={() => void handleUpdateGroupName(ws.id, editingGroupName)} variant="secondary">Enregistrer</Button></div>{groupNameDuplicateWarning && editingWorkspaceId === ws.id ? <p className="text-xs text-amber-400">{groupNameDuplicateWarning}</p> : null}</div> : null}
 
-      {/* TAB 2: GROUPE */}
-      {activeTab === 'groupe' && (
-        <div className="space-y-4">
-          <section className="space-y-3">
-            <div>
-              <div className="flex items-center gap-2.5">
-                <GroupTabIcon className="h-6 w-6 text-white shrink-0" />
-                <h1 className="text-[1.45rem] font-black uppercase tracking-[0.18em] text-white">Mes groupes</h1>
-              </div>
-              <p className="mt-1 text-sm leading-relaxed text-[var(--fz-text-muted)]">
-                Basculez entre vos espaces et administrez les membres.
-              </p>
-            </div>
-            <div>
-              {groupActionError && (
-                <div className="mb-3 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-400">
-                  {groupActionError}
-                </div>
-              )}
-
-              {/* List of Workspaces as Folded Accordion Tiles */}
-              <div className="space-y-3">
-                {workspaces.map((ws) => {
-                  const isActive = ws.id === activeWorkspace?.id;
-                  const isExpanded = expandedWorkspaceId === ws.id;
-                  const badgeColor = getBadgeColor(ws.id, ws.type);
-                  const activeGroupSettingsTab = groupSettingsTabs[ws.id] ?? 'profile';
-
-                  return (
-                    <div
-                      key={ws.id}
-                      className="rounded-[1.4rem] border border-white/10 bg-white/[0.045] overflow-hidden transition-all shadow-[0_8px_24px_rgba(0,0,0,0.2)]"
-                    >
-                      {/* Tile Header */}
-                      <div
-                        onClick={() => {
-                          if (!isActive) {
-                            clearFeedback();
-                            setActiveWorkspace(ws);
-                          }
-                          setExpandedWorkspaceId(isExpanded ? null : ws.id);
-                        }}
-                        className="flex items-center justify-between p-4 cursor-pointer hover:bg-white/5 transition select-none"
-                      >
-                        <div className="flex items-center gap-3.5 min-w-0">
-                          <div
-                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-black text-white shadow-md border border-white/20"
-                            style={{ backgroundColor: badgeColor.hex }}
-                          >
-                            {getBadgeText(ws.id, ws.name)}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                              <h3 className="text-base font-black text-white truncate">{ws.name}</h3>
-                              {isActive && (
-                                <span className="rounded-full bg-emerald-500/20 border border-emerald-500/40 px-2 py-0.5 text-[0.58rem] font-black uppercase tracking-wider text-emerald-300">
-                                  Actif
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-[0.66rem] uppercase tracking-[0.14em] text-white/40">
-                              {ws.type === 'personal' ? 'Espace personnel' : 'Groupe'}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Right Chevron Arrow */}
-                        <button
-                          type="button"
-                          aria-label={isExpanded ? 'Replier les réglages' : 'Déplier les réglages'}
-                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70 hover:text-white transition"
-                        >
-                          <svg
-                            className={['h-4 w-4 transition-transform duration-200', isExpanded ? 'rotate-180' : 'rotate-0'].join(' ')}
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <polyline points="6 9 12 15 18 9" />
-                          </svg>
-                        </button>
-                      </div>
-
-                      {/* Unfolded Tile Content */}
-                      {isExpanded && (
-                        <div className="border-t border-white/10 p-4 space-y-4 bg-white/[0.02]">
-                          {ws.type === 'group' ? (
-                            <div role="tablist" aria-label={`Réglages de ${ws.name}`} className="-mx-4 -mt-4 flex border-b border-white/10 px-3">
-                              {[
-                                { id: 'profile', label: 'Profil groupe', icon: 'settings' as const },
-                                { id: 'members', label: 'Membres', icon: 'users' as const },
-                                ...(canAdministerWorkspace(ws.role) ? [{ id: 'admin', label: 'Admin', icon: 'songs' as const }] : []),
-                              ].map((tab) => {
-                                const selected = activeGroupSettingsTab === tab.id;
-                                return <button key={tab.id} type="button" role="tab" aria-selected={selected} onClick={() => setGroupSettingsTabs((current) => ({ ...current, [ws.id]: tab.id as 'profile' | 'members' | 'admin' }))} className={`flex min-h-11 min-w-0 flex-1 items-center justify-center gap-1.5 whitespace-nowrap border-b-2 px-2 text-xs font-semibold transition ${selected ? 'border-orange-500 text-orange-300' : 'border-transparent text-white/60 hover:text-white'}`}><FzIcon name={tab.icon} usageId={`account.group-tab.${tab.id}`} size="sm" />{tab.label}</button>;
-                              })}
-                            </div>
-                          ) : null}
-
-                          {ws.type === 'group' && activeGroupSettingsTab === 'admin' && canAdministerWorkspace(ws.role) ? <div className="space-y-2"><label htmlFor={`workspaceName-${ws.id}`} className="fz-field-label">Nom du groupe</label><div className="flex gap-2"><div className="min-w-0 flex-1"><TextField id={`workspaceName-${ws.id}`} type="text" value={editingWorkspaceId === ws.id ? editingGroupName : ws.name} onFocus={() => { setEditingWorkspaceId(ws.id); setEditingGroupName(ws.name); }} onChange={(event) => { setEditingWorkspaceId(ws.id); setEditingGroupName(event.target.value); }} /></div><button type="button" onClick={() => void handleUpdateGroupName(ws.id, editingGroupName)} className="min-h-11 rounded-lg bg-orange-500 px-3 text-xs font-bold text-white transition hover:bg-orange-400">Enregistrer</button></div>{groupNameDuplicateWarning && editingWorkspaceId === ws.id ? <p className="text-xs text-amber-400">{groupNameDuplicateWarning}</p> : null}</div> : null}
-
-                          {ws.type !== 'group' || activeGroupSettingsTab === 'admin' ? <AudioQuotaBanner workspace={ws} isOnline={true} action={ws.type === 'group' && canAdministerWorkspace(ws.role) ? <button type="button" aria-label={`Ouvrir la corbeille de ${ws.name}`} onClick={() => { setTrashWorkspaceId(ws.id); setIsTrashOpen(true); }} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-300 transition hover:bg-amber-500/20"><FzIcon name="delete" usageId="account.group.storage.trash" /></button> : undefined} /> : null}
+                          {ws.type !== 'group' || view === 'group-admin' ? <AudioQuotaBanner workspace={ws} isOnline={true} action={ws.type === 'group' && canAdministerWorkspace(ws.role) ? <button type="button" aria-label={`Ouvrir la corbeille de ${ws.name}`} onClick={() => { setTrashWorkspaceId(ws.id); setIsTrashOpen(true); }} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-300 transition hover:bg-amber-500/20"><FzIcon name="delete" usageId="account.group.storage.trash" /></button> : undefined} /> : null}
 
                           {/* Pastille Color Selector */}
-                          {ws.type !== 'group' || activeGroupSettingsTab === 'profile' ? <div className="space-y-2">
+                          {ws.type !== 'group' || view === 'group-identity' ? <div className="space-y-2">
                             <p className="fz-field-label">
                               Couleur de la pastille
                             </p>
@@ -1213,7 +1029,7 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
                                     title={colorOption.name}
                                     aria-label={`Couleur ${colorOption.name}`}
                                     className={[
-                                      'h-8 w-8 rounded-full border-2 transition-all flex items-center justify-center',
+                                      'h-11 w-11 rounded-full border-2 transition-all flex items-center justify-center',
                                       isSelected
                                         ? 'border-white scale-110 shadow-[0_0_12px_rgba(255,255,255,0.4)] ring-2 ring-white/50'
                                         : 'border-transparent hover:scale-105 opacity-80 hover:opacity-100',
@@ -1232,7 +1048,7 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
                           </div> : null}
 
                           {/* Pastille Badge Text Input */}
-                          {ws.type !== 'group' || activeGroupSettingsTab === 'profile' ? <div className="space-y-1.5 pt-1">
+                          {ws.type !== 'group' || view === 'group-identity' ? <div className="space-y-1.5 pt-1">
                             <label htmlFor={`workspaceBadgeText-${ws.id}`} className="fz-field-label">
                               Texte du badge (3 lettres max)
                             </label>
@@ -1262,8 +1078,6 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
                             </div>
                           </div> : null}
 
-                          {ws.type === 'group' && activeGroupSettingsTab === 'profile' && canAdministerWorkspace(ws.role) ? <button type="button" aria-label={`Gérer l’EPK public de ${ws.name}`} onClick={() => window.location.assign('/account/epk')} className="flex min-h-11 items-center gap-1.5 rounded-lg border border-fuchsia-500/30 bg-fuchsia-500/10 px-3 text-xs font-semibold text-fuchsia-200 transition hover:bg-fuchsia-500/20">EPK public</button> : null}
-
                           {/* Workspace Administration & Tools (Accessible to all workspaces) */}
                           <div className="space-y-3 pt-2 border-t border-white/10">
                             {ws.type !== 'group' ? <div className="flex items-center justify-between">
@@ -1271,52 +1085,39 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
                                 Contenus
                               </h4>
                               <div className="flex gap-2">
-                                <button
+                                <Button
                                   type="button"
                                   onClick={() => {
                                     setTrashWorkspaceId(ws.id);
                                     setIsTrashOpen(true);
                                   }}
-                                  className="flex items-center gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[0.68rem] font-semibold text-amber-300 hover:bg-amber-500/20 transition"
+                                  variant="secondary"
                                 >
                                   Corbeille
-                                </button>
+                                </Button>
                               </div>
                             </div> : null}
 
                             {ws.type === 'group' && (
                               <>
-                                {activeGroupSettingsTab === 'members' ? <div className="space-y-3"><div className="flex items-center justify-between gap-3"><p className="fz-field-label">Membres</p>{canAdministerWorkspace(ws.role) ? <button type="button" onClick={() => void handleOpenShareDialog(ws)} className="min-h-11 rounded-lg border border-orange-500/30 bg-orange-500/10 px-3 text-xs font-semibold text-orange-300 transition hover:bg-orange-500/20">Inviter des membres</button> : null}</div><WorkspaceMemberList workspace={ws} canAdmin={canAdministerWorkspace(ws.role)} onMemberRoleChange={(userId, role) => void handleMemberRoleChange(ws.id, userId, role)} onRemoveMember={(m) => setMemberToRemove({ member: m, workspaceId: ws.id })} /><button type="button" onClick={() => void handleLeaveGroup(ws.id)} className="min-h-11 w-full rounded-xl border border-red-500/30 bg-red-500/10 py-2 text-xs font-bold text-red-400 transition hover:bg-red-500/20">Quitter le groupe</button></div> : null}
+                                {view === 'group-members' ? <div className="space-y-3"><div className="flex items-center justify-between gap-3"><p className="fz-field-label">Membres</p>{canAdministerWorkspace(ws.role) ? <Button type="button" onClick={() => void handleOpenShareDialog(ws)} variant="secondary">Inviter des membres</Button> : null}</div><WorkspaceMemberList workspace={ws} canAdmin={canAdministerWorkspace(ws.role)} onMemberRoleChange={(userId, role) => void handleMemberRoleChange(ws.id, userId, role)} onRemoveMember={(m) => setMemberToRemove({ member: m, workspaceId: ws.id })} /><Button type="button" onClick={() => void handleLeaveGroup(ws.id)} variant="danger" fullWidth>Quitter le groupe</Button></div> : null}
 
-                                {activeGroupSettingsTab === 'admin' ? <div className="flex gap-2 pt-2">
+                                {view === 'group-admin' ? <div className="flex gap-2 pt-2">
                                   {canAdministerWorkspace(ws.role) && (
-                                    <button
+                                    <Button
                                       onClick={() => setWorkspaceToSoftDelete(ws)}
-                                      className="flex-1 rounded-xl border border-red-500/30 bg-red-500/10 py-2 text-xs font-bold text-red-400 hover:bg-red-500/20 transition"
+                                      variant="danger"
                                     >
                                       Supprimer le groupe
-                                    </button>
+                                    </Button>
                                   )}
                                 </div> : null}
                               </>
                             )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </section>
-
-          {/* Workspaces Creation & Join Section */}
-          <section className="space-y-3">
-            <div>
-              <h2 className="text-lg font-black uppercase tracking-[0.16em] text-white">Créer un nouveau groupe</h2>
-            </div>
-            <div className="rounded-[1.6rem] border border-white/10 bg-white/[0.045] p-5">
-              <form onSubmit={handleCreateWorkspace} className="space-y-3">
+                          </div></div>;
+        })}
+      </section>}
+      {view === 'create-group' && <section>              <form onSubmit={handleCreateWorkspace} className="space-y-3">
                 <TextField
                   type="text"
                   value={workspaceName}
@@ -1325,16 +1126,15 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
                   disabled={loading}
                 />
                 {localWorkspaceError && <p className="text-xs text-red-400">{localWorkspaceError}</p>}
-                <button
+                <Button
                   type="submit"
                   disabled={loading || !workspaceName.trim()}
-                  className="w-full rounded-[1rem] bg-white px-4 py-3 text-[0.72rem] font-black uppercase tracking-[0.18em] text-[#0c0d10] hover:bg-orange-500 hover:text-white disabled:bg-white/10 disabled:text-white/35 transition"
+                  variant="primary" fullWidth
                 >
                   {loading ? 'Création...' : 'Créer un nouveau groupe'}
-                </button>
-              </form>
-
-              <form onSubmit={handleJoinWorkspaceWithLink} className="mt-5 pt-5 border-t border-white/10 space-y-3">
+                </Button>
+              </form>{workspaceFeedback && <p role="status" className="mt-3 text-sm text-emerald-300">{workspaceFeedback}</p>}</section>}
+      {view === 'join-group' && <section>              <form onSubmit={handleJoinWorkspaceWithLink} className="mt-5 pt-5 border-t border-white/10 space-y-3">
                 <div>
                   <label htmlFor="workspaceInviteLink" className="fz-field-label">
                     Rejoindre un groupe avec un lien
@@ -1348,26 +1148,18 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
                     disabled={loading || joinInviteLoading}
                   />
                 </div>
-                <button
+                <Button
                   type="submit"
                   disabled={loading || joinInviteLoading || !joinInviteValue.trim()}
-                  className="w-full rounded-[1rem] border border-orange-500/25 bg-orange-500/12 px-4 py-3 text-[0.72rem] font-black uppercase tracking-[0.18em] text-orange-200 transition hover:bg-orange-500/20 disabled:border-white/10 disabled:bg-white/5 disabled:text-white/35"
+                  variant="primary" fullWidth
                 >
                   {joinInviteLoading ? 'Connexion...' : 'Ajouter ce groupe'}
-                </button>
+                </Button>
                 {joinInviteFeedback ? (
                   <p className="text-[0.75rem] text-white/70">{joinInviteFeedback}</p>
                 ) : null}
-              </form>
-            </div>
-          </section>
-        </div>
-      )}
-
-      {/* TAB 3: SYNC */}
-      {activeTab === 'sync' && (
-        <SyncTab />
-      )}
+              </form></section>}
+      {view === 'sync' && <SyncTab />}
 
       {/* Share Dialog */}
       {shareWorkspace ? (
@@ -1394,14 +1186,14 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
                     <option value="guest">Invité</option>
                   </SelectField>
                 </div>
-                <button
+                <Button
                   type="button"
                   onClick={() => void generateInviteLink(shareWorkspace, inviteRole)}
                   disabled={inviteLoading}
-                  className="rounded-[1rem] bg-orange-500 px-4 py-3 text-[0.68rem] font-black uppercase tracking-[0.12em] text-white transition hover:bg-orange-400 disabled:opacity-40"
+                  variant="secondary"
                 >
                   {inviteLoading ? 'Création...' : 'Créer'}
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -1426,13 +1218,13 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
                       >
                         <CopyIcon />
                       </button>
-                      <button
+                      <Button
                         type="button"
                         onClick={() => setInviteToRevoke(invite)}
-                        className="rounded-xl border border-red-500/20 bg-red-500/10 px-3 text-[0.65rem] font-black uppercase text-red-200"
+                        variant="danger"
                       >
                         Révoquer
-                      </button>
+                      </Button>
                     </div>
                   </div>
                   {!inviteLinks[invite.id] ? (
@@ -1444,13 +1236,13 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
 
             {inviteFeedback ? <p className="text-[0.75rem] text-white/70">{inviteFeedback}</p> : null}
 
-            <button
+            <Button
               type="button"
               onClick={handleCloseShareDialog}
-              className="w-full rounded-[1rem] border border-white/10 bg-white/5 px-4 py-3 text-[0.72rem] font-black uppercase tracking-[0.18em] text-white/70 transition hover:bg-white/8 hover:text-white"
+              variant="secondary" fullWidth
             >
               Fermer
-            </button>
+            </Button>
           </div>
         </FormDialog>
       ) : null}
