@@ -6,6 +6,7 @@ type WorkerEnv = Omit<Cloudflare.Env, 'SUPABASE_URL'> & {
   PAGES_ORIGIN?: string;
 };
 
+// Kept temporarily for the unused legacy renderer below; public pages now use Pages.
 type EpkContact = { name: string; role: string; email: string | null; phone: string | null; whatsapp: string | null };
 type EpkVideo = { provider: 'YOUTUBE' | 'VIMEO'; provider_video_id: string; title: string | null; video_type: string; position: number };
 type EpkLink = { kind: string; label: string | null; url: string; position: number };
@@ -15,7 +16,7 @@ type EpkTrack = { id: string; title: string; description: string | null; visibil
 type EpkRow = { id: string; display_name: string; slug: string; tagline: string | null; short_bio: string | null; full_bio: string | null; city: string | null; country: string | null; genres: string[]; theme: string; status: string; hero_asset_id: string | null; accent_color?: string; published_snapshot?: unknown; epk_contacts: EpkContact[]; epk_videos: EpkVideo[]; epk_links: EpkLink[]; epk_photos: EpkPhoto[]; epk_documents: EpkDocument[]; epk_tracks: EpkTrack[] };
 type PublicAsset = { storage_path: string; mime_type: string; kind: string };
 type PublicTrack = { audio_asset_id: string; epk_assets: PublicAsset };
-const PHOTO_CAROUSEL_SCRIPT = `<script>document.querySelectorAll('[data-photo-carousel]').forEach(function(carousel){var track=carousel.querySelector('[data-photo-track]');if(!track)return;var count=track.children.length;var index=0;var position=carousel.querySelector('[data-photo-position]');function render(){if(position)position.textContent=(index+1)+' / '+count}function move(direction){index=(index+direction+count)%count;track.scrollTo({left:track.clientWidth*index,behavior:'smooth'});render()}var previous=carousel.querySelector('[data-photo-prev]');var next=carousel.querySelector('[data-photo-next]');if(previous)previous.addEventListener('click',function(){move(-1)});if(next)next.addEventListener('click',function(){move(1)});track.addEventListener('scroll',function(){index=Math.max(0,Math.min(count-1,Math.round(track.scrollLeft/track.clientWidth)));render()});if(count>1&&!matchMedia('(prefers-reduced-motion: reduce)').matches){setInterval(function(){move(1)},5000)}});</script>`;
+const PHOTO_CAROUSEL_SCRIPT = '';
 const RESERVED_PAGE_SLUGS = new Set(['account', 'assets', 'booking', 'calendar', 'en', 'fr', 'home', 'imports', 'landing', 'legal-notices', 'login', 'metronome', 'musiques', 'privacy', 'prompter', 'robots.txt', 'sitemap.xml', 'songs', 'setlists', 'sync', 'terms']);
 
 const LANDING_SEO = {
@@ -35,6 +36,12 @@ function forwardToPages(request: Request, env: WorkerEnv): Promise<Response> {
     body: request.body,
     redirect: 'follow',
   }));
+}
+
+function forwardPublicEpkPage(request: Request, env: WorkerEnv): Promise<Response> {
+  const url = new URL(request.url);
+  url.searchParams.set('view', 'epk');
+  return forwardToPages(new Request(url, request), env);
 }
 
 function preferredLandingLanguage(request: Request): 'fr' | 'en' {
@@ -68,7 +75,7 @@ async function forwardLandingPage(request: Request, env: WorkerEnv, language: 'f
 }
 
 export default {
-  async fetch(request: Request, env: WorkerEnv, ctx?: ExecutionContext): Promise<Response> {
+  async fetch(request: Request, env: WorkerEnv): Promise<Response> {
     const url = new URL(request.url);
     if (request.method === 'GET' && url.pathname === '/') {
       const destination = new URL(`/${preferredLandingLanguage(request)}`, url);
@@ -77,6 +84,8 @@ export default {
     if (request.method === 'GET' && (url.pathname === '/fr' || url.pathname === '/en')) {
       return forwardLandingPage(request, env, url.pathname.slice(1) as 'fr' | 'en');
     }
+    const trackAudioMatch = url.pathname.match(/^\/api\/public\/([a-z0-9]+(?:-[a-z0-9]+)*)\/tracks\/([0-9a-f-]+)\/audio$/);
+    if ((request.method === 'GET' || request.method === 'HEAD') && trackAudioMatch) return servePublicTrackAudio(request, env, trackAudioMatch[1]!, trackAudioMatch[2]!);
     const sessionMatch = url.pathname.match(/^\/api\/public\/([a-z0-9]+(?:-[a-z0-9]+)*)\/tracks\/([0-9a-f-]+)\/session$/);
     if (request.method === 'POST' && sessionMatch) return createTrackSession(request, env, sessionMatch[1]!, sessionMatch[2]!);
     const downloadSessionMatch = url.pathname.match(/^\/api\/public\/([a-z0-9]+(?:-[a-z0-9]+)*)\/documents\/([0-9a-f-]+)\/session$/);
@@ -88,52 +97,9 @@ export default {
     if (request.method !== 'GET' || url.pathname.split('/').filter(Boolean).length !== 1) return forwardToPages(request, env);
     const slug = url.pathname.slice(1);
     if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || RESERVED_PAGE_SLUGS.has(slug)) return forwardToPages(request, env);
-    try {
-      const cache = typeof caches !== 'undefined' && 'default' in caches ? (caches as unknown as { default: Cache }).default : null;
-      if (cache) {
-        const cached = await cache.match(request);
-        if (cached) return cached;
-      }
-      const epk = await loadPublishedEpk(slug, env);
-      if (!epk) return (await epkSlugExists(slug, env)) ? notPublished() : forwardToPages(request, env);
-      const response = url.searchParams.get('format') === 'json'
-        ? Response.json(toPublicDto(epk), { headers: publicHeaders('application/json; charset=utf-8') })
-        : new Response(renderHtml(epk, url), { headers: publicHeaders('text/html; charset=utf-8') });
-      if (cache && response.status === 200) {
-        if (ctx?.waitUntil) {
-          ctx.waitUntil(cache.put(request, response.clone()));
-        } else {
-          await cache.put(request, response.clone());
-        }
-      }
-      return response;
-    } catch (error) {
-      console.error(JSON.stringify({ message: 'epk public request failed', slug, error: error instanceof Error ? error.message : String(error) }));
-      return forwardToPages(request, env);
-    }
+    return forwardPublicEpkPage(request, env);
   },
 } satisfies ExportedHandler<WorkerEnv>;
-
-async function loadPublishedEpk(slug: string, env: WorkerEnv): Promise<EpkRow | null> {
-  const url = new URL(`${env.SUPABASE_URL}/rest/v1/epks`);
-  url.searchParams.set('select', 'id,display_name,slug,tagline,short_bio,full_bio,city,country,genres,theme,status,hero_asset_id,accent_color,published_snapshot,epk_contacts(name,role,email,phone,whatsapp),epk_videos(provider,provider_video_id,title,video_type,position),epk_links(kind,label,url,position),epk_photos(id,preview_asset_id,original_asset_id,credit,caption,position),epk_documents(id,asset_id,title,document_type,document_updated_at,position),epk_tracks(id,title,description,visibility,position,source_type,audio_asset_id,song_asset_id)');
-  url.searchParams.set('slug', `eq.${slug}`); url.searchParams.set('status', 'eq.PUBLISHED'); url.searchParams.set('limit', '1');
-  const response = await fetch(url, { headers: { apikey: env.SUPABASE_SECRET_KEY, authorization: `Bearer ${env.SUPABASE_SECRET_KEY}`, accept: 'application/json' } });
-  if (!response.ok) throw new Error(`Supabase returned ${response.status}`);
-  const body: unknown = await response.json();
-  return Array.isArray(body) && isEpkRow(body[0]) ? body[0] : null;
-}
-
-async function epkSlugExists(slug: string, env: WorkerEnv): Promise<boolean> {
-  const url = new URL(`${env.SUPABASE_URL}/rest/v1/epks`);
-  url.searchParams.set('select', 'slug');
-  url.searchParams.set('slug', `eq.${slug}`);
-  url.searchParams.set('limit', '1');
-  const response = await fetch(url, { headers: serviceHeaders(env) });
-  if (!response.ok) return false;
-  const body: unknown = await response.json();
-  return Array.isArray(body) && body.length > 0;
-}
 
 async function loadPublishedAsset(assetId: string, env: WorkerEnv, allowedKinds: string[]): Promise<PublicAsset | null> {
   if (!isUuid(assetId)) return null;
@@ -149,6 +115,105 @@ async function loadPublishedAsset(assetId: string, env: WorkerEnv, allowedKinds:
   const body: unknown = await response.json();
   if (!Array.isArray(body) || !isPublicAsset(body[0]) || !allowedKinds.includes(body[0].kind)) return null;
   return body[0];
+}
+
+function audioUnavailable(): Response {
+  return new Response(null, { status: 404, headers: { 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' } });
+}
+
+async function servePublicTrackAudio(request: Request, env: WorkerEnv, slug: string, trackId: string): Promise<Response> {
+  const asset = await resolvePublicTrackMedia(env, slug, trackId);
+  if (!asset || !asset.mime_type.toLowerCase().startsWith('audio/')) return audioUnavailable();
+  const normalizedType = asset.mime_type.toLowerCase() === 'audio/mp3' ? 'audio/mpeg' : asset.mime_type;
+  const response = await serveR2Asset(request, env, { ...asset, mime_type: normalizedType }, false, 'private, no-store');
+  if (request.method === 'HEAD') return new Response(null, { status: response.status, headers: response.headers });
+  return response;
+}
+
+async function resolvePublicTrackMedia(env: WorkerEnv, slug: string, trackId: string, allowSnapshotFallback = true): Promise<PublicAsset | null> {
+  if (!isUuid(trackId)) return null;
+  const epkAsset = await loadPublishedEpkTrackAsset(env, slug, trackId);
+  if (epkAsset) return epkAsset;
+  const songAsset = await loadPublishedSongTrackAsset(env, slug, trackId);
+  if (songAsset) return songAsset;
+  if (!allowSnapshotFallback) return null;
+  const liveId = await resolveLiveTrackIdFromSnapshot(env, slug, trackId);
+  if (!liveId || liveId === trackId) return null;
+  return resolvePublicTrackMedia(env, slug, liveId, false);
+}
+
+async function loadPublishedEpkTrackAsset(env: WorkerEnv, slug: string, trackId: string): Promise<PublicAsset | null> {
+  const url = new URL(`${env.SUPABASE_URL}/rest/v1/epk_tracks`);
+  url.searchParams.set('select', 'audio_asset_id,epk_id,epks!inner(slug,status)');
+  url.searchParams.set('id', `eq.${trackId}`);
+  url.searchParams.set('source_type', 'eq.EPK_ASSET');
+  url.searchParams.set('visibility', 'eq.PUBLIC');
+  url.searchParams.set('epks.slug', `eq.${slug}`);
+  url.searchParams.set('epks.status', 'eq.PUBLISHED');
+  url.searchParams.set('limit', '1');
+  const response = await fetch(url, { headers: serviceHeaders(env) });
+  if (!response.ok) return null;
+  const body: unknown = await response.json();
+  if (!Array.isArray(body) || !isRecord(body[0]) || typeof body[0].audio_asset_id !== 'string' || typeof body[0].epk_id !== 'string') return null;
+  return loadOwnedPublishedAudioAsset(env, body[0].epk_id, body[0].audio_asset_id);
+}
+
+async function loadOwnedPublishedAudioAsset(env: WorkerEnv, epkId: string, assetId: string): Promise<PublicAsset | null> {
+  if (!isUuid(epkId) || !isUuid(assetId)) return null;
+  const url = new URL(`${env.SUPABASE_URL}/rest/v1/epk_assets`);
+  url.searchParams.set('select', 'storage_path,mime_type,kind,epks!epk_assets_epk_id_fkey!inner(status)');
+  url.searchParams.set('id', `eq.${assetId}`);
+  url.searchParams.set('epk_id', `eq.${epkId}`);
+  url.searchParams.set('kind', 'eq.audio');
+  url.searchParams.set('epks.status', 'eq.PUBLISHED');
+  url.searchParams.set('limit', '1');
+  const response = await fetch(url, { headers: serviceHeaders(env) });
+  if (!response.ok) return null;
+  const body: unknown = await response.json();
+  if (!Array.isArray(body) || !isPublicAsset(body[0]) || body[0].kind !== 'audio') return null;
+  return body[0];
+}
+
+async function loadPublishedSongTrackAsset(env: WorkerEnv, slug: string, trackId: string): Promise<PublicAsset | null> {
+  const url = new URL(`${env.SUPABASE_URL}/rest/v1/epk_tracks`);
+  url.searchParams.set('select', 'song_assets!inner(storage_path,mime_type),epks!inner(slug,status)');
+  url.searchParams.set('id', `eq.${trackId}`);
+  url.searchParams.set('source_type', 'eq.SONG_ASSET');
+  url.searchParams.set('visibility', 'eq.PUBLIC');
+  url.searchParams.set('epks.slug', `eq.${slug}`);
+  url.searchParams.set('epks.status', 'eq.PUBLISHED');
+  url.searchParams.set('limit', '1');
+  const response = await fetch(url, { headers: serviceHeaders(env) });
+  const body: unknown = response.ok ? await response.json() : null;
+  if (!Array.isArray(body) || !isRecord(body[0]) || !isRecord(body[0].song_assets) || typeof body[0].song_assets.storage_path !== 'string' || typeof body[0].song_assets.mime_type !== 'string') return null;
+  return { storage_path: body[0].song_assets.storage_path, mime_type: body[0].song_assets.mime_type, kind: 'audio' };
+}
+
+async function resolveLiveTrackIdFromSnapshot(env: WorkerEnv, slug: string, trackId: string): Promise<string | null> {
+  const epkUrl = new URL(`${env.SUPABASE_URL}/rest/v1/epks`);
+  epkUrl.searchParams.set('select', 'id,published_snapshot');
+  epkUrl.searchParams.set('slug', `eq.${slug}`);
+  epkUrl.searchParams.set('status', 'eq.PUBLISHED');
+  epkUrl.searchParams.set('limit', '1');
+  const epkResponse = await fetch(epkUrl, { headers: serviceHeaders(env) });
+  if (!epkResponse.ok) return null;
+  const epkBody: unknown = await epkResponse.json();
+  if (!Array.isArray(epkBody) || !isRecord(epkBody[0]) || typeof epkBody[0].id !== 'string') return null;
+  const snapshot = isRecord(epkBody[0].published_snapshot) ? epkBody[0].published_snapshot : null;
+  const snapshotTracks = Array.isArray(snapshot?.tracks) ? snapshot.tracks : [];
+  const snapshotTrack = snapshotTracks.find((item) => isRecord(item) && item.id === trackId);
+  const title = isRecord(snapshotTrack) && typeof snapshotTrack.title === 'string' ? snapshotTrack.title : null;
+  if (!title) return null;
+  const tracksUrl = new URL(`${env.SUPABASE_URL}/rest/v1/epk_tracks`);
+  tracksUrl.searchParams.set('select', 'id,title');
+  tracksUrl.searchParams.set('epk_id', `eq.${epkBody[0].id}`);
+  tracksUrl.searchParams.set('visibility', 'eq.PUBLIC');
+  tracksUrl.searchParams.set('title', `eq.${title}`);
+  const tracksResponse = await fetch(tracksUrl, { headers: serviceHeaders(env) });
+  if (!tracksResponse.ok) return null;
+  const tracksBody: unknown = await tracksResponse.json();
+  if (!Array.isArray(tracksBody) || tracksBody.length !== 1 || !isRecord(tracksBody[0]) || typeof tracksBody[0].id !== 'string') return null;
+  return tracksBody[0].id;
 }
 
 async function createTrackSession(request: Request, env: WorkerEnv, slug: string, trackId: string): Promise<Response> {
@@ -240,10 +305,13 @@ async function serveR2Asset(request: Request, env: WorkerEnv, asset: PublicAsset
 
 function serviceHeaders(env: WorkerEnv): HeadersInit { return { apikey: env.SUPABASE_SECRET_KEY, authorization: `Bearer ${env.SUPABASE_SECRET_KEY}`, accept: 'application/json' }; }
 
+// Retained for a rollback window; the active public route forwards to Pages.
+// oxlint-disable-next-line no-unused-vars
 function toPublicDto(epk: EpkRow) {
   return { name: epk.display_name, slug: epk.slug, tagline: epk.tagline, shortBio: epk.short_bio, fullBio: epk.full_bio, city: epk.city, country: epk.country, genres: epk.genres, theme: epk.theme, contacts: epk.epk_contacts.map((contact) => ({ name: contact.name, role: contact.role, email: contact.email, phone: contact.phone, whatsapp: contact.whatsapp })), videos: epk.epk_videos.sort((a, b) => a.position - b.position).map((video) => ({ provider: video.provider, id: video.provider_video_id, title: video.title, type: video.video_type })), links: epk.epk_links.sort((a, b) => a.position - b.position).map((link) => ({ kind: link.kind, label: link.label, url: link.url })), photos: epk.epk_photos.sort((a, b) => a.position - b.position).map((photo) => ({ id: photo.id, previewAssetId: photo.preview_asset_id, originalAssetId: photo.original_asset_id, credit: photo.credit, caption: photo.caption })), documents: epk.epk_documents.sort((a, b) => a.position - b.position).map((document) => ({ id: document.id, assetId: document.asset_id, title: document.title, type: document.document_type, updatedAt: document.document_updated_at })), tracks: epk.epk_tracks.filter((track) => track.visibility === 'PUBLIC' && ((track.source_type === 'EPK_ASSET' && track.audio_asset_id) || (track.source_type === 'SONG_ASSET' && track.song_asset_id))).sort((a, b) => a.position - b.position).map((track) => ({ id: track.id, title: track.title, description: track.description, visibility: track.visibility })) };
 }
 
+// oxlint-disable-next-line no-unused-vars
 function renderHtml(epk: EpkRow, url: URL): string {
   const snapshot = isRecord(epk.published_snapshot) ? epk.published_snapshot : null;
   if (snapshot) return renderSnapshotHtml(snapshot, epk, url);
@@ -313,13 +381,9 @@ function renderSnapshotHtml(snapshot: Record<string, unknown>, epk: EpkRow, url:
 
 function publicHeaders(contentType: string): Headers { return new Headers({ 'content-type': contentType, 'cache-control': 'public, max-age=60, s-maxage=300', 'content-security-policy': "default-src 'none'; img-src 'self' data:; media-src 'self' blob:; connect-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; frame-src https://www.youtube-nocookie.com https://player.vimeo.com; base-uri 'none'; frame-ancestors 'none'", 'x-content-type-options': 'nosniff', 'referrer-policy': 'strict-origin-when-cross-origin' }); }
 function unavailable(): Response { return new Response('<!doctype html><title>EPK indisponible</title><h1>EPK indisponible</h1>', { status: 404, headers: publicHeaders('text/html; charset=utf-8') }); }
-function notPublished(): Response {
-  const headers = publicHeaders('text/html; charset=utf-8');
-  headers.set('cache-control', 'no-store');
-  return new Response('<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Page publique non publiée</title><style>body{margin:0;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px;background:#09090b;color:#fff;font:16px Inter,Segoe UI,sans-serif;text-align:center}h1{margin:0;font-size:clamp(1.6rem,6vw,2.4rem);font-weight:900}p{margin:0;max-width:44ch;color:#a1a1aa}</style></head><body><h1>Page publique non publiée</h1><p>Cette page existe mais n’est pas encore publiée. Son administrateur doit la publier depuis FaderZero pour la rendre visible.</p></body></html>', { status: 404, headers });
-}
 function escapeHtml(value: string): string { return value.replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[character] ?? character); }
 function escapeAttribute(value: string): string { return escapeHtml(value).replace(/`/g, '&#096;'); }
+// oxlint-disable-next-line no-unused-vars
 function isEpkRow(value: unknown): value is EpkRow { return typeof value === 'object' && value !== null && typeof (value as Record<string, unknown>).id === 'string' && typeof (value as Record<string, unknown>).display_name === 'string' && Array.isArray((value as Record<string, unknown>).genres) && Array.isArray((value as Record<string, unknown>).epk_contacts) && Array.isArray((value as Record<string, unknown>).epk_videos) && Array.isArray((value as Record<string, unknown>).epk_links) && Array.isArray((value as Record<string, unknown>).epk_photos) && Array.isArray((value as Record<string, unknown>).epk_documents) && Array.isArray((value as Record<string, unknown>).epk_tracks); }
 function isPublicAsset(value: unknown): value is PublicAsset { return typeof value === 'object' && value !== null && typeof (value as Record<string, unknown>).storage_path === 'string' && typeof (value as Record<string, unknown>).mime_type === 'string' && typeof (value as Record<string, unknown>).kind === 'string'; }
 function isPublicTrack(value: unknown): value is PublicTrack { return typeof value === 'object' && value !== null && typeof (value as Record<string, unknown>).audio_asset_id === 'string' && isPublicAsset((value as Record<string, unknown>).epk_assets); }

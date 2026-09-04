@@ -1,6 +1,6 @@
 import { createElement } from 'react';
-import { render } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { fireEvent, render, waitFor } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { brandForLink } from './epkBrands';
 import { EpkPublicView } from './EpkPublicView';
 import { DEFAULT_EPK_EDITORIAL, DEFAULT_EPK_SECTION_ORDER, type EpkPublicModel } from './epkPresentation';
@@ -96,6 +96,10 @@ describe('contacts publics', () => {
 });
 
 describe('lecteur audio public', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('affiche les pistes et initialise le lecteur avec la première piste', () => {
     const modelWithTracks: EpkPublicModel = {
       ...publicModel,
@@ -117,5 +121,40 @@ describe('lecteur audio public', () => {
 
     const nowInfo = container.querySelector('.epk-now-info strong');
     expect(nowInfo).toHaveTextContent('Première piste');
+    expect(container.querySelector('input.fz-audio-scrubber')).toHaveAttribute('aria-label', 'Position de lecture');
+  });
+
+  it('assigne la source audio au premier clic sur la piste déjà sélectionnée', async () => {
+    const play = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue();
+    const modelWithTracks: EpkPublicModel = {
+      ...publicModel,
+      tracks: [{ id: 'track-1', title: 'Okay', audioUrl: 'https://media.faderzero.com/epks/kicked/okay.mp3' }],
+    };
+
+    const { container } = render(createElement(EpkPublicView, { model: modelWithTracks }));
+    fireEvent.click(container.querySelector('.epk-now-btn')!);
+
+    await waitFor(() => {
+      expect(container.querySelector('audio')?.getAttribute('src')).toBe('https://media.faderzero.com/epks/kicked/okay.mp3');
+    });
+    expect(play).toHaveBeenCalled();
+  });
+
+  it('utilise la route audio publique si le snapshot n’a pas d’audioUrl', async () => {
+    vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue();
+    const modelWithTracks: EpkPublicModel = {
+      ...publicModel,
+      slug: 'kickedtoheaven',
+      tracks: [{ id: '13c0bd29-2584-43c0-bcf5-067182171508', title: 'Okay' }],
+    };
+
+    const { container } = render(createElement(EpkPublicView, { model: modelWithTracks }));
+    fireEvent.click(container.querySelector('.epk-now-btn')!);
+
+    await waitFor(() => {
+      expect(container.querySelector('audio')?.getAttribute('src')).toBe(
+        '/api/public/kickedtoheaven/tracks/13c0bd29-2584-43c0-bcf5-067182171508/audio',
+      );
+    });
   });
 });

@@ -1,8 +1,15 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { BrandIcon, FzIcon } from '@/ui/icons';
+import { isAppHostname } from '@/utils/domainRouting';
 import { brandForLink, normalizeBrandLabel, socialBrands } from './epkBrands';
 import { epkOnAccentColor, isEpkSectionVisible, normalizedSectionOrder, type EpkPublicModel, type EpkSectionId } from './epkPresentation';
 import './epkPublicView.css';
+
+function resolveTrackPlaybackUrl(track: { id: string; audioUrl?: string }, slug: string, hostname = typeof window === 'undefined' ? '' : window.location.hostname): string | undefined {
+  if (track.audioUrl) return track.audioUrl;
+  if (isAppHostname(hostname)) return undefined;
+  return `/api/public/${encodeURIComponent(slug)}/tracks/${track.id}/audio`;
+}
 
 type Props = { model: EpkPublicModel; editing?: boolean; onEditSection?: (section: EpkSectionId) => void };
 const titles: Record<EpkSectionId, string> = { banniere: 'Bannière', bio: 'Biographie', musique: 'Musique', medias: 'Médias', espacePro: 'Espace pro', contact: 'Contact' };
@@ -38,13 +45,16 @@ function EpkAudioPlayer({ model }: { model: EpkPublicModel }) {
     const audio = audioRef.current;
     if (!audio) return;
 
-    if (activeTrackId === track.id) {
+    const isSameTrack = activeTrackId === track.id;
+    const hasSource = Boolean(audio.getAttribute('src'));
+    if (isSameTrack && hasSource) {
       if (isPlaying) {
         audio.pause();
       } else {
         try {
           await audio.play();
         } catch {
+          audio.removeAttribute('src');
           setError('Lecture impossible.');
           setIsPlaying(false);
         }
@@ -53,19 +63,7 @@ function EpkAudioPlayer({ model }: { model: EpkPublicModel }) {
     }
 
     setActiveTrackId(track.id);
-    let url = track.audioUrl;
-    if (!url) {
-      try {
-        const res = await fetch(`/api/public/${encodeURIComponent(model.slug)}/tracks/${track.id}/session`, { method: 'POST' });
-        if (res.ok) {
-          const data = (await res.json()) as { url?: string };
-          url = data.url;
-        }
-      } catch {
-        // ignore
-      }
-    }
-
+    const url = resolveTrackPlaybackUrl(track, model.slug);
     if (!url) {
       setError('Piste audio introuvable.');
       setIsPlaying(false);
@@ -76,6 +74,7 @@ function EpkAudioPlayer({ model }: { model: EpkPublicModel }) {
     try {
       await audio.play();
     } catch {
+      audio.removeAttribute('src');
       setError('Lecture impossible.');
       setIsPlaying(false);
     }
@@ -86,15 +85,16 @@ function EpkAudioPlayer({ model }: { model: EpkPublicModel }) {
     void handlePlayTrack(activeTrack);
   };
 
-  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleSeek = (nextTime: number) => {
     const audio = audioRef.current;
     if (!audio || !duration) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    audio.currentTime = pos * duration;
+    const boundedTime = Math.max(0, Math.min(duration, nextTime));
+    audio.currentTime = boundedTime;
+    setCurrentTime(boundedTime);
   };
 
-  const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
+  const progressPercent = duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0;
+  const scrubberStyle = { '--fz-audio-progress': `${progressPercent}%`, '--fz-accent': 'var(--epk-accent)' } as CSSProperties;
 
   const formatTime = (secs: number) => {
     if (!Number.isFinite(secs) || secs < 0) return '0:00';
@@ -124,6 +124,7 @@ function EpkAudioPlayer({ model }: { model: EpkPublicModel }) {
           }
         }}
         onError={() => {
+          audioRef.current?.removeAttribute('src');
           setError('Erreur lors de la lecture audio.');
           setIsPlaying(false);
         }}
@@ -131,36 +132,35 @@ function EpkAudioPlayer({ model }: { model: EpkPublicModel }) {
       <div className="epk-now">
         <button
           type="button"
-          className="epk-now-btn"
+          className={isPlaying ? 'epk-now-btn is-playing' : 'epk-now-btn'}
           aria-label={isPlaying ? 'Mettre en pause' : 'Lancer la lecture'}
           onClick={toggleMainPlay}
           disabled={!activeTrack}
         >
-          <FzIcon name={isPlaying ? 'pause' : 'play'} usageId="epk.player.now" size="md" />
+          <FzIcon name={isPlaying ? 'pause' : 'play'} usageId="epk.player.now" size="sm" />
         </button>
         <div className="epk-now-info">
-          <small>{isPlaying ? 'En lecture' : 'Lecture'}</small>
           <strong>{activeTrack?.title || 'Aucune piste'}</strong>
+          <small>{isPlaying ? 'En lecture' : 'Prêt à écouter'}</small>
           {error ? <span className="epk-now-error">{error}</span> : null}
         </div>
-        {duration > 0 ? (
-          <span className="epk-now-time">{formatTime(currentTime)} / {formatTime(duration)}</span>
-        ) : null}
       </div>
-      {duration > 0 ? (
-        <div
-          className="epk-progress-bar-container"
-          onClick={handleSeek}
-          role="slider"
+      <div className="epk-scrubber">
+        <span>{formatTime(currentTime)}</span>
+        <input
+          type="range"
+          min={0}
+          max={Math.max(duration, 0.01)}
+          step={0.01}
+          value={duration > 0 ? Math.min(currentTime, duration) : 0}
+          disabled={!duration}
+          onChange={(event) => handleSeek(Number(event.target.value))}
           aria-label="Position de lecture"
-          aria-valuenow={currentTime}
-          aria-valuemin={0}
-          aria-valuemax={duration}
-          tabIndex={0}
-        >
-          <div className="epk-progress-bar-fill" style={{ width: `${progressPercent}%` }} />
-        </div>
-      ) : null}
+          className="fz-audio-scrubber"
+          style={scrubberStyle}
+        />
+        <span>{duration > 0 ? formatTime(duration) : '--:--'}</span>
+      </div>
       <div className="epk-track-list">
         {model.tracks.map((track, index) => {
           const isActive = track.id === activeTrackId;

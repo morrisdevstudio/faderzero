@@ -23,6 +23,7 @@ describe('domainRouting', () => {
     expect(resolveViewTarget('/landing', 'app.faderzero.com', '')).toBe('landing');
     expect(resolveViewTarget('/', 'localhost', '?view=landing')).toBe('landing');
     expect(resolveViewTarget('/', 'localhost', '?view=app')).toBe('app');
+    expect(resolveViewTarget('/the-rolling-stones', 'faderzero.pages.dev', '?view=epk')).toBe('epk');
     expect(resolveViewTarget('/', 'app.faderzero.com', '')).toBe('app');
     expect(resolveViewTarget('/home', 'faderzero.com', '')).toBe('app');
     expect(resolveViewTarget('/the-rolling-stones', 'faderzero.com', '')).toBe('epk');

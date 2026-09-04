@@ -58,6 +58,7 @@ export function resolveViewTarget(
   const explicitView = params.get('view');
   if (explicitView === 'landing') return 'landing';
   if (explicitView === 'app') return 'app';
+  if (explicitView === 'epk') return 'epk';
   if (LEGAL_PATHS.has(pathname)) return 'legal';
 
   // Local previews keep the explicit landing route; production uses /fr and /en.
