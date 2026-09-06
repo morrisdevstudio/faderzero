@@ -1,5 +1,70 @@
-import { fireEvent, render, screen } from '@testing-library/react';
-import { PickerDialog } from './PickerDialog';
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import { useState } from 'react';
+import { PickerDialog, WheelColumn } from './PickerDialog';
+
+function TestWheel() {
+  const [value, setValue] = useState('94');
+  return <WheelColumn options={['93', '94', '95']} selectedValue={value} onSelect={setValue} suffix="BPM" />;
+}
+
+describe('WheelColumn', () => {
+  it('suit le défilement sans attendre le retour de la valeur enregistrée', () => {
+    const onSelect = vi.fn();
+    const { container, unmount } = render(<WheelColumn options={['93', '94', '95']} selectedValue="94" onSelect={onSelect} suffix="BPM" />);
+    const scrollArea = screen.getByRole('button', { name: '95 BPM' }).parentElement!;
+    fireEvent.scroll(scrollArea, { target: { scrollTop: 128 } });
+    expect(container.querySelector('[data-picker-selected="true"]')).toHaveTextContent('95');
+    expect(screen.getByRole('button', { name: '95 BPM' })).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.scroll(scrollArea, { target: { scrollTop: 0 } });
+    expect(container.querySelector('[data-picker-selected="true"]')).toHaveTextContent('93');
+    expect(onSelect).toHaveBeenLastCalledWith('93');
+    unmount();
+  });
+
+  it('adapte immédiatement le gras à la position réelle et conserve le centrage final', () => {
+    vi.useFakeTimers();
+    const { unmount } = render(<TestWheel />);
+    try {
+      const last = screen.getByRole('button', { name: '95 BPM' });
+      const scrollArea = last.parentElement!;
+      fireEvent.scroll(scrollArea, { target: { scrollTop: 105 } });
+      expect(Number(last.style.getPropertyValue('--wheel-emphasis'))).toBeCloseTo(0.28125);
+      act(() => { vi.advanceTimersByTime(100); });
+      fireEvent.scroll(scrollArea, { target: { scrollTop: 118 } });
+      act(() => { vi.advanceTimersByTime(100); });
+      expect(Number(last.style.getPropertyValue('--wheel-emphasis'))).toBeCloseTo(0.6875);
+      act(() => { vi.advanceTimersByTime(80); });
+      expect(scrollArea.scrollTop).toBe(128);
+      expect(last.style.getPropertyValue('--wheel-emphasis')).toBe('1');
+      fireEvent.scroll(scrollArea, { target: { scrollTop: 64 } });
+      expect(last.style.getPropertyValue('--wheel-emphasis')).toBe('');
+      expect(screen.getByRole('button', { name: '94 BPM' }).style.getPropertyValue('--wheel-emphasis')).toBe('1');
+    } finally {
+      unmount();
+      vi.useRealTimers();
+    }
+  });
+
+  it('centre une valeur touchée et permet le réglage au clavier sans sortir des bornes', () => {
+    render(<TestWheel />);
+    const next = screen.getByRole('button', { name: '95 BPM' });
+    const scrollArea = next.parentElement!;
+    fireEvent.click(next);
+    expect(next).toHaveAttribute('aria-pressed', 'true');
+    expect(scrollArea.scrollTop).toBe(128);
+    fireEvent.keyDown(next, { key: 'ArrowUp' });
+    const middle = screen.getByRole('button', { name: '94 BPM' });
+    expect(middle).toHaveFocus();
+    expect(middle).toHaveAttribute('aria-pressed', 'true');
+    expect(scrollArea.scrollTop).toBe(64);
+    fireEvent.keyDown(middle, { key: 'Home' });
+    const first = screen.getByRole('button', { name: '93 BPM' });
+    fireEvent.keyDown(first, { key: 'ArrowUp' });
+    expect(first).toHaveFocus();
+    expect(scrollArea.scrollTop).toBe(0);
+    expect(screen.getAllByRole('button').filter(button => button.tabIndex === 0)).toEqual([first]);
+  });
+});
 
 describe('PickerDialog', () => {
   it('associe son titre et sa description au dialogue', () => {

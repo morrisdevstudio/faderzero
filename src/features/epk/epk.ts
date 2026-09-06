@@ -167,7 +167,7 @@ function toEditorial(value: unknown): EpkEditorialContent {
       ? [{ id: typeof item.id === 'string' ? item.id : `fact-${index}`, title: item.title, value: item.value, icon: normalizedEpkFactIcon(icon) }]
       : [];
   }) : [];
-  return { bioTitle: text('bioTitle'), musicTitle: text('musicTitle'), proTitle: text('proTitle'), proDescription: text('proDescription'), contactTitle: text('contactTitle'), facts };
+  return { bioTitle: text('bioTitle'), musicTitle: text('musicTitle'), mediaTitle: text('mediaTitle'), proTitle: text('proTitle'), proDescription: text('proDescription'), contactTitle: text('contactTitle'), facts };
 }
 
 export async function getEpk(workspaceId: string): Promise<EpkRecord | null> {

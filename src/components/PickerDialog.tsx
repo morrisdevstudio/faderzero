@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, type PropsWithChildren, type UIEvent } from 'react';
+import { useEffect, useId, useRef, useState, type PropsWithChildren, type UIEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { FzIcon } from '@/ui/icons';
 import { useDialogAccessibility } from './useDialogAccessibility';
@@ -104,10 +104,25 @@ export function WheelColumn({
 }) {
   const scrollAreaRef = useRef<HTMLDivElement | null>(null);
   const scrollTimeoutRef = useRef<number | null>(null);
+  const programmaticScrollTopRef = useRef<number | null>(null);
   const hasInitializedScrollRef = useRef(false);
+  const [centeredValue, setCenteredValue] = useState(selectedValue);
+  const emphasizedItemRef = useRef<HTMLButtonElement | null>(null);
+
+  function updateEmphasis(element: HTMLDivElement, scrollTop: number) {
+    const index = Math.max(0, Math.min(options.length - 1, Math.round(scrollTop / wheelItemHeight)));
+    const item = element.querySelectorAll('button')[index];
+    if (emphasizedItemRef.current !== item) {
+      emphasizedItemRef.current?.style.removeProperty('--wheel-emphasis');
+    }
+    const proximity = Math.max(0, 1 - Math.abs(scrollTop - index * wheelItemHeight) / (wheelItemHeight / 2));
+    item?.style.setProperty('--wheel-emphasis', String(proximity));
+    emphasizedItemRef.current = item ?? null;
+  }
 
   useEffect(() => {
     if (hasInitializedScrollRef.current) {
+      if (scrollAreaRef.current) updateEmphasis(scrollAreaRef.current, scrollAreaRef.current.scrollTop);
       return;
     }
 
@@ -123,6 +138,7 @@ export function WheelColumn({
     }
 
     element.scrollTop = nextScrollTop;
+    updateEmphasis(element, nextScrollTop);
     hasInitializedScrollRef.current = true;
   }, [options, selectedValue]);
 
@@ -137,6 +153,7 @@ export function WheelColumn({
   function commitCenteredValue(scrollTop: number) {
     const nextIndex = Math.max(0, Math.min(options.length - 1, Math.round(scrollTop / wheelItemHeight)));
     const nextValue = options[nextIndex] ?? '';
+    setCenteredValue(nextValue);
     if (nextValue !== selectedValue) {
       onSelect(nextValue);
     }
@@ -145,6 +162,11 @@ export function WheelColumn({
   function handleScroll(event: UIEvent<HTMLDivElement>) {
     const element = event.currentTarget;
     const nextScrollTop = element.scrollTop;
+    const programmaticScrollTop = programmaticScrollTopRef.current;
+    programmaticScrollTopRef.current = null;
+    if (programmaticScrollTop !== null && Math.abs(nextScrollTop - programmaticScrollTop) < 1) return;
+    // Update the moving row directly, before asynchronous persistence can rerender it.
+    updateEmphasis(element, nextScrollTop);
     commitCenteredValue(nextScrollTop);
 
     if (scrollTimeoutRef.current !== null) {
@@ -152,56 +174,82 @@ export function WheelColumn({
     }
 
     scrollTimeoutRef.current = window.setTimeout(() => {
-      element.scrollTo({
-        top: Math.round(nextScrollTop / wheelItemHeight) * wheelItemHeight,
-        behavior: 'auto',
-      });
+      const snappedTop = Math.round(element.scrollTop / wheelItemHeight) * wheelItemHeight;
+      if (element.scrollTop !== snappedTop) {
+        programmaticScrollTopRef.current = snappedTop;
+        element.scrollTop = snappedTop;
+      }
+      updateEmphasis(element, element.scrollTop);
     }, 180);
+  }
+
+  function selectIndex(index: number, focus = false) {
+    const boundedIndex = Math.max(0, Math.min(options.length - 1, index));
+    const element = scrollAreaRef.current;
+    if (!element || options.length === 0) return;
+    if (scrollTimeoutRef.current !== null) window.clearTimeout(scrollTimeoutRef.current);
+    const targetTop = boundedIndex * wheelItemHeight;
+    if (element.scrollTop !== targetTop) {
+      programmaticScrollTopRef.current = targetTop;
+      element.scrollTop = targetTop;
+    }
+    updateEmphasis(element, targetTop);
+    setCenteredValue(options[boundedIndex]!);
+    onSelect(options[boundedIndex]!);
+    if (focus) element.querySelectorAll('button')[boundedIndex]?.focus({ preventScroll: true });
   }
 
   return (
     <div
       className={[
         'relative h-64 overflow-hidden',
-        framed ? 'rounded-2xl border border-white/8 bg-black/45' : 'bg-transparent',
+        framed ? 'rounded-2xl bg-white/4' : 'bg-transparent',
       ].join(' ')}
     >
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 z-20 h-14 bg-gradient-to-b from-black via-black/55 to-transparent"
-      />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-14 bg-gradient-to-t from-black via-black/55 to-transparent"
-      />
       {framed ? (
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-x-2 top-1/2 z-30 h-14 -translate-y-1/2 rounded-xl bg-white/8 ring-1 ring-inset ring-white/20"
+          className="pointer-events-none absolute inset-x-2 top-1/2 h-14 -translate-y-1/2 rounded-xl bg-white/8"
         />
       ) : null}
       <div
         ref={scrollAreaRef}
         onScroll={handleScroll}
         className="relative z-10 h-full snap-y snap-proximity overflow-y-auto overscroll-contain scrollbar-none"
+        style={{ maskImage: 'linear-gradient(to bottom, transparent, black 28%, black 72%, transparent)' }}
       >
         <div style={{ height: `${wheelCenterPadding}px` }} />
-        {options.map((option) => {
+        {options.map((option, index) => {
           const displayValue = option || emptyLabel;
 
           return (
             <button
               key={`${suffix ?? 'value'}-${displayValue}`}
               type="button"
-              data-picker-selected={option === selectedValue ? 'true' : 'false'}
-              onClick={() => onSelect(option)}
+              data-picker-selected={option === centeredValue ? 'true' : 'false'}
+              aria-pressed={option === centeredValue}
+              aria-label={suffix ? `${displayValue} ${suffix}` : displayValue}
+              tabIndex={option === centeredValue || (!options.includes(centeredValue) && index === 0) ? 0 : -1}
+              onClick={() => selectIndex(index)}
+              onKeyDown={(event) => {
+                const targetIndex = event.key === 'ArrowDown' ? index + 1
+                  : event.key === 'ArrowUp' ? index - 1
+                  : event.key === 'Home' ? 0
+                  : event.key === 'End' ? options.length - 1 : null;
+                if (targetIndex === null) return;
+                event.preventDefault();
+                selectIndex(targetIndex, true);
+              }}
               className={[
-                'flex h-16 w-full snap-center items-center justify-center gap-1.5 px-3 text-center text-[1.05rem] font-black tabular-nums transition-colors',
-                option === selectedValue ? 'text-white' : 'text-white/45',
+                'flex h-16 w-full snap-center items-center justify-center gap-2 px-3 text-center tabular-nums focus-visible:outline-2 focus-visible:outline-offset-[-4px] focus-visible:outline-[var(--fz-accent)]',
               ].join(' ')}
+              style={{ color: 'color-mix(in srgb, var(--fz-text-muted), white calc(var(--wheel-emphasis, 0) * 100%))' }}
             >
-              <span>{displayValue}</span>
-              {suffix ? <span className={option === selectedValue ? 'text-white/70' : 'text-white/35'}>{suffix}</span> : null}
+              <span
+                className="inline-block text-xl"
+                style={{ fontWeight: 'calc(500 + var(--wheel-emphasis, 0) * 400)', transform: 'scale(calc(1 + var(--wheel-emphasis, 0) * 0.4))' }}
+              >{displayValue}</span>
+              {suffix ? <span className="text-xs font-semibold text-[var(--fz-text-muted)]">{suffix}</span> : null}
             </button>
           );
         })}

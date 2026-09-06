@@ -1327,9 +1327,9 @@ export function SongDetailPage() {
 
       {quickEditField === 'duration' ? (
         <PickerDialog title="Sélectionner la durée" closeLabel="Fermer" onClose={() => setQuickEditField(null)}>
-          <div className="overflow-hidden rounded-2xl border border-white/8 bg-black/35 p-2">
+          <div className="overflow-hidden rounded-2xl bg-white/4 p-2">
             <div className="relative grid grid-cols-2 overflow-hidden rounded-xl">
-              <div aria-hidden="true" className="pointer-events-none absolute inset-x-2 top-1/2 z-0 h-14 -translate-y-1/2 rounded-xl bg-white/8 ring-1 ring-inset ring-white/18" />
+              <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-1/2 z-0 h-14 -translate-y-1/2 rounded-lg bg-white/8" />
               <div aria-hidden="true" className="pointer-events-none absolute bottom-4 left-1/2 top-4 z-20 w-px bg-white/8" />
               <WheelColumn
                 options={durationMinuteOptions}

@@ -27,7 +27,26 @@ describe('bannière publique', () => {
 
     expect(container.querySelector('.epk-chip')).toHaveTextContent('Rock');
     expect(container.querySelector('.epk-hero-content > p')).not.toBeInTheDocument();
-    expect(container.querySelector('a[href="#espace-pro"] svg')).toHaveClass('lucide-folder');
+    expect(container.querySelector('.epk-actions')).not.toBeInTheDocument();
+  });
+
+  it('reprend le fond de l’EPK lorsqu’aucune image n’est fournie', () => {
+    const { container } = render(createElement(EpkPublicView, { model: publicModel }));
+
+    expect(container.querySelector('#banniere')).toHaveClass('epk-hero-no-image');
+  });
+
+  it('n’affiche que les actions dont la section contient du contenu', () => {
+    const { container } = render(createElement(EpkPublicView, {
+      model: {
+        ...publicModel,
+        tracks: [{ id: 'track-1', title: 'Titre' }],
+        documents: [{ id: 'doc-1', assetId: 'asset-1', title: 'Rider', updatedAt: '2026-09-06' }],
+      },
+    }));
+
+    expect(container.querySelector('a[href="#musique"]')).toHaveTextContent('Écouter');
+    expect(container.querySelector('a[href="#espace-pro"]')).toHaveTextContent('Espace Pro');
   });
 });
 
@@ -125,6 +144,15 @@ describe('lecteur audio public', () => {
     expect(container.querySelector('input.fz-audio-scrubber')).toHaveAttribute('aria-label', 'Position de lecture');
   });
 
+  it('n’affiche pas le lecteur sans piste et conserve les liens de plateformes', () => {
+    const { container } = render(createElement(EpkPublicView, {
+      model: { ...publicModel, links: [{ label: 'YouTube Music', url: 'https://music.youtube.com' }] },
+    }));
+
+    expect(container.querySelector('.epk-player')).not.toBeInTheDocument();
+    expect(container.querySelector('.epk-platforms')).toHaveTextContent('YouTube Music');
+  });
+
   it('assigne la source audio au premier clic sur la piste déjà sélectionnée', async () => {
     const play = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue();
     const modelWithTracks: EpkPublicModel = {
@@ -161,6 +189,20 @@ describe('lecteur audio public', () => {
 });
 
 describe('médias publics', () => {
+  it('affiche le titre média éditorial et masque En bref sans information', () => {
+    const { container } = render(createElement(EpkPublicView, {
+      model: {
+        ...publicModel,
+        fullBio: 'Biographie',
+        videos: [{ id: 'video-1', provider: 'YOUTUBE', providerVideoId: 'abc' }],
+        editorial: { ...DEFAULT_EPK_EDITORIAL, mediaTitle: 'Galerie' },
+      },
+    }));
+
+    expect(container.querySelector('#bio aside')).not.toBeInTheDocument();
+    expect(container.querySelector('#medias h2')).toHaveTextContent('Galerie');
+  });
+
   it('affiche les photos via /media/preview quand le snapshot n’a pas de previewUrl', () => {
     const previewId = 'fc1fdb33-f7c8-4506-8812-d9df05cb9f1d';
     const modelWithPhotos: EpkPublicModel = {
