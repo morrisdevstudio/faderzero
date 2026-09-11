@@ -13,6 +13,7 @@ const workspaceMocks = vi.hoisted(() => ({
   checkWorkspaceNameAvailable: vi.fn(),
   listWorkspaceMembersWithProfiles: vi.fn(),
   removeWorkspaceMember: vi.fn(),
+  setWorkspaceMemberRole: vi.fn(),
 }));
 
 const profileMocks = vi.hoisted(() => ({
@@ -31,6 +32,7 @@ vi.mock('@/services/supabase/workspace', async (importOriginal) => {
     checkWorkspaceNameAvailable: workspaceMocks.checkWorkspaceNameAvailable,
     listWorkspaceMembersWithProfiles: workspaceMocks.listWorkspaceMembersWithProfiles,
     removeWorkspaceMember: workspaceMocks.removeWorkspaceMember,
+    setWorkspaceMemberRole: workspaceMocks.setWorkspaceMemberRole,
   };
 });
 
@@ -95,6 +97,7 @@ describe('AccountPage', () => {
     workspaceMocks.checkWorkspaceNameAvailable.mockReset().mockResolvedValue(true);
     workspaceMocks.listWorkspaceMembersWithProfiles.mockReset().mockResolvedValue([]);
     workspaceMocks.removeWorkspaceMember.mockReset();
+    workspaceMocks.setWorkspaceMemberRole.mockReset();
     profileMocks.getCurrentProfile.mockReset().mockResolvedValue(profile);
     profileMocks.updateCurrentProfileDisplayName.mockReset();
     profileMocks.getProfileAvatarUrl.mockReset();
@@ -330,7 +333,7 @@ describe('AccountPage', () => {
     });
   });
 
-  it('demande une confirmation avant de retirer un membre du groupe', async () => {
+  it('demande une confirmation avant de retirer un membre du groupe via la modale de modification', async () => {
     window.history.replaceState({}, '', '/account?tab=groupe');
     workspaceMocks.listWorkspaceMembersWithProfiles.mockResolvedValue([{
       id: 'membership-guest',
@@ -346,7 +349,14 @@ describe('AccountPage', () => {
     render(<AccountPage />);
 
     openMembers();
-    const removeButton = await screen.findByTitle('Retirer le membre');
+    const editButton = await screen.findByRole('button', { name: 'Modifier Camille' });
+    fireEvent.click(editButton);
+
+    const editDialog = screen.getByRole('dialog', { name: 'Modifier le membre' });
+    expect(editDialog).toBeInTheDocument();
+    expect(within(editDialog).getByText('Camille')).toBeInTheDocument();
+
+    const removeButton = within(editDialog).getByRole('button', { name: 'Renvoyer du groupe' });
     fireEvent.click(removeButton);
 
     const confirmation = screen.getByRole('dialog', { name: 'Retirer ce membre ?' });
@@ -358,6 +368,49 @@ describe('AccountPage', () => {
     await waitFor(() => {
       expect(workspaceMocks.removeWorkspaceMember).toHaveBeenCalledWith(adminWorkspace.id, 'user-guest');
     });
+  });
+
+  it('permet de modifier le rôle d’un membre via la modale de modification', async () => {
+    window.history.replaceState({}, '', '/account?tab=groupe');
+    workspaceMocks.listWorkspaceMembersWithProfiles.mockResolvedValue([{
+      id: 'membership-guest',
+      workspaceId: adminWorkspace.id,
+      userId: 'user-guest',
+      pseudo: 'Camille',
+      role: 'guest',
+      createdAt: '2026-07-22T10:00:00.000Z',
+      updatedAt: '2026-07-22T10:00:00.000Z',
+    }]);
+    workspaceMocks.setWorkspaceMemberRole.mockResolvedValue({
+      id: 'membership-guest',
+      workspaceId: adminWorkspace.id,
+      userId: 'user-guest',
+      role: 'admin',
+      createdAt: '2026-07-22T10:00:00.000Z',
+      updatedAt: '2026-07-22T10:00:00.000Z',
+    });
+
+    render(<AccountPage />);
+
+    openMembers();
+    const editButton = await screen.findByRole('button', { name: 'Modifier Camille' });
+    fireEvent.click(editButton);
+
+    const editDialog = screen.getByRole('dialog', { name: 'Modifier le membre' });
+    const select = within(editDialog).getByLabelText('Rôle de Camille');
+    expect(select).toHaveValue('guest');
+
+    fireEvent.change(select, { target: { value: 'admin' } });
+    expect(select).toHaveValue('admin');
+
+    const saveButton = within(editDialog).getByRole('button', { name: 'Enregistrer le rôle' });
+    expect(saveButton).not.toBeDisabled();
+    fireEvent.click(saveButton);
+
+    await waitFor(() => {
+      expect(workspaceMocks.setWorkspaceMemberRole).toHaveBeenCalledWith(adminWorkspace.id, 'user-guest', 'admin');
+    });
+    expect(screen.queryByRole('dialog', { name: 'Modifier le membre' })).not.toBeInTheDocument();
   });
 
   it('affiche les groupes, le compte puis les données et ouvre la synchronisation', () => {

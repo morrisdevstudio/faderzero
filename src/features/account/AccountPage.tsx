@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/ui/components/Button';
 import { ContentRow } from '@/ui/components/ContentRow';
@@ -45,6 +45,7 @@ import { AudioQuotaBanner } from '@/features/audio/AudioQuotaBanner';
 import { SyncTab } from '@/features/sync/SyncTab';
 import { useWorkspaceBadgeColors, WORKSPACE_COLOR_OPTIONS } from '@/services/workspaceColors';
 import { isAppOnline } from '@/services/connectivity';
+import { FieldLabel } from '@/ui/components/FieldLabel';
 import { PasswordField } from '@/ui/components/PasswordField';
 import { SelectField } from '@/ui/components/SelectField';
 import { TextField } from '@/ui/components/TextField';
@@ -115,17 +116,25 @@ function MemberAvatar({ member }: { member: WorkspaceMember }) {
 function WorkspaceMemberList({
   workspace,
   canAdmin,
+  removedUserId,
+  headerAction,
   onMemberRoleChange,
   onRemoveMember,
 }: {
   workspace: Workspace;
   canAdmin: boolean;
-  onMemberRoleChange: (userId: string, newRole: WorkspaceRole) => void;
+  removedUserId?: string | null;
+  headerAction?: ReactNode;
+  onMemberRoleChange: (userId: string, newRole: WorkspaceRole) => Promise<boolean> | void;
   onRemoveMember: (member: WorkspaceMember) => void;
 }) {
   const [members, setMembers] = useState<WorkspaceMember[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editingMember, setEditingMember] = useState<WorkspaceMember | null>(null);
+  const [selectedRole, setSelectedRole] = useState<WorkspaceRole>('member');
+  const [isSavingRole, setIsSavingRole] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -152,58 +161,181 @@ function WorkspaceMemberList({
     };
   }, [workspace.id]);
 
+  useEffect(() => {
+    if (removedUserId) {
+      setMembers((prev) => prev.filter((m) => m.userId !== removedUserId));
+    }
+  }, [removedUserId]);
+
+  const openEditModal = (member: WorkspaceMember) => {
+    setEditingMember(member);
+    setSelectedRole(member.role);
+    setEditError(null);
+  };
+
+  const closeEditModal = () => {
+    if (isSavingRole) return;
+    setEditingMember(null);
+    setEditError(null);
+  };
+
+  const handleSaveRole = async () => {
+    if (!editingMember) return;
+    if (selectedRole === editingMember.role) {
+      closeEditModal();
+      return;
+    }
+    setIsSavingRole(true);
+    setEditError(null);
+    try {
+      await onMemberRoleChange(editingMember.userId, selectedRole);
+      setMembers((prev) =>
+        prev.map((m) => (m.userId === editingMember.userId ? { ...m, role: selectedRole } : m))
+      );
+      setEditingMember(null);
+    } catch (err: unknown) {
+      setEditError(err instanceof Error ? err.message : 'Modification du rôle impossible.');
+    } finally {
+      setIsSavingRole(false);
+    }
+  };
+
+  const handlePromptRemove = () => {
+    if (!editingMember) return;
+    const toRemove = editingMember;
+    setEditingMember(null);
+    setEditError(null);
+    onRemoveMember(toRemove);
+  };
+
   if (loading) {
-    return <p className="text-xs text-white/40">Chargement des membres...</p>;
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <p className="fz-field-label !mb-0">Membres du groupe</p>
+          {headerAction}
+        </div>
+        <p className="text-xs text-white/40">Chargement des membres...</p>
+      </div>
+    );
   }
 
   if (error) {
-    return <p className="text-xs text-amber-400/80 bg-amber-500/10 border border-amber-500/20 p-2.5 rounded-lg">{error}</p>;
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <p className="fz-field-label !mb-0">Membres du groupe</p>
+          {headerAction}
+        </div>
+        <p className="text-xs text-amber-400/80 bg-amber-500/10 border border-amber-500/20 p-2.5 rounded-lg">{error}</p>
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-2">
-      <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-white/50">
-        Membres du groupe ({members.length})
-      </p>
-      {members.map((m) => (
-        <div key={m.id} className="flex items-center justify-between rounded-xl border border-white/8 bg-black/20 p-2.5">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <MemberAvatar member={m} />
-            <div className="min-w-0">
-              <p className="text-xs font-semibold text-white truncate">{m.pseudo}</p>
-              <span className="text-[9px] uppercase font-bold text-amber-400/90">{INVITE_ROLE_LABELS[m.role]}</span>
-            </div>
-          </div>
-          {canAdmin && (
-            <div className="flex items-center gap-2 shrink-0">
-              <div className="w-28">
-                <SelectField
-                  aria-label={`Rôle de ${m.pseudo}`}
-                  value={m.role}
-                  onChange={(e) => onMemberRoleChange(m.userId, e.target.value as WorkspaceRole)}
-                >
-                  <option value="admin">Admin</option>
-                  <option value="member">Membre</option>
-                  <option value="guest">Invité</option>
-                </SelectField>
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <p className="fz-field-label !mb-0">
+          Membres du groupe ({members.length})
+        </p>
+        {headerAction}
+      </div>
+      <div className="divide-y divide-white/10 border-y border-white/10">
+        {members.map((m) => (
+          <div key={m.id} className="flex items-center justify-between gap-3 py-3 px-1">
+            <div className="flex items-center gap-3 min-w-0">
+              <MemberAvatar member={m} />
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-white truncate">{m.pseudo}</p>
+                <span className="text-[10px] uppercase font-bold text-amber-400/90">{INVITE_ROLE_LABELS[m.role]}</span>
               </div>
+            </div>
+            {canAdmin && (
               <button
                 type="button"
-                onClick={() => onRemoveMember(m)}
-                className="rounded-lg p-1 text-red-400 hover:bg-red-500/20"
-                title="Retirer le membre"
+                onClick={() => openEditModal(m)}
+                aria-label={`Modifier ${m.pseudo}`}
+                title="Modifier"
+                className="flex h-11 w-11 shrink-0 items-center justify-center text-white/60 transition hover:text-white active:scale-95"
               >
-                <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                  <circle cx="8.5" cy="7" r="4" />
-                  <line x1="18" y1="8" x2="23" y2="13" />
-                  <line x1="23" y1="8" x2="18" y2="13" />
-                </svg>
+                <FzIcon name="edit" usageId={`account.member.edit.${m.id}`} size="md" />
               </button>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {editingMember && (
+        <FormDialog
+          title="Modifier le membre"
+          closeDisabled={isSavingRole}
+          onClose={closeEditModal}
+        >
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-3">
+              <MemberAvatar member={editingMember} />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-bold text-white truncate">{editingMember.pseudo}</p>
+                <p className="text-xs text-amber-400/90 font-semibold uppercase tracking-wider">
+                  {INVITE_ROLE_LABELS[editingMember.role]}
+                </p>
+              </div>
             </div>
-          )}
-        </div>
-      ))}
+
+            {editError && (
+              <p role="alert" className="rounded-xl border border-rose-500/20 bg-rose-500/10 p-3 text-xs text-rose-300">
+                {editError}
+              </p>
+            )}
+
+            <div className="space-y-1.5">
+              <FieldLabel htmlFor="edit-member-role">Rôle dans le groupe</FieldLabel>
+              <SelectField
+                id="edit-member-role"
+                aria-label={`Rôle de ${editingMember.pseudo}`}
+                value={selectedRole}
+                disabled={isSavingRole}
+                onChange={(e) => {
+                  setSelectedRole(e.target.value as WorkspaceRole);
+                  setEditError(null);
+                }}
+              >
+                <option value="admin">Administrateur</option>
+                <option value="member">Membre</option>
+                <option value="guest">Invité</option>
+              </SelectField>
+              <p className="text-xs text-white/50">
+                {selectedRole === 'admin' && 'Accès complet : gestion des membres, des réglages et de tous les contenus.'}
+                {selectedRole === 'member' && 'Accès standard : création et modification des morceaux, setlists et événements.'}
+                {selectedRole === 'guest' && 'Accès lecture seule : consultation des contenus sans modification.'}
+              </p>
+            </div>
+
+            <div className="space-y-2 pt-2">
+              <Button
+                type="button"
+                variant="primary"
+                fullWidth
+                loading={isSavingRole}
+                disabled={selectedRole === editingMember.role}
+                onClick={handleSaveRole}
+              >
+                Enregistrer le rôle
+              </Button>
+
+              <Button
+                type="button"
+                variant="danger"
+                fullWidth
+                disabled={isSavingRole}
+                onClick={handlePromptRemove}
+              >
+                Renvoyer du groupe
+              </Button>
+            </div>
+          </div>
+        </FormDialog>
+      )}
     </div>
   );
 }
@@ -340,6 +472,7 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
   const [editingWorkspaceId, setEditingWorkspaceId] = useState<string | null>(null);
   const [memberToRemove, setMemberToRemove] = useState<{ member: WorkspaceMember; workspaceId: string } | null>(null);
   const [memberRemovalLoading, setMemberRemovalLoading] = useState(false);
+  const [lastRemovedUserId, setLastRemovedUserId] = useState<string | null>(null);
   const [editingGroupName, setEditingGroupName] = useState('');
   const [editingBadgeText, setEditingBadgeText] = useState<{
     workspaceId: string;
@@ -616,12 +749,15 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
     }
   }
 
-  async function handleMemberRoleChange(workspaceId: string, userId: string, newRole: WorkspaceRole) {
+  async function handleMemberRoleChange(workspaceId: string, userId: string, newRole: WorkspaceRole): Promise<boolean> {
     setGroupActionError(null);
     try {
       await setWorkspaceMemberRole(workspaceId, userId, newRole);
+      return true;
     } catch (err: any) {
-      setGroupActionError(err.message || 'Modification du rôle impossible.');
+      const message = err?.message || 'Modification du rôle impossible.';
+      setGroupActionError(message);
+      throw new Error(message);
     }
   }
 
@@ -1100,7 +1236,7 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
 
                             {ws.type === 'group' && (
                               <>
-                                {view === 'group-members' ? <div className="space-y-3"><div className="flex items-center justify-between gap-3"><p className="fz-field-label">Membres</p>{canAdministerWorkspace(ws.role) ? <Button type="button" onClick={() => void handleOpenShareDialog(ws)} variant="secondary">Inviter des membres</Button> : null}</div><WorkspaceMemberList workspace={ws} canAdmin={canAdministerWorkspace(ws.role)} onMemberRoleChange={(userId, role) => void handleMemberRoleChange(ws.id, userId, role)} onRemoveMember={(m) => setMemberToRemove({ member: m, workspaceId: ws.id })} /><Button type="button" onClick={() => void handleLeaveGroup(ws.id)} variant="danger" fullWidth>Quitter le groupe</Button></div> : null}
+                                {view === 'group-members' ? <div className="space-y-3"><WorkspaceMemberList workspace={ws} canAdmin={canAdministerWorkspace(ws.role)} removedUserId={lastRemovedUserId} headerAction={canAdministerWorkspace(ws.role) ? <Button type="button" onClick={() => void handleOpenShareDialog(ws)} variant="secondary">Inviter des membres</Button> : null} onMemberRoleChange={(userId, role) => handleMemberRoleChange(ws.id, userId, role)} onRemoveMember={(m) => setMemberToRemove({ member: m, workspaceId: ws.id })} /><Button type="button" onClick={() => void handleLeaveGroup(ws.id)} variant="danger" fullWidth>Quitter le groupe</Button></div> : null}
 
                                 {view === 'group-admin' ? <div className="flex gap-2 pt-2">
                                   {canAdministerWorkspace(ws.role) && (
@@ -1259,7 +1395,10 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
           setMemberRemovalLoading(true);
           try {
             const removed = await handleRemoveMember(memberToRemove.workspaceId, memberToRemove.member.userId);
-            if (removed) setMemberToRemove(null);
+            if (removed) {
+              setLastRemovedUserId(memberToRemove.member.userId);
+              setMemberToRemove(null);
+            }
           } finally {
             setMemberRemovalLoading(false);
           }
