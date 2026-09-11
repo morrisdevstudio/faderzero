@@ -108,6 +108,7 @@ function renderSongDetail(songId = 'song-1') {
     <MemoryRouter initialEntries={[`/songs/${songId}`]}>
       <Routes>
         <Route path="/songs/:songId" element={<SongDetailPage />} />
+        <Route path="/songs/:songId/write" element={<div>Éditeur de paroles</div>} />
       </Routes>
     </MemoryRouter>,
   );
@@ -135,18 +136,25 @@ describe('SongDetailPage - Notes', () => {
     };
   });
 
-  it("affiche le texte cliquable 'Ajouter une note' quand il n'y a pas de note", () => {
+  it("affiche les sections vides avec leurs actions d'édition", () => {
+    mocks.currentSong = {
+      ...mocks.currentSong,
+      lyrics: '',
+    };
+
     renderSongDetail();
 
-    const addNoteButton = screen.getByRole('button', { name: 'Ajouter une note' });
-    expect(addNoteButton).toBeInTheDocument();
+    expect(screen.getByText('Aucune note pour le moment.')).toBeInTheDocument();
+    expect(screen.getByText('Aucune parole pour le moment.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Modifier les notes' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Modifier les paroles' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Ajouter une note' })).not.toBeInTheDocument();
   });
 
-  it("ouvre le dialogue d'ajout de note et enregistre la nouvelle note", async () => {
+  it("ouvre le dialogue de notes et enregistre la nouvelle note", async () => {
     renderSongDetail();
 
-    const addNoteButton = screen.getByRole('button', { name: 'Ajouter une note' });
-    fireEvent.click(addNoteButton);
+    fireEvent.click(screen.getByRole('button', { name: 'Modifier les notes' }));
 
     expect(screen.getByRole('dialog', { name: 'Ajouter une note' })).toBeInTheDocument();
 
@@ -163,7 +171,7 @@ describe('SongDetailPage - Notes', () => {
     });
   });
 
-  it("affiche la section Notes et n'affiche pas le bouton quand des notes existent", () => {
+  it("préremplit le dialogue quand des notes existent", () => {
     mocks.currentSong = {
       ...mocks.currentSong,
       notes: 'Notes existantes du morceau',
@@ -171,15 +179,40 @@ describe('SongDetailPage - Notes', () => {
 
     renderSongDetail();
 
-    expect(screen.queryByRole('button', { name: 'Ajouter une note' })).not.toBeInTheDocument();
     expect(screen.getByText('Notes existantes du morceau')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Modifier les notes' }));
+    expect(screen.getByRole('textbox', { name: 'Notes' })).toHaveValue('Notes existantes du morceau');
   });
 
-  it("n'affiche pas le bouton 'Ajouter une note' si l'utilisateur n'a pas les droits d'écriture", () => {
+  it("ouvre l'éditeur de paroles depuis le crayon", () => {
+    renderSongDetail();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Modifier les paroles' }));
+
+    expect(screen.getByText('Éditeur de paroles')).toBeInTheDocument();
+  });
+
+  it.each([
+    ["Modifier l'état", 'Statut de création'],
+    ['Modifier la tonalité', 'Sélectionner la Tonalité'],
+    ['Modifier le tempo', 'Sélectionner le tempo'],
+    ['Modifier la durée', 'Sélectionner la durée'],
+  ])('ouvre directement le sélecteur de %s', (buttonName, dialogName) => {
+    renderSongDetail();
+
+    fireEvent.click(screen.getByRole('button', { name: buttonName }));
+
+    expect(screen.getByRole('dialog', { name: dialogName })).toBeInTheDocument();
+  });
+
+  it("masque les crayons si l'utilisateur n'a pas les droits d'écriture", () => {
     mocks.canWrite = false;
 
     renderSongDetail();
 
-    expect(screen.queryByRole('button', { name: 'Ajouter une note' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Modifier les notes' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Modifier les paroles' })).not.toBeInTheDocument();
+    expect(screen.getByText('Aucune note pour le moment.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Modifier le tempo' })).toBeDisabled();
   });
 });
