@@ -84,6 +84,20 @@ describe('CalendarPage scroll collapse', () => {
     expect(screen.getByTestId('calendar-month-grid')).toHaveAttribute('data-transition-direction', 'previous');
   });
 
+  it('navigates months with previous and next month buttons', () => {
+    render(<CalendarPage />);
+
+    const prevMonthButton = screen.getByRole('button', { name: 'Mois précédent' });
+    const nextMonthButton = screen.getByRole('button', { name: 'Mois suivant' });
+    const initialMonth = screen.getByRole('heading', { level: 2 }).textContent;
+
+    fireEvent.click(nextMonthButton);
+    expect(screen.getByRole('heading', { level: 2 })).not.toHaveTextContent(initialMonth ?? '');
+
+    fireEvent.click(prevMonthButton);
+    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent(initialMonth ?? '');
+  });
+
   it('navigates weeks with arrows and swipe when calendar is collapsed', () => {
     render(<CalendarPage />);
 

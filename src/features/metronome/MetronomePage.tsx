@@ -459,7 +459,12 @@ export function MetronomePage() {
   return (
     <div className="space-y-6 pb-20">
       {/* Zone fixe / sticky en haut */}
-      <div className="sticky top-0 z-20 -mx-4 -mt-4 bg-[var(--fz-bg)]/95 px-4 pb-3 pt-4 backdrop-blur-md border-b border-white/8 sm:-mx-6 sm:px-6">
+      <div
+        className="sticky z-20 -mx-3 -mt-2 border-b border-white/8 bg-[var(--fz-bg)] px-3 pb-3 pt-2 transition-[top] duration-200 ease-out will-change-[top] before:pointer-events-none before:absolute before:bottom-full before:inset-x-0 before:h-32 before:bg-[var(--fz-bg)] before:content-[''] sm:-mx-4 sm:px-4"
+        style={{
+          top: 'calc(var(--fz-header-offset, var(--fz-header-height, 64px)) + var(--fz-viewport-offset-top, 0px))',
+        }}
+      >
         <PageHeader
           icon={<FzIcon name="metronome" usageId="page-header.metronome" size="xl" className="text-amber-400" />}
           title="Métronome"

@@ -12,7 +12,6 @@ import { formatSongDuration, getSongStatusLabel, getSongStatusTone } from '@/fea
 import { ContentRow } from '@/ui/components/ContentRow';
 import { PageHeader } from '@/ui/components/PageHeader';
 import { StatusPill } from '@/ui/components/StatusPill';
-import { Button } from '@/ui/components/Button';
 import { FzIcon } from '@/ui/icons';
 import { QuickVoiceRecorder } from '@/features/recorder/QuickVoiceRecorder';
 
@@ -33,8 +32,8 @@ function formatRelativeTimeFr(timestamp: number): string {
 
 export function HomePage() {
   const navigate = useNavigate();
-  const { workspaces, activeWorkspace } = useAuthStore();
-  const { getBadgeColor, getBadgeText } = useWorkspaceBadgeColors();
+  const { workspaces, activeWorkspace, setActiveWorkspace } = useAuthStore();
+  const { getBadgeColor } = useWorkspaceBadgeColors();
   const { playQueue, togglePlayPause, status: audioStatus, queue, currentIndex } = useAudioPlayerStore();
 
   const [upcomingEvents, setUpcomingEvents] = useState<EventRecord[]>([]);
@@ -118,107 +117,21 @@ export function HomePage() {
     ]);
   };
 
-  const heroSong = recentSongs[0];
-  const heroAsset = heroSong ? songAssetsMap.get(heroSong.id) : undefined;
-  const heroWorkspace = heroSong ? workspaces.find((w) => w.id === heroSong.workspaceId) : undefined;
-  const heroBadgeColor = heroWorkspace ? getBadgeColor(heroWorkspace.id, heroWorkspace.type) : undefined;
-  const heroBadgeInitials = heroWorkspace ? getBadgeText(heroWorkspace.id, heroWorkspace.name) : 'FZ';
-  const isHeroAudioPlaying = heroAsset && currentPlayingTrack?.assetId === heroAsset.id && audioStatus === 'playing';
+  const handleSelectSong = (song: SongRecord) => {
+    if (song.workspaceId && song.workspaceId !== activeWorkspace?.id) {
+      const targetWorkspace = workspaces.find((w) => w.id === song.workspaceId);
+      if (targetWorkspace) {
+        setActiveWorkspace(targetWorkspace);
+      }
+    }
+  };
 
   return (
     <div className="space-y-6">
       <PageHeader icon={<FzIcon name="home" usageId="page-header.home" size="xl" />} title="Accueil" />
 
-      {/* 1. CARTE HERO : DERNIÈRE MODIFICATION / STUDIO REC */}
-      {loading ? (
-        <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-5 text-center text-xs text-zinc-500">
-          Chargement de l&apos;espace...
-        </div>
-      ) : heroSong ? (
-        <Link
-          to={`/songs/${heroSong.id}`}
-          aria-label={`Dernière modification : ${heroSong.title || 'Sans titre'}`}
-          className="group relative block overflow-hidden rounded-[1.8rem] border border-white/12 bg-gradient-to-br from-white/[0.07] via-white/[0.02] to-transparent p-5 shadow-xl backdrop-blur-md transition hover:border-white/20 hover:bg-white/[0.06] active:scale-[0.99]"
-        >
-          {/* Header de la carte : Workspace & Timestamp */}
-          <div className="mb-3 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 min-w-0">
-              <div
-                className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[9px] font-black text-white shadow-sm border border-white/20"
-                style={{ backgroundColor: heroBadgeColor?.hex || '#ff3a63' }}
-              >
-                {heroBadgeInitials}
-              </div>
-              <span className="truncate text-xs font-bold tracking-wide text-zinc-200">
-                {heroWorkspace?.name || 'Mon Espace'}
-              </span>
-            </div>
-            <span className="shrink-0 text-[11px] font-semibold text-zinc-400">
-              {formatRelativeTimeFr(heroSong.updatedAt || heroSong.createdAt)}
-            </span>
-          </div>
-
-          {/* Corps de la carte avec Play compact si audio présent */}
-          <div className="flex items-center gap-3.5">
-            {heroAsset ? (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  void handlePlaySongAsset(heroSong, heroAsset);
-                }}
-                aria-label={isHeroAudioPlaying ? `Pause ${heroSong.title}` : `Écouter ${heroSong.title}`}
-                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border transition active:scale-90 ${
-                  isHeroAudioPlaying
-                    ? 'border-rose-500 bg-[#ff3a63] text-white shadow-[0_0_16px_rgba(255,58,99,0.5)]'
-                    : 'border-white/15 bg-white/10 text-white hover:border-rose-400/50 hover:bg-white/20'
-                }`}
-              >
-                <FzIcon name={isHeroAudioPlaying ? 'pause' : 'play'} usageId="home.hero.audio" size="md" />
-              </button>
-            ) : null}
-
-            <div className="min-w-0 flex-1">
-              <div className="flex items-baseline justify-between gap-2">
-                <h2 className="truncate text-xl font-black tracking-tight text-white">
-                  {heroSong.title || 'Sans titre'}
-                </h2>
-                <StatusPill label={getSongStatusLabel(heroSong.status)} tone={getSongStatusTone(heroSong.status)} />
-              </div>
-
-              <p className="mt-1 flex items-center gap-2 truncate text-xs font-medium text-zinc-300">
-                {heroSong.bpm ? <span className="font-bold text-amber-300">{heroSong.bpm} BPM</span> : null}
-                {heroSong.bpm && heroSong.key ? <span className="text-white/30">·</span> : null}
-                {heroSong.key ? <span>Ton : <strong className="text-white">{heroSong.key}</strong></span> : null}
-                {(heroSong.bpm || heroSong.key) && heroSong.durationSeconds ? <span className="text-white/30">·</span> : null}
-                {heroSong.durationSeconds ? <span>{formatSongDuration(heroSong.durationSeconds)}</span> : null}
-              </p>
-            </div>
-          </div>
-        </Link>
-      ) : (
-        <div className="rounded-[1.8rem] border border-dashed border-white/15 bg-white/[0.02] p-6 text-center">
-          <h2 className="text-base font-black text-white">Bienvenue dans FaderZero</h2>
-          <p className="mt-1 text-xs text-zinc-400">
-            Commence par enregistrer une idée vocale ou créer les paroles de ton premier morceau.
-          </p>
-          <div className="mt-4 flex justify-center gap-3">
-            <Button variant="primary" onClick={() => navigate('/songs/new/write')}>
-              Créer un morceau
-            </Button>
-            <Button variant="secondary" onClick={() => setIsVoiceRecorderOpen(true)}>
-              Enregistrer
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* 2. GRILLE DES FONCTIONS DE L'APP */}
-      <section aria-label="Fonctions de l'application" className="space-y-2.5">
-        <h2 className="px-1 text-[11px] font-black uppercase tracking-[0.16em] text-zinc-400">
-          Fonctions & Outils
-        </h2>
+      {/* GRILLE DES FONCTIONS DE L'APP */}
+      <section aria-label="Fonctions de l'application">
         <div className="grid grid-cols-4 gap-2">
           {/* 1. Enregistrer */}
           <button
@@ -354,24 +267,37 @@ export function HomePage() {
         {loading ? (
           <p className="py-2 text-center text-xs text-zinc-500">Chargement des événements...</p>
         ) : upcomingEvents.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-white/10 p-4 text-center">
+          <div className="border-y border-white/10 py-5 text-center">
             <p className="text-xs text-zinc-500">Aucun concert ou répétition programmé.</p>
           </div>
         ) : (
-          <div className="divide-y divide-white/10 rounded-2xl border border-white/10 bg-white/[0.02] overflow-hidden">
+          <div className="border-y border-white/10">
             {upcomingEvents.map((evt) => {
               const startDate = new Date(evt.startAt);
+              const workspace = workspaces.find((item) => item.id === evt.workspaceId);
+              const workspaceColor = getBadgeColor(evt.workspaceId, workspace?.type).hex;
               return (
                 <ContentRow
                   key={evt.id}
                   mode="link"
                   to="/calendar"
+                  className="border-l-2"
+                  style={{ borderLeftColor: workspaceColor }}
                   title={evt.title}
-                  metadata={`${startDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} · ${startDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`}
-                  status={
-                    <span className="rounded-md bg-white/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-white">
-                      {evt.eventType}
-                    </span>
+                  metadata={
+                    <>
+                      <span className="block truncate">
+                        {startDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                        {' · '}
+                        {startDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                      <span className="mt-1 flex items-center gap-2 overflow-hidden text-[0.84rem] font-medium text-white/65">
+                        <span className="inline-flex shrink-0 items-center whitespace-nowrap rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[0.68rem] font-black uppercase leading-none tracking-[0.16em] text-white/70">
+                          {evt.eventType}
+                        </span>
+                        <span className="truncate">{workspace?.name || 'Mon Espace'}</span>
+                      </span>
+                    </>
                   }
                 />
               );
@@ -382,43 +308,44 @@ export function HomePage() {
 
       {/* 4. DERNIÈRES MODIFICATIONS DE TOUS LES GROUPES */}
       <section aria-label="Dernières modifications du répertoire" className="space-y-3">
-        <div className="flex items-center justify-between px-1">
+        <div className="px-1">
           <h2 className="text-[11px] font-black uppercase tracking-[0.16em] text-zinc-400">
-            Activité Répertoire (Tous les groupes)
+            Activité
           </h2>
-          <Link to="/songs" className="text-xs font-semibold text-rose-400 hover:text-rose-300 hover:underline">
-            Tout voir
-          </Link>
         </div>
 
         {loading ? (
           <p className="py-2 text-center text-xs text-zinc-500">Chargement des créations...</p>
         ) : recentSongs.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-white/10 p-4 text-center">
+          <div className="border-y border-white/10 py-5 text-center">
             <p className="text-xs text-zinc-500">Aucune chanson dans vos espaces.</p>
           </div>
         ) : (
-          <div className="divide-y divide-white/10 rounded-2xl border border-white/10 bg-white/[0.02] overflow-hidden">
+          <div className="border-y border-white/10">
             {recentSongs.map((song) => {
               const asset = songAssetsMap.get(song.id);
               const ws = workspaces.find((w) => w.id === song.workspaceId);
               const badgeColor = ws ? getBadgeColor(ws.id, ws.type) : undefined;
               const isThisAudioPlaying = asset && currentPlayingTrack?.assetId === asset.id && audioStatus === 'playing';
 
-              const subtitle = (
-                <span className="flex items-center gap-1.5 truncate text-xs text-zinc-400">
-                  <span
-                    className="inline-block h-2 w-2 shrink-0 rounded-full"
-                    style={{ backgroundColor: badgeColor?.hex || '#ff3a63' }}
-                  />
-                  <span className="font-semibold text-zinc-300">{ws?.name || 'Mon Espace'}</span>
-                  <span className="text-white/30">·</span>
-                  <span>{formatRelativeTimeFr(song.updatedAt || song.createdAt)}</span>
-                </span>
-              );
-
-              const metadata = `${song.bpm ? `${song.bpm} BPM` : 'BPM --'} · ${song.key || 'Ton --'} · ${formatSongDuration(song.durationSeconds)}`;
               const statusPill = <StatusPill label={getSongStatusLabel(song.status)} tone={getSongStatusTone(song.status)} />;
+              const metadata = (
+                <>
+                  <span className="block truncate">
+                    {song.bpm ? `${song.bpm} BPM` : 'BPM --'}
+                    {' · '}
+                    {song.key || 'Ton --'}
+                    {' · '}
+                    {formatSongDuration(song.durationSeconds)}
+                  </span>
+                  <span className="mt-1 flex items-center gap-2 overflow-hidden text-[0.84rem] font-medium text-white/65">
+                    {statusPill}
+                    <span className="truncate">
+                      {ws?.name || 'Mon Espace'} · {formatRelativeTimeFr(song.updatedAt || song.createdAt)}
+                    </span>
+                  </span>
+                </>
+              );
 
               if (asset) {
                 return (
@@ -426,7 +353,10 @@ export function HomePage() {
                     key={song.id}
                     mode="controls"
                     to={`/songs/${song.id}`}
-                    leading={
+                    onClick={() => handleSelectSong(song)}
+                    className="border-l-2"
+                    style={{ borderLeftColor: badgeColor?.hex || '#ff3a63' }}
+                    trailing={
                       <button
                         type="button"
                         onClick={(e) => {
@@ -444,9 +374,7 @@ export function HomePage() {
                       </button>
                     }
                     title={song.title || 'Sans titre'}
-                    subtitle={subtitle}
                     metadata={metadata}
-                    status={statusPill}
                   />
                 );
               }
@@ -456,18 +384,11 @@ export function HomePage() {
                   key={song.id}
                   mode="link"
                   to={`/songs/${song.id}`}
-                  leading={
-                    <div
-                      className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-xs font-black transition group-hover:border-white/20 group-hover:bg-white/10 group-active:scale-95"
-                      style={{ color: badgeColor?.hex }}
-                    >
-                      <FzIcon name="songs" usageId="home.list.no-audio" size="md" />
-                    </div>
-                  }
+                  onClick={() => handleSelectSong(song)}
+                  className="border-l-2"
+                  style={{ borderLeftColor: badgeColor?.hex || '#ff3a63' }}
                   title={song.title || 'Sans titre'}
-                  subtitle={subtitle}
                   metadata={metadata}
-                  status={statusPill}
                 />
               );
             })}

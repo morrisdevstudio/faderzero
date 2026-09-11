@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { deleteEpkHeroImage, epkHasUnpublishedChanges, epkUnpublishedLeavePrompt, getEpkCompleteness, normalizeEpkSlug, parseEpkVideoUrl, validateEpkDraft, type EpkRecord } from './epk';
+import { deleteEpkHeroImage, epkHasUnpublishedChanges, epkUnpublishedLeavePrompt, getEpkCompleteness, getEpkLiveStatus, normalizeEpkSlug, parseEpkVideoUrl, validateEpkDraft, type EpkRecord } from './epk';
 import { DEFAULT_EPK_EDITORIAL } from './epkPresentation';
 
 const supabaseMock = vi.hoisted(() => ({ updates: [] as Record<string, unknown>[] }));
@@ -35,6 +35,16 @@ describe('EPK helpers', () => {
     expect(epkHasUnpublishedChanges(false, { status: 'PUBLISHED', draftRevision: 2, publishedRevision: 2 })).toBe(false);
     expect(epkUnpublishedLeavePrompt('PUBLISHED').confirmLabel).toBe('Mettre à jour');
     expect(epkUnpublishedLeavePrompt('DRAFT').confirmLabel).toBe('Publier');
+  });
+
+  it('reports the published state and connectivity in the live EPK header', () => {
+    const draft = { status: 'DRAFT' as const, draftRevision: 1, publishedRevision: 0 };
+    const published = { status: 'PUBLISHED' as const, draftRevision: 2, publishedRevision: 2 };
+
+    expect(getEpkLiveStatus(true, false, draft)).toMatchObject({ label: 'Brouillon', tone: 'default' });
+    expect(getEpkLiveStatus(true, true, published)).toMatchObject({ label: 'Publiée · modifiée', tone: 'accent' });
+    expect(getEpkLiveStatus(true, false, published)).toMatchObject({ label: 'En ligne · à jour', tone: 'success' });
+    expect(getEpkLiveStatus(false, false, published)).toMatchObject({ label: 'Hors ligne', tone: 'default' });
   });
 
   it('rejects reserved slugs and invalid genres', () => {

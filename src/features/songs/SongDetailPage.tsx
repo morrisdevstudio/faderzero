@@ -132,9 +132,42 @@ export function SongDetailPage() {
   const { songId = '' } = useParams();
   const navigate = useNavigate();
   const activeWorkspace = useAuthStore((state) => state.activeWorkspace);
+  const workspaces = useAuthStore((state) => state.workspaces);
+  const setActiveWorkspace = useAuthStore((state) => state.setActiveWorkspace);
   const activeWorkspaceId = activeWorkspace?.id;
   const canWrite = canWriteWorkspace(activeWorkspace?.role);
   const song = useLiveQuery(() => songsRepository.getById(songId), [songId, activeWorkspaceId]);
+
+  const isSwitchingWorkspace = useLiveQuery(async () => {
+    if (!songId) return false;
+    const storedSong = await db.songs.get(songId);
+    if (!storedSong || storedSong.deletedAt !== undefined) return false;
+    return (
+      storedSong.workspaceId !== activeWorkspace?.id &&
+      workspaces.some((w) => w.id === storedSong.workspaceId)
+    );
+  }, [songId, activeWorkspace?.id, workspaces]);
+
+  useEffect(() => {
+    if (!songId) return;
+
+    let isMounted = true;
+    void (async () => {
+      const storedSong = await db.songs.get(songId);
+      if (!isMounted || !storedSong || storedSong.deletedAt !== undefined) return;
+
+      if (storedSong.workspaceId && storedSong.workspaceId !== activeWorkspace?.id) {
+        const targetWorkspace = workspaces.find((w) => w.id === storedSong.workspaceId);
+        if (targetWorkspace) {
+          setActiveWorkspace(targetWorkspace);
+        }
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [songId, activeWorkspace?.id, workspaces, setActiveWorkspace]);
   const [formValues, setFormValues] = useState<SongFormValues>(initialFormValues);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -509,7 +542,7 @@ export function SongDetailPage() {
     };
   }, [canWrite, formValues, isEditMode, isSaving, song]);
 
-  if (song === undefined) {
+  if (song === undefined || isSwitchingWorkspace) {
     return <FeatureCard eyebrow="Chargement" title="Lecture de la chanson" description="Recuperation des donnees locales..." />;
   }
 

@@ -176,8 +176,89 @@ export function AppShell() {
     };
   }, [location.key, location.pathname, location.search]);
 
+  const isCollapsibleHeaderRoute =
+    location.pathname.startsWith('/songs') ||
+    location.pathname.startsWith('/setlists') ||
+    location.pathname.startsWith('/prompter') ||
+    location.pathname === '/metronome' ||
+    location.pathname.startsWith('/calendar') ||
+    location.pathname.startsWith('/booking');
+  const [isHeaderHidden, setIsHeaderHidden] = useState(false);
+  const lastScrollYRef = useRef(0);
+  const isHeaderHiddenRef = useRef(false);
+
+  useEffect(() => {
+    isHeaderHiddenRef.current = isHeaderHidden;
+  }, [isHeaderHidden]);
+
+  useEffect(() => {
+    setIsHeaderHidden(false);
+    lastScrollYRef.current = typeof window !== 'undefined' ? window.scrollY : 0;
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (isWorkspacePickerOpen || isLiveMenuOpen) {
+      setIsHeaderHidden(false);
+    }
+  }, [isWorkspacePickerOpen, isLiveMenuOpen]);
+
+  useEffect(() => {
+    if (!isCollapsibleHeaderRoute) {
+      setIsHeaderHidden(false);
+      return;
+    }
+
+    let ticking = false;
+    const SCROLL_THRESHOLD = 15;
+
+    function handleScroll() {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const currentScrollY = window.scrollY;
+          const delta = currentScrollY - lastScrollYRef.current;
+
+          if (currentScrollY <= 20) {
+            if (isHeaderHiddenRef.current) {
+              setIsHeaderHidden(false);
+            }
+            lastScrollYRef.current = currentScrollY;
+            ticking = false;
+            return;
+          }
+
+          const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+          if (maxScroll > 0 && currentScrollY > maxScroll) {
+            ticking = false;
+            return;
+          }
+
+          if (delta > SCROLL_THRESHOLD && currentScrollY > headerHeight) {
+            if (!isHeaderHiddenRef.current) {
+              setIsHeaderHidden(true);
+            }
+            lastScrollYRef.current = currentScrollY;
+          } else if (delta < -SCROLL_THRESHOLD) {
+            if (isHeaderHiddenRef.current) {
+              setIsHeaderHidden(false);
+            }
+            lastScrollYRef.current = currentScrollY;
+          }
+
+          ticking = false;
+        });
+        ticking = true;
+      }
+    }
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [isCollapsibleHeaderRoute, headerHeight]);
+
   const shellStyle = {
     '--fz-header-height': `${headerHeight}px`,
+    '--fz-header-offset': `${isHeaderHidden ? 0 : headerHeight}px`,
     '--fz-viewport-offset-top': `${viewportOffsetTop}px`,
   } as CSSProperties;
 
@@ -186,8 +267,12 @@ export function AppShell() {
       {/* Top Header */}
       <header
         ref={headerRef}
-        className="fixed inset-x-0 z-30 bg-[var(--fz-bg)]/98 backdrop-blur-sm"
+        className={[
+          'fixed inset-x-0 z-40 bg-[var(--fz-bg)] backdrop-blur-sm transition-transform duration-200 ease-out will-change-transform',
+          isHeaderHidden ? '-translate-y-full pointer-events-none' : 'translate-y-0',
+        ].join(' ')}
         style={{ top: `${viewportOffsetTop}px` }}
+        aria-hidden={isHeaderHidden ? true : undefined}
       >
         <AppHeader
           logo={<FaderHeaderLogo />}

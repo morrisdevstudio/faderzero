@@ -16,7 +16,14 @@ export function PrompterLibraryPage() {
 
   return (
     <div className="space-y-8">
-      <PageHeader icon={<FzIcon name="prompter" usageId="page-header.prompter" size="xl" className="text-sky-400" />} title="Prompteur" />
+      <div
+        className="sticky z-20 -mx-3 -mt-2 border-b border-white/8 bg-[var(--fz-bg)] px-3 pb-3 pt-2 transition-[top] duration-200 ease-out will-change-[top] before:pointer-events-none before:absolute before:bottom-full before:inset-x-0 before:h-32 before:bg-[var(--fz-bg)] before:content-[''] sm:-mx-4 sm:px-4"
+        style={{
+          top: 'calc(var(--fz-header-offset, var(--fz-header-height, 64px)) + var(--fz-viewport-offset-top, 0px))',
+        }}
+      >
+        <PageHeader icon={<FzIcon name="prompter" usageId="page-header.prompter" size="xl" className="text-sky-400" />} title="Prompteur" />
+      </div>
 
       <section aria-labelledby="prompter-setlists-title" className="space-y-3">
         <div>

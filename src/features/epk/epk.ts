@@ -110,6 +110,22 @@ export function epkHasUnpublishedChanges(dirtyThisSession: boolean, epk: Pick<Ep
   return epk.status === 'PUBLISHED' && (epk.draftRevision ?? 0) !== (epk.publishedRevision ?? 0);
 }
 
+export type EpkLiveStatus = {
+  label: 'Brouillon' | 'Publiée · modifiée' | 'En ligne · à jour' | 'Hors ligne';
+  tone: 'default' | 'accent' | 'success';
+};
+
+export function getEpkLiveStatus(
+  isOnline: boolean,
+  dirtyThisSession: boolean,
+  epk: Pick<EpkRecord, 'status' | 'draftRevision' | 'publishedRevision'>,
+): EpkLiveStatus {
+  if (!isOnline) return { label: 'Hors ligne', tone: 'default' };
+  if (epk.status === 'DRAFT') return { label: 'Brouillon', tone: 'default' };
+  if (epkHasUnpublishedChanges(dirtyThisSession, epk)) return { label: 'Publiée · modifiée', tone: 'accent' };
+  return { label: 'En ligne · à jour', tone: 'success' };
+}
+
 export function epkUnpublishedLeavePrompt(status: EpkRecord['status']): { title: string; description: string; confirmLabel: string } {
   if (status === 'PUBLISHED') {
     return {
@@ -152,7 +168,8 @@ function toRecord(row: Record<string, unknown>): EpkRecord {
   if (row.featured_type === 'VIDEO' || row.featured_type === 'AUDIO' || row.featured_type === 'IMAGE') record.featuredType = row.featured_type;
   if (typeof row.featured_id === 'string') record.featuredId = row.featured_id;
   if (typeof row.published_at === 'string') record.publishedAt = row.published_at;
-  if (typeof row.published_revision === 'number') record.publishedRevision = row.published_revision;
+  const publishedRevision = Number(row.published_revision);
+  if (Number.isFinite(publishedRevision)) record.publishedRevision = publishedRevision;
   return record;
 }
 

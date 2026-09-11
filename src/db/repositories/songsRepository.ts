@@ -79,13 +79,13 @@ export class SongsRepository {
       }));
   }
 
-  async getById(id: string) {
+  async getById(id: string): Promise<SongRecord | null> {
     const song = await this.database.songs.get(id);
     if (!song) {
-      return undefined;
+      return null;
     }
 
-    return song.workspaceId === this.getActiveWorkspaceId() ? song : undefined;
+    return song.workspaceId === this.getActiveWorkspaceId() ? song : null;
   }
 
   async create(input: CreateSongInput) {

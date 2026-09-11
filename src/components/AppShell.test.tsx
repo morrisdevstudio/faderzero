@@ -195,4 +195,93 @@ describe('AppShell logo', () => {
     expect(screen.getByTestId('location')).toHaveTextContent('/home');
     expect(screen.queryByRole('dialog', { name: 'Créer ou jouer' })).not.toBeInTheDocument();
   });
+
+  it('hides top header when scrolling down on songs route, and reveals when scrolling up', () => {
+    const { container } = render(
+      <MemoryRouter initialEntries={['/songs']}>
+        <Routes>
+          <Route element={<AppShell />}>
+            <Route path="/songs" element={<LocationLabel />} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    const header = container.querySelector('header');
+    expect(header).toHaveClass('translate-y-0');
+    expect(header).not.toHaveClass('-translate-y-full');
+
+    // Scroll down past threshold and headerHeight
+    Object.defineProperty(window, 'scrollY', { value: 120, writable: true, configurable: true });
+    act(() => {
+      fireEvent.scroll(window);
+      vi.advanceTimersByTime(50);
+    });
+
+    expect(header).toHaveClass('-translate-y-full');
+    expect(header).toHaveAttribute('aria-hidden', 'true');
+
+    // Scroll up by more than threshold
+    Object.defineProperty(window, 'scrollY', { value: 80, writable: true, configurable: true });
+    act(() => {
+      fireEvent.scroll(window);
+      vi.advanceTimersByTime(50);
+    });
+
+    expect(header).toHaveClass('translate-y-0');
+    expect(header).not.toHaveClass('-translate-y-full');
+    expect(header).not.toHaveAttribute('aria-hidden');
+  });
+
+  it('hides top header on collapsible routes (setlists, prompter, metronome, calendar) when scrolling down', () => {
+    for (const route of ['/setlists', '/prompter', '/metronome', '/calendar']) {
+      Object.defineProperty(window, 'scrollY', { value: 0, writable: true, configurable: true });
+
+      const { container, unmount } = render(
+        <MemoryRouter initialEntries={[route]}>
+          <Routes>
+            <Route element={<AppShell />}>
+              <Route path={route} element={<LocationLabel />} />
+            </Route>
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      const header = container.querySelector('header');
+      expect(header).toHaveClass('translate-y-0');
+
+      Object.defineProperty(window, 'scrollY', { value: 120, writable: true, configurable: true });
+      act(() => {
+        fireEvent.scroll(window);
+        vi.advanceTimersByTime(50);
+      });
+
+      expect(header).toHaveClass('-translate-y-full');
+      unmount();
+    }
+  });
+
+  it('does not hide top header on non-songs route when scrolling down', () => {
+    const { container } = render(
+      <MemoryRouter initialEntries={['/home']}>
+        <Routes>
+          <Route element={<AppShell />}>
+            <Route path="/home" element={<LocationLabel />} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    const header = container.querySelector('header');
+    expect(header).toHaveClass('translate-y-0');
+
+    Object.defineProperty(window, 'scrollY', { value: 200, writable: true, configurable: true });
+    act(() => {
+      fireEvent.scroll(window);
+      vi.advanceTimersByTime(50);
+    });
+
+    expect(header).toHaveClass('translate-y-0');
+    expect(header).not.toHaveClass('-translate-y-full');
+  });
 });

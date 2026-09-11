@@ -30,6 +30,7 @@ export interface ControlsContentRowProps extends BaseContentRowProps {
   mode: 'controls';
   to?: string;
   id?: string;
+  onClick?: () => void;
 }
 
 export type ContentRowProps = LinkContentRowProps | ButtonContentRowProps | ControlsContentRowProps;
@@ -104,7 +105,7 @@ export function ContentRow(props: ContentRowProps) {
     <div id={props.id} aria-label={ariaLabel} style={style} className={baseClasses}>
       {leading ? <div className="flex shrink-0 items-center">{leading}</div> : null}
       {props.to ? (
-        <Link to={props.to} className="block min-w-0 flex-1">
+        <Link to={props.to} onClick={props.onClick} className="block min-w-0 flex-1">
           {centerContent}
         </Link>
       ) : (

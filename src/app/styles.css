@@ -30,6 +30,12 @@
   --fz-shadow: 0 24px 80px rgba(0, 0, 0, 0.42);
 }
 
+@property --fz-header-offset {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 64px;
+}
+
 * {
   box-sizing: border-box;
 }

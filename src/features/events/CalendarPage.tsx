@@ -483,11 +483,6 @@ export function CalendarPage() {
     return groups;
   }, [sortedEventsFiltered]);
 
-  // Selected date events count
-  const selectedDayEventsCount = useMemo(() => {
-    return eventsByDayString.get(selectedDate.toDateString())?.length || 0;
-  }, [eventsByDayString, selectedDate]);
-
   useEffect(() => {
     const gestureThreshold = 48;
     let touchStart: { x: number; y: number } | null = null;
@@ -583,7 +578,13 @@ export function CalendarPage() {
 
   return (
     <div className="w-full space-y-4 pb-24 text-[#f5f0ea]">
-      <PageHeader
+      <div
+        className="sticky z-20 -mx-3 -mt-2 border-b border-white/8 bg-[var(--fz-bg)] px-3 pb-3 pt-2 transition-[top] duration-200 ease-out will-change-[top] before:pointer-events-none before:absolute before:bottom-full before:inset-x-0 before:h-32 before:bg-[var(--fz-bg)] before:content-[''] sm:-mx-4 sm:px-4"
+        style={{
+          top: 'calc(var(--fz-header-offset, var(--fz-header-height, 64px)) + var(--fz-viewport-offset-top, 0px))',
+        }}
+      >
+        <PageHeader
         icon={<FzIcon name="calendar" usageId="page-header.calendar" size="xl" className="text-teal-400" />}
         title="Événements"
         actions={<>
@@ -739,6 +740,7 @@ export function CalendarPage() {
               )}
           </div>}
       />
+      </div>
 
       {/* ACCORDION CALENDAR CARD */}
       <div
@@ -751,8 +753,8 @@ export function CalendarPage() {
       >
           {/* Calendar Header with selected info & toggle */}
           <div className="flex items-center justify-between gap-2 mb-3 pb-2 border-b border-white/8">
-            {/* Left: Today button & selected date badge */}
-            <div className="flex items-center gap-1.5 min-w-[70px] sm:min-w-[150px] shrink-0">
+            {/* Left: Today button */}
+            <div className="flex items-center justify-start min-w-[48px] shrink-0">
               <button
                 type="button"
                 onClick={handleTodayMonth}
@@ -760,53 +762,46 @@ export function CalendarPage() {
               >
                 Auj.
               </button>
-              <span className="text-xs text-purple-300 bg-purple-600/20 px-2 py-0.5 rounded-full border border-purple-500/30 font-bold hidden sm:inline-block">
-                {selectedDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} ({selectedDayEventsCount})
-              </span>
             </div>
 
-            {/* Center: Fixed-width Month Year Frame with Fixed Arrows */}
+            {/* Center: Month Year Frame with Prev/Next navigation */}
             <div className="flex items-center justify-center min-w-0 flex-1">
-              <div className="flex items-center justify-between w-[200px] shrink-0">
-                <div className="w-8 shrink-0 flex justify-center">
-                  <button
-                    type="button"
-                    onClick={isMonthView ? handlePrevMonth : handlePrevWeek}
-                    aria-label={isMonthView ? "Mois précédent" : "Semaine précédente"}
-                    title={isMonthView ? "Mois précédent" : "Semaine précédente"}
-                    className="flex h-8 w-8 items-center justify-center rounded-xl text-white/70 hover:bg-white/10 hover:text-white transition-colors"
-                  >
-                    <ChevronLeftIcon />
-                  </button>
-                </div>
+              <div className="flex items-center justify-between w-full max-w-[220px]">
+                <button
+                  type="button"
+                  onClick={isMonthView ? handlePrevMonth : handlePrevWeek}
+                  aria-label={isMonthView ? "Mois précédent" : "Semaine précédente"}
+                  title={isMonthView ? "Mois précédent" : "Semaine précédente"}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white/70 hover:bg-white/10 hover:text-white active:scale-95 transition"
+                >
+                  <ChevronLeftIcon />
+                </button>
                 <h2
                   key={`month-title-${isMonthView ? monthTransitionKey : `${selectedDate.getFullYear()}-${selectedDate.getMonth()}-${selectedDate.getDate()}`}`}
                   className={`text-base font-black text-white tracking-tight truncate text-center flex-1 px-1 ${monthTransitionClass}`}
                 >
                   {monthName}
                 </h2>
-                <div className="w-8 shrink-0 flex justify-center">
-                  <button
-                    type="button"
-                    onClick={isMonthView ? handleNextMonth : handleNextWeek}
-                    aria-label={isMonthView ? "Mois suivant" : "Semaine suivante"}
-                    title={isMonthView ? "Mois suivant" : "Semaine suivante"}
-                    className="flex h-8 w-8 items-center justify-center rounded-xl text-white/70 hover:bg-white/10 hover:text-white transition-colors"
-                  >
-                    <ChevronRightIcon />
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={isMonthView ? handleNextMonth : handleNextWeek}
+                  aria-label={isMonthView ? "Mois suivant" : "Semaine suivante"}
+                  title={isMonthView ? "Mois suivant" : "Semaine suivante"}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white/70 hover:bg-white/10 hover:text-white active:scale-95 transition"
+                >
+                  <ChevronRightIcon />
+                </button>
               </div>
             </div>
 
             {/* Right: Collapse/Expand chevron arrow */}
-            <div className="flex items-center justify-end min-w-[70px] sm:min-w-[150px] shrink-0">
+            <div className="flex items-center justify-end min-w-[48px] shrink-0">
               <button
                 type="button"
                 onClick={() => setIsMonthView(!isMonthView)}
                 aria-label={isMonthView ? "Réduire le calendrier" : "Déplier le calendrier"}
                 title={isMonthView ? "Réduire le calendrier" : "Déplier le calendrier"}
-                className="flex h-8 w-8 items-center justify-center rounded-xl text-white/70 hover:bg-white/10 hover:text-white transition-colors"
+                className="flex h-9 w-9 items-center justify-center rounded-xl text-white/70 hover:bg-white/10 hover:text-white active:scale-95 transition"
               >
                 {isMonthView ? <ChevronUpIcon /> : <ChevronDownIcon />}
               </button>

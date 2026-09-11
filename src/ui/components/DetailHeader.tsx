@@ -14,8 +14,8 @@ interface DetailHeaderProps {
 export function DetailHeader({ title, subtitle, onBack, backLabel, actions, leading, titleInteraction }: DetailHeaderProps) {
   return (
     <header
-      className="sticky z-30 -mx-1 -mt-5 border-b border-white/8 bg-[var(--fz-bg)] px-1 pb-4 pt-2"
-      style={{ top: 'calc(var(--fz-header-height, 64px) + var(--fz-viewport-offset-top, 0px))' }}
+      className="sticky z-30 -mx-3 -mt-5 border-b border-white/8 bg-[var(--fz-bg)] px-3 pb-4 pt-2 transition-[top] duration-200 ease-out will-change-[top] before:pointer-events-none before:absolute before:bottom-full before:inset-x-0 before:h-32 before:bg-[var(--fz-bg)] before:content-[''] sm:-mx-4 sm:px-4"
+      style={{ top: 'calc(var(--fz-header-offset, var(--fz-header-height, 64px)) + var(--fz-viewport-offset-top, 0px))' }}
     >
       <div className="grid grid-cols-[2.75rem_minmax(0,1fr)_auto] items-center gap-3">
         <button

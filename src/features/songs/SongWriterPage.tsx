@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { FormDialog } from '@/components/FormDialog';
+import { db } from '@/db/db';
 import { songsRepository } from '@/db/repositories/songsRepository';
 import {
   createEmptySongDocument,
@@ -62,6 +63,8 @@ export function SongWriterPage() {
   const isDraft = songId === 'new';
   const navigate = useNavigate();
   const activeWorkspace = useAuthStore((state) => state.activeWorkspace);
+  const workspaces = useAuthStore((state) => state.workspaces);
+  const setActiveWorkspace = useAuthStore((state) => state.setActiveWorkspace);
   const activeWorkspaceId = activeWorkspace?.id;
   const canWrite = canWriteWorkspace(activeWorkspace?.role);
   const isOnline = useOnlineStatus();
@@ -69,6 +72,37 @@ export function SongWriterPage() {
     () => isDraft ? undefined : songsRepository.getById(songId),
     [songId, activeWorkspaceId, isDraft],
   );
+
+  const isSwitchingWorkspace = useLiveQuery(async () => {
+    if (!songId || isDraft) return false;
+    const storedSong = await db.songs.get(songId);
+    if (!storedSong || storedSong.deletedAt !== undefined) return false;
+    return (
+      storedSong.workspaceId !== activeWorkspace?.id &&
+      workspaces.some((w) => w.id === storedSong.workspaceId)
+    );
+  }, [songId, activeWorkspace?.id, workspaces, isDraft]);
+
+  useEffect(() => {
+    if (!songId || isDraft) return;
+
+    let isMounted = true;
+    void (async () => {
+      const storedSong = await db.songs.get(songId);
+      if (!isMounted || !storedSong || storedSong.deletedAt !== undefined) return;
+
+      if (storedSong.workspaceId && storedSong.workspaceId !== activeWorkspace?.id) {
+        const targetWorkspace = workspaces.find((w) => w.id === storedSong.workspaceId);
+        if (targetWorkspace) {
+          setActiveWorkspace(targetWorkspace);
+        }
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [songId, isDraft, activeWorkspace?.id, workspaces, setActiveWorkspace]);
   const keyboardInset = useKeyboardInset();
   const [title, setTitle] = useState('');
   const [localSaveState, setLocalSaveState] = useState<LocalSaveState>('idle');
@@ -222,7 +256,7 @@ export function SongWriterPage() {
     }
   }
 
-  if (!isDraft && song === undefined) {
+  if (!isDraft && (song === undefined || isSwitchingWorkspace)) {
     return <div className="fz-writer-state">Ouverture du morceau…</div>;
   }
 

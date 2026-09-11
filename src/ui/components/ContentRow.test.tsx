@@ -93,4 +93,22 @@ describe('ContentRow', () => {
     expect(link).toContainElement(screen.getByTestId('status-pill'));
     expect(link).not.toContainElement(screen.getByTestId('play-btn'));
   });
+
+  it('triggers onClick on link in controls mode when provided', () => {
+    const onClick = vi.fn();
+    render(
+      <MemoryRouter>
+        <ContentRow
+          mode="controls"
+          to="/songs/789"
+          title="Switch Group Song"
+          onClick={onClick}
+        />
+      </MemoryRouter>,
+    );
+
+    const link = screen.getByRole('link');
+    fireEvent.click(link);
+    expect(onClick).toHaveBeenCalledOnce();
+  });
 });
