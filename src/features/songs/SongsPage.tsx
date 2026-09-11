@@ -1042,7 +1042,7 @@ export function SongsPage() {
                       tone={getSongStatusTone(summary.song.status)}
                     />
                     <span className="truncate">
-                      {summary.song.lyrics?.trim() ? '✓ Paroles' : '! Paroles manquantes'}
+                      {summary.song.lyrics?.trim() ? '✓ Paroles' : '! Pas de paroles'}
                       {' · '}
                       {summary.audioCount || 0} audio{(summary.audioCount || 0) > 1 ? 's' : ''}
                       {' · '}

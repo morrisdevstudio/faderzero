@@ -172,4 +172,28 @@ describe('SongsPage component', () => {
 
     expect(screen.getByText('Titre')).toHaveClass('fz-field-label');
   });
+
+  it('affiche le statut des paroles avec "✓ Paroles" ou "! Pas de paroles"', () => {
+    mocks.songs = [
+      { id: 'song-with-lyrics', title: 'Avec paroles', status: 'idea', updatedAt: 200 },
+      { id: 'song-without-lyrics', title: 'Sans paroles', status: 'idea', updatedAt: 100 },
+    ];
+    mocks.songSummaries = [
+      {
+        song: { id: 'song-with-lyrics', title: 'Avec paroles', lyrics: 'Couplet 1...', status: 'idea', updatedAt: 200 },
+        primaryAsset: null,
+        totalAssets: 0,
+      },
+      {
+        song: { id: 'song-without-lyrics', title: 'Sans paroles', lyrics: '', status: 'idea', updatedAt: 100 },
+        primaryAsset: null,
+        totalAssets: 0,
+      },
+    ];
+
+    renderPage();
+
+    expect(screen.getByText(/✓ Paroles/)).toBeInTheDocument();
+    expect(screen.getByText(/! Pas de paroles/)).toBeInTheDocument();
+  });
 });

@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { DetailHeader } from '@/ui/components/DetailHeader';
 import { Button } from '@/ui/components/Button';
 import { StatusPill } from '@/ui/components/StatusPill';
 import { FzIcon } from '@/ui/icons';
@@ -187,9 +186,154 @@ export function EpkPage() {
   async function addEditorTrack(id: string, title: string) { if (!epk) return; const track = availableTracks.find((item) => item.id === id); if (!track) return; setSaving(true); setMessage(null); try { const value = await addEpkTrack(epk.id, track, tracks.length, title); setTracks((items) => [...items, value]); noteUnpublishedChanges(); setMessage('Piste ajoutée.'); } catch (error) { setMessage(error instanceof Error ? error.message : 'Ajout de la piste impossible.'); } finally { setSaving(false); } }
   async function addEditorVideo(url: string, title: string, type: EpkVideoType) { if (!epk) return; setSaving(true); setMessage(null); try { const value = await addEpkVideo(epk.id, { url, title, videoType: type }, videos.length); setVideos((items) => [...items, value]); noteUnpublishedChanges(); setMessage('Vidéo ajoutée.'); } catch (error) { setMessage(error instanceof Error ? error.message : 'Ajout de la vidéo impossible.'); } finally { setSaving(false); } }
 
-  if (!isAdmin) return <div className="p-4 text-sm text-white/65">L’EPK public est réservé aux administrateurs d’un groupe.</div>;
-  if (loading) return <div className="p-4 text-sm text-white/65">Chargement de l’EPK…</div>;
-  if (!epk) return <div className="space-y-4"><DetailHeader title="EPK public" onBack={() => navigate('/account?tab=groupe')} backLabel="Retour aux paramètres" /><div className="rounded-2xl border border-white/10 bg-white/5 p-5"><p className="text-sm text-white/70">Créez un brouillon pour préparer votre kit de presse public.</p><Button variant="primary" fullWidth loading={saving} onClick={() => void createDraft()}>Créer l’EPK</Button>{message ? <p className="mt-3 text-sm text-amber-300">{message}</p> : null}</div></div>;
+  if (!isAdmin) {
+    return (
+      <div className="flex min-h-[100dvh] flex-col bg-[#09090b] text-[#f5f0ea]">
+        <header className="sticky top-0 z-30 shrink-0 border-b border-white/10 bg-[var(--fz-bg)]/98 backdrop-blur-sm">
+          <div className="mx-auto w-full max-w-md px-4 pb-2 pt-3">
+            <div className="relative flex h-11 items-center">
+              <button
+                type="button"
+                onClick={() => navigate('/account?tab=groupe')}
+                aria-label="Retour aux paramètres"
+                className="absolute left-0 z-10 flex h-11 w-11 items-center justify-center text-white/72 transition hover:text-white"
+              >
+                <FzIcon name="back" usageId="epk.not-admin.back" size="md" />
+              </button>
+              <div className="pointer-events-none absolute inset-x-0 flex justify-center text-center">
+                <h1 className="truncate text-base font-black tracking-tight text-white">EPK public</h1>
+              </div>
+            </div>
+          </div>
+        </header>
+        <main className="min-h-0 flex-1 overflow-y-auto px-4 pb-8 pt-6">
+          <div className="mx-auto w-full max-w-md rounded-2xl border border-white/10 bg-white/5 p-5 text-sm text-white/65">
+            L’EPK public est réservé aux administrateurs d’un groupe.
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[100dvh] flex-col bg-[#09090b] text-[#f5f0ea]">
+        <header className="sticky top-0 z-30 shrink-0 border-b border-white/10 bg-[var(--fz-bg)]/98 backdrop-blur-sm">
+          <div className="mx-auto w-full max-w-md px-4 pb-2 pt-3">
+            <div className="relative flex h-11 items-center">
+              <button
+                type="button"
+                onClick={() => navigate('/account?tab=groupe')}
+                aria-label="Retour aux paramètres"
+                className="absolute left-0 z-10 flex h-11 w-11 items-center justify-center text-white/72 transition hover:text-white"
+              >
+                <FzIcon name="back" usageId="epk.loading.back" size="md" />
+              </button>
+              <div className="pointer-events-none absolute inset-x-0 flex justify-center text-center">
+                <h1 className="truncate text-base font-black tracking-tight text-white">EPK public</h1>
+              </div>
+            </div>
+          </div>
+        </header>
+        <main className="min-h-0 flex-1 overflow-y-auto px-4 pb-8 pt-6">
+          <div className="mx-auto w-full max-w-md text-sm text-white/65">
+            Chargement de l’EPK…
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (!epk) {
+    return (
+      <div className="flex min-h-[100dvh] flex-col bg-[#09090b] text-[#f5f0ea]">
+        <header className="sticky top-0 z-30 shrink-0 border-b border-white/10 bg-[var(--fz-bg)]/98 backdrop-blur-sm">
+          <div className="mx-auto w-full max-w-md px-4 pb-2 pt-3">
+            <div className="relative flex h-11 items-center">
+              <button
+                type="button"
+                onClick={() => navigate('/account?tab=groupe')}
+                aria-label="Retour aux paramètres"
+                className="absolute left-0 z-10 flex h-11 w-11 items-center justify-center text-white/72 transition hover:text-white"
+              >
+                <FzIcon name="back" usageId="epk.empty.back" size="md" />
+              </button>
+              <div className="pointer-events-none absolute inset-x-0 flex justify-center text-center">
+                <h1 className="truncate text-base font-black tracking-tight text-white">EPK public</h1>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <main className="min-h-0 flex-1 overflow-y-auto px-4 pb-12 pt-6">
+          <div className="mx-auto w-full max-w-md space-y-6">
+            <div className="flex flex-col items-center pt-2 pb-1 text-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-rose-500/30 bg-rose-500/15 text-rose-400 shadow-[0_0_24px_rgba(244,63,94,0.18)]">
+                <FzIcon name="file-text" usageId="epk.empty.hero" size="xl" />
+              </div>
+              <h2 className="mt-4 text-2xl font-black tracking-tight text-white">
+                Kit de presse public (EPK)
+              </h2>
+              <p className="mt-2 text-sm leading-relaxed text-[var(--fz-text-muted)]">
+                Créez une page web dédiée pour <strong className="text-white">{workspace?.name || 'votre groupe'}</strong>, prête à partager avec les programmateurs, labels et médias.
+              </p>
+            </div>
+
+            <div className="space-y-4 rounded-2xl border border-white/10 bg-white/5 p-5">
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/8 text-rose-300">
+                    <FzIcon name="music" usageId="epk.empty.feature.audio" size="sm" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold text-white">Morceaux et vidéos</p>
+                    <p className="text-xs text-[var(--fz-text-muted)]">Vos meilleures pistes audio et vos clips en écoute directe.</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/8 text-sky-300">
+                    <FzIcon name="user-round" usageId="epk.empty.feature.bio" size="sm" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold text-white">Bio et photos de presse</p>
+                    <p className="text-xs text-[var(--fz-text-muted)]">Votre présentation, vos genres musicaux et vos visuels HD.</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/8 text-teal-300">
+                    <FzIcon name="briefcase-business" usageId="epk.empty.feature.contacts" size="sm" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold text-white">Contacts pros et documents</p>
+                    <p className="text-xs text-[var(--fz-text-muted)]">Fiches techniques, riders et coordonnées de booking.</p>
+                  </div>
+                </div>
+              </div>
+
+              {message ? (
+                <p className="rounded-xl border border-rose-400/20 bg-rose-500/10 p-3 text-sm font-semibold text-rose-200">
+                  {message}
+                </p>
+              ) : null}
+
+              <Button
+                variant="primary"
+                size="lg"
+                fullWidth
+                leadingIcon={<FzIcon name="add" usageId="epk.empty.create-icon" size="sm" />}
+                loading={saving}
+                onClick={() => void createDraft()}
+              >
+                Créer l’EPK
+              </Button>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   const previewModel: EpkPublicModel = {
     name: epk.displayName,

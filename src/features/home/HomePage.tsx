@@ -137,94 +137,94 @@ export function HomePage() {
           <button
             type="button"
             onClick={() => setIsVoiceRecorderOpen(true)}
-            className="group flex flex-col items-center justify-center gap-1.5 rounded-2xl border border-white/10 bg-white/[0.03] p-2.5 transition hover:border-white/20 hover:bg-white/[0.07] active:scale-95"
+            className="group flex min-h-22 flex-col items-center justify-center gap-2 p-3 transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
             aria-label="Enregistrer une idée vocale"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-rose-500/30 bg-rose-500/15 text-[#ff3a63] transition group-hover:scale-105">
-              <FzIcon name="record" usageId="home.toolbox.record" size="lg" />
+            <div className="flex h-12 w-12 items-center justify-center text-[#ff3a63] transition group-hover:scale-105">
+              <FzIcon name="record" usageId="home.toolbox.record" size="xl" />
             </div>
-            <span className="text-[10px] font-bold text-zinc-200">Enregistrer</span>
+            <span className="text-[11px] font-bold text-zinc-200">Enregistrer</span>
           </button>
 
           {/* 2. Métronome */}
           <Link
             to="/metronome"
-            className="group flex flex-col items-center justify-center gap-1.5 rounded-2xl border border-white/10 bg-white/[0.03] p-2.5 transition hover:border-white/20 hover:bg-white/[0.07] active:scale-95"
+            className="group flex min-h-22 flex-col items-center justify-center gap-2 p-3 transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
             aria-label="Ouvrir le métronome"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/15 text-amber-400 transition group-hover:scale-105">
-              <FzIcon name="metronome" usageId="home.toolbox.metronome" size="lg" />
+            <div className="flex h-12 w-12 items-center justify-center text-amber-400 transition group-hover:scale-105">
+              <FzIcon name="metronome" usageId="home.toolbox.metronome" size="xl" />
             </div>
-            <span className="text-[10px] font-bold text-zinc-200">Métronome</span>
+            <span className="text-[11px] font-bold text-zinc-200">Métronome</span>
           </Link>
 
           {/* 3. Prompteur */}
           <Link
             to="/prompter"
-            className="group flex flex-col items-center justify-center gap-1.5 rounded-2xl border border-white/10 bg-white/[0.03] p-2.5 transition hover:border-white/20 hover:bg-white/[0.07] active:scale-95"
+            className="group flex min-h-22 flex-col items-center justify-center gap-2 p-3 transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
             aria-label="Ouvrir le prompteur"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-sky-500/30 bg-sky-500/15 text-sky-400 transition group-hover:scale-105">
-              <FzIcon name="prompter" usageId="home.toolbox.prompter" size="lg" />
+            <div className="flex h-12 w-12 items-center justify-center text-sky-400 transition group-hover:scale-105">
+              <FzIcon name="prompter" usageId="home.toolbox.prompter" size="xl" />
             </div>
-            <span className="text-[10px] font-bold text-zinc-200">Prompteur</span>
+            <span className="text-[11px] font-bold text-zinc-200">Prompteur</span>
           </Link>
 
           {/* 4. Nouveau morceau */}
           <Link
             to="/songs/new/write"
-            className="group flex flex-col items-center justify-center gap-1.5 rounded-2xl border border-white/10 bg-white/[0.03] p-2.5 transition hover:border-white/20 hover:bg-white/[0.07] active:scale-95"
+            className="group flex min-h-22 flex-col items-center justify-center gap-2 p-3 transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
             aria-label="Créer un nouveau morceau"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-500/15 text-emerald-400 transition group-hover:scale-105">
-              <FzIcon name="add" usageId="home.toolbox.new-song" size="lg" />
+            <div className="flex h-12 w-12 items-center justify-center text-emerald-400 transition group-hover:scale-105">
+              <FzIcon name="add" usageId="home.toolbox.new-song" size="xl" />
             </div>
-            <span className="text-[10px] font-bold text-zinc-200">Nouveau</span>
+            <span className="text-[11px] font-bold text-zinc-200">Nouveau</span>
           </Link>
 
           {/* 5. Morceaux / Répertoire */}
           <Link
             to="/songs"
-            className="group flex flex-col items-center justify-center gap-1.5 rounded-2xl border border-white/10 bg-white/[0.03] p-2.5 transition hover:border-white/20 hover:bg-white/[0.07] active:scale-95"
+            className="group flex min-h-22 flex-col items-center justify-center gap-2 p-3 transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
             aria-label="Ouvrir le répertoire de morceaux"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-indigo-500/30 bg-indigo-500/15 text-indigo-400 transition group-hover:scale-105">
-              <FzIcon name="songs" usageId="home.toolbox.songs" size="lg" />
+            <div className="flex h-12 w-12 items-center justify-center text-indigo-400 transition group-hover:scale-105">
+              <FzIcon name="songs" usageId="home.toolbox.songs" size="xl" />
             </div>
-            <span className="text-[10px] font-bold text-zinc-200">Morceaux</span>
+            <span className="text-[11px] font-bold text-zinc-200">Morceaux</span>
           </Link>
 
           {/* 6. Setlists */}
           <Link
             to="/setlists"
-            className="group flex flex-col items-center justify-center gap-1.5 rounded-2xl border border-white/10 bg-white/[0.03] p-2.5 transition hover:border-white/20 hover:bg-white/[0.07] active:scale-95"
+            className="group flex min-h-22 flex-col items-center justify-center gap-2 p-3 transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
             aria-label="Ouvrir les setlists"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-fuchsia-500/30 bg-fuchsia-500/15 text-fuchsia-400 transition group-hover:scale-105">
-              <FzIcon name="setlist" usageId="home.toolbox.setlists" size="lg" />
+            <div className="flex h-12 w-12 items-center justify-center text-fuchsia-400 transition group-hover:scale-105">
+              <FzIcon name="setlist" usageId="home.toolbox.setlists" size="xl" />
             </div>
-            <span className="text-[10px] font-bold text-zinc-200">Setlists</span>
+            <span className="text-[11px] font-bold text-zinc-200">Setlists</span>
           </Link>
 
           {/* 7. Calendrier */}
           <Link
             to="/calendar"
-            className="group flex flex-col items-center justify-center gap-1.5 rounded-2xl border border-white/10 bg-white/[0.03] p-2.5 transition hover:border-white/20 hover:bg-white/[0.07] active:scale-95"
+            className="group flex min-h-22 flex-col items-center justify-center gap-2 p-3 transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
             aria-label="Ouvrir le calendrier"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-teal-500/30 bg-teal-500/15 text-teal-400 transition group-hover:scale-105">
-              <FzIcon name="calendar" usageId="home.toolbox.calendar" size="lg" />
+            <div className="flex h-12 w-12 items-center justify-center text-teal-400 transition group-hover:scale-105">
+              <FzIcon name="calendar" usageId="home.toolbox.calendar" size="xl" />
             </div>
-            <span className="text-[10px] font-bold text-zinc-200">Calendrier</span>
+            <span className="text-[11px] font-bold text-zinc-200">Calendrier</span>
           </Link>
 
           {/* 8. Booking avec pastille rouge de relances */}
           <Link
             to="/booking"
-            className="group relative flex flex-col items-center justify-center gap-1.5 rounded-2xl border border-white/10 bg-white/[0.03] p-2.5 transition hover:border-white/20 hover:bg-white/[0.07] active:scale-95"
+            className="group relative flex min-h-22 flex-col items-center justify-center gap-2 p-3 transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
             aria-label={dueBookingCount > 0 ? `Ouvrir le booking (${dueBookingCount} relance${dueBookingCount > 1 ? 's' : ''} à traiter)` : 'Ouvrir le booking'}
           >
-            <div className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-orange-500/30 bg-orange-500/15 text-orange-400 transition group-hover:scale-105">
+            <div className="relative flex h-12 w-12 items-center justify-center text-orange-400 transition group-hover:scale-105">
               <svg
                 aria-hidden="true"
                 viewBox="0 0 24 24"
@@ -233,7 +233,7 @@ export function HomePage() {
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="h-5 w-5"
+                className="h-7 w-7"
               >
                 <rect width="20" height="14" x="2" y="7" rx="2" ry="2" />
                 <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
@@ -248,7 +248,7 @@ export function HomePage() {
                 </span>
               ) : null}
             </div>
-            <span className="text-[10px] font-bold text-zinc-200">Booking</span>
+            <span className="text-[11px] font-bold text-zinc-200">Booking</span>
           </Link>
         </div>
       </section>

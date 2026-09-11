@@ -854,7 +854,7 @@ export function SongDetailPage() {
                 </div>
               </div>
 
-              {currentSong.notes ? (
+              {currentSong.notes?.trim() ? (
                 <section className="space-y-2">
                   <p className="px-2 text-[0.68rem] font-black uppercase tracking-[0.18em] text-[var(--fz-text-muted)]">Notes</p>
                   <div
@@ -868,6 +868,19 @@ export function SongDetailPage() {
                     <p className="whitespace-pre-line text-[0.9rem] leading-7 text-white/78">{currentSong.notes}</p>
                   </div>
                 </section>
+              ) : canWrite ? (
+                <div className="px-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setQuickValue('');
+                      setQuickEditField('notes');
+                    }}
+                    className="inline-flex min-h-[44px] cursor-pointer items-center text-xs font-bold text-white transition hover:text-white/80 hover:underline focus-visible:outline-none focus-visible:underline"
+                  >
+                    Ajouter une note
+                  </button>
+                </div>
               ) : null}
 
               <section className="space-y-2">
@@ -1401,7 +1414,7 @@ export function SongDetailPage() {
 
       {quickEditField === 'notes' ? (
         <FormDialog
-          title="Modifier les notes"
+          title={song?.notes?.trim() ? 'Modifier les notes' : 'Ajouter une note'}
           placement="bottom"
           onClose={() => setQuickEditField(null)}
         >
@@ -1413,6 +1426,7 @@ export function SongDetailPage() {
             className="space-y-4"
           >
             <TextArea
+              aria-label="Notes"
               rows={4}
               value={quickValue}
               onChange={(e) => setQuickValue(e.target.value)}

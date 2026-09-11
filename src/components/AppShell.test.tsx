@@ -284,4 +284,19 @@ describe('AppShell logo', () => {
     expect(header).toHaveClass('translate-y-0');
     expect(header).not.toHaveClass('-translate-y-full');
   });
+
+  it.each(['/account', '/sync'])('supprime le header FaderZero sur la page paramètre %s', (route) => {
+    render(
+      <MemoryRouter initialEntries={[route]}>
+        <Routes>
+          <Route element={<AppShell />}>
+            <Route path={route} element={<LocationLabel />} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByRole('link', { name: 'FaderZero Accueil' })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Changer de groupe/)).not.toBeInTheDocument();
+  });
 });

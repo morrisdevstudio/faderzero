@@ -105,7 +105,15 @@ export function AppShell() {
     return () => window.clearTimeout(timeoutId);
   }, [voiceRecorderMessage]);
 
+  const isSettingsRoute =
+    location.pathname.startsWith('/account') ||
+    location.pathname.startsWith('/sync');
+
   useLayoutEffect(() => {
+    if (isSettingsRoute) {
+      return;
+    }
+
     function updateHeaderHeight() {
       if (!headerRef.current) {
         return;
@@ -132,7 +140,7 @@ export function AppShell() {
       window.removeEventListener('resize', updateHeaderHeight);
       resizeObserver?.disconnect();
     };
-  }, []);
+  }, [isSettingsRoute]);
 
   useEffect(() => {
     const viewport = window.visualViewport;
@@ -256,44 +264,48 @@ export function AppShell() {
     };
   }, [isCollapsibleHeaderRoute, headerHeight]);
 
+  const effectiveHeaderHeight = isSettingsRoute ? 0 : headerHeight;
+
   const shellStyle = {
-    '--fz-header-height': `${headerHeight}px`,
-    '--fz-header-offset': `${isHeaderHidden ? 0 : headerHeight}px`,
+    '--fz-header-height': `${effectiveHeaderHeight}px`,
+    '--fz-header-offset': `${isSettingsRoute || isHeaderHidden ? 0 : effectiveHeaderHeight}px`,
     '--fz-viewport-offset-top': `${viewportOffsetTop}px`,
   } as CSSProperties;
 
   return (
     <div className="min-h-screen bg-[var(--fz-bg)] text-[#f5f0ea]" style={shellStyle}>
       {/* Top Header */}
-      <header
-        ref={headerRef}
-        className={[
-          'fixed inset-x-0 z-40 bg-[var(--fz-bg)] backdrop-blur-sm transition-transform duration-200 ease-out will-change-transform',
-          isHeaderHidden ? '-translate-y-full pointer-events-none' : 'translate-y-0',
-        ].join(' ')}
-        style={{ top: `${viewportOffsetTop}px` }}
-        aria-hidden={isHeaderHidden ? true : undefined}
-      >
-        <AppHeader
-          logo={<FaderHeaderLogo />}
-          currentGroup={{
-            name: activeWorkspace?.name ?? 'Mon Espace',
-            initials: workspaceInitials,
-            avatarUrl: activeWorkspace?.logoUrl,
-            badgeColor: activeBadgeColor.hex,
-          }}
-          onChangeGroup={() => setIsWorkspacePickerOpen(true)}
-          status={!isOnline ? (
-            <span
-              className="mt-1 flex w-full items-center justify-end text-right text-[0.58rem] font-bold uppercase tracking-[0.14em] text-amber-300"
-              aria-live="polite"
-            >
-              <span className="mr-1 h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-amber-400" aria-hidden="true" />
-              {isForcedOffline ? 'Hors ligne · test' : 'Hors ligne'}
-            </span>
-          ) : undefined}
-        />
-      </header>
+      {!isSettingsRoute ? (
+        <header
+          ref={headerRef}
+          className={[
+            'fixed inset-x-0 z-40 bg-[var(--fz-bg)] backdrop-blur-sm transition-transform duration-200 ease-out will-change-transform',
+            isHeaderHidden ? '-translate-y-full pointer-events-none' : 'translate-y-0',
+          ].join(' ')}
+          style={{ top: `${viewportOffsetTop}px` }}
+          aria-hidden={isHeaderHidden ? true : undefined}
+        >
+          <AppHeader
+            logo={<FaderHeaderLogo />}
+            currentGroup={{
+              name: activeWorkspace?.name ?? 'Mon Espace',
+              initials: workspaceInitials,
+              avatarUrl: activeWorkspace?.logoUrl,
+              badgeColor: activeBadgeColor.hex,
+            }}
+            onChangeGroup={() => setIsWorkspacePickerOpen(true)}
+            status={!isOnline ? (
+              <span
+                className="mt-1 flex w-full items-center justify-end text-right text-[0.58rem] font-bold uppercase tracking-[0.14em] text-amber-300"
+                aria-live="polite"
+              >
+                <span className="mr-1 h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-amber-400" aria-hidden="true" />
+                {isForcedOffline ? 'Hors ligne · test' : 'Hors ligne'}
+              </span>
+            ) : undefined}
+          />
+        </header>
+      ) : null}
 
       {/* Workspace Picker Dialog */}
       {isWorkspacePickerOpen ? (
@@ -359,7 +371,10 @@ export function AppShell() {
       ) : null}
 
       {/* Main Content Area */}
-      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col px-3 pb-32 sm:px-4" style={{ paddingTop: `${headerHeight + 12}px` }}>
+      <div
+        className="mx-auto flex min-h-screen w-full max-w-md flex-col px-3 pb-32 sm:px-4"
+        style={{ paddingTop: isSettingsRoute ? 'max(1.25rem, calc(env(safe-area-inset-top) + 0.5rem))' : `${headerHeight + 12}px` }}
+      >
         <main className="flex-1 py-2">
           <Outlet />
         </main>

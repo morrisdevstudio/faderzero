@@ -103,6 +103,18 @@ describe('HomePage', () => {
     expect(screen.getAllByLabelText('Écouter New Creation')).toHaveLength(1);
 
     // Navigation tiles
+    const shortcuts = screen.getByRole('region', { name: "Fonctions de l'application" }).querySelectorAll(':scope a, :scope button');
+    expect(shortcuts).toHaveLength(8);
+    shortcuts.forEach((shortcut) => {
+      expect(shortcut).not.toHaveClass('border', 'rounded-2xl', 'bg-white/[0.03]');
+      expect(shortcut).toHaveClass('min-h-22');
+      expect(shortcut.firstElementChild).not.toHaveClass('border', 'rounded-xl');
+      expect(shortcut.firstElementChild).toHaveClass('h-12', 'w-12');
+    });
+    Array.from(shortcuts).slice(0, 7).forEach((shortcut) => {
+      expect(shortcut.querySelector('svg')).toHaveAttribute('width', '28');
+    });
+    expect(shortcuts[7]?.querySelector('svg')).toHaveClass('h-7', 'w-7');
     expect(screen.getByRole('link', { name: /booking/i })).toHaveAttribute('href', '/booking');
     expect(screen.getByRole('link', { name: /setlists/i })).toHaveAttribute('href', '/setlists');
 
