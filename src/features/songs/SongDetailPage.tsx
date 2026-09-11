@@ -210,60 +210,6 @@ export function SongDetailPage() {
     },
   });
 
-  const statusLongPress = useLongPress({
-    onLongPress: () => {
-      if (canWrite && song) {
-        setQuickValue(song.status);
-        setQuickEditField('status');
-      }
-    },
-  });
-
-  const keyLongPress = useLongPress({
-    onLongPress: () => {
-      if (canWrite && song) {
-        setQuickValue(song.key || '');
-        setQuickEditField('key');
-      }
-    },
-  });
-
-  const bpmLongPress = useLongPress({
-    onLongPress: () => {
-      if (canWrite && song) {
-        setQuickValue(song.bpm !== undefined ? String(song.bpm) : '');
-        setQuickEditField('bpm');
-      }
-    },
-  });
-
-  const durationLongPress = useLongPress({
-    onLongPress: () => {
-      if (canWrite && song) {
-        const dur = toDurationFields(song.durationSeconds);
-        setQuickDuration({ minutes: dur.durationMinutes, seconds: dur.durationSeconds });
-        setQuickEditField('duration');
-      }
-    },
-  });
-
-  const notesLongPress = useLongPress({
-    onLongPress: () => {
-      if (canWrite && song) {
-        setQuickValue(song.notes || '');
-        setQuickEditField('notes');
-      }
-    },
-  });
-
-  const lyricsLongPress = useLongPress({
-    onLongPress: () => {
-      if (canWrite && song) {
-        navigate(`/songs/${song.id}/write`);
-      }
-    },
-  });
-
   async function handleSaveQuickField() {
     if (!canWrite || !song) return;
 
@@ -772,7 +718,7 @@ export function SongDetailPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="flex items-center gap-3 rounded-[1rem] bg-[var(--fz-bg-elevated)] p-3">
+              <div className="flex items-center gap-3 border-b border-white/8 px-2 pb-4">
                 <button
                   type="button"
                   onClick={() => primaryAudioAsset && handlePlayAsset(primaryAudioAsset.id, cachedAssetIds.has(primaryAudioAsset.id))}
@@ -804,101 +750,125 @@ export function SongDetailPage() {
                 onChange={handleDirectAudioImport}
                 className="hidden"
               />
-              <div className="grid grid-cols-4 rounded-[1rem] bg-[var(--fz-bg-elevated)] px-1 py-3">
-                <div
+              <div className="grid grid-cols-4 border-b border-white/8 px-1 pb-4">
+                <button
+                  type="button"
+                  disabled={!canWrite}
+                  onClick={() => {
+                    setQuickValue(currentSong.status);
+                    setQuickEditField('status');
+                  }}
+                  aria-label="Modifier l'état"
                   className={[
-                    'flex min-w-0 flex-col items-center gap-1.5 px-1 text-center',
-                    canWrite ? 'cursor-pointer select-none transition hover:bg-white/5 active:opacity-75' : '',
+                    'flex min-h-11 min-w-0 flex-col items-center justify-center gap-1.5 px-1 text-center',
+                    canWrite ? 'cursor-pointer transition hover:bg-white/5 active:opacity-75' : 'cursor-default',
                   ].join(' ')}
-                  title={canWrite ? "Appui long pour modifier l'état" : undefined}
-                  {...(canWrite ? statusLongPress : {})}
+                  title={canWrite ? "Modifier l'état" : undefined}
                 >
                   <p className="text-[0.58rem] font-medium uppercase leading-tight text-[var(--fz-text-muted)]">État</p>
                   <StatusPill
                     label={getSongStatusLabel(currentSong.status)}
                     tone={getSongStatusTone(currentSong.status)}
                   />
-                </div>
-                <div
+                </button>
+                <button
+                  type="button"
+                  disabled={!canWrite}
+                  onClick={() => {
+                    setQuickValue(currentSong.key || '');
+                    setQuickEditField('key');
+                  }}
+                  aria-label="Modifier la tonalité"
                   className={[
-                    'flex min-w-0 flex-col items-center gap-1.5 border-l border-white/10 px-1 text-center',
-                    canWrite ? 'cursor-pointer select-none transition hover:bg-white/5 active:opacity-75' : '',
+                    'flex min-h-11 min-w-0 flex-col items-center justify-center gap-1.5 border-l border-white/10 px-1 text-center',
+                    canWrite ? 'cursor-pointer transition hover:bg-white/5 active:opacity-75' : 'cursor-default',
                   ].join(' ')}
-                  title={canWrite ? 'Appui long pour modifier la tonalité' : undefined}
-                  {...(canWrite ? keyLongPress : {})}
+                  title={canWrite ? 'Modifier la tonalité' : undefined}
                 >
                   <p className="text-[0.58rem] font-medium uppercase leading-tight text-[var(--fz-text-muted)]">Tone</p>
                   <p className="whitespace-nowrap text-[0.9rem] font-black leading-tight text-white">{currentSong.key || '--'}</p>
-                </div>
-                <div
+                </button>
+                <button
+                  type="button"
+                  disabled={!canWrite}
+                  onClick={() => {
+                    setQuickValue(currentSong.bpm !== undefined ? String(currentSong.bpm) : '');
+                    setQuickEditField('bpm');
+                  }}
+                  aria-label="Modifier le tempo"
                   className={[
-                    'flex min-w-0 flex-col items-center gap-1.5 border-l border-white/10 px-1 text-center',
-                    canWrite ? 'cursor-pointer select-none transition hover:bg-white/5 active:opacity-75' : '',
+                    'flex min-h-11 min-w-0 flex-col items-center justify-center gap-1.5 border-l border-white/10 px-1 text-center',
+                    canWrite ? 'cursor-pointer transition hover:bg-white/5 active:opacity-75' : 'cursor-default',
                   ].join(' ')}
-                  title={canWrite ? 'Appui long pour modifier le tempo' : undefined}
-                  {...(canWrite ? bpmLongPress : {})}
+                  title={canWrite ? 'Modifier le tempo' : undefined}
                 >
                   <p className="text-[0.58rem] font-medium uppercase leading-tight text-[var(--fz-text-muted)]">Tempo</p>
                   <p className="whitespace-nowrap text-[0.9rem] font-black leading-tight text-white">{currentSong.bpm || '--'}</p>
-                </div>
-                <div
+                </button>
+                <button
+                  type="button"
+                  disabled={!canWrite}
+                  onClick={() => {
+                    const duration = toDurationFields(currentSong.durationSeconds);
+                    setQuickDuration({ minutes: duration.durationMinutes, seconds: duration.durationSeconds });
+                    setQuickEditField('duration');
+                  }}
+                  aria-label="Modifier la durée"
                   className={[
-                    'flex min-w-0 flex-col items-center gap-1.5 border-l border-white/10 px-1 text-center',
-                    canWrite ? 'cursor-pointer select-none transition hover:bg-white/5 active:opacity-75' : '',
+                    'flex min-h-11 min-w-0 flex-col items-center justify-center gap-1.5 border-l border-white/10 px-1 text-center',
+                    canWrite ? 'cursor-pointer transition hover:bg-white/5 active:opacity-75' : 'cursor-default',
                   ].join(' ')}
-                  title={canWrite ? 'Appui long pour modifier la durée' : undefined}
-                  {...(canWrite ? durationLongPress : {})}
+                  title={canWrite ? 'Modifier la durée' : undefined}
                 >
                   <p className="text-[0.58rem] font-medium uppercase leading-tight text-[var(--fz-text-muted)]">Durée</p>
                   <p className="whitespace-nowrap text-[0.9rem] font-black leading-tight text-white">{formatSongDuration(currentSong.durationSeconds)}</p>
-                </div>
+                </button>
               </div>
 
-              {currentSong.notes?.trim() ? (
-                <section className="space-y-2">
-                  <p className="px-2 text-[0.68rem] font-black uppercase tracking-[0.18em] text-[var(--fz-text-muted)]">Notes</p>
-                  <div
-                    className={[
-                      'rounded-[1rem] bg-[var(--fz-bg-elevated)] p-3.5',
-                      canWrite ? 'cursor-pointer select-none transition hover:bg-[var(--fz-bg-elevated)]/90 active:scale-[0.99]' : '',
-                    ].join(' ')}
-                    title={canWrite ? 'Appui long pour modifier les notes' : undefined}
-                    {...(canWrite ? notesLongPress : {})}
-                  >
-                    <p className="whitespace-pre-line text-[0.9rem] leading-7 text-white/78">{currentSong.notes}</p>
-                  </div>
-                </section>
-              ) : canWrite ? (
-                <div className="px-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setQuickValue('');
-                      setQuickEditField('notes');
-                    }}
-                    className="inline-flex min-h-[44px] cursor-pointer items-center text-xs font-bold text-white transition hover:text-white/80 hover:underline focus-visible:outline-none focus-visible:underline"
-                  >
-                    Ajouter une note
-                  </button>
+              <section aria-labelledby="song-notes-heading" className="space-y-2 border-b border-white/8 pb-4">
+                <div className="flex min-h-11 items-center justify-between gap-3 px-2">
+                  <p id="song-notes-heading" className="text-[0.68rem] font-black uppercase tracking-[0.18em] text-[var(--fz-text-muted)]">Notes</p>
+                  {canWrite ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setQuickValue(currentSong.notes || '');
+                        setQuickEditField('notes');
+                      }}
+                      aria-label="Modifier les notes"
+                      title="Modifier les notes"
+                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white/55 transition hover:bg-white/6 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--fz-accent)] active:scale-95"
+                    >
+                      <FzIcon name="edit" usageId="song-detail.notes.edit" size="sm" />
+                    </button>
+                  ) : null}
                 </div>
-              ) : null}
+                <p className={[
+                  'whitespace-pre-line px-2 text-[0.9rem] leading-7',
+                  currentSong.notes?.trim() ? 'text-white/78' : 'text-[var(--fz-text-muted)]',
+                ].join(' ')}>
+                  {currentSong.notes?.trim() || 'Aucune note pour le moment.'}
+                </p>
+              </section>
 
-              <section className="space-y-2">
-                <p className="px-2 text-[0.68rem] font-black uppercase tracking-[0.18em] text-[var(--fz-text-muted)]">Paroles</p>
-                <div
-                  className={[
-                    'rounded-[1rem] bg-[var(--fz-bg-elevated)] p-3.5',
-                    canWrite
-                      ? 'cursor-pointer select-none transition hover:bg-[var(--fz-bg-elevated)]/90 active:scale-[0.99]'
-                      : '',
-                  ].join(' ')}
-                  title={canWrite ? "Appui long pour ouvrir l'éditeur de paroles" : undefined}
-                  {...(canWrite ? lyricsLongPress : {})}
-                >
-                  <p className="whitespace-pre-line text-[0.95rem] leading-7 text-white/88">
-                    {currentSong.lyrics || 'Aucune parole pour le moment.'}
-                  </p>
+              <section aria-labelledby="song-lyrics-heading" className="space-y-2 border-b border-white/8 pb-4">
+                <div className="flex min-h-11 items-center justify-between gap-3 px-2">
+                  <p id="song-lyrics-heading" className="text-[0.68rem] font-black uppercase tracking-[0.18em] text-[var(--fz-text-muted)]">Paroles</p>
+                  {canWrite ? (
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/songs/${currentSong.id}/write`)}
+                      aria-label="Modifier les paroles"
+                      title="Modifier les paroles"
+                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white/55 transition hover:bg-white/6 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--fz-accent)] active:scale-95"
+                    >
+                      <FzIcon name="edit" usageId="song-detail.lyrics.edit" size="sm" />
+                    </button>
+                  ) : null}
                 </div>
+                <p className="whitespace-pre-line px-2 text-[0.95rem] leading-7 text-white/88">
+                  {currentSong.lyrics || 'Aucune parole pour le moment.'}
+                </p>
               </section>
 
             </div>
