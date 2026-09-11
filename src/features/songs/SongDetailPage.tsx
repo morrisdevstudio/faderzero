@@ -656,17 +656,6 @@ export function SongDetailPage() {
         titleInteraction={canWrite ? { title: 'Appui long pour modifier le titre', ...titleLongPress } : undefined}
         actions={
           <>
-            {!isEditMode ? (
-              <Link
-                to={`/prompter/play?songId=${encodeURIComponent(currentSong.id)}`}
-                aria-label="Ouvrir cette chanson dans le prompteur"
-                title="Ouvrir le prompteur"
-                className="text-sky-400 hover:text-sky-300 active:text-sky-500"
-              >
-                <FzIcon name="prompter" usageId="song-detail.prompter" size="md" className="text-sky-400" />
-              </Link>
-            ) : null}
-
             {canWrite && !isEditMode ? (
               <button
                 type="button"
@@ -854,17 +843,27 @@ export function SongDetailPage() {
               <section aria-labelledby="song-lyrics-heading" className="space-y-2 border-b border-white/8 pb-4">
                 <div className="flex min-h-11 items-center justify-between gap-3 px-2">
                   <p id="song-lyrics-heading" className="text-[0.68rem] font-black uppercase tracking-[0.18em] text-[var(--fz-text-muted)]">Paroles</p>
-                  {canWrite ? (
-                    <button
-                      type="button"
-                      onClick={() => navigate(`/songs/${currentSong.id}/write`)}
-                      aria-label="Modifier les paroles"
-                      title="Modifier les paroles"
-                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white/55 transition hover:bg-white/6 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--fz-accent)] active:scale-95"
+                  <div className="flex items-center">
+                    <Link
+                      to={`/prompter/play?songId=${encodeURIComponent(currentSong.id)}`}
+                      aria-label="Ouvrir cette chanson dans le prompteur"
+                      title="Ouvrir le prompteur"
+                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-sky-400 transition hover:bg-white/6 hover:text-sky-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--fz-accent)] active:scale-95 active:text-sky-500"
                     >
-                      <FzIcon name="edit" usageId="song-detail.lyrics.edit" size="sm" />
-                    </button>
-                  ) : null}
+                      <FzIcon name="prompter" usageId="song-detail.lyrics.prompter" size="sm" />
+                    </Link>
+                    {canWrite ? (
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/songs/${currentSong.id}/write`)}
+                        aria-label="Modifier les paroles"
+                        title="Modifier les paroles"
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white/55 transition hover:bg-white/6 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--fz-accent)] active:scale-95"
+                      >
+                        <FzIcon name="edit" usageId="song-detail.lyrics.edit" size="sm" />
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
                 <p className="whitespace-pre-line px-2 text-[0.95rem] leading-7 text-white/88">
                   {currentSong.lyrics || 'Aucune parole pour le moment.'}

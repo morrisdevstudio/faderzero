@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef, type ReactNode } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { AddButton } from '@/ui/components/AddButton';
 import { Button } from '@/ui/components/Button';
 import { ContentRow } from '@/ui/components/ContentRow';
 import { PageHeader } from '@/ui/components/PageHeader';
@@ -117,14 +118,12 @@ function WorkspaceMemberList({
   workspace,
   canAdmin,
   removedUserId,
-  headerAction,
   onMemberRoleChange,
   onRemoveMember,
 }: {
   workspace: Workspace;
   canAdmin: boolean;
   removedUserId?: string | null;
-  headerAction?: ReactNode;
   onMemberRoleChange: (userId: string, newRole: WorkspaceRole) => Promise<boolean> | void;
   onRemoveMember: (member: WorkspaceMember) => void;
 }) {
@@ -210,11 +209,8 @@ function WorkspaceMemberList({
 
   if (loading) {
     return (
-      <div className="space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <p className="fz-field-label !mb-0">Membres du groupe</p>
-          {headerAction}
-        </div>
+      <div className="space-y-4">
+        <p className="fz-field-label !mb-0">Membres du groupe</p>
         <p className="text-xs text-white/40">Chargement des membres...</p>
       </div>
     );
@@ -222,24 +218,18 @@ function WorkspaceMemberList({
 
   if (error) {
     return (
-      <div className="space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <p className="fz-field-label !mb-0">Membres du groupe</p>
-          {headerAction}
-        </div>
+      <div className="space-y-4">
+        <p className="fz-field-label !mb-0">Membres du groupe</p>
         <p className="text-xs text-amber-400/80 bg-amber-500/10 border border-amber-500/20 p-2.5 rounded-lg">{error}</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between gap-3">
-        <p className="fz-field-label !mb-0">
-          Membres du groupe ({members.length})
-        </p>
-        {headerAction}
-      </div>
+    <div className="space-y-4">
+      <p className="fz-field-label !mb-0">
+        Membres du groupe ({members.length})
+      </p>
       <div className="divide-y divide-white/10 border-y border-white/10">
         {members.map((m) => (
           <div key={m.id} className="flex items-center justify-between gap-3 py-3 px-1">
@@ -1215,7 +1205,7 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
                           </div> : null}
 
                           {/* Workspace Administration & Tools (Accessible to all workspaces) */}
-                          <div className="space-y-3 pt-2 border-t border-white/10">
+                          <div className={view === 'group-members' ? undefined : 'space-y-3 pt-2 border-t border-white/10'}>
                             {ws.type !== 'group' ? <div className="flex items-center justify-between">
                               <h4 className="text-xs font-bold uppercase tracking-wider text-white/80">
                                 Contenus
@@ -1236,7 +1226,7 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
 
                             {ws.type === 'group' && (
                               <>
-                                {view === 'group-members' ? <div className="space-y-3"><WorkspaceMemberList workspace={ws} canAdmin={canAdministerWorkspace(ws.role)} removedUserId={lastRemovedUserId} headerAction={canAdministerWorkspace(ws.role) ? <Button type="button" onClick={() => void handleOpenShareDialog(ws)} variant="secondary">Inviter des membres</Button> : null} onMemberRoleChange={(userId, role) => handleMemberRoleChange(ws.id, userId, role)} onRemoveMember={(m) => setMemberToRemove({ member: m, workspaceId: ws.id })} /><Button type="button" onClick={() => void handleLeaveGroup(ws.id)} variant="danger" fullWidth>Quitter le groupe</Button></div> : null}
+                                {view === 'group-members' ? <div className="space-y-6">{canAdministerWorkspace(ws.role) ? <div className="flex items-center justify-between gap-3"><p className="fz-field-label !mb-0">Inviter des membres</p><AddButton aria-label="Inviter des membres" onClick={() => void handleOpenShareDialog(ws)} /></div> : null}<WorkspaceMemberList workspace={ws} canAdmin={canAdministerWorkspace(ws.role)} removedUserId={lastRemovedUserId} onMemberRoleChange={(userId, role) => handleMemberRoleChange(ws.id, userId, role)} onRemoveMember={(m) => setMemberToRemove({ member: m, workspaceId: ws.id })} /><Button type="button" onClick={() => void handleLeaveGroup(ws.id)} variant="danger" fullWidth>Quitter le groupe</Button></div> : null}
 
                                 {view === 'group-admin' ? <div className="flex gap-2 pt-2">
                                   {canAdministerWorkspace(ws.role) && (

@@ -192,6 +192,16 @@ describe('SongDetailPage - Notes', () => {
     expect(screen.getByText('Éditeur de paroles')).toBeInTheDocument();
   });
 
+  it("place le prompteur immédiatement à gauche du bouton de modification des paroles", () => {
+    renderSongDetail();
+
+    const prompterLink = screen.getByRole('link', { name: 'Ouvrir cette chanson dans le prompteur' });
+    const editLyricsButton = screen.getByRole('button', { name: 'Modifier les paroles' });
+
+    expect(prompterLink).toHaveAttribute('href', '/prompter/play?songId=song-1');
+    expect(prompterLink.nextElementSibling).toBe(editLyricsButton);
+  });
+
   it.each([
     ["Modifier l'état", 'Statut de création'],
     ['Modifier la tonalité', 'Sélectionner la Tonalité'],
@@ -212,6 +222,7 @@ describe('SongDetailPage - Notes', () => {
 
     expect(screen.queryByRole('button', { name: 'Modifier les notes' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Modifier les paroles' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Ouvrir cette chanson dans le prompteur' })).toBeInTheDocument();
     expect(screen.getByText('Aucune note pour le moment.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Modifier le tempo' })).toBeDisabled();
   });

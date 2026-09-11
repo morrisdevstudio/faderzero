@@ -125,7 +125,7 @@ describe('AccountPage', () => {
 
     openProfile();
     const input = await screen.findByRole('textbox', { name: 'Pseudo public' });
-    expect(input).toHaveValue('Yann');
+    await waitFor(() => expect(input).toHaveValue('Yann'));
     expect(screen.getByText('Pseudo public')).toHaveClass('fz-field-label');
     expect(screen.getByRole('button', { name: "Changer l'avatar de Yann" })).toHaveTextContent('YA');
     expect(screen.queryByText('private@example.test')).not.toBeInTheDocument();
