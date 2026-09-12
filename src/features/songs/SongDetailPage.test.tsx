@@ -226,4 +226,62 @@ describe('SongDetailPage - Notes', () => {
     expect(screen.getByText('Aucune note pour le moment.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Modifier le tempo' })).toBeDisabled();
   });
+
+  it("annule la modification du tempo si on ferme la pop-up sans valider", () => {
+    renderSongDetail();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Modifier le tempo' }));
+    expect(screen.getByRole('dialog', { name: 'Sélectionner le tempo' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '140 BPM' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Fermer' }));
+
+    expect(screen.queryByRole('dialog', { name: 'Sélectionner le tempo' })).not.toBeInTheDocument();
+    expect(mocks.updateSong).not.toHaveBeenCalled();
+  });
+
+  it("applique la modification du tempo lorsqu'on clique sur Valider", async () => {
+    renderSongDetail();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Modifier le tempo' }));
+    expect(screen.getByRole('dialog', { name: 'Sélectionner le tempo' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '140 BPM' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Valider' }));
+
+    await waitFor(() => {
+      expect(mocks.updateSong).toHaveBeenCalledWith('song-1', { bpm: 140 });
+    });
+    expect(screen.queryByRole('dialog', { name: 'Sélectionner le tempo' })).not.toBeInTheDocument();
+  });
+
+  it("annule la modification de la durée si on ferme la pop-up sans valider", () => {
+    renderSongDetail();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Modifier la durée' }));
+    expect(screen.getByRole('dialog', { name: 'Sélectionner la durée' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '05 min' }));
+    fireEvent.click(screen.getByRole('button', { name: '20 sec' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Fermer' }));
+
+    expect(screen.queryByRole('dialog', { name: 'Sélectionner la durée' })).not.toBeInTheDocument();
+    expect(mocks.updateSong).not.toHaveBeenCalled();
+  });
+
+  it("applique la modification de la durée lorsqu'on clique sur Valider", async () => {
+    renderSongDetail();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Modifier la durée' }));
+    expect(screen.getByRole('dialog', { name: 'Sélectionner la durée' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '05 min' }));
+    fireEvent.click(screen.getByRole('button', { name: '20 sec' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Valider' }));
+
+    await waitFor(() => {
+      expect(mocks.updateSong).toHaveBeenCalledWith('song-1', { durationSeconds: 5 * 60 + 20 });
+    });
+    expect(screen.queryByRole('dialog', { name: 'Sélectionner la durée' })).not.toBeInTheDocument();
+  });
 });

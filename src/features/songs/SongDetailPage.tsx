@@ -35,6 +35,7 @@ import { StatusPill } from '@/ui/components/StatusPill';
 import { SelectField } from '@/ui/components/SelectField';
 import { TextArea } from '@/ui/components/TextArea';
 import { TextField } from '@/ui/components/TextField';
+import { Button } from '@/ui/components/Button';
 
 const initialFormValues: SongFormValues = {
   title: '',
@@ -850,7 +851,7 @@ export function SongDetailPage() {
                       title="Ouvrir le prompteur"
                       className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-sky-400 transition hover:bg-white/6 hover:text-sky-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--fz-accent)] active:scale-95 active:text-sky-500"
                     >
-                      <FzIcon name="prompter" usageId="song-detail.lyrics.prompter" size="sm" />
+                      <FzIcon name="prompter" usageId="song-detail.lyrics.prompter" size="sm" className="text-sky-400" />
                     </Link>
                     {canWrite ? (
                       <button
@@ -1328,15 +1329,21 @@ export function SongDetailPage() {
         <PickerDialog title="Sélectionner le tempo" closeLabel="Fermer" onClose={() => setQuickEditField(null)}>
           <WheelColumn
             options={bpmOptions}
-            selectedValue={currentSong.bpm !== undefined ? String(currentSong.bpm) : ''}
+            selectedValue={quickValue}
             onSelect={(val) => {
-              const parsed = val ? Number(val) : undefined;
-              if (parsed !== undefined && !Number.isNaN(parsed)) {
-                void songsRepository.update(currentSong.id, { bpm: parsed });
-              }
+              setQuickValue(val);
             }}
             suffix="BPM"
           />
+          <div className="mt-5">
+            <Button
+              variant="primary"
+              fullWidth
+              onClick={() => void handleSaveQuickField()}
+            >
+              Valider
+            </Button>
+          </div>
         </PickerDialog>
       ) : null}
 
@@ -1350,13 +1357,7 @@ export function SongDetailPage() {
                 options={durationMinuteOptions}
                 selectedValue={quickDuration.minutes}
                 onSelect={(val) => {
-                  setQuickDuration((prev) => {
-                    const next = { ...prev, minutes: val };
-                    const mins = Math.max(0, Number(val) || 0);
-                    const secs = Math.min(59, Math.max(0, Number(prev.seconds) || 0));
-                    void songsRepository.update(currentSong.id, { durationSeconds: mins * 60 + secs });
-                    return next;
-                  });
+                  setQuickDuration((prev) => ({ ...prev, minutes: val }));
                 }}
                 suffix="min"
                 framed={false}
@@ -1365,18 +1366,21 @@ export function SongDetailPage() {
                 options={durationSecondOptions}
                 selectedValue={quickDuration.seconds}
                 onSelect={(val) => {
-                  setQuickDuration((prev) => {
-                    const next = { ...prev, seconds: val };
-                    const mins = Math.max(0, Number(prev.minutes) || 0);
-                    const secs = Math.min(59, Math.max(0, Number(val) || 0));
-                    void songsRepository.update(currentSong.id, { durationSeconds: mins * 60 + secs });
-                    return next;
-                  });
+                  setQuickDuration((prev) => ({ ...prev, seconds: val }));
                 }}
                 suffix="sec"
                 framed={false}
               />
             </div>
+          </div>
+          <div className="mt-5">
+            <Button
+              variant="primary"
+              fullWidth
+              onClick={() => void handleSaveQuickField()}
+            >
+              Valider
+            </Button>
           </div>
         </PickerDialog>
       ) : null}

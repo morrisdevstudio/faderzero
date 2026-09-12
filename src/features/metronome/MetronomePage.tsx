@@ -5,12 +5,20 @@ import { PickerDialog, WheelColumn } from '@/components/PickerDialog';
 import { setlistSongsRepository } from '@/db/repositories/setlistSongsRepository';
 import { setlistsRepository } from '@/db/repositories/setlistsRepository';
 import { songsRepository } from '@/db/repositories/songsRepository';
-import { clampBeatsPerBar, clampBpm, MetronomeEngine } from '@/features/metronome/metronomeEngine';
+import {
+  clampBeatsPerBar,
+  clampBpm,
+  clampSubdivision,
+  getDefaultBeatSounds,
+  normalizeBeatSounds,
+  MetronomeEngine,
+} from '@/features/metronome/metronomeEngine';
 import { bpmOptions, formatSetDuration, formatSongDuration, getSongStatusLabel, getSongStatusTone } from '@/features/songs/songPresentation';
 import { useAuthStore } from '@/stores/authStore';
 import { ContentRow } from '@/ui/components/ContentRow';
 import { PageHeader } from '@/ui/components/PageHeader';
 import { StatusPill } from '@/ui/components/StatusPill';
+import { Button } from '@/ui/components/Button';
 import { FzIcon } from '@/ui/icons';
 
 const TAP_MEMORY = 5;
@@ -168,16 +176,44 @@ function SubdivisionSelector({
   );
 }
 
+const SOUND_CONFIGS = [
+  {
+    name: 'aigu',
+    label: 'Son aigu',
+    idleClass: 'border-amber-500/40 bg-amber-500/20 hover:border-amber-400/60 hover:bg-amber-500/30 text-amber-300',
+    activeMainClass: 'border-amber-300 bg-amber-400 shadow-[0_0_24px_rgba(251,191,36,0.8)]',
+    activeSubClass: 'border-amber-300/60 bg-amber-300/70 shadow-[0_0_16px_rgba(252,211,77,0.4)]',
+  },
+  {
+    name: 'médium',
+    label: 'Son médium',
+    idleClass: 'border-sky-400/40 bg-sky-500/20 hover:border-sky-300/60 hover:bg-sky-500/30 text-sky-300',
+    activeMainClass: 'border-sky-200 bg-sky-300 shadow-[0_0_24px_rgba(56,189,248,0.8)]',
+    activeSubClass: 'border-sky-300/60 bg-sky-300/70 shadow-[0_0_16px_rgba(56,189,248,0.4)]',
+  },
+  {
+    name: 'grave',
+    label: 'Son grave',
+    idleClass: 'border-fuchsia-400/40 bg-fuchsia-500/20 hover:border-fuchsia-300/60 hover:bg-fuchsia-500/30 text-fuchsia-300',
+    activeMainClass: 'border-fuchsia-200 bg-fuchsia-300 shadow-[0_0_24px_rgba(232,121,249,0.8)]',
+    activeSubClass: 'border-fuchsia-300/60 bg-fuchsia-300/70 shadow-[0_0_16px_rgba(232,121,249,0.4)]',
+  },
+] as const;
+
 function MetronomeBeatGrid({
   engine,
   beatsPerBar,
   subdivision,
+  beatSounds,
+  onCycleSubdivisionSound,
   isRunning,
-  heightClass = 'h-6 sm:h-7',
+  heightClass = 'h-7 sm:h-8',
 }: {
   engine: MetronomeEngine | null;
   beatsPerBar: number;
   subdivision: MetronomeSubdivision;
+  beatSounds: number[][];
+  onCycleSubdivisionSound?: (beatIndex: number, subdivisionIndex: number) => void;
   isRunning: boolean;
   heightClass?: string;
 }) {
@@ -206,10 +242,13 @@ function MetronomeBeatGrid({
   const subdivisionSlots = useMemo(() => Array.from({ length: subdivision }, (_, index) => index), [subdivision]);
 
   return (
-    <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${beatsPerBar}, minmax(0, 1fr))` }}>
+    <div
+      className="grid gap-2"
+      role="group"
+      aria-label="Grille des temps du métronome"
+      style={{ gridTemplateColumns: `repeat(${beatsPerBar}, minmax(0, 1fr))` }}
+    >
       {beatSlots.map((slot) => {
-        const isAccent = slot === 0;
-
         return (
           <div
             key={slot}
@@ -217,25 +256,22 @@ function MetronomeBeatGrid({
             style={{ gridTemplateColumns: `repeat(${subdivision}, minmax(0, 1fr))` }}
           >
             {subdivisionSlots.map((subdivisionSlot) => {
-              const isMainBeat = subdivisionSlot === 0;
+              const soundType = (beatSounds[slot]?.[subdivisionSlot] ?? (subdivisionSlot === 0 ? (slot === 0 ? 0 : 1) : 2)) % 3;
+              const config = SOUND_CONFIGS[soundType] ?? SOUND_CONFIGS[0];
               const isActive = slot === activeBeat && subdivisionSlot === activeSubdivision && isRunning;
 
               return (
-                <div
+                <button
                   key={subdivisionSlot}
+                  type="button"
+                  onClick={() => onCycleSubdivisionSound?.(slot, subdivisionSlot)}
+                  title={`Temps ${slot + 1}${subdivision > 1 ? `.${subdivisionSlot + 1}` : ''} : ${config.label} (cliquer pour changer)`}
+                  aria-label={`Temps ${slot + 1}${subdivision > 1 ? ` subdivision ${subdivisionSlot + 1}` : ''} : ${config.label}. Cliquer pour changer.`}
                   className={[
-                    'rounded-md border transition',
-                    isActive && isAccent && isMainBeat
-                      ? 'border-amber-400/50 bg-amber-400 shadow-[0_0_24px_rgba(251,191,36,0.65)]'
-                      : isActive && isMainBeat
-                        ? 'border-amber-400/30 bg-amber-400/80 shadow-[0_0_18px_rgba(251,191,36,0.4)]'
-                        : isActive
-                          ? 'border-amber-300/40 bg-amber-300/70 shadow-[0_0_16px_rgba(252,211,77,0.3)]'
-                          : isAccent && isMainBeat
-                            ? 'border-white/10 bg-white/10'
-                            : isMainBeat
-                              ? 'border-white/6 bg-white/6'
-                              : 'border-amber-400/10 bg-amber-400/5',
+                    'h-full w-full rounded-lg border transition-all duration-75 cursor-pointer active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60',
+                    isActive
+                      ? config.activeMainClass
+                      : config.idleClass,
                   ].join(' ')}
                 />
               );
@@ -257,11 +293,14 @@ export function MetronomePage() {
   const [bpm, setBpm] = useState(120);
   const [beatsPerBar, setBeatsPerBar] = useState(4);
   const [subdivision, setSubdivision] = useState<MetronomeSubdivision>(1);
+  const [beatSounds, setBeatSounds] = useState<number[][]>(() => getDefaultBeatSounds(4, 1));
   const [isRunning, setIsRunning] = useState(false);
   const [audioError, setAudioError] = useState<string | null>(null);
   const [isTempoPickerOpen, setIsTempoPickerOpen] = useState(false);
   const [isTimeSignaturePickerOpen, setIsTimeSignaturePickerOpen] = useState(false);
   const [isSubdivisionPickerOpen, setIsSubdivisionPickerOpen] = useState(false);
+  const [draftBpm, setDraftBpm] = useState(120);
+  const [draftBeatsPerBar, setDraftBeatsPerBar] = useState(4);
 
   const [selectedSetlistId, setSelectedSetlistId] = useState<string | null>(null);
   const [isLiveViewOpen, setIsLiveViewOpen] = useState(false);
@@ -330,12 +369,63 @@ export function MetronomePage() {
     engineRef.current?.updateConfig({ subdivision });
   }, [subdivision]);
 
+  useEffect(() => {
+    engineRef.current?.updateConfig({ beatSounds });
+  }, [beatSounds]);
+
   function updateBpm(nextBpm: number) {
     setBpm(clampBpm(nextBpm));
   }
 
   function updateBeatsPerBarValue(nextValue: number) {
-    setBeatsPerBar(clampBeatsPerBar(nextValue));
+    const nextBeats = clampBeatsPerBar(nextValue);
+    setBeatsPerBar(nextBeats);
+    setBeatSounds((prev) => normalizeBeatSounds(prev, nextBeats, subdivision));
+  }
+
+  function updateSubdivisionValue(nextValue: MetronomeSubdivision) {
+    const nextSub = clampSubdivision(nextValue) as MetronomeSubdivision;
+    setSubdivision(nextSub);
+    setBeatSounds((prev) => normalizeBeatSounds(prev, beatsPerBar, nextSub));
+  }
+
+  function cycleSubdivisionSound(beatIndex: number, subdivisionIndex: number) {
+    setBeatSounds((prev) => {
+      const updated = prev.map((row) => [...row]);
+      if (!updated[beatIndex]) {
+        updated[beatIndex] = [];
+      }
+      const current =
+        updated[beatIndex]![subdivisionIndex] ??
+        (subdivisionIndex === 0 ? (beatIndex === 0 ? 0 : 1) : 2);
+      updated[beatIndex]![subdivisionIndex] = (current + 1) % 3;
+      return updated;
+    });
+  }
+
+  function openTempoPicker(songId: string | null = null, initialBpm = bpm) {
+    setEditingBpmSongId(songId);
+    setDraftBpm(initialBpm);
+    setIsTempoPickerOpen(true);
+  }
+
+  function openTimeSignaturePicker() {
+    setDraftBeatsPerBar(beatsPerBar);
+    setIsTimeSignaturePickerOpen(true);
+  }
+
+  async function handleConfirmTempo() {
+    updateBpm(draftBpm);
+    if (editingBpmSongId) {
+      await songsRepository.update(editingBpmSongId, { bpm: draftBpm });
+    }
+    setIsTempoPickerOpen(false);
+    setEditingBpmSongId(null);
+  }
+
+  function handleConfirmTimeSignature() {
+    updateBeatsPerBarValue(draftBeatsPerBar);
+    setIsTimeSignaturePickerOpen(false);
   }
 
   async function handleTogglePlayback() {
@@ -350,7 +440,7 @@ export function MetronomePage() {
         setIsRunning(false);
       } else {
         setAudioError(null);
-        await engine.start({ bpm, beatsPerBar, subdivision });
+        await engine.start({ bpm, beatsPerBar, subdivision, beatSounds });
         setIsRunning(true);
       }
     } catch {
@@ -364,10 +454,7 @@ export function MetronomePage() {
       setSelectedSongId(songId);
     }
     if (!songBpm || songBpm <= 0) {
-      if (songId) {
-        setEditingBpmSongId(songId);
-      }
-      setIsTempoPickerOpen(true);
+      openTempoPicker(songId || null, bpm);
       return;
     }
     const nextBpm = clampBpm(songBpm);
@@ -376,7 +463,7 @@ export function MetronomePage() {
     if (engine) {
       try {
         setAudioError(null);
-        await engine.start({ bpm: nextBpm, beatsPerBar, subdivision });
+        await engine.start({ bpm: nextBpm, beatsPerBar, subdivision, beatSounds });
         setIsRunning(true);
       } catch {
         setAudioError("Impossible de démarrer l'audio sur cet appareil.");
@@ -393,11 +480,8 @@ export function MetronomePage() {
     longPressTimerRef.current = window.setTimeout(() => {
       isLongPressRef.current = true;
       setSelectedSongId(songId);
-      setEditingBpmSongId(songId);
-      if (songBpm && songBpm > 0) {
-        setBpm(clampBpm(songBpm));
-      }
-      setIsTempoPickerOpen(true);
+      const targetBpm = songBpm && songBpm > 0 ? clampBpm(songBpm) : bpm;
+      openTempoPicker(songId, targetBpm);
     }, 450);
   }
 
@@ -423,8 +507,7 @@ export function MetronomePage() {
         setBpm(clampBpm(songBpm));
       }
     } else if (isRunning) {
-      setEditingBpmSongId(songId);
-      setIsTempoPickerOpen(true);
+      openTempoPicker(songId, bpm);
     }
   }
 
@@ -485,10 +568,7 @@ export function MetronomePage() {
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  setEditingBpmSongId(null);
-                  setIsTempoPickerOpen(true);
-                }}
+                onClick={() => openTempoPicker()}
                 className="group flex items-baseline gap-1 rounded-xl p-1 text-left transition hover:bg-white/6 focus-visible:outline-none"
                 title="Cliquer pour changer le tempo"
               >
@@ -522,7 +602,7 @@ export function MetronomePage() {
             <div className="flex items-center gap-3 justify-self-end text-right">
               <button
                 type="button"
-                onClick={() => setIsTimeSignaturePickerOpen(true)}
+                onClick={() => openTimeSignaturePicker()}
                 className="group rounded-xl p-1 text-right transition hover:bg-white/6 focus-visible:outline-none"
                 title="Cliquer pour changer la signature rythmique"
               >
@@ -545,6 +625,8 @@ export function MetronomePage() {
               engine={engineRef.current}
               beatsPerBar={beatsPerBar}
               subdivision={subdivision}
+              beatSounds={beatSounds}
+              onCycleSubdivisionSound={cycleSubdivisionSound}
               isRunning={isRunning}
             />
           </div>
@@ -666,10 +748,7 @@ export function MetronomePage() {
                 <div className="grid grid-cols-3 items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => {
-                      setEditingBpmSongId(null);
-                      setIsTempoPickerOpen(true);
-                    }}
+                    onClick={() => openTempoPicker()}
                     className="group flex items-baseline gap-1.5 rounded-xl p-1 text-left transition hover:bg-white/5 justify-self-start"
                     title="Changer le tempo"
                   >
@@ -700,7 +779,7 @@ export function MetronomePage() {
                   <div className="flex items-center gap-4 justify-self-end text-right">
                     <button
                       type="button"
-                      onClick={() => setIsTimeSignaturePickerOpen(true)}
+                      onClick={() => openTimeSignaturePicker()}
                       className="group rounded-xl p-1 text-right transition hover:bg-white/5"
                       title="Changer la signature rythmique"
                     >
@@ -723,8 +802,10 @@ export function MetronomePage() {
                     engine={engineRef.current}
                     beatsPerBar={beatsPerBar}
                     subdivision={subdivision}
+                    beatSounds={beatSounds}
+                    onCycleSubdivisionSound={cycleSubdivisionSound}
                     isRunning={isRunning}
-                    heightClass="h-7"
+                    heightClass="h-8 sm:h-9"
                   />
                 </div>
 
@@ -852,18 +933,23 @@ export function MetronomePage() {
         >
           <WheelColumn
             options={bpmOptions}
-            selectedValue={String(bpm)}
-            onSelect={async (value) => {
+            selectedValue={String(draftBpm)}
+            onSelect={(value) => {
               if (value) {
-                const nextBpm = Number(value);
-                updateBpm(nextBpm);
-                if (editingBpmSongId) {
-                  await songsRepository.update(editingBpmSongId, { bpm: nextBpm });
-                }
+                setDraftBpm(Number(value));
               }
             }}
             suffix="BPM"
           />
+          <div className="mt-5">
+            <Button
+              variant="primary"
+              fullWidth
+              onClick={() => void handleConfirmTempo()}
+            >
+              Valider
+            </Button>
+          </div>
         </PickerDialog>
       ) : null}
 
@@ -876,14 +962,23 @@ export function MetronomePage() {
         >
           <WheelColumn
             options={['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12']}
-            selectedValue={String(beatsPerBar)}
+            selectedValue={String(draftBeatsPerBar)}
             onSelect={(value) => {
               if (value) {
-                updateBeatsPerBarValue(Number(value));
+                setDraftBeatsPerBar(Number(value));
               }
             }}
             suffix="Temps"
           />
+          <div className="mt-5">
+            <Button
+              variant="primary"
+              fullWidth
+              onClick={handleConfirmTimeSignature}
+            >
+              Valider
+            </Button>
+          </div>
         </PickerDialog>
       ) : null}
 
@@ -893,7 +988,7 @@ export function MetronomePage() {
           closeLabel="Fermer"
           onClose={() => setIsSubdivisionPickerOpen(false)}
         >
-          <SubdivisionSelector value={subdivision} onChange={setSubdivision} />
+          <SubdivisionSelector value={subdivision} onChange={updateSubdivisionValue} />
         </PickerDialog>
       ) : null}
     </div>

@@ -5,6 +5,7 @@ import { bpmOptions, songStatusOptions } from '@/features/songs/songPresentation
 import { FieldLabel } from '@/ui/components/FieldLabel';
 import { TextArea } from '@/ui/components/TextArea';
 import { TextField } from '@/ui/components/TextField';
+import { Button } from '@/ui/components/Button';
 
 export interface SongFormValues {
   title: string;
@@ -37,6 +38,9 @@ function formatDurationLabel(minutes: string, seconds: string) {
 
 export function SongFormFields({ values, onChange, disabled = false, showLyrics = true }: SongFormFieldsProps) {
   const [activePicker, setActivePicker] = useState<ActivePicker>(null);
+  const [draftBpm, setDraftBpm] = useState(values.bpm);
+  const [draftDurationMinutes, setDraftDurationMinutes] = useState(values.durationMinutes);
+  const [draftDurationSeconds, setDraftDurationSeconds] = useState(values.durationSeconds);
   const [isLyricsFocused, setIsLyricsFocused] = useState(false);
   const notesTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const lyricsTextareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -81,9 +85,6 @@ export function SongFormFields({ values, onChange, disabled = false, showLyrics 
     };
   }
 
-  function handleDurationChange(field: 'durationMinutes' | 'durationSeconds', value: string) {
-    updateField(field, value);
-  }
 
   function handleLyricsFocus() {
     setIsLyricsFocused(true);
@@ -155,13 +156,20 @@ export function SongFormFields({ values, onChange, disabled = false, showLyrics 
           <PickerTrigger
             label="TEMPO"
             value={values.bpm ? `${values.bpm} BPM` : '--'}
-            onClick={() => setActivePicker('bpm')}
+            onClick={() => {
+              setDraftBpm(values.bpm);
+              setActivePicker('bpm');
+            }}
             disabled={disabled}
           />
           <PickerTrigger
             label="Duree"
             value={formatDurationLabel(values.durationMinutes, values.durationSeconds)}
-            onClick={() => setActivePicker('duration')}
+            onClick={() => {
+              setDraftDurationMinutes(values.durationMinutes);
+              setDraftDurationSeconds(values.durationSeconds);
+              setActivePicker('duration');
+            }}
             disabled={disabled}
           />
         </div>
@@ -294,7 +302,19 @@ export function SongFormFields({ values, onChange, disabled = false, showLyrics 
 
       {activePicker === 'bpm' ? (
         <PickerDialog title="Sélectionner le tempo" closeLabel="Fermer" onClose={() => setActivePicker(null)}>
-          <WheelColumn options={bpmOptions} selectedValue={values.bpm} onSelect={(value) => updateField('bpm', value)} suffix="BPM" />
+          <WheelColumn options={bpmOptions} selectedValue={draftBpm} onSelect={(value) => setDraftBpm(value)} suffix="BPM" />
+          <div className="mt-5">
+            <Button
+              variant="primary"
+              fullWidth
+              onClick={() => {
+                updateField('bpm', draftBpm);
+                setActivePicker(null);
+              }}
+            >
+              Valider
+            </Button>
+          </div>
         </PickerDialog>
       ) : null}
 
@@ -306,19 +326,35 @@ export function SongFormFields({ values, onChange, disabled = false, showLyrics 
               <div aria-hidden="true" className="pointer-events-none absolute bottom-4 left-1/2 top-4 z-20 w-px bg-white/8" />
               <WheelColumn
                 options={durationMinuteOptions}
-                selectedValue={values.durationMinutes}
-                onSelect={(value) => handleDurationChange('durationMinutes', value)}
+                selectedValue={draftDurationMinutes}
+                onSelect={(value) => setDraftDurationMinutes(value)}
                 suffix="min"
                 framed={false}
               />
               <WheelColumn
                 options={durationSecondOptions}
-                selectedValue={values.durationSeconds}
-                onSelect={(value) => handleDurationChange('durationSeconds', value)}
+                selectedValue={draftDurationSeconds}
+                onSelect={(value) => setDraftDurationSeconds(value)}
                 suffix="sec"
                 framed={false}
               />
             </div>
+          </div>
+          <div className="mt-5">
+            <Button
+              variant="primary"
+              fullWidth
+              onClick={() => {
+                onChange({
+                  ...values,
+                  durationMinutes: draftDurationMinutes,
+                  durationSeconds: draftDurationSeconds,
+                });
+                setActivePicker(null);
+              }}
+            >
+              Valider
+            </Button>
           </div>
         </PickerDialog>
       ) : null}

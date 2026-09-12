@@ -81,12 +81,20 @@ export const eventsRepository = {
   },
 
 
-  async listUpcoming(workspaceId?: string, limit: number = 3): Promise<EventRecord[]> {
-    const targetWorkspaceId = workspaceId || useAuthStore.getState().activeWorkspace?.id || 'default-workspace';
+  async listUpcoming(workspaceId?: string | string[], limit: number = 3): Promise<EventRecord[]> {
     const currentTime = Date.now();
-    const items = await db.events
-      .where('workspaceId')
-      .equals(targetWorkspaceId)
+    let collection;
+
+    if (Array.isArray(workspaceId)) {
+      if (workspaceId.length === 0) return [];
+      collection = db.events.where('workspaceId').anyOf(workspaceId);
+    } else if (workspaceId) {
+      collection = db.events.where('workspaceId').equals(workspaceId);
+    } else {
+      collection = db.events.toCollection();
+    }
+
+    const items = await collection
       .filter((event) => event.deletedAt === undefined && (event.endAt ? event.endAt >= currentTime : event.startAt >= currentTime - 3600000))
       .toArray();
 

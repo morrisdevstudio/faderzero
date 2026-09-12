@@ -10,7 +10,6 @@ import { db } from '@/db/db';
 import { useWorkspaceBadgeColors } from '@/services/workspaceColors';
 import { formatSongDuration, getSongStatusLabel, getSongStatusTone } from '@/features/songs/songPresentation';
 import { ContentRow } from '@/ui/components/ContentRow';
-import { PageHeader } from '@/ui/components/PageHeader';
 import { StatusPill } from '@/ui/components/StatusPill';
 import { FzIcon } from '@/ui/icons';
 import { QuickVoiceRecorder } from '@/features/recorder/QuickVoiceRecorder';
@@ -47,14 +46,17 @@ export function HomePage() {
 
   const currentPlayingTrack = currentIndex >= 0 ? queue[currentIndex] : undefined;
 
+  const workspacesKey = workspaces.map((w) => w.id).join(',');
+
   useEffect(() => {
     let active = true;
 
     const loadData = async () => {
       setLoading(true);
       try {
-        // 1. Prochains événements
-        const eventsData = await eventsRepository.listUpcoming(activeWorkspace?.id, 3);
+        const workspaceIds = workspaces.map((w) => w.id);
+        // 1. Prochains événements à travers tous les espaces
+        const eventsData = await eventsRepository.listUpcoming(workspaceIds.length > 0 ? workspaceIds : undefined, 3);
 
         // 2. Dernières chansons modifiées à travers TOUS les espaces
         const allSongs = await db.songs
@@ -98,7 +100,7 @@ export function HomePage() {
     return () => {
       active = false;
     };
-  }, [activeWorkspace?.id]);
+  }, [activeWorkspace?.id, workspacesKey]);
 
   const handlePlaySongAsset = async (song: SongRecord, asset: SongAssetRecord) => {
     const isThisPlaying = currentPlayingTrack?.assetId === asset.id;
@@ -126,10 +128,17 @@ export function HomePage() {
     }
   };
 
+  const handleSelectEvent = (evt: EventRecord) => {
+    if (evt.workspaceId && evt.workspaceId !== activeWorkspace?.id) {
+      const targetWorkspace = workspaces.find((w) => w.id === evt.workspaceId);
+      if (targetWorkspace) {
+        setActiveWorkspace(targetWorkspace);
+      }
+    }
+  };
+
   return (
     <div className="space-y-6">
-      <PageHeader icon={<FzIcon name="home" usageId="page-header.home" size="xl" />} title="Accueil" />
-
       {/* GRILLE DES FONCTIONS DE L'APP */}
       <section aria-label="Fonctions de l'application">
         <div className="grid grid-cols-4 gap-2">
@@ -281,6 +290,7 @@ export function HomePage() {
                   key={evt.id}
                   mode="link"
                   to="/calendar"
+                  onClick={() => handleSelectEvent(evt)}
                   className="border-l-2"
                   style={{ borderLeftColor: workspaceColor }}
                   title={evt.title}

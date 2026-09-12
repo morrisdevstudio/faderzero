@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
+import { eventsRepository } from '@/db/repositories/eventsRepository';
 import { HomePage } from './HomePage';
 
 const mockSetActiveWorkspace = vi.fn();
@@ -88,7 +89,7 @@ describe('HomePage', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText('Accueil')).toBeInTheDocument();
+    expect(screen.queryByText('Accueil')).not.toBeInTheDocument();
     expect(screen.queryByText('Fonctions & Outils')).not.toBeInTheDocument();
     expect(await screen.findByRole('heading', { level: 2, name: 'Activité' })).toBeInTheDocument();
     expect(screen.queryByText('Tout voir')).not.toBeInTheDocument();
@@ -125,7 +126,13 @@ describe('HomePage', () => {
     expect(songNoAudioLink.parentElement).toHaveClass('border-y');
     expect(songNoAudioLink.querySelector('[data-icon="songs"]')).not.toBeInTheDocument();
 
+    const eventLink = await screen.findByRole('link', { name: /Concert au Bikini/i });
+    fireEvent.click(eventLink);
+    expect(mockSetActiveWorkspace).toHaveBeenCalledWith(mockWorkspaces[1]);
+    mockSetActiveWorkspace.mockClear();
+
     fireEvent.click(songNoAudioLink);
     expect(mockSetActiveWorkspace).toHaveBeenCalledWith(mockWorkspaces[1]);
+    expect(eventsRepository.listUpcoming).toHaveBeenCalledWith(['personal-1', 'group-a'], 3);
   });
 });

@@ -35,10 +35,13 @@ export interface AudioContextLike {
 
 type TimerId = ReturnType<typeof window.setTimeout>;
 
+export type BeatSound = 0 | 1 | 2;
+
 export interface MetronomeEngineConfig {
   bpm: number;
   beatsPerBar: number;
   subdivision: number;
+  beatSounds?: number[] | number[][];
 }
 
 export interface MetronomeEngineOptions {
@@ -53,6 +56,7 @@ export interface ScheduledBeatEvent {
   beatInBar: number;
   subdivisionInBeat: number;
   scheduledTime: number;
+  soundType?: number | undefined;
 }
 
 export function clampBpm(value: number) {
@@ -65,6 +69,48 @@ export function clampBeatsPerBar(value: number) {
 
 export function clampSubdivision(value: number) {
   return Math.min(6, Math.max(1, Math.round(value)));
+}
+
+export function normalizeBeatSounds(
+  sounds: number[] | number[][] | undefined,
+  beatsPerBar: number,
+  subdivision: number,
+): number[][] {
+  const countBeats = clampBeatsPerBar(beatsPerBar);
+  const countSub = clampSubdivision(subdivision);
+  const result: number[][] = [];
+
+  for (let b = 0; b < countBeats; b++) {
+    const row: number[] = [];
+    const source = sounds?.[b];
+    const sourceRow = Array.isArray(source) ? source : typeof source === 'number' ? [source] : undefined;
+
+    for (let s = 0; s < countSub; s++) {
+      const existing = sourceRow?.[s];
+      if (existing !== undefined) {
+        row.push(((existing % 3) + 3) % 3);
+      } else if (s === 0) {
+        row.push(b === 0 ? 0 : 1);
+      } else {
+        row.push(2);
+      }
+    }
+    result.push(row);
+  }
+
+  return result;
+}
+
+export function getDefaultBeatSounds(beatsPerBar: number, subdivision = 1): number[][] {
+  return normalizeBeatSounds(undefined, beatsPerBar, subdivision);
+}
+
+export function adjustBeatSoundsLength(
+  currentSounds: number[] | number[][],
+  newBeats: number,
+  newSubdivision = 1,
+): number[][] {
+  return normalizeBeatSounds(currentSounds, newBeats, newSubdivision);
 }
 
 export class MetronomeEngine {
@@ -81,6 +127,7 @@ export class MetronomeEngine {
   private bpm = 120;
   private beatsPerBar = 4;
   private subdivision = 1;
+  private beatSounds: number[][] = normalizeBeatSounds(undefined, 4, 1);
   private nextBeatIndex = 0;
   private nextSubdivisionIndex = 0;
   private nextNoteTime = 0;
@@ -104,6 +151,7 @@ export class MetronomeEngine {
       bpm: this.bpm,
       beatsPerBar: this.beatsPerBar,
       subdivision: this.subdivision,
+      beatSounds: this.beatSounds.map((row) => [...row]),
     };
   }
 
@@ -175,6 +223,10 @@ export class MetronomeEngine {
         this.nextBeatIndex = (this.nextBeatIndex + 1) % this.beatsPerBar;
       }
     }
+
+    if (config.beatsPerBar !== undefined || config.subdivision !== undefined || config.beatSounds !== undefined) {
+      this.beatSounds = normalizeBeatSounds(config.beatSounds ?? this.beatSounds, this.beatsPerBar, this.subdivision);
+    }
   }
 
   private getSecondsPerBeat() {
@@ -218,14 +270,29 @@ export class MetronomeEngine {
   private scheduleBeat(beatInBar: number, subdivisionInBeat: number, scheduledTime: number, generation: number) {
     const audioContext = this.getAudioContext();
     const isMainBeat = subdivisionInBeat === 0;
-    const isAccent = beatInBar === 0 && isMainBeat;
+    const soundType = (this.beatSounds[beatInBar]?.[subdivisionInBeat] ?? (isMainBeat ? (beatInBar === 0 ? 0 : 1) : 2)) % 3;
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
 
     oscillator.type = 'square';
-    oscillator.frequency.setValueAtTime(isAccent ? 1760 : isMainBeat ? 1320 : 880, scheduledTime);
+
+    let frequency = 1320;
+    let peakGain = 0.55;
+
+    if (soundType === 0) {
+      frequency = 1760;
+      peakGain = isMainBeat ? 0.9 : 0.7;
+    } else if (soundType === 1) {
+      frequency = 1320;
+      peakGain = isMainBeat ? 0.55 : 0.45;
+    } else {
+      frequency = 880;
+      peakGain = isMainBeat ? 0.4 : 0.38;
+    }
+
+    oscillator.frequency.setValueAtTime(frequency, scheduledTime);
     gainNode.gain.setValueAtTime(0.0001, scheduledTime);
-    gainNode.gain.exponentialRampToValueAtTime(isAccent ? 0.9 : isMainBeat ? 0.55 : 0.38, scheduledTime + 0.002);
+    gainNode.gain.exponentialRampToValueAtTime(peakGain, scheduledTime + 0.002);
     gainNode.gain.exponentialRampToValueAtTime(0.0001, scheduledTime + CLICK_DURATION_SECONDS);
 
     oscillator.connect(gainNode);
@@ -249,6 +316,7 @@ export class MetronomeEngine {
         beatInBar,
         subdivisionInBeat,
         scheduledTime,
+        soundType,
       });
     }, delayMs);
 

@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+  adjustBeatSoundsLength,
   clampBeatsPerBar,
   clampBpm,
   clampSubdivision,
+  getDefaultBeatSounds,
   MetronomeEngine,
   type AudioContextLike,
   type AudioParamLike,
@@ -235,6 +237,132 @@ describe('metronomeEngine', () => {
 
     expect(beatListener).not.toHaveBeenCalled();
     expect(engine.running).toBe(false);
+  });
+
+  it('manages default and adjusted beat sound arrays', () => {
+    expect(getDefaultBeatSounds(4, 1)).toEqual([[0], [1], [1], [1]]);
+    expect(getDefaultBeatSounds(3, 2)).toEqual([
+      [0, 2],
+      [1, 2],
+      [1, 2],
+    ]);
+
+    expect(adjustBeatSoundsLength([[0], [2], [1]], 4, 1)).toEqual([[0], [2], [1], [1]]);
+    expect(adjustBeatSoundsLength([[2, 0], [1, 2]], 2, 2)).toEqual([
+      [2, 0],
+      [1, 2],
+    ]);
+    expect(adjustBeatSoundsLength([5, -1], 2, 1)).toEqual([[2], [2]]);
+  });
+
+  it('allows customizing sounds for each subdivision', async () => {
+    const audioContext = new FakeAudioContext();
+    const scheduledCallbacks: Array<{ callback: () => void; delayMs: number }> = [];
+
+    const engine = new MetronomeEngine({
+      createAudioContext: () => audioContext,
+      lookaheadMs: 25,
+      scheduleAheadTime: 0.15,
+      setTimer: vi.fn((callback: () => void, delayMs: number) => {
+        scheduledCallbacks.push({ callback, delayMs });
+        return scheduledCallbacks.length as ReturnType<typeof window.setTimeout>;
+      }),
+      clearTimer: vi.fn(),
+    });
+
+    // 2 beats, 2 subdivisions per beat (croches)
+    // Beat 0: [0 (Aigu: 1760), 1 (Médium: 1320)]
+    // Beat 1: [2 (Grave: 880), 0 (Aigu: 1760)]
+    await engine.start({
+      bpm: 120,
+      beatsPerBar: 2,
+      subdivision: 2,
+      beatSounds: [
+        [0, 1],
+        [2, 0],
+      ],
+    });
+
+    // Beat 0, subdivision 0: 1760
+    expect(audioContext.oscillators[0]?.frequency.events[0]).toMatchObject({ value: 1760 });
+
+    // Beat 0, subdivision 1: 1320
+    audioContext.currentTime = 0.2;
+    runNextSchedulerTick(scheduledCallbacks);
+    expect(audioContext.oscillators[1]?.frequency.events[0]).toMatchObject({ value: 1320 });
+
+    // Beat 1, subdivision 0: 880
+    audioContext.currentTime = 0.45;
+    runNextSchedulerTick(scheduledCallbacks);
+    expect(audioContext.oscillators[2]?.frequency.events[0]).toMatchObject({ value: 880 });
+
+    // Beat 1, subdivision 1: 1760
+    audioContext.currentTime = 0.7;
+    runNextSchedulerTick(scheduledCallbacks);
+    expect(audioContext.oscillators[3]?.frequency.events[0]).toMatchObject({ value: 1760 });
+  });
+
+  it('plays custom beat sounds: 0 = 1760Hz, 1 = 1320Hz, 2 = 880Hz', async () => {
+    const audioContext = new FakeAudioContext();
+    const scheduledCallbacks: Array<{ callback: () => void; delayMs: number }> = [];
+
+    const engine = new MetronomeEngine({
+      createAudioContext: () => audioContext,
+      lookaheadMs: 25,
+      scheduleAheadTime: 0.15,
+      setTimer: vi.fn((callback: () => void, delayMs: number) => {
+        scheduledCallbacks.push({ callback, delayMs });
+        return scheduledCallbacks.length as ReturnType<typeof window.setTimeout>;
+      }),
+      clearTimer: vi.fn(),
+    });
+
+    // Beat 0 -> Sound 2 (Low: 880Hz)
+    // Beat 1 -> Sound 0 (High: 1760Hz)
+    // Beat 2 -> Sound 1 (Medium: 1320Hz)
+    await engine.start({ bpm: 120, beatsPerBar: 3, beatSounds: [2, 0, 1] });
+
+    // Beat 0
+    expect(audioContext.oscillators[0]?.frequency.events[0]).toMatchObject({ value: 880 });
+
+    // Beat 1
+    audioContext.currentTime = 0.45;
+    runNextSchedulerTick(scheduledCallbacks);
+    expect(audioContext.oscillators[1]?.frequency.events[0]).toMatchObject({ value: 1760 });
+
+    // Beat 2
+    audioContext.currentTime = 0.95;
+    runNextSchedulerTick(scheduledCallbacks);
+    expect(audioContext.oscillators[2]?.frequency.events[0]).toMatchObject({ value: 1320 });
+  });
+
+  it('updates beat sounds dynamically while running', async () => {
+    const audioContext = new FakeAudioContext();
+    const scheduledCallbacks: Array<{ callback: () => void; delayMs: number }> = [];
+
+    const engine = new MetronomeEngine({
+      createAudioContext: () => audioContext,
+      lookaheadMs: 25,
+      scheduleAheadTime: 0.15,
+      setTimer: vi.fn((callback: () => void, delayMs: number) => {
+        scheduledCallbacks.push({ callback, delayMs });
+        return scheduledCallbacks.length as ReturnType<typeof window.setTimeout>;
+      }),
+      clearTimer: vi.fn(),
+    });
+
+    await engine.start({ bpm: 120, beatsPerBar: 2, beatSounds: [0, 1] });
+
+    // Beat 0: 1760
+    expect(audioContext.oscillators[0]?.frequency.events[0]).toMatchObject({ value: 1760 });
+
+    // User updates beat 1 to sound 2 while playing
+    engine.updateConfig({ beatSounds: [0, 2] });
+
+    // Beat 1: should now play 880
+    audioContext.currentTime = 0.45;
+    runNextSchedulerTick(scheduledCallbacks);
+    expect(audioContext.oscillators[1]?.frequency.events[0]).toMatchObject({ value: 880 });
   });
 });
 
