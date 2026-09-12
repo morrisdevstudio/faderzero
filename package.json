@@ -31,16 +31,19 @@
     "test": "vitest run",
     "test:worker": "vitest run cloudflare/audio-worker/src/index.test.ts",
     "test:epk": "vitest run cloudflare/epk-public/src/index.test.ts",
+    "test:issue-reporter": "vitest run cloudflare/issue-reporter/src/index.test.ts",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
     "typecheck:worker": "tsc --noEmit -p cloudflare/audio-worker/tsconfig.json",
     "typecheck:epk": "tsc --noEmit -p cloudflare/epk-public/tsconfig.json",
+    "typecheck:issue-reporter": "tsc --noEmit -p cloudflare/issue-reporter/tsconfig.json",
     "verify:fast": "npm run typecheck && npm run lint && npm run test",
-    "verify:full": "npm run verify:fast && npm run typecheck:worker && npm run test:worker && npm run typecheck:epk && npm run test:epk && npm run check:cloudflare:costs && npm run security:headers && npm run security:secrets && npm run build:deploy"
+    "verify:full": "npm run verify:fast && npm run typecheck:worker && npm run test:worker && npm run typecheck:epk && npm run test:epk && npm run typecheck:issue-reporter && npm run test:issue-reporter && npm run check:cloudflare:costs && npm run security:headers && npm run security:secrets && npm run build:deploy"
   },
   "dependencies": {
     "@breezystack/lamejs": "^1.2.7",
     "@floating-ui/dom": "^1.8.0",
+    "@html2canvas/html2canvas": "1.8.0",
     "@supabase/supabase-js": "2.108.2",
     "@tailwindcss/vite": "^4.3.1",
     "@tiptap/core": "3.29.2",

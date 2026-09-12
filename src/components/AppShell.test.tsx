@@ -24,7 +24,7 @@ describe('AppShell logo', () => {
     vi.useFakeTimers();
     vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined);
     setForcedOffline(false);
-    useAuthStore.setState({ activeWorkspace: workspace, workspaces: [workspace] });
+    useAuthStore.setState({ session: null, activeWorkspace: workspace, workspaces: [workspace] });
   });
 
   afterEach(() => {
@@ -48,7 +48,7 @@ describe('AppShell logo', () => {
     expect(screen.getByTestId('location')).toHaveTextContent('/home');
   });
 
-  it('toggles forced offline after a long press without navigating', () => {
+  it('does not use the logo long press to toggle forced offline anymore', () => {
     render(
       <MemoryRouter initialEntries={['/songs']}>
         <Routes>
@@ -62,19 +62,10 @@ describe('AppShell logo', () => {
     const logo = screen.getByRole('link', { name: 'FaderZero Accueil' });
 
     fireEvent.pointerDown(logo, { clientX: 10, clientY: 10 });
-    act(() => vi.advanceTimersByTime(700));
+    act(() => vi.advanceTimersByTime(1300));
     fireEvent.pointerUp(logo);
-    fireEvent.click(logo);
-
-    expect(screen.getByText('Hors ligne · test')).toBeInTheDocument();
-    expect(screen.getByTestId('location')).toHaveTextContent('/songs');
-
-    fireEvent.pointerDown(logo, { clientX: 10, clientY: 10 });
-    act(() => vi.advanceTimersByTime(700));
-    fireEvent.pointerUp(logo);
-    fireEvent.click(logo);
-
     expect(screen.queryByText('Hors ligne · test')).not.toBeInTheDocument();
+    expect(screen.getByTestId('location')).toHaveTextContent('/songs');
   });
 
   it('offers the voice recorder from the central quick actions button', () => {

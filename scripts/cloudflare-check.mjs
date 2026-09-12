@@ -7,7 +7,7 @@ const distHost = fileURLToPath(new URL('../dist', import.meta.url));
 const imageName = 'faderzero-cloudflare-check:local';
 const containerName = 'faderzero-cloudflare-check-local';
 const publicEnvPath = fileURLToPath(new URL('../.env.deploy.example', import.meta.url));
-const publicEnvKeys = ['VITE_SUPABASE_URL', 'VITE_SUPABASE_ANON_KEY', 'VITE_AUDIO_API_URL'];
+const publicEnvKeys = ['VITE_SUPABASE_URL', 'VITE_SUPABASE_ANON_KEY', 'VITE_AUDIO_API_URL', 'VITE_ISSUE_REPORT_API_URL'];
 
 function run(command, args) {
   const result = spawnSync(command, args, { cwd: projectRoot, stdio: 'inherit' });

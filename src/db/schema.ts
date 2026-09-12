@@ -265,6 +265,44 @@ export interface RecoveryItemRecord {
   recoveredWorkspaceId?: string;
 }
 
+export type IssueReportCategory = 'bug' | 'amélioration' | 'notes' | 'feature';
+export type IssueReportDraftStage = 'annotating' | 'editing' | 'ready' | 'failed';
+
+export interface IssueReportAnnotationPoint {
+  x: number;
+  y: number;
+}
+
+export type IssueReportAnnotation =
+  | { id: string; type: 'freehand'; points: IssueReportAnnotationPoint[] }
+  | { id: string; type: 'ellipse' | 'arrow' | 'mask'; start: IssueReportAnnotationPoint; end: IssueReportAnnotationPoint }
+  | { id: string; type: 'text'; at: IssueReportAnnotationPoint; text: string };
+
+export interface IssueReportDiagnostics {
+  route: string;
+  appVersion: string;
+  capturedAt: string;
+  viewport: string;
+  userAgent: string;
+  displayMode: 'standalone' | 'browser';
+  online: boolean;
+}
+
+export interface IssueReportDraftRecord {
+  id: string;
+  userId: string;
+  stage: IssueReportDraftStage;
+  category: IssueReportCategory;
+  title: string;
+  description: string;
+  screenshot?: Blob;
+  annotations: IssueReportAnnotation[];
+  diagnostics: IssueReportDiagnostics;
+  createdAt: number;
+  updatedAt: number;
+  lastError?: string;
+}
+
 export interface DatabaseSchema {
   events: EventRecord;
   eventContacts: EventContactRecord;
@@ -283,6 +321,7 @@ export interface DatabaseSchema {
   syncState: SyncStateRecord;
   localMigrationJournal: LocalMigrationJournalRecord;
   recoveryItems: RecoveryItemRecord;
+  issueReportDrafts: IssueReportDraftRecord;
 }
 
 export interface CreateSongInput {

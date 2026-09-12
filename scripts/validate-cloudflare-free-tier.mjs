@@ -6,6 +6,7 @@ const policy = JSON.parse(readFileSync(`${root}/cloudflare/free-tier-policy.json
 const wranglerFiles = [
   'cloudflare/audio-worker/wrangler.jsonc',
   'cloudflare/epk-public/wrangler.jsonc',
+  'cloudflare/issue-reporter/wrangler.jsonc',
 ];
 // Local overrides are gitignored; validate them when present without requiring
 // developer-specific configuration in clean CI/Pages checkouts.
@@ -15,7 +16,6 @@ const wranglerConfigs = wranglerFiles.map((path) => ({
   path,
   contents: readFileSync(`${root}/${path}`, 'utf8'),
 }));
-const wrangler = wranglerConfigs[0].contents;
 const migration = readFileSync(
   `${root}/supabase/migrations/20260817132753_cloudflare_free_tier_guardrails.sql`,
   'utf8',
@@ -55,8 +55,9 @@ for (const { path, contents } of wranglerConfigs) {
   }
 }
 
-const configuredBuckets = [...wrangler.matchAll(/"bucket_name"\s*:\s*"([^"]+)"/g)]
-  .map((match) => match[1]);
+const configuredBuckets = [...new Set(wranglerConfigs
+  .filter(({ path }) => !path.endsWith('.local.jsonc'))
+  .flatMap(({ contents }) => [...contents.matchAll(/"bucket_name"\s*:\s*"([^"]+)"/g)].map((match) => match[1])))];
 if (JSON.stringify(configuredBuckets) !== JSON.stringify(policy.allowedR2Buckets)) {
   fail(`buckets R2 attendus : ${policy.allowedR2Buckets.join(', ')}.`);
 }

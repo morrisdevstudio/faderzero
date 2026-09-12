@@ -65,10 +65,12 @@ $deployEnvFiles = @(
 $deploySupabaseUrl = $env:VITE_SUPABASE_URL
 $deploySupabaseKey = $env:VITE_SUPABASE_ANON_KEY
 $deployAudioApiUrl = $env:VITE_AUDIO_API_URL
+$deployIssueReportApiUrl = $env:VITE_ISSUE_REPORT_API_URL
 foreach ($envFile in $deployEnvFiles) {
   if (-not $deploySupabaseUrl) { $deploySupabaseUrl = Get-EnvValueFromFile -FilePath $envFile -Key "VITE_SUPABASE_URL" }
   if (-not $deploySupabaseKey) { $deploySupabaseKey = Get-EnvValueFromFile -FilePath $envFile -Key "VITE_SUPABASE_ANON_KEY" }
   if (-not $deployAudioApiUrl) { $deployAudioApiUrl = Get-EnvValueFromFile -FilePath $envFile -Key "VITE_AUDIO_API_URL" }
+  if (-not $deployIssueReportApiUrl) { $deployIssueReportApiUrl = Get-EnvValueFromFile -FilePath $envFile -Key "VITE_ISSUE_REPORT_API_URL" }
 }
 
 if (-not $deploySupabaseUrl) {
@@ -85,6 +87,10 @@ if (-not $deploySupabaseKey) {
 
 if (-not $deployAudioApiUrl -or -not $deployAudioApiUrl.StartsWith("https://")) {
   throw "VITE_AUDIO_API_URL doit etre renseignee en HTTPS pour le deploiement."
+}
+
+if (-not $deployIssueReportApiUrl -or -not $deployIssueReportApiUrl.StartsWith("https://")) {
+  throw "VITE_ISSUE_REPORT_API_URL doit être renseignée en HTTPS pour le déploiement."
 }
 
 if (-not (Test-Path $localCaddyfile)) {

@@ -5,10 +5,10 @@ import { useDialogAccessibility } from '@/components/useDialogAccessibility';
 import { FormDialog } from '@/components/FormDialog';
 import { AudioMiniPlayer } from '@/features/audio/AudioMiniPlayer';
 import { QuickVoiceRecorder } from '@/features/recorder/QuickVoiceRecorder';
+import { IssueReporter } from '@/features/issue-report/IssueReporter';
 import { useAuthStore } from '@/stores/authStore';
 import { useForcedOffline, useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useWorkspaceBadgeColors } from '@/services/workspaceColors';
-import { toggleForcedOffline } from '@/services/connectivity';
 import { canWriteWorkspace } from '@/services/supabase/workspace';
 import { FzIcon } from '@/ui/icons';
 import { AppHeader } from '@/ui/components/AppHeader';
@@ -19,51 +19,11 @@ import { useUndoToastStore } from '@/stores/undoToastStore';
 const scrollPositions = new Map<string, number>();
 
 function FaderHeaderLogo() {
-  const longPressTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
-  const ignoreNextClickRef = useRef(false);
-
-  function clearLongPress() {
-    if (longPressTimeoutRef.current !== null) {
-      clearTimeout(longPressTimeoutRef.current);
-      longPressTimeoutRef.current = null;
-    }
-    pointerStartRef.current = null;
-  }
-
-  function handlePointerDown(event: React.PointerEvent<HTMLAnchorElement>) {
-    pointerStartRef.current = { x: event.clientX, y: event.clientY };
-    longPressTimeoutRef.current = setTimeout(() => {
-      longPressTimeoutRef.current = null;
-      pointerStartRef.current = null;
-      ignoreNextClickRef.current = true;
-      toggleForcedOffline();
-    }, 700);
-  }
-
-  function handlePointerMove(event: React.PointerEvent<HTMLAnchorElement>) {
-    const pointerStart = pointerStartRef.current;
-    if (!pointerStart) return;
-    if (Math.hypot(event.clientX - pointerStart.x, event.clientY - pointerStart.y) > 10) {
-      clearLongPress();
-    }
-  }
-
   return (
     <NavLink
       to="/home"
       className="flex items-center transition hover:opacity-90"
       aria-label="FaderZero Accueil"
-      onPointerDown={handlePointerDown}
-      onPointerUp={clearLongPress}
-      onPointerCancel={clearLongPress}
-      onPointerLeave={clearLongPress}
-      onPointerMove={handlePointerMove}
-      onClick={(event) => {
-        if (!ignoreNextClickRef.current) return;
-        ignoreNextClickRef.current = false;
-        event.preventDefault();
-      }}
     >
       <FaderLogo className="h-[34px] w-auto text-white sm:h-10" />
     </NavLink>
@@ -74,6 +34,8 @@ export function AppShell() {
   const location = useLocation();
   const navigate = useNavigate();
   const activeWorkspace = useAuthStore((state) => state.activeWorkspace);
+  const sessionEmail = useAuthStore((state) => state.session?.user.email);
+  const sessionUserId = useAuthStore((state) => state.session?.user.id);
   const workspaces = useAuthStore((state) => state.workspaces);
   const clearFeedback = useAuthStore((state) => state.clearFeedback);
   const setActiveWorkspace = useAuthStore((state) => state.setActiveWorkspace);
@@ -603,6 +565,8 @@ export function AppShell() {
           durationMs={undoToast.durationMs ?? 5000}
         />
       ) : null}
+
+      <IssueReporter email={sessionEmail} userId={sessionUserId} pathname={location.pathname} online={isOnline} />
     </div>
   );
 }

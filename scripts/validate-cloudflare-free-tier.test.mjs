@@ -18,6 +18,7 @@ function fixture() {
     'cloudflare/free-tier-policy.json',
     'cloudflare/audio-worker/wrangler.jsonc',
     'cloudflare/epk-public/wrangler.jsonc',
+    'cloudflare/issue-reporter/wrangler.jsonc',
     'supabase/migrations/20260817132753_cloudflare_free_tier_guardrails.sql',
   ]) {
     mkdirSync(dirname(join(directory, file)), { recursive: true });

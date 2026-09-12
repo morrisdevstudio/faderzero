@@ -1,0 +1,20 @@
+{
+  "name": "faderzero-issue-reporter",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-12",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "observability": { "enabled": true, "logs": { "head_sampling_rate": 1 } },
+  "r2_buckets": [
+    { "binding": "ISSUE_REPORTS_BUCKET", "bucket_name": "faderzero-issue-reports" }
+  ],
+  "vars": {
+    "SUPABASE_URL": "https://lragtkgshbnwvufjqnzm.supabase.co",
+    "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_ABQdDKDfgTgs-fulb8jxBQ_yiemTlfW",
+    "AUTHORIZED_REPORTER_EMAIL": "yann.chouteau@gmail.com",
+    "GITHUB_REPOSITORY": "morrisdevstudio/faderzero",
+    "PUBLIC_ASSET_ORIGIN": "https://faderzero-issue-reporter.admin-morris-studio.workers.dev",
+    "ALLOWED_ORIGINS": "http://localhost:5173,https://localhost:5173,https://app.faderzero.com,https://faderzero.pages.dev,https://*.faderzero.pages.dev"
+  }
+}
+
