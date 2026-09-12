@@ -46,6 +46,16 @@ describe('IssueReporter hot corner', () => {
     await act(() => vi.advanceTimersByTimeAsync(1200));
     expect(captureMocks.capture).toHaveBeenCalledOnce();
     expect(screen.getByRole('dialog', { name: 'Annoter la capture' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Trait libre' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Ellipse' })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('button', { name: 'Flèche' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Texte' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Masquer une zone' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Annuler la dernière annotation' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Rétablir la dernière annotation' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Effacer toutes les annotations' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Capture à annoter au pointeur')).toHaveClass('w-full', 'h-auto', 'shrink-0');
+    expect(screen.getByLabelText('Capture à annoter au pointeur')).not.toHaveClass('max-h-full');
   });
 
   it('does not intercept a short press', async () => {

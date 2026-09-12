@@ -9,6 +9,7 @@ export const iconRoleKeys = [
   'audio-lines', 'images', 'briefcase-business', 'file-music', 'file-archive', 'file-text',
   'globe-2', 'flag', 'building-2', 'guitar', 'drum', 'music-note', 'user-round',
   'clock', 'heart', 'radio', 'disc-3', 'zap', 'flame', 'languages', 'sparkles',
+  'draw', 'ellipse', 'arrow', 'text', 'mask', 'undo', 'redo', 'clear',
 ] as const;
 
 export type BuiltInIconRoleKey = (typeof iconRoleKeys)[number];

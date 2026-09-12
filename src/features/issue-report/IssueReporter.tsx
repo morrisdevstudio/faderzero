@@ -404,22 +404,22 @@ function AnnotationEditor({ screenshot, annotations, onChange, onCancel, onValid
       <header className="flex items-center justify-between gap-3 border-b border-white/10 px-3 pb-3 pt-[max(.75rem,env(safe-area-inset-top))]">
         <button type="button" onClick={onCancel} className="fz-dialog-close" aria-label="Fermer l’éditeur"><FzIcon name="close" usageId="issue-reporter.editor.close" size="md" /></button>
         <p className="text-sm font-black">Annoter la capture</p>
-        <Button size="sm" variant="primary" onClick={onValidate}>Valider</Button>
+        <Button iconOnly size="sm" variant="primary" aria-label="Valider les annotations" title="Valider" leadingIcon={<FzIcon name="check" usageId="issue-reporter.editor.validate" />} onClick={onValidate} />
       </header>
-      <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto bg-black p-2">
-        <canvas ref={canvasRef} tabIndex={0} aria-label="Capture à annoter au pointeur" className="max-h-full max-w-full touch-none object-contain shadow-2xl" onPointerDown={start} onPointerMove={move} onPointerUp={finish} onPointerCancel={finish} />
+      <div className="flex min-h-0 flex-1 items-start justify-start overflow-x-hidden overflow-y-auto bg-black p-2">
+        <canvas ref={canvasRef} tabIndex={0} aria-label="Capture à annoter au pointeur" className="h-auto w-full shrink-0 touch-none shadow-2xl" onPointerDown={start} onPointerMove={move} onPointerUp={finish} onPointerCancel={finish} />
       </div>
       <div className="border-t border-white/10 bg-[#15171c] pb-[max(.75rem,env(safe-area-inset-bottom))] pt-2">
-        <div className="flex gap-2 overflow-x-auto px-3 pb-2">
-          {([['freehand', 'Trait'], ['ellipse', 'Cercle'], ['arrow', 'Flèche'], ['text', 'Texte'], ['mask', 'Masquer']] as const).map(([value, label]) => (
-            <Button key={value} size="sm" variant={tool === value ? 'primary' : 'secondary'} onClick={() => setTool(value)}>{label}</Button>
+        <div className="flex justify-center gap-2 px-3 pb-2">
+          {([['freehand', 'Trait libre', 'draw'], ['ellipse', 'Ellipse', 'ellipse'], ['arrow', 'Flèche', 'arrow'], ['text', 'Texte', 'text'], ['mask', 'Masquer une zone', 'mask']] as const).map(([value, label, icon]) => (
+            <Button key={value} iconOnly size="sm" variant={tool === value ? 'primary' : 'secondary'} aria-label={label} aria-pressed={tool === value} title={label} leadingIcon={<FzIcon name={icon} usageId={`issue-reporter.editor.tool.${value}`} />} onClick={() => setTool(value)} />
           ))}
         </div>
-        {tool === 'text' ? <div className="flex gap-2 px-3 pb-2"><TextField aria-label="Texte à placer" placeholder="Saisissez puis touchez la capture" maxLength={80} value={annotationText} onChange={(event) => setAnnotationText(event.target.value)} /><Button size="sm" variant="secondary" disabled={!annotationText.trim()} onClick={addTextAtCenter}>Ajouter au centre</Button></div> : null}
-        <div className="grid grid-cols-3 gap-2 px-3">
-          <Button size="sm" variant="ghost" disabled={!annotations.length} onClick={() => { const last = annotations.at(-1); if (!last) return; setRedo([last, ...redo]); onChange(annotations.slice(0, -1)); }}>Annuler</Button>
-          <Button size="sm" variant="ghost" disabled={!redo.length} onClick={() => { const [first, ...rest] = redo; if (!first) return; onChange([...annotations, first]); setRedo(rest); }}>Rétablir</Button>
-          <Button size="sm" variant="ghost" disabled={!annotations.length} onClick={() => { setRedo([...annotations]); onChange([]); }}>Effacer tout</Button>
+        {tool === 'text' ? <div className="flex gap-2 px-3 pb-2"><div className="min-w-0 flex-1"><TextField aria-label="Texte à placer" placeholder="Saisissez puis touchez la capture" maxLength={80} value={annotationText} onChange={(event) => setAnnotationText(event.target.value)} /></div><Button iconOnly size="sm" variant="secondary" aria-label="Ajouter le texte au centre" title="Ajouter au centre" leadingIcon={<FzIcon name="add" usageId="issue-reporter.editor.text-center" />} disabled={!annotationText.trim()} onClick={addTextAtCenter} /></div> : null}
+        <div className="flex justify-center gap-6 px-3">
+          <Button iconOnly size="sm" variant="ghost" aria-label="Annuler la dernière annotation" title="Annuler" leadingIcon={<FzIcon name="undo" usageId="issue-reporter.editor.undo" />} disabled={!annotations.length} onClick={() => { const last = annotations.at(-1); if (!last) return; setRedo([last, ...redo]); onChange(annotations.slice(0, -1)); }} />
+          <Button iconOnly size="sm" variant="ghost" aria-label="Rétablir la dernière annotation" title="Rétablir" leadingIcon={<FzIcon name="redo" usageId="issue-reporter.editor.redo" />} disabled={!redo.length} onClick={() => { const [first, ...rest] = redo; if (!first) return; onChange([...annotations, first]); setRedo(rest); }} />
+          <Button iconOnly size="sm" variant="ghost" aria-label="Effacer toutes les annotations" title="Effacer tout" leadingIcon={<FzIcon name="clear" usageId="issue-reporter.editor.clear" />} disabled={!annotations.length} onClick={() => { setRedo([...annotations]); onChange([]); }} />
         </div>
       </div>
     </div>,

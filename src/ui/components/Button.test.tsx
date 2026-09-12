@@ -38,6 +38,14 @@ describe('Button', () => {
     expect(screen.getByRole('button', { name: 'Plein écran' })).toHaveClass('w-full');
   });
 
+  it('supports a compact accessible icon-only target', () => {
+    render(<Button iconOnly aria-label="Valider" leadingIcon={<span data-testid="icon">✓</span>} />);
+    const button = screen.getByRole('button', { name: 'Valider' });
+    expect(button).toHaveClass('h-11', 'w-11', 'p-0');
+    expect(screen.getByTestId('icon')).toBeInTheDocument();
+    expect(button.querySelector('span span')).not.toBeInTheDocument();
+  });
+
   it('renders leading and trailing icons', () => {
     render(
       <Button

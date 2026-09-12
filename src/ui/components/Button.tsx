@@ -10,6 +10,7 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   leadingIcon?: ReactNode;
   trailingIcon?: ReactNode;
   loading?: boolean;
+  iconOnly?: boolean;
 }
 
 const variantClasses: Record<ButtonVariant, string> = {
@@ -33,6 +34,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
     leadingIcon,
     trailingIcon,
     loading = false,
+    iconOnly = false,
     disabled,
     children,
     className = '',
@@ -52,7 +54,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       aria-busy={loading ? 'true' : undefined}
       className={[
         variantClasses[variant],
-        sizeClasses[size],
+        iconOnly ? 'h-11 w-11 shrink-0 p-0' : sizeClasses[size],
         fullWidth ? 'w-full' : '',
         'select-none transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100',
         className,

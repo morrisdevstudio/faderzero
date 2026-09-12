@@ -1,7 +1,7 @@
 import {
-  ArrowLeft, ArrowRight, AudioLines, BriefcaseBusiness, Building2, Cable, CalendarDays, CalendarPlus, Check, ChevronDown, ClipboardList, Clock, CloudDownload, Copy, Disc3, Drum, Ellipsis, Eye, EyeOff, ExternalLink, FileArchive, FileDown, FileMusic, FileText, Filter, Flag, Flame, Folder, Globe2, Guitar,
+  ArrowLeft, ArrowRight, ArrowUpRight, AudioLines, BriefcaseBusiness, Building2, Cable, CalendarDays, CalendarPlus, Check, ChevronDown, Circle, ClipboardList, Clock, CloudDownload, Copy, Disc3, Drum, Ellipsis, Eraser, Eye, EyeOff, ExternalLink, FileArchive, FileDown, FileMusic, FileText, Filter, Flag, Flame, Folder, Globe2, Guitar,
   Heart, House, Images, Languages, Library, ListChecks, ListMusic, Maximize, Metronome, Mic, MicVocal, Monitor, Music, Pause, Pencil, Play,
-  Mail, MapPin, Music2, Phone, Plus, Radio, Settings, Sparkles, Speaker, Square, Star, Trash2, Upload, UserRound, Users, Wrench, X, Zap,
+  Mail, MapPin, Music2, PencilLine, Phone, Plus, Radio, RectangleHorizontal, Redo2, Settings, Sparkles, Speaker, Square, Star, Trash2, Type, Undo2, Upload, UserRound, Users, Wrench, X, Zap,
   createLucideIcon, type LucideIcon,
 } from 'lucide-react';
 const PhonePlus = createLucideIcon('PhonePlus', [
@@ -77,6 +77,14 @@ export const publishedIconComponents: Record<string, LucideIcon> = {
   flame: Flame,
   languages: Languages,
   sparkles: Sparkles,
+  draw: PencilLine,
+  ellipse: Circle,
+  arrow: ArrowUpRight,
+  text: Type,
+  mask: RectangleHorizontal,
+  undo: Undo2,
+  redo: Redo2,
+  clear: Eraser,
 };
 
 export const publishedIconUsageOverrides: Record<string, LucideIcon> = {};
