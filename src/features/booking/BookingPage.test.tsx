@@ -17,6 +17,9 @@ vi.mock('@/db/repositories/bookingRepository', () => ({
 vi.mock('@/stores/authStore', () => ({
   useAuthStore: (selector: (state: { activeWorkspace: { id: string; role: string }; session: { user: { id: string } } }) => unknown) => selector({ activeWorkspace: { id: 'workspace-1', role: authMocks.role }, session: { user: { id: 'user-1' } } }),
 }));
+vi.mock('@/features/booking/ContactEmailComposer', () => ({
+  ContactEmailComposer: ({ contact }: { contact: { email: string } }) => <div role="dialog" aria-label="Envoyer un e-mail">{contact.email}</div>,
+}));
 
 import { useLiveQuery } from 'dexie-react-hooks';
 import { BookingPage } from '@/features/booking/BookingPage';
@@ -117,9 +120,14 @@ describe('BookingPage detail', () => {
     const sheet = screen.getByRole('dialog', { name: 'Clara Martin' });
     expect(within(sheet).getByRole('button', { name: 'Copier ce contact vers un autre espace' }).querySelector('svg'))
       .toHaveAttribute('data-icon-usage', 'booking-contact-sheet.copy');
-    expect(within(sheet).getByRole('link', { name: 'Écrire' })).toHaveAttribute('href', 'mailto:clara@example.test');
-    expect(within(sheet).getByRole('link', { name: /Le Chabada/ })).toHaveAttribute('href', '/booking/lead-1');
-    fireEvent.click(within(sheet).getByRole('button', { name: 'Modifier' }));
+    const emailButton = within(sheet).getByRole('button', { name: 'Envoyer un e-mail' });
+    fireEvent.click(emailButton);
+    expect(screen.getByRole('dialog', { name: 'Envoyer un e-mail' })).toHaveTextContent('clara@example.test');
+    fireEvent.click(screen.getByRole('tab', { name: 'Contacts' }));
+    fireEvent.click(screen.getByRole('button', { name: /Clara Martin/ }));
+    const reopenedSheet = screen.getByRole('dialog', { name: 'Clara Martin' });
+    expect(within(reopenedSheet).getByRole('link', { name: /Le Chabada/ })).toHaveAttribute('href', '/booking/lead-1');
+    fireEvent.click(within(reopenedSheet).getByRole('button', { name: 'Modifier' }));
     const editDialog = screen.getByRole('dialog', { name: 'Modifier le contact' });
     expect(editDialog).toBeInTheDocument();
     const phone = within(editDialog).getByRole('textbox', { name: /Téléphone/ });

@@ -25,6 +25,7 @@ import { DateTimeField } from '@/ui/components/DateTimeField';
 import { FzIcon } from '@/ui/icons';
 import { CONTACT_CHANNEL_ERROR_MESSAGE, formatContactPhone, hasContactChannel } from '@/lib/contactUrls';
 import { CopyContactModal } from './CopyContactModal';
+import { ContactEmailComposer } from './ContactEmailComposer';
 
 type PrimaryTab = 'booking' | 'contacts';
 type DeadlineFilter = 'all' | 'overdue' | 'today' | 'upcoming';
@@ -170,6 +171,7 @@ export function BookingOverview() {
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [editingContactId, setEditingContactId] = useState<string | null>(null);
   const [copyingContactId, setCopyingContactId] = useState<string | null>(null);
+  const [emailingContactId, setEmailingContactId] = useState<string | null>(null);
   const [isContactDeleteConfirmOpen, setIsContactDeleteConfirmOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
@@ -220,6 +222,7 @@ export function BookingOverview() {
   const selectedContact = contacts.find((contact) => contact.id === selectedContactId) ?? null;
   const editingContact = contacts.find((contact) => contact.id === editingContactId) ?? null;
   const copyingContact = contacts.find((contact) => contact.id === copyingContactId) ?? null;
+  const emailingContact = contacts.find((contact) => contact.id === emailingContactId) ?? null;
 
   const bookingFilterCount = Number(bookingStage !== ALL_STAGES) + Number(deadline !== 'all');
   const contactFilterCount = Number(reachability !== 'all') + Number(contactRole !== 'all') + Number(contactCity !== 'all')
@@ -522,7 +525,7 @@ export function BookingOverview() {
         </div>
         <div className="flex flex-wrap gap-2">
           {selectedContact.phone ? <a href={`tel:${selectedContact.phone}`} className="flex min-h-11 items-center gap-2 rounded-xl bg-white/[0.07] px-3 text-sm font-bold text-white"><FzIcon name="phone" usageId="booking-contact-sheet.phone" size="md" />Appeler</a> : null}
-          {selectedContact.email ? <a href={`mailto:${selectedContact.email}`} className="flex min-h-11 items-center gap-2 rounded-xl bg-white/[0.07] px-3 text-sm font-bold text-white"><FzIcon name="email" usageId="booking-contact-sheet.email" size="md" />Écrire</a> : null}
+          {selectedContact.email ? <button type="button" onClick={() => { setSelectedContactId(null); setEmailingContactId(selectedContact.id); }} className="flex min-h-11 items-center gap-2 rounded-xl bg-white/[0.07] px-3 text-sm font-bold text-white"><FzIcon name="email" usageId="booking-contact-sheet.email" size="md" />Envoyer un e-mail</button> : null}
           {selectedContact.website ? <a href={selectedContact.website} target="_blank" rel="noreferrer" className="flex min-h-11 items-center gap-2 rounded-xl bg-white/[0.07] px-3 text-sm font-bold text-white"><FzIcon name="external-link" usageId="booking-contact-sheet.website" size="md" />Site</a> : null}
           {selectedContact.instagramUrl ? <a href={selectedContact.instagramUrl} target="_blank" rel="noreferrer" className="flex min-h-11 items-center gap-2 rounded-xl bg-white/[0.07] px-3 text-sm font-bold text-white"><FzIcon name="external-link" usageId="booking-contact-sheet.instagram" size="md" />Instagram</a> : null}
           {selectedContact.facebookUrl ? <a href={selectedContact.facebookUrl} target="_blank" rel="noreferrer" className="flex min-h-11 items-center gap-2 rounded-xl bg-white/[0.07] px-3 text-sm font-bold text-white"><FzIcon name="external-link" usageId="booking-contact-sheet.facebook" size="md" />Facebook</a> : null}
@@ -539,6 +542,13 @@ export function BookingOverview() {
     </FormDialog> : null}
 
     {copyingContact ? <CopyContactModal contact={copyingContact} availableWorkspaces={workspaces} isOpen onClose={() => setCopyingContactId(null)} onSuccess={() => setCopyingContactId(null)} /> : null}
+
+    {emailingContact?.email && activeWorkspace ? <ContactEmailComposer
+      contact={{ name: emailingContact.name, email: emailingContact.email }}
+      workspaceId={activeWorkspace.id}
+      workspaceName={activeWorkspace.name}
+      onClose={() => setEmailingContactId(null)}
+    /> : null}
 
     {editingContact ? <FormDialog title="Modifier le contact" onClose={() => { setEditingContactId(null); setError(null); }} placement="bottom">
       <form onInput={() => setError(null)} onSubmit={(event) => void updateContact(event)} className="space-y-3">
