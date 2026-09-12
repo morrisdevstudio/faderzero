@@ -23,12 +23,36 @@ export interface IssueReporterEnv {
 
 type Category = 'bug' | 'amélioration' | 'notes' | 'feature';
 type Receipt = { issueNumber: number; issueUrl: string };
+class GitHubApiError extends Error {
+  constructor(
+    readonly status: number,
+    readonly operation: string,
+    readonly detail?: string,
+    readonly acceptedPermissions?: string,
+    readonly rateLimitRemaining?: string,
+    readonly retryAfter?: string,
+    readonly requestId?: string,
+  ) {
+    const metadata = [
+      acceptedPermissions ? `permissions=${acceptedPermissions}` : '',
+      rateLimitRemaining !== undefined ? `remaining=${rateLimitRemaining}` : '',
+      retryAfter ? `retry-after=${retryAfter}` : '',
+      requestId ? `request-id=${requestId}` : '',
+    ].filter(Boolean).join(', ');
+    super(`GitHub ${operation} failed (${status})${detail ? `: ${detail}` : ''}${metadata ? ` [${metadata}]` : ''}`);
+    this.name = 'GitHubApiError';
+  }
+}
 const REPORT_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const MAX_SCREENSHOT_BYTES = 5 * 1024 * 1024;
 const MAX_REQUEST_BYTES = 6 * 1024 * 1024;
 const CATEGORIES = new Set<Category>(['bug', 'amélioration', 'notes', 'feature']);
 const LABEL_COLORS: Record<Category, string> = { bug: 'd73a4a', 'amélioration': 'a2eeef', notes: '7057ff', feature: '0e8a16' };
-const GITHUB_HEADERS = { accept: 'application/vnd.github+json', 'x-github-api-version': '2022-11-28' };
+const GITHUB_HEADERS = {
+  accept: 'application/vnd.github+json',
+  'user-agent': 'FaderZero-Issue-Reporter',
+  'x-github-api-version': '2022-11-28',
+};
 
 export default {
   async fetch(request: Request, env: IssueReporterEnv): Promise<Response> {
@@ -44,6 +68,9 @@ export default {
       return json(request, env, { error: 'Route introuvable.' }, 404);
     } catch (error) {
       console.error(JSON.stringify({ message: 'issue reporter failed', error: error instanceof Error ? error.message : String(error) }));
+      if (error instanceof GitHubApiError) {
+        return json(request, env, { error: githubPublicError(error) }, 502);
+      }
       return json(request, env, { error: 'Erreur interne du service de signalement.' }, 500);
     }
   },
@@ -158,7 +185,7 @@ async function findExistingIssue(env: IssueReporterEnv, id: string): Promise<Rec
   const marker = `<!-- faderzero-report-id:${id} -->`;
   for (let page = 1; page <= 100; page += 1) {
     const response = await githubFetch(env, `/repos/${env.GITHUB_REPOSITORY}/issues?state=all&sort=created&direction=desc&per_page=100&page=${page}`);
-    if (!response.ok) return null;
+    if (!response.ok) throw await githubApiError(response, 'issue scan');
     const issues = await response.json() as Array<{ number?: unknown; html_url?: unknown; body?: unknown; pull_request?: unknown }>;
     if (!Array.isArray(issues)) return null;
     const match = issues.find((issue) => !issue.pull_request && typeof issue.body === 'string' && issue.body.includes(marker));
@@ -174,11 +201,11 @@ async function ensureLabel(env: IssueReporterEnv, category: Category): Promise<v
   const encoded = encodeURIComponent(category);
   const current = await githubFetch(env, `/repos/${env.GITHUB_REPOSITORY}/labels/${encoded}`);
   if (current.ok) return;
-  if (current.status !== 404) throw new Error('GitHub label lookup failed');
+  if (current.status !== 404) throw await githubApiError(current, 'label lookup');
   const response = await githubFetch(env, `/repos/${env.GITHUB_REPOSITORY}/labels`, {
     method: 'POST', body: JSON.stringify({ name: category, color: LABEL_COLORS[category] }),
   });
-  if (!response.ok && response.status !== 422) throw new Error('GitHub label creation failed');
+  if (!response.ok && response.status !== 422) throw await githubApiError(response, 'label creation');
 }
 
 function githubFetch(env: IssueReporterEnv, path: string, init: RequestInit = {}): Promise<Response> {
@@ -186,6 +213,34 @@ function githubFetch(env: IssueReporterEnv, path: string, init: RequestInit = {}
     ...init,
     headers: { ...GITHUB_HEADERS, authorization: `Bearer ${env.GITHUB_TOKEN}`, 'content-type': 'application/json', ...init.headers },
   });
+}
+
+async function githubApiError(response: Response, operation: string): Promise<GitHubApiError> {
+  const rawBody = await response.clone().text().catch(() => '');
+  let detail: string | undefined;
+  try {
+    const payload = JSON.parse(rawBody) as { message?: unknown };
+    if (typeof payload.message === 'string') detail = payload.message.slice(0, 500);
+  } catch {
+    if (rawBody.trim()) detail = rawBody.trim().slice(0, 500);
+  }
+  return new GitHubApiError(
+    response.status,
+    operation,
+    detail,
+    response.headers.get('x-accepted-github-permissions') ?? undefined,
+    response.headers.get('x-ratelimit-remaining') ?? undefined,
+    response.headers.get('retry-after') ?? undefined,
+    response.headers.get('x-github-request-id') ?? undefined,
+  );
+}
+
+function githubPublicError(error: GitHubApiError): string {
+  if (error.status === 401) return 'Connexion GitHub invalide. Le jeton du Worker doit être renouvelé.';
+  if (error.rateLimitRemaining === '0' || error.retryAfter) return 'GitHub limite temporairement les requêtes. Réessayez plus tard.';
+  if (error.status === 403) return 'GitHub refuse l’accès au dépôt. Vérifiez la permission « Issues: Read and write » du jeton.';
+  if (error.status === 404) return 'Le dépôt GitHub est introuvable pour ce jeton. Vérifiez que morrisdevstudio/faderzero est autorisé.';
+  return 'GitHub est temporairement indisponible. Réessayez dans quelques instants.';
 }
 
 async function readReceipt(env: IssueReporterEnv, key: string): Promise<Receipt | null> {

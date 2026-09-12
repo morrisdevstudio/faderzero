@@ -12,7 +12,7 @@ import { DateTimeField } from '@/ui/components/DateTimeField';
 import { DetailHeader } from '@/ui/components/DetailHeader';
 import { FieldLabel } from '@/ui/components/FieldLabel';
 import { FzIcon } from '@/ui/icons';
-import { formatContactPhone } from '@/lib/contactUrls';
+import { CONTACT_CHANNEL_ERROR_MESSAGE, formatContactPhone, hasContactChannel } from '@/lib/contactUrls';
 import { Button } from '@/ui/components/Button';
 import { SelectField } from '@/ui/components/SelectField';
 import { TextArea } from '@/ui/components/TextArea';
@@ -85,11 +85,12 @@ function ContactForm({ contact }: { contact?: WorkspaceContactRecord }) {
     <div><FieldLabel htmlFor="booking-detail-contact-organization" required>Structure, salle ou association</FieldLabel><TextField id="booking-detail-contact-organization" required name="organization" defaultValue={contact?.organization} placeholder="Ex. Le Chabada" /></div>
     <div><FieldLabel htmlFor="booking-detail-contact-role">Rôle</FieldLabel><TextField id="booking-detail-contact-role" name="role" defaultValue={contact?.role} placeholder="Programmation, régie…" /></div>
     <div><FieldLabel htmlFor="booking-detail-contact-city">Ville</FieldLabel><TextField id="booking-detail-contact-city" name="city" defaultValue={contact?.city} placeholder="Ville" /></div>
-    <div><FieldLabel htmlFor="booking-detail-contact-phone" required>Téléphone</FieldLabel><TextField id="booking-detail-contact-phone" required name="phone" type="tel" inputMode="tel" autoComplete="tel" defaultValue={formatContactPhone(contact?.phone)} onChange={(event) => { event.currentTarget.value = formatContactPhone(event.currentTarget.value); }} placeholder="06 00 00 00 00" /></div>
+    <div><FieldLabel htmlFor="booking-detail-contact-phone">Téléphone</FieldLabel><TextField id="booking-detail-contact-phone" name="phone" type="tel" inputMode="tel" autoComplete="tel" defaultValue={formatContactPhone(contact?.phone)} onChange={(event) => { event.currentTarget.value = formatContactPhone(event.currentTarget.value); }} placeholder="06 00 00 00 00" /></div>
     <div><FieldLabel htmlFor="booking-detail-contact-email">E-mail</FieldLabel><TextField id="booking-detail-contact-email" name="email" type="email" defaultValue={contact?.email} placeholder="contact@exemple.fr" /></div>
     <div><FieldLabel htmlFor="booking-detail-contact-website">Site web</FieldLabel><TextField id="booking-detail-contact-website" name="website" defaultValue={contact?.website} placeholder="site.com" /></div>
     <div><FieldLabel htmlFor="booking-detail-contact-instagram">Instagram</FieldLabel><TextField id="booking-detail-contact-instagram" name="instagramUrl" defaultValue={contact?.instagramUrl} placeholder="@profil ou lien complet" /></div>
     <div><FieldLabel htmlFor="booking-detail-contact-facebook">Facebook</FieldLabel><TextField id="booking-detail-contact-facebook" name="facebookUrl" defaultValue={contact?.facebookUrl} placeholder="profil ou lien complet" /></div>
+    <p className="text-xs text-white/55">Au moins un moyen de contact requis : téléphone, e-mail, Instagram ou Facebook.</p>
   </>;
 }
 
@@ -162,8 +163,21 @@ function BookingDetail({ bookingId }: { bookingId: string }) {
 
   async function createContact(form: HTMLFormElement) {
     if (!selected) return; const data = new FormData(form); setError(null);
+    const input = contactInputFromForm(data);
+    if (!input.name.trim()) {
+      setError('Le nom du contact est obligatoire.');
+      return;
+    }
+    if (!input.organization?.trim()) {
+      setError('La structure, salle ou association est obligatoire.');
+      return;
+    }
+    if (!hasContactChannel(input)) {
+      setError(CONTACT_CHANNEL_ERROR_MESSAGE);
+      return;
+    }
     try {
-      const contact = await bookingRepository.createWorkspaceContact(contactInputFromForm(data));
+      const contact = await bookingRepository.createWorkspaceContact(input);
       await bookingRepository.linkContact(selected.id, contact.id);
       setIsAddingContact(false);
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Impossible d’ajouter le contact.'); }
@@ -171,8 +185,21 @@ function BookingDetail({ bookingId }: { bookingId: string }) {
 
   async function updateContact(form: HTMLFormElement) {
     if (!contactToEdit) return; const data = new FormData(form); setError(null);
+    const input = contactInputFromForm(data);
+    if (!input.name.trim()) {
+      setError('Le nom du contact est obligatoire.');
+      return;
+    }
+    if (!input.organization?.trim()) {
+      setError('La structure, salle ou association est obligatoire.');
+      return;
+    }
+    if (!hasContactChannel(input)) {
+      setError(CONTACT_CHANNEL_ERROR_MESSAGE);
+      return;
+    }
     try {
-      await bookingRepository.updateWorkspaceContact(contactToEdit.id, contactInputFromForm(data));
+      await bookingRepository.updateWorkspaceContact(contactToEdit.id, input);
       setContactToEdit(null);
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Impossible de modifier le contact.'); }
   }
@@ -242,8 +269,8 @@ function BookingDetail({ bookingId }: { bookingId: string }) {
       <section aria-labelledby="timeline-heading" className="space-y-3"><div className="flex items-center justify-between gap-3"><p id="timeline-heading" className="text-[0.68rem] font-black uppercase tracking-[0.18em] text-[var(--fz-text-muted)]">Timeline</p>{canWrite && <button type="button" onClick={() => setIsLoggingExchange(true)} className="rounded-lg bg-white/8 px-3 py-2 text-xs font-black text-white transition hover:bg-white/14">Ajouter une note</button>}</div><div className="space-y-3 border-l border-white/10 pl-4"><article className="relative fz-card rounded-2xl p-3 before:absolute before:-left-[1.35rem] before:top-4 before:h-3 before:w-3 before:rounded-full before:border before:border-rose-300/50 before:bg-[var(--fz-bg)]"><p className="text-xs font-black text-rose-200">À venir · {dueLabel(selected.nextActionAt)}</p><p className="mt-1 text-sm font-bold text-white">{selected.nextAction}</p><p className={`mt-2 text-[0.68rem] ${selected.nextActionAt < Date.now() ? 'text-rose-200' : 'text-white/45'}`}>{new Date(selected.nextActionAt).toLocaleString('fr-FR')}</p></article>{notes.map((note) => <article key={note.id} className="relative fz-card rounded-2xl p-3 before:absolute before:-left-[1.35rem] before:top-4 before:h-3 before:w-3 before:rounded-full before:border before:border-white/20 before:bg-[var(--fz-bg-elevated)]"><p className="text-xs font-black text-rose-200">{noteTypes.find(([type]) => type === note.type)?.[1]}</p><p className="mt-1 text-sm leading-6 text-white/85">{note.summary}</p><p className="mt-2 text-[0.68rem] text-white/45">{new Date(note.occurredAt).toLocaleString('fr-FR')}</p></article>)}{notes.length === 0 && <p className="text-sm text-white/50">Aucun échange consigné pour le moment.</p>}</div></section>
 
       {isLoggingExchange && <FormDialog title="Consigner un échange" onClose={() => setIsLoggingExchange(false)} placement="bottom"><form onSubmit={(event) => { event.preventDefault(); void logExchange(event.currentTarget); }} className="space-y-3"><label className="block"><span className="fz-field-label">Type d’échange</span><SelectField name="type" aria-label="Type d’échange" defaultValue="call">{noteTypes.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</SelectField></label><FollowUpFields includeSummary /><button className="w-full rounded-xl bg-rose-500 px-4 py-3 text-xs font-black uppercase tracking-widest">Enregistrer</button></form></FormDialog>}
-      {isAddingContact && <FormDialog title="Nouveau contact" onClose={() => setIsAddingContact(false)} placement="bottom"><form onSubmit={(event) => { event.preventDefault(); void createContact(event.currentTarget); }} className="space-y-3">{error && <p role="alert" className="rounded-xl bg-rose-500/15 p-3 text-sm text-rose-100">{error}</p>}<ContactForm /><button className="w-full rounded-xl bg-rose-500 px-4 py-3 text-xs font-black uppercase tracking-widest">Ajouter le contact</button></form></FormDialog>}
-      {contactToEdit && <FormDialog title="Modifier le contact" onClose={() => setContactToEdit(null)} placement="bottom"><form onSubmit={(event) => { event.preventDefault(); void updateContact(event.currentTarget); }} className="space-y-3">{error && <p role="alert" className="rounded-xl bg-rose-500/15 p-3 text-sm text-rose-100">{error}</p>}<ContactForm contact={contactToEdit} /><Button type="submit" variant="primary" fullWidth>Enregistrer</Button><Button variant="secondary" fullWidth onClick={() => { void unlinkContact(contactToEdit.id); setContactToEdit(null); }}>Retirer de cette salle</Button><Button variant="danger" fullWidth onClick={() => setIsContactDeleteConfirmOpen(true)}>Supprimer le contact</Button></form></FormDialog>}
+      {isAddingContact && <FormDialog title="Nouveau contact" onClose={() => { setIsAddingContact(false); setError(null); }} placement="bottom"><form onInput={() => setError(null)} onSubmit={(event) => { event.preventDefault(); void createContact(event.currentTarget); }} className="space-y-3">{error && <p role="alert" className="rounded-xl bg-rose-500/15 p-3 text-sm text-rose-100">{error}</p>}<ContactForm /><Button type="submit" variant="primary" fullWidth>Ajouter le contact</Button></form></FormDialog>}
+      {contactToEdit && <FormDialog title="Modifier le contact" onClose={() => { setContactToEdit(null); setError(null); }} placement="bottom"><form onInput={() => setError(null)} onSubmit={(event) => { event.preventDefault(); void updateContact(event.currentTarget); }} className="space-y-3">{error && <p role="alert" className="rounded-xl bg-rose-500/15 p-3 text-sm text-rose-100">{error}</p>}<ContactForm contact={contactToEdit} /><Button type="submit" variant="primary" fullWidth>Enregistrer</Button><Button variant="secondary" fullWidth onClick={() => { void unlinkContact(contactToEdit.id); setContactToEdit(null); }}>Retirer de cette salle</Button><Button variant="danger" fullWidth onClick={() => setIsContactDeleteConfirmOpen(true)}>Supprimer le contact</Button></form></FormDialog>}
       {isLinkingContact && <FormDialog title="Lier un contact" onClose={() => setIsLinkingContact(false)} placement="bottom"><div className="space-y-2">{availableContacts.map((contact) => <button key={contact.id} type="button" onClick={() => void linkContact(contact.id)} className="w-full rounded-xl bg-white/6 p-4 text-left transition hover:bg-white/12"><p className="font-black">{contact.name}</p><p className="mt-1 text-xs text-white/55">{contact.role || contact.email || contact.phone || 'Sans coordonnées'}</p></button>)}{availableContacts.length === 0 && <p className="text-sm text-white/60">Aucun autre contact disponible dans le carnet.</p>}</div></FormDialog>}
       {isCalendarOpen && <FormDialog title="Ajouter le concert au calendrier" onClose={() => setIsCalendarOpen(false)} placement="bottom"><form onSubmit={(event) => { event.preventDefault(); void addToCalendar(event.currentTarget); }} className="space-y-4"><p className="text-sm text-white/65">{selected.venueName}{selected.city ? ` · ${selected.city}` : ''}</p><label className="block"><span className="fz-field-label">Date</span><DateField required name="date" aria-label="Date du concert" defaultValue={selected.targetDate} /></label><label className="block"><span className="fz-field-label">Heure</span><TimeField required name="time" aria-label="Heure du concert" defaultValue="20:00" /></label><button className="w-full rounded-xl bg-emerald-500 px-4 py-3 text-xs font-black uppercase tracking-widest text-white">Créer le concert</button></form></FormDialog>}
       {isEditingLead && <FormDialog title="Détails de la salle" onClose={() => setIsEditingLead(false)} placement="bottom"><form onSubmit={(event) => { event.preventDefault(); void saveLead(event.currentTarget); }} className="space-y-3"><TextField required name="venueName" aria-label="Salle ou organisateur" defaultValue={selected.venueName} /><TextField name="city" aria-label="Ville" defaultValue={selected.city} placeholder="Ville" /><label className="block"><span className="fz-field-label">Date cible</span><DateField required name="targetDate" aria-label="Date cible" defaultValue={selected.targetDate} /></label><label className="block"><span className="fz-field-label">Statut</span><SelectField name="stage" aria-label="Statut" defaultValue={selected.stage}>{editableStages.map((stage) => <option key={stage} value={stage}>{BOOKING_STAGE_LABELS[stage]}</option>)}</SelectField></label><label className="block"><span className="fz-field-label">Notes globales</span><TextArea name="summary" defaultValue={selected.summary} placeholder="Objectif, contexte et informations utiles…" /></label><div className="grid grid-cols-2 gap-2"><button className="rounded-xl bg-rose-500 px-4 py-3 text-xs font-black uppercase tracking-widest">Enregistrer</button><button type="button" onClick={() => setIsDeleteConfirmOpen(true)} className="rounded-xl bg-rose-500/15 px-4 py-3 text-xs font-black uppercase tracking-widest text-rose-200">Supprimer</button></div></form></FormDialog>}

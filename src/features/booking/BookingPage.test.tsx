@@ -62,7 +62,7 @@ describe('BookingPage detail', () => {
     fireEvent.change(within(dialog).getByLabelText('Mode d’association du contact'), { target: { value: 'new' } });
     expect(within(dialog).getByRole('textbox', { name: /Nom du contact/ })).toBeRequired();
     expect(within(dialog).getByRole('textbox', { name: /Structure, salle ou association/ })).toBeRequired();
-    expect(within(dialog).getByRole('textbox', { name: /Téléphone/ })).toBeRequired();
+    expect(within(dialog).getByRole('textbox', { name: /Téléphone/ })).not.toBeRequired();
     expect(within(dialog).getByLabelText('Rôle')).toBeInTheDocument();
     expect(within(dialog).getByRole('button', { name: 'Créer la proposition' })).toBeInTheDocument();
   });
@@ -184,4 +184,114 @@ describe('BookingPage detail', () => {
     expect(screen.queryByRole('button', { name: 'Modifier la salle' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'En discussion' })).toBeDisabled();
   });
+
+  it('requires at least one contact channel (phone, email, instagram or facebook) to add a contact', () => {
+    authMocks.role = 'admin';
+    renderBooking();
+    fireEvent.click(screen.getByRole('button', { name: 'Ajouter un contact' }));
+    const dialog = screen.getByRole('dialog', { name: 'Nouveau contact' });
+    expect(dialog).toBeInTheDocument();
+
+    const nameInput = within(dialog).getByRole('textbox', { name: /Nom du contact/ });
+    const orgInput = within(dialog).getByRole('textbox', { name: /Structure, salle ou association/ });
+    const phoneInput = within(dialog).getByRole('textbox', { name: /Téléphone/ });
+    const emailInput = within(dialog).getByRole('textbox', { name: /E-mail/ });
+    const instaInput = within(dialog).getByRole('textbox', { name: /Instagram/ });
+    const fbInput = within(dialog).getByRole('textbox', { name: /Facebook/ });
+
+    expect(phoneInput).not.toBeRequired();
+    expect(emailInput).not.toBeRequired();
+    expect(instaInput).not.toBeRequired();
+    expect(fbInput).not.toBeRequired();
+
+    fireEvent.change(nameInput, { target: { value: 'Alexandre Dumas' } });
+    fireEvent.change(orgInput, { target: { value: 'Théâtre Graslin' } });
+
+    // Submit without any contact channel
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Ajouter le contact' }));
+    expect(within(dialog).getByRole('alert')).toHaveTextContent(
+      'Renseigne au moins un moyen de contact : téléphone, e-mail, Instagram ou Facebook.',
+    );
+    expect(bookingMocks.createWorkspaceContact).not.toHaveBeenCalled();
+
+    // Adding with only email works
+    fireEvent.change(emailInput, { target: { value: 'alex@theatre.fr' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Ajouter le contact' }));
+    expect(bookingMocks.createWorkspaceContact).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'Alexandre Dumas',
+        organization: 'Théâtre Graslin',
+        email: 'alex@theatre.fr',
+      }),
+    );
+  });
+
+  it('allows adding a contact with only instagram or facebook', () => {
+    authMocks.role = 'admin';
+    renderBooking();
+    fireEvent.click(screen.getByRole('button', { name: 'Ajouter un contact' }));
+    const dialog = screen.getByRole('dialog', { name: 'Nouveau contact' });
+
+    fireEvent.change(within(dialog).getByRole('textbox', { name: /Nom du contact/ }), {
+      target: { value: 'Sophie Marceau' },
+    });
+    fireEvent.change(within(dialog).getByRole('textbox', { name: /Structure, salle ou association/ }), {
+      target: { value: 'Salle Pleyel' },
+    });
+    fireEvent.change(within(dialog).getByRole('textbox', { name: /Instagram/ }), {
+      target: { value: '@sophiemarceau' },
+    });
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Ajouter le contact' }));
+    expect(bookingMocks.createWorkspaceContact).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'Sophie Marceau',
+        organization: 'Salle Pleyel',
+        instagramUrl: '@sophiemarceau',
+      }),
+    );
+  });
+
+  it('validates that a new contact in proposition creation has at least one contact channel', async () => {
+    bookingMocks.createLeadWithContact.mockResolvedValueOnce({
+      lead: { id: 'lead-new', venueName: 'Le Bikini' },
+      contact: { id: 'contact-new', name: 'Jean Dupont' },
+    });
+    renderBooking();
+    fireEvent.click(screen.getByRole('button', { name: 'Ajouter une proposition' }));
+    const dialog = screen.getByRole('dialog', { name: 'Nouvelle proposition' });
+
+    // Fill proposition required fields
+    fireEvent.change(within(dialog).getByLabelText('Salle ou organisateur'), { target: { value: 'Le Bikini' } });
+    fireEvent.change(within(dialog).getByLabelText('Date cible'), { target: { value: '2026-10-15' } });
+    fireEvent.change(within(dialog).getByLabelText('Date et heure de la prochaine action'), { target: { value: '2026-10-01T10:00' } });
+
+    // Select new contact mode
+    fireEvent.change(within(dialog).getByLabelText('Mode d’association du contact'), { target: { value: 'new' } });
+    fireEvent.change(within(dialog).getByRole('textbox', { name: /Nom du contact/ }), { target: { value: 'Jean Dupont' } });
+    fireEvent.change(within(dialog).getByRole('textbox', { name: /Structure, salle ou association/ }), { target: { value: 'Le Bikini' } });
+
+    // Try submitting without contact channel
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Créer la proposition' }));
+    expect(within(dialog).getByRole('alert')).toHaveTextContent(
+      'Renseigne au moins un moyen de contact : téléphone, e-mail, Instagram ou Facebook.',
+    );
+    expect(bookingMocks.createLeadWithContact).not.toHaveBeenCalled();
+
+    // Provide Facebook URL and submit
+    fireEvent.change(within(dialog).getByRole('textbox', { name: /Facebook/ }), { target: { value: 'lebikinitoulouse' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Créer la proposition' }));
+
+    expect(bookingMocks.createLeadWithContact).toHaveBeenCalledWith(
+      expect.objectContaining({ venueName: 'Le Bikini' }),
+      expect.objectContaining({
+        newContact: expect.objectContaining({
+          name: 'Jean Dupont',
+          organization: 'Le Bikini',
+          facebookUrl: 'lebikinitoulouse',
+        }),
+      }),
+    );
+  });
 });
+

@@ -90,6 +90,43 @@ describe('issue reporter worker', () => {
     await expect(response.json()).resolves.toMatchObject({ error: 'Compte non autorisé.' });
   });
 
+  it('returns an actionable error when the GitHub token is invalid', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.endsWith('/auth/v1/user')) return Response.json({ id: 'user-1', email: 'yann.chouteau@gmail.com' });
+      return Response.json({ message: 'Bad credentials' }, { status: 401 });
+    });
+    const response = await worker.fetch(reportRequest(undefined, false), environment());
+    expect(response.status).toBe(502);
+    await expect(response.json()).resolves.toEqual({ error: 'Connexion GitHub invalide. Le jeton du Worker doit être renouvelé.' });
+  });
+
+  it('does not continue when the idempotence scan is forbidden by GitHub', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.endsWith('/auth/v1/user')) return Response.json({ id: 'user-1', email: 'yann.chouteau@gmail.com' });
+      return Response.json({ message: 'Resource not accessible by personal access token' }, { status: 403 });
+    });
+    const response = await worker.fetch(reportRequest(undefined, false), environment());
+    expect(response.status).toBe(502);
+    await expect(response.json()).resolves.toEqual({ error: 'GitHub refuse l’accès au dépôt. Vérifiez la permission « Issues: Read and write » du jeton.' });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('identifies a GitHub rate limit instead of reporting a permission failure', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.endsWith('/auth/v1/user')) return Response.json({ id: 'user-1', email: 'yann.chouteau@gmail.com' });
+      return Response.json({ message: 'API rate limit exceeded' }, {
+        status: 403,
+        headers: { 'x-ratelimit-remaining': '0', 'x-github-request-id': 'request-1' },
+      });
+    });
+    const response = await worker.fetch(reportRequest(undefined, false), environment());
+    expect(response.status).toBe(502);
+    await expect(response.json()).resolves.toEqual({ error: 'GitHub limite temporairement les requêtes. Réessayez plus tard.' });
+  });
+
   it('uploads the screenshot and creates a labelled GitHub issue', async () => {
     const bucket = new MemoryBucket();
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
@@ -105,6 +142,8 @@ describe('issue reporter worker', () => {
     await expect(response.json()).resolves.toEqual({ issueNumber: 17, issueUrl: 'https://github.com/morrisdevstudio/faderzero/issues/17' });
     expect(bucket.values.has('assets/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.webp')).toBe(true);
     expect(bucket.values.has('receipts/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.json')).toBe(true);
+    const scanCall = fetchMock.mock.calls.find(([input]) => String(input).includes('/issues?'));
+    expect(new Headers(scanCall?.[1]?.headers).get('user-agent')).toBe('FaderZero-Issue-Reporter');
     const issueCall = fetchMock.mock.calls.find(([input, init]) => String(input).endsWith('/issues') && init?.method === 'POST');
     expect(String(issueCall?.[1]?.body)).toContain('faderzero-report-id:aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
     expect(String(issueCall?.[1]?.body)).toContain('Capture annotée');

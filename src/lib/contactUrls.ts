@@ -43,3 +43,20 @@ export function normalizeInstagramUrl(value: string | undefined) {
 export function normalizeFacebookUrl(value: string | undefined) {
   return normalizeSocialProfile(value, 'facebook.com');
 }
+
+export function hasContactChannel(input: {
+  phone?: string | undefined;
+  email?: string | undefined;
+  instagramUrl?: string | undefined;
+  facebookUrl?: string | undefined;
+}) {
+  return Boolean(
+    input.phone?.trim() ||
+    input.email?.trim() ||
+    input.instagramUrl?.trim() ||
+    input.facebookUrl?.trim()
+  );
+}
+
+export const CONTACT_CHANNEL_ERROR_MESSAGE =
+  'Renseigne au moins un moyen de contact : téléphone, e-mail, Instagram ou Facebook.';

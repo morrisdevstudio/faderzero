@@ -23,7 +23,7 @@ import { SelectField } from '@/ui/components/SelectField';
 import { TextField } from '@/ui/components/TextField';
 import { DateTimeField } from '@/ui/components/DateTimeField';
 import { FzIcon } from '@/ui/icons';
-import { formatContactPhone } from '@/lib/contactUrls';
+import { CONTACT_CHANNEL_ERROR_MESSAGE, formatContactPhone, hasContactChannel } from '@/lib/contactUrls';
 import { CopyContactModal } from './CopyContactModal';
 
 type PrimaryTab = 'booking' | 'contacts';
@@ -116,11 +116,12 @@ function ContactFields({ contact, prefix = '' }: { contact?: WorkspaceContactRec
     <div><FieldLabel htmlFor={id('Organization')} required>Structure, salle ou association</FieldLabel><TextField id={id('Organization')} required name={name('Organization')} defaultValue={contact?.organization} placeholder="Ex. Le Chabada" /></div>
     <div><FieldLabel htmlFor={id('Role')}>Rôle</FieldLabel><TextField id={id('Role')} name={name('Role')} defaultValue={contact?.role} placeholder="Programmation, régie…" /></div>
     <div><FieldLabel htmlFor={id('City')}>Ville</FieldLabel><TextField id={id('City')} name={name('City')} defaultValue={contact?.city} placeholder="Ville" /></div>
-    <div><FieldLabel htmlFor={id('Phone')} required>Téléphone</FieldLabel><TextField id={id('Phone')} required name={name('Phone')} type="tel" inputMode="tel" autoComplete="tel" defaultValue={formatContactPhone(contact?.phone)} onChange={(event) => { event.currentTarget.value = formatContactPhone(event.currentTarget.value); }} placeholder="06 00 00 00 00" /></div>
+    <div><FieldLabel htmlFor={id('Phone')}>Téléphone</FieldLabel><TextField id={id('Phone')} name={name('Phone')} type="tel" inputMode="tel" autoComplete="tel" defaultValue={formatContactPhone(contact?.phone)} onChange={(event) => { event.currentTarget.value = formatContactPhone(event.currentTarget.value); }} placeholder="06 00 00 00 00" /></div>
     <div><FieldLabel htmlFor={id('Email')}>E-mail</FieldLabel><TextField id={id('Email')} name={name('Email')} type="email" defaultValue={contact?.email} placeholder="contact@exemple.fr" /></div>
     <div><FieldLabel htmlFor={id('Website')}>Site web</FieldLabel><TextField id={id('Website')} name={name('Website')} defaultValue={contact?.website} placeholder="site.com" /></div>
     <div><FieldLabel htmlFor={id('InstagramUrl')}>Instagram</FieldLabel><TextField id={id('InstagramUrl')} name={name('InstagramUrl')} defaultValue={contact?.instagramUrl} placeholder="@profil ou lien complet" /></div>
     <div><FieldLabel htmlFor={id('FacebookUrl')}>Facebook</FieldLabel><TextField id={id('FacebookUrl')} name={name('FacebookUrl')} defaultValue={contact?.facebookUrl} placeholder="profil ou lien complet" /></div>
+    <p className="text-xs text-white/55">Au moins un moyen de contact requis : téléphone, e-mail, Instagram ou Facebook.</p>
   </>;
 }
 
@@ -269,8 +270,21 @@ export function BookingOverview() {
   async function createContact(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+    const input = contactInputFromForm(new FormData(event.currentTarget));
+    if (!input.name.trim()) {
+      setError('Le nom du contact est obligatoire.');
+      return;
+    }
+    if (!input.organization?.trim()) {
+      setError('La structure, salle ou association est obligatoire.');
+      return;
+    }
+    if (!hasContactChannel(input)) {
+      setError(CONTACT_CHANNEL_ERROR_MESSAGE);
+      return;
+    }
     try {
-      await bookingRepository.createWorkspaceContact(contactInputFromForm(new FormData(event.currentTarget)));
+      await bookingRepository.createWorkspaceContact(input);
       setIsAddingContact(false);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Impossible d’ajouter le contact.');
@@ -281,8 +295,21 @@ export function BookingOverview() {
     event.preventDefault();
     if (!editingContact) return;
     setError(null);
+    const input = contactInputFromForm(new FormData(event.currentTarget));
+    if (!input.name.trim()) {
+      setError('Le nom du contact est obligatoire.');
+      return;
+    }
+    if (!input.organization?.trim()) {
+      setError('La structure, salle ou association est obligatoire.');
+      return;
+    }
+    if (!hasContactChannel(input)) {
+      setError(CONTACT_CHANNEL_ERROR_MESSAGE);
+      return;
+    }
     try {
-      await bookingRepository.updateWorkspaceContact(editingContact.id, contactInputFromForm(new FormData(event.currentTarget)));
+      await bookingRepository.updateWorkspaceContact(editingContact.id, input);
       setEditingContactId(null);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Impossible de modifier le contact.');
@@ -300,6 +327,13 @@ export function BookingOverview() {
     setFormError(null);
     try {
       const existingContactId = String(data.get('existingContactId') || '');
+      if (contactMode === 'new') {
+        const newContact = contactInputFromForm(data, 'contact');
+        if (!hasContactChannel(newContact)) {
+          setFormError(CONTACT_CHANNEL_ERROR_MESSAGE);
+          return;
+        }
+      }
       const contactChoice = contactMode === 'existing' && existingContactId
         ? { existingContactId }
         : contactMode === 'new'
@@ -444,7 +478,7 @@ export function BookingOverview() {
     </FormDialog> : null}
 
     {isAddingContact ? <FormDialog title="Nouveau contact" onClose={() => { setIsAddingContact(false); setError(null); }} placement="bottom">
-      <form onSubmit={(event) => void createContact(event)} className="space-y-3">
+      <form onInput={() => setError(null)} onSubmit={(event) => void createContact(event)} className="space-y-3">
         {error ? <p role="alert" className="rounded-xl bg-rose-500/15 p-3 text-sm text-rose-100">{error}</p> : null}
         <ContactFields />
         <Button type="submit" variant="primary" fullWidth>Ajouter le contact</Button>
@@ -507,7 +541,7 @@ export function BookingOverview() {
     {copyingContact ? <CopyContactModal contact={copyingContact} availableWorkspaces={workspaces} isOpen onClose={() => setCopyingContactId(null)} onSuccess={() => setCopyingContactId(null)} /> : null}
 
     {editingContact ? <FormDialog title="Modifier le contact" onClose={() => { setEditingContactId(null); setError(null); }} placement="bottom">
-      <form onSubmit={(event) => void updateContact(event)} className="space-y-3">
+      <form onInput={() => setError(null)} onSubmit={(event) => void updateContact(event)} className="space-y-3">
         {error ? <p role="alert" className="rounded-xl bg-rose-500/15 p-3 text-sm text-rose-100">{error}</p> : null}
         <ContactFields contact={editingContact} />
         <Button type="submit" variant="primary" fullWidth>Enregistrer</Button>

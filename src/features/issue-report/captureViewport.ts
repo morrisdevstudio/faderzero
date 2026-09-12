@@ -4,22 +4,44 @@ const MAX_CAPTURE_WIDTH = 1440;
 
 export async function captureViewport(): Promise<Blob> {
   const { default: html2canvas } = await import('@html2canvas/html2canvas');
-  const canvas = await html2canvas(document.documentElement, {
+  await document.fonts?.ready.catch(() => undefined);
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  const options = {
     backgroundColor: '#0c0d10',
     useCORS: true,
     allowTaint: false,
     logging: false,
-    width: window.innerWidth,
-    height: window.innerHeight,
-    windowWidth: window.innerWidth,
-    windowHeight: window.innerHeight,
+    width: viewportWidth,
+    height: viewportHeight,
+    windowWidth: viewportWidth,
+    windowHeight: viewportHeight,
     x: window.scrollX,
     y: window.scrollY,
     scrollX: window.scrollX,
     scrollY: window.scrollY,
-    ignoreElements: (element) => element.hasAttribute('data-issue-reporter-ui'),
-  });
+    ignoreElements: (element: Element) => element.hasAttribute('data-issue-reporter-ui'),
+    onclone: (clonedDocument: Document) => {
+      clonedDocument.documentElement.style.width = `${viewportWidth}px`;
+      clonedDocument.body.style.width = `${viewportWidth}px`;
+      clonedDocument.body.style.overflowX = 'hidden';
+    },
+  };
 
+  let lastError: unknown;
+  for (const foreignObjectRendering of [true, false]) {
+    try {
+      const canvas = await html2canvas(document.body, { ...options, foreignObjectRendering });
+      if (canvas.width <= 0 || canvas.height <= 0) throw new Error('Capture vide.');
+      return await resizeAndEncode(canvas);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error('Capture impossible sur ce navigateur.');
+}
+
+async function resizeAndEncode(canvas: HTMLCanvasElement): Promise<Blob> {
   const scale = Math.min(1, MAX_CAPTURE_WIDTH / canvas.width);
   const output = document.createElement('canvas');
   output.width = Math.max(1, Math.round(canvas.width * scale));
