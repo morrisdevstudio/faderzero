@@ -1,0 +1,17 @@
+{
+  "name": "FaderZero PWA",
+  "install": "export NVM_DIR=\"$HOME/.nvm\" && . \"$NVM_DIR/nvm.sh\" && nvm install 22.16.0 && nvm alias default 22.16.0 && npm ci && npm run e2e:install",
+  "terminals": [
+    {
+      "name": "vite-dev",
+      "command": "export NVM_DIR=\"$HOME/.nvm\" && . \"$NVM_DIR/nvm.sh\" && nvm use 22.16.0 && npm run dev",
+      "description": "Vite dev server for the FaderZero PWA on http://localhost:5173"
+    }
+  ],
+  "ports": [
+    {
+      "name": "vite-dev",
+      "port": 5173
+    }
+  ]
+}
