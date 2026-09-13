@@ -3,6 +3,8 @@
   "include": ["/*"],
   "exclude": [
     "/assets/*",
+    "/sw.js",
+    "/workbox-*.js",
     "/icons/*",
     "/favicon.ico",
     "/manifest.webmanifest",

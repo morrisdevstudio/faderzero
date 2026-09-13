@@ -9,7 +9,6 @@
     "npm": "10.9.2"
   },
   "scripts": {
-    "prepare": "node scripts/install-git-hooks.mjs",
     "check:cloudflare": "node scripts/cloudflare-check.mjs",
     "check:cloudflare:inside": "node scripts/run-cloudflare-checks.mjs",
     "check:cloudflare:costs": "node scripts/validate-cloudflare-free-tier.mjs",
