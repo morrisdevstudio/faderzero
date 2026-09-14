@@ -23384,17 +23384,30 @@
       "source_location": "L3"
     },
     {
-      "id": "d_app_en_dev_faderzeropwa_src_components_undotoast_undotoastprops",
-      "label": "UndoToastProps",
+      "id": "d_app_en_dev_faderzeropwa_src_components_splashscreen_splashscreenprops",
+      "label": "SplashScreenProps",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 15,
       "community_name": "react",
       "file_type": "code",
-      "norm_label": "undotoastprops",
-      "source_file": "../../src/components/UndoToast.tsx",
-      "source_location": "L4"
+      "norm_label": "splashscreenprops",
+      "source_file": "../../src/components/SplashScreen.tsx",
+      "source_location": "L6"
+    },
+    {
+      "id": "d_app_en_dev_faderzeropwa_src_features_audio_audioquotabanner_audioquotabannerprops",
+      "label": "AudioQuotaBannerProps",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 15,
+      "community_name": "react",
+      "file_type": "code",
+      "norm_label": "audioquotabannerprops",
+      "source_file": "../../src/features/audio/AudioQuotaBanner.tsx",
+      "source_location": "L9"
     },
     {
       "id": "d_app_en_dev_faderzeropwa_src_hooks_uselongpress_uselongpressoptions",
@@ -23423,16 +23436,16 @@
       "source_location": "L4"
     },
     {
-      "id": "d_app_en_dev_faderzeropwa_src_ui_components_selectfield_selectfieldprops",
-      "label": "SelectFieldProps",
+      "id": "d_app_en_dev_faderzeropwa_src_ui_components_fieldlabel_fieldlabelprops",
+      "label": "FieldLabelProps",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 15,
       "community_name": "react",
       "file_type": "code",
-      "norm_label": "selectfieldprops",
-      "source_file": "../../src/ui/components/SelectField.tsx",
+      "norm_label": "fieldlabelprops",
+      "source_file": "../../src/ui/components/FieldLabel.tsx",
       "source_location": "L3"
     },
     {
@@ -23449,17 +23462,17 @@
       "source_location": "L3"
     },
     {
-      "id": "src_components_splashscreen_splashscreenprops",
-      "label": "SplashScreenProps",
+      "id": "src_features_audio_audioquotabanner_audioquotabannerprops",
+      "label": "AudioQuotaBannerProps",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 15,
       "community_name": "react",
       "file_type": "code",
-      "norm_label": "splashscreenprops",
-      "source_file": "src/components/SplashScreen.tsx",
-      "source_location": "L6"
+      "norm_label": "audioquotabannerprops",
+      "source_file": "src/features/audio/AudioQuotaBanner.tsx",
+      "source_location": "L9"
     },
     {
       "id": "src_hooks_uselongpress_uselongpressoptions",
@@ -23473,19 +23486,6 @@
       "norm_label": "uselongpressoptions",
       "source_file": "src/hooks/useLongPress.ts",
       "source_location": "L3"
-    },
-    {
-      "id": "src_ui_components_detailheader_detailheaderprops",
-      "label": "DetailHeaderProps",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 15,
-      "community_name": "react",
-      "file_type": "code",
-      "norm_label": "detailheaderprops",
-      "source_file": "src/ui/components/DetailHeader.tsx",
-      "source_location": "L4"
     },
     {
       "id": "d_app_en_dev_faderzeropwa_cloudflare_epk_public_worker_configuration_d_durableobjectnamespace",
@@ -26907,82 +26907,17 @@
       "source_location": "L12958"
     },
     {
-      "id": "cloudflare_audio_worker_worker_configuration_d_emailevent",
-      "label": "EmailEvent",
+      "id": "d_app_en_dev_faderzeropwa_src_components_undotoast_undotoastprops",
+      "label": "UndoToastProps",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 317,
-      "community_name": "ExtendableEvent",
+      "community_name": "../src/components/UndoToast.tsx",
       "file_type": "code",
-      "norm_label": "emailevent",
-      "source_file": "cloudflare/audio-worker/worker-configuration.d.ts",
-      "source_location": "L12303"
-    },
-    {
-      "id": "cloudflare_audio_worker_worker_configuration_d_extendableevent",
-      "label": "ExtendableEvent",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 317,
-      "community_name": "ExtendableEvent",
-      "file_type": "code",
-      "norm_label": "extendableevent",
-      "source_file": "cloudflare/audio-worker/worker-configuration.d.ts",
-      "source_location": "L904"
-    },
-    {
-      "id": "cloudflare_audio_worker_worker_configuration_d_fetchevent",
-      "label": "FetchEvent",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 317,
-      "community_name": "ExtendableEvent",
-      "file_type": "code",
-      "norm_label": "fetchevent",
-      "source_file": "cloudflare/audio-worker/worker-configuration.d.ts",
-      "source_location": "L1597"
-    },
-    {
-      "id": "cloudflare_audio_worker_worker_configuration_d_queueevent",
-      "label": "QueueEvent",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 317,
-      "community_name": "ExtendableEvent",
-      "file_type": "code",
-      "norm_label": "queueevent",
-      "source_file": "cloudflare/audio-worker/worker-configuration.d.ts",
-      "source_location": "L1996"
-    },
-    {
-      "id": "cloudflare_audio_worker_worker_configuration_d_scheduledevent",
-      "label": "ScheduledEvent",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 317,
-      "community_name": "ExtendableEvent",
-      "file_type": "code",
-      "norm_label": "scheduledevent",
-      "source_file": "cloudflare/audio-worker/worker-configuration.d.ts",
-      "source_location": "L2149"
-    },
-    {
-      "id": "cloudflare_audio_worker_worker_configuration_d_tailevent",
-      "label": "TailEvent",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 317,
-      "community_name": "ExtendableEvent",
-      "file_type": "code",
-      "norm_label": "tailevent",
-      "source_file": "cloudflare/audio-worker/worker-configuration.d.ts",
-      "source_location": "L2700"
+      "norm_label": "undotoastprops",
+      "source_file": "../../src/components/UndoToast.tsx",
+      "source_location": "L4"
     },
     {
       "id": "d_app_en_dev_faderzeropwa_src_features_sync_synctab_receivestate",
@@ -27022,19 +26957,6 @@
       "norm_label": "publishedrow",
       "source_file": "functions/[slug].ts",
       "source_location": "L8"
-    },
-    {
-      "id": "cloudflare_audio_worker_worker_configuration_d_readablestreamdefaultreader",
-      "label": "ReadableStreamDefaultReader",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 321,
-      "community_name": "ReadableStreamDefaultReader",
-      "file_type": "code",
-      "norm_label": "readablestreamdefaultreader",
-      "source_file": "cloudflare/audio-worker/worker-configuration.d.ts",
-      "source_location": "L2292"
     },
     {
       "id": "d_app_en_dev_faderzeropwa_src_services_newsfeed_newsfeeditem",
@@ -37879,17 +37801,17 @@
       "source_location": "L10213"
     },
     {
-      "id": "d_app_en_dev_faderzeropwa_src_components_splashscreen_splashscreenprops",
-      "label": "SplashScreenProps",
+      "id": "d_app_en_dev_faderzeropwa_src_ui_components_selectfield_selectfieldprops",
+      "label": "SelectFieldProps",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 328,
-      "community_name": "../src/components/SplashScreen.tsx",
+      "community_name": "../src/ui/components/SelectField.tsx",
       "file_type": "code",
-      "norm_label": "splashscreenprops",
-      "source_file": "../../src/components/SplashScreen.tsx",
-      "source_location": "L6"
+      "norm_label": "selectfieldprops",
+      "source_file": "../../src/ui/components/SelectField.tsx",
+      "source_location": "L3"
     },
     {
       "id": "cloudflare_epk_public_worker_configuration_d_agentmemorygetsummaryoptions",
@@ -53229,7 +53151,20 @@
       "file_type": "code",
       "norm_label": "accountpageprops",
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L383"
+      "source_location": "L305"
+    },
+    {
+      "id": "src_features_account_accountpage_settingstab",
+      "label": "SettingsTab",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 502,
+      "community_name": "AccountPage",
+      "file_type": "code",
+      "norm_label": "settingstab",
+      "source_file": "src/features/account/AccountPage.tsx",
+      "source_location": "L291"
     },
     {
       "id": "src_services_supabase_workspace_workspace",
@@ -53268,7 +53203,7 @@
       "file_type": "code",
       "norm_label": "workspaceinvitepreview",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L74"
+      "source_location": "L71"
     },
     {
       "id": "src_services_supabase_workspace_workspaceinvitesummary",
@@ -53281,7 +53216,7 @@
       "file_type": "code",
       "norm_label": "workspaceinvitesummary",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L65"
+      "source_location": "L64"
     },
     {
       "id": "src_services_supabase_workspace_workspacemember",
@@ -53294,7 +53229,7 @@
       "file_type": "code",
       "norm_label": "workspacemember",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L82"
+      "source_location": "L79"
     },
     {
       "id": "src_services_supabase_workspace_workspacerole",
@@ -53349,6 +53284,19 @@
       "source_location": "L917"
     },
     {
+      "id": "cloudflare_audio_worker_worker_configuration_d_emailevent",
+      "label": "EmailEvent",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 504,
+      "community_name": "Event",
+      "file_type": "code",
+      "norm_label": "emailevent",
+      "source_file": "cloudflare/audio-worker/worker-configuration.d.ts",
+      "source_location": "L12303"
+    },
+    {
       "id": "cloudflare_audio_worker_worker_configuration_d_errorevent",
       "label": "ErrorEvent",
       "_callable": true,
@@ -53375,6 +53323,32 @@
       "source_location": "L659"
     },
     {
+      "id": "cloudflare_audio_worker_worker_configuration_d_extendableevent",
+      "label": "ExtendableEvent",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 504,
+      "community_name": "Event",
+      "file_type": "code",
+      "norm_label": "extendableevent",
+      "source_file": "cloudflare/audio-worker/worker-configuration.d.ts",
+      "source_location": "L904"
+    },
+    {
+      "id": "cloudflare_audio_worker_worker_configuration_d_fetchevent",
+      "label": "FetchEvent",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 504,
+      "community_name": "Event",
+      "file_type": "code",
+      "norm_label": "fetchevent",
+      "source_file": "cloudflare/audio-worker/worker-configuration.d.ts",
+      "source_location": "L1597"
+    },
+    {
       "id": "cloudflare_audio_worker_worker_configuration_d_messageevent",
       "label": "MessageEvent",
       "_callable": true,
@@ -53399,6 +53373,45 @@
       "norm_label": "promiserejectionevent",
       "source_file": "cloudflare/audio-worker/worker-configuration.d.ts",
       "source_location": "L1426"
+    },
+    {
+      "id": "cloudflare_audio_worker_worker_configuration_d_queueevent",
+      "label": "QueueEvent",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 504,
+      "community_name": "Event",
+      "file_type": "code",
+      "norm_label": "queueevent",
+      "source_file": "cloudflare/audio-worker/worker-configuration.d.ts",
+      "source_location": "L1996"
+    },
+    {
+      "id": "cloudflare_audio_worker_worker_configuration_d_scheduledevent",
+      "label": "ScheduledEvent",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 504,
+      "community_name": "Event",
+      "file_type": "code",
+      "norm_label": "scheduledevent",
+      "source_file": "cloudflare/audio-worker/worker-configuration.d.ts",
+      "source_location": "L2149"
+    },
+    {
+      "id": "cloudflare_audio_worker_worker_configuration_d_tailevent",
+      "label": "TailEvent",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 504,
+      "community_name": "Event",
+      "file_type": "code",
+      "norm_label": "tailevent",
+      "source_file": "cloudflare/audio-worker/worker-configuration.d.ts",
+      "source_location": "L2700"
     },
     {
       "id": "cloudflare_epk_public_worker_configuration_d_closeevent",
@@ -57236,19 +57249,6 @@
       "source_location": "L3"
     },
     {
-      "id": "d_app_en_dev_faderzeropwa_src_features_audio_audioquotabanner_audioquotabannerprops",
-      "label": "AudioQuotaBannerProps",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 706,
-      "community_name": "../src/features/audio/AudioQuotaBanner.tsx",
-      "file_type": "code",
-      "norm_label": "audioquotabannerprops",
-      "source_file": "../../src/features/audio/AudioQuotaBanner.tsx",
-      "source_location": "L9"
-    },
-    {
       "id": "src_components_sortmenu_menufilter",
       "label": "MenuFilter",
       "_callable": true,
@@ -57780,6 +57780,19 @@
       "norm_label": "d1database",
       "source_file": "cloudflare/audio-worker/worker-configuration.d.ts",
       "source_location": "L12128"
+    },
+    {
+      "id": "cloudflare_audio_worker_worker_configuration_d_readablestreamdefaultreader",
+      "label": "ReadableStreamDefaultReader",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 739,
+      "community_name": "D1Database",
+      "file_type": "code",
+      "norm_label": "readablestreamdefaultreader",
+      "source_file": "cloudflare/audio-worker/worker-configuration.d.ts",
+      "source_location": "L2292"
     },
     {
       "id": "d_app_en_dev_faderzeropwa_cloudflare_audio_worker_worker_configuration_d_subtlecrypto",
@@ -59628,17 +59641,17 @@
       "source_location": "L1703"
     },
     {
-      "id": "d_app_en_dev_faderzeropwa_src_ui_components_fieldlabel_fieldlabelprops",
-      "label": "FieldLabelProps",
+      "id": "src_components_splashscreen_splashscreenprops",
+      "label": "SplashScreenProps",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 860,
-      "community_name": "../src/ui/components/FieldLabel.tsx",
+      "community_name": "src/components/SplashScreen.tsx",
       "file_type": "code",
-      "norm_label": "fieldlabelprops",
-      "source_file": "../../src/ui/components/FieldLabel.tsx",
-      "source_location": "L3"
+      "norm_label": "splashscreenprops",
+      "source_file": "src/components/SplashScreen.tsx",
+      "source_location": "L6"
     },
     {
       "id": "src_components_undotoast_undotoastprops",
@@ -59680,17 +59693,17 @@
       "source_location": "L4"
     },
     {
-      "id": "src_features_audio_audioquotabanner_audioquotabannerprops",
-      "label": "AudioQuotaBannerProps",
+      "id": "src_ui_components_detailheader_detailheaderprops",
+      "label": "DetailHeaderProps",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
-      "community": 873,
-      "community_name": "src/features/audio/AudioQuotaBanner.tsx",
+      "community": 874,
+      "community_name": "src/ui/components/DetailHeader.tsx",
       "file_type": "code",
-      "norm_label": "audioquotabannerprops",
-      "source_file": "src/features/audio/AudioQuotaBanner.tsx",
-      "source_location": "L9"
+      "norm_label": "detailheaderprops",
+      "source_file": "src/ui/components/DetailHeader.tsx",
+      "source_location": "L4"
     },
     {
       "id": "src_ui_components_selectfield_selectfieldprops",
@@ -63453,6 +63466,18 @@
       "source_location": "L10"
     },
     {
+      "id": "d_app_en_dev_faderzeropwa_src_ui_components_faderlogo_faderlogo",
+      "label": "FaderLogo()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 1130,
+      "community_name": "../src/ui/components/FaderLogo.tsx",
+      "file_type": "code",
+      "norm_label": "faderlogo()",
+      "source_file": "../../src/ui/components/FaderLogo.tsx",
+      "source_location": "L3"
+    },
+    {
       "id": "d_app_en_dev_faderzeropwa_src_features_audio_audiocachestore_configureaudiocachecontext",
       "label": "configureAudioCacheContext()",
       "_callable": true,
@@ -66405,39 +66430,63 @@
       "source_location": "L10"
     },
     {
-      "id": "d_app_en_dev_faderzeropwa_src_components_undotoast_undotoast",
-      "label": "UndoToast()",
+      "id": "d_app_en_dev_faderzeropwa_src_components_splashscreen_splashscreen",
+      "label": "SplashScreen()",
       "_callable": true,
       "_origin": "ast",
       "community": 15,
       "community_name": "react",
       "file_type": "code",
-      "norm_label": "undotoast()",
-      "source_file": "../../src/components/UndoToast.tsx",
-      "source_location": "L11"
+      "norm_label": "splashscreen()",
+      "source_file": "../../src/components/SplashScreen.tsx",
+      "source_location": "L12"
     },
     {
-      "id": "d_app_en_dev_faderzeropwa_src_features_home_homepage_formatrelativetimefr",
-      "label": "formatRelativeTimeFr()",
+      "id": "d_app_en_dev_faderzeropwa_src_features_audio_audioquotabanner_audioquotabanner",
+      "label": "AudioQuotaBanner()",
       "_callable": true,
       "_origin": "ast",
       "community": 15,
       "community_name": "react",
       "file_type": "code",
-      "norm_label": "formatrelativetimefr()",
-      "source_file": "../../src/features/home/HomePage.tsx",
-      "source_location": "L19"
+      "norm_label": "audioquotabanner()",
+      "source_file": "../../src/features/audio/AudioQuotaBanner.tsx",
+      "source_location": "L15"
     },
     {
-      "id": "d_app_en_dev_faderzeropwa_src_features_home_homepage_homepage",
-      "label": "HomePage()",
+      "id": "d_app_en_dev_faderzeropwa_src_features_audio_audioquotabanner_formatquotavalue",
+      "label": "formatQuotaValue()",
       "_callable": true,
       "_origin": "ast",
       "community": 15,
       "community_name": "react",
       "file_type": "code",
-      "norm_label": "homepage()",
-      "source_file": "../../src/features/home/HomePage.tsx",
+      "norm_label": "formatquotavalue()",
+      "source_file": "../../src/features/audio/AudioQuotaBanner.tsx",
+      "source_location": "L79"
+    },
+    {
+      "id": "d_app_en_dev_faderzeropwa_src_features_events_calendarpage_test_locationprobe",
+      "label": "LocationProbe()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 15,
+      "community_name": "react",
+      "file_type": "code",
+      "norm_label": "locationprobe()",
+      "source_file": "../../src/features/events/CalendarPage.test.tsx",
+      "source_location": "L29"
+    },
+    {
+      "id": "d_app_en_dev_faderzeropwa_src_features_events_calendarpage_test_render",
+      "label": "render()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 15,
+      "community_name": "react",
+      "file_type": "code",
+      "norm_label": "render()",
+      "source_file": "../../src/features/events/CalendarPage.test.tsx",
       "source_location": "L34"
     },
     {
@@ -66489,16 +66538,16 @@
       "source_location": "L8"
     },
     {
-      "id": "d_app_en_dev_faderzeropwa_src_ui_components_faderlogo_faderlogo",
-      "label": "FaderLogo()",
+      "id": "d_app_en_dev_faderzeropwa_src_ui_components_fieldlabel_fieldlabel",
+      "label": "FieldLabel()",
       "_callable": true,
       "_origin": "ast",
       "community": 15,
       "community_name": "react",
       "file_type": "code",
-      "norm_label": "faderlogo()",
-      "source_file": "../../src/ui/components/FaderLogo.tsx",
-      "source_location": "L3"
+      "norm_label": "fieldlabel()",
+      "source_file": "../../src/ui/components/FieldLabel.tsx",
+      "source_location": "L11"
     },
     {
       "id": "src_app_providers_appproviders",
@@ -66525,52 +66574,28 @@
       "source_location": "L10"
     },
     {
-      "id": "src_components_splashscreen_splashscreen",
-      "label": "SplashScreen()",
+      "id": "src_features_audio_audioquotabanner_audioquotabanner",
+      "label": "AudioQuotaBanner()",
       "_callable": true,
       "_origin": "ast",
       "community": 15,
       "community_name": "react",
       "file_type": "code",
-      "norm_label": "splashscreen()",
-      "source_file": "src/components/SplashScreen.tsx",
-      "source_location": "L12"
+      "norm_label": "audioquotabanner()",
+      "source_file": "src/features/audio/AudioQuotaBanner.tsx",
+      "source_location": "L15"
     },
     {
-      "id": "src_components_workspaceselectionpage_workspaceselectionpage",
-      "label": "WorkspaceSelectionPage()",
+      "id": "src_features_audio_audioquotabanner_formatquotavalue",
+      "label": "formatQuotaValue()",
       "_callable": true,
       "_origin": "ast",
       "community": 15,
       "community_name": "react",
       "file_type": "code",
-      "norm_label": "workspaceselectionpage()",
-      "source_file": "src/components/WorkspaceSelectionPage.tsx",
-      "source_location": "L6"
-    },
-    {
-      "id": "src_components_workspaceselectionpage_workspaceselectionpage_handlecreate",
-      "label": "handleCreate()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 15,
-      "community_name": "react",
-      "file_type": "code",
-      "norm_label": "handlecreate()",
-      "source_file": "src/components/WorkspaceSelectionPage.tsx",
-      "source_location": "L13"
-    },
-    {
-      "id": "src_components_workspaceselectionpage_workspaceselectionpage_handlejoinwithlink",
-      "label": "handleJoinWithLink()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 15,
-      "community_name": "react",
-      "file_type": "code",
-      "norm_label": "handlejoinwithlink()",
-      "source_file": "src/components/WorkspaceSelectionPage.tsx",
-      "source_location": "L24"
+      "norm_label": "formatquotavalue()",
+      "source_file": "src/features/audio/AudioQuotaBanner.tsx",
+      "source_location": "L79"
     },
     {
       "id": "src_features_events_calendarpage_test_locationprobe",
@@ -66643,18 +66668,6 @@
       "norm_label": "uselongpress()",
       "source_file": "src/hooks/useLongPress.ts",
       "source_location": "L9"
-    },
-    {
-      "id": "src_ui_components_detailheader_detailheader",
-      "label": "DetailHeader()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 15,
-      "community_name": "react",
-      "file_type": "code",
-      "norm_label": "detailheader()",
-      "source_file": "src/ui/components/DetailHeader.tsx",
-      "source_location": "L13"
     },
     {
       "id": "src_ui_components_faderlogo_faderlogo",
@@ -76821,76 +76834,16 @@
       "source_location": "L35"
     },
     {
-      "id": "cloudflare_audio_worker_worker_configuration_d_extendableevent_waituntil",
-      "label": ".waitUntil()",
+      "id": "d_app_en_dev_faderzeropwa_src_components_undotoast_undotoast",
+      "label": "UndoToast()",
       "_callable": true,
       "_origin": "ast",
       "community": 317,
-      "community_name": "ExtendableEvent",
+      "community_name": "../src/components/UndoToast.tsx",
       "file_type": "code",
-      "norm_label": ".waituntil()",
-      "source_file": "cloudflare/audio-worker/worker-configuration.d.ts",
-      "source_location": "L910"
-    },
-    {
-      "id": "cloudflare_audio_worker_worker_configuration_d_fetchevent_passthroughonexception",
-      "label": ".passThroughOnException()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 317,
-      "community_name": "ExtendableEvent",
-      "file_type": "code",
-      "norm_label": ".passthroughonexception()",
-      "source_file": "cloudflare/audio-worker/worker-configuration.d.ts",
-      "source_location": "L1610"
-    },
-    {
-      "id": "cloudflare_audio_worker_worker_configuration_d_fetchevent_respondwith",
-      "label": ".respondWith()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 317,
-      "community_name": "ExtendableEvent",
-      "file_type": "code",
-      "norm_label": ".respondwith()",
-      "source_file": "cloudflare/audio-worker/worker-configuration.d.ts",
-      "source_location": "L1609"
-    },
-    {
-      "id": "cloudflare_audio_worker_worker_configuration_d_queueevent_ackall",
-      "label": ".ackAll()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 317,
-      "community_name": "ExtendableEvent",
-      "file_type": "code",
-      "norm_label": ".ackall()",
-      "source_file": "cloudflare/audio-worker/worker-configuration.d.ts",
-      "source_location": "L2001"
-    },
-    {
-      "id": "cloudflare_audio_worker_worker_configuration_d_queueevent_retryall",
-      "label": ".retryAll()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 317,
-      "community_name": "ExtendableEvent",
-      "file_type": "code",
-      "norm_label": ".retryall()",
-      "source_file": "cloudflare/audio-worker/worker-configuration.d.ts",
-      "source_location": "L2000"
-    },
-    {
-      "id": "cloudflare_audio_worker_worker_configuration_d_scheduledevent_noretry",
-      "label": ".noRetry()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 317,
-      "community_name": "ExtendableEvent",
-      "file_type": "code",
-      "norm_label": ".noretry()",
-      "source_file": "cloudflare/audio-worker/worker-configuration.d.ts",
-      "source_location": "L2152"
+      "norm_label": "undotoast()",
+      "source_file": "../../src/components/UndoToast.tsx",
+      "source_location": "L11"
     },
     {
       "id": "d_app_en_dev_faderzeropwa_src_db_userdatamigration_test_song",
@@ -77349,64 +77302,28 @@
       "source_location": "L51"
     },
     {
-      "id": "cloudflare_audio_worker_worker_configuration_d_readablestreamdefaultreader_cancel",
-      "label": ".cancel()",
+      "id": "d_app_en_dev_faderzeropwa_src_features_home_homepage_formatrelativetimefr",
+      "label": "formatRelativeTimeFr()",
       "_callable": true,
       "_origin": "ast",
       "community": 321,
-      "community_name": "ReadableStreamDefaultReader",
+      "community_name": "../src/features/home/HomePage.tsx",
       "file_type": "code",
-      "norm_label": ".cancel()",
-      "source_file": "cloudflare/audio-worker/worker-configuration.d.ts",
-      "source_location": "L2295"
+      "norm_label": "formatrelativetimefr()",
+      "source_file": "../../src/features/home/HomePage.tsx",
+      "source_location": "L19"
     },
     {
-      "id": "cloudflare_audio_worker_worker_configuration_d_readablestreamdefaultreader_closed",
-      "label": ".closed()",
+      "id": "d_app_en_dev_faderzeropwa_src_features_home_homepage_homepage",
+      "label": "HomePage()",
       "_callable": true,
       "_origin": "ast",
       "community": 321,
-      "community_name": "ReadableStreamDefaultReader",
+      "community_name": "../src/features/home/HomePage.tsx",
       "file_type": "code",
-      "norm_label": ".closed()",
-      "source_file": "cloudflare/audio-worker/worker-configuration.d.ts",
-      "source_location": "L2294"
-    },
-    {
-      "id": "cloudflare_audio_worker_worker_configuration_d_readablestreamdefaultreader_constructor",
-      "label": ".constructor()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 321,
-      "community_name": "ReadableStreamDefaultReader",
-      "file_type": "code",
-      "norm_label": ".constructor()",
-      "source_file": "cloudflare/audio-worker/worker-configuration.d.ts",
-      "source_location": "L2293"
-    },
-    {
-      "id": "cloudflare_audio_worker_worker_configuration_d_readablestreamdefaultreader_read",
-      "label": ".read()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 321,
-      "community_name": "ReadableStreamDefaultReader",
-      "file_type": "code",
-      "norm_label": ".read()",
-      "source_file": "cloudflare/audio-worker/worker-configuration.d.ts",
-      "source_location": "L2301"
-    },
-    {
-      "id": "cloudflare_audio_worker_worker_configuration_d_readablestreamdefaultreader_releaselock",
-      "label": ".releaseLock()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 321,
-      "community_name": "ReadableStreamDefaultReader",
-      "file_type": "code",
-      "norm_label": ".releaselock()",
-      "source_file": "cloudflare/audio-worker/worker-configuration.d.ts",
-      "source_location": "L2307"
+      "norm_label": "homepage()",
+      "source_file": "../../src/features/home/HomePage.tsx",
+      "source_location": "L34"
     },
     {
       "id": "d_app_en_dev_faderzeropwa_src_features_setlists_setlistdetailpage_test_renderpage",
@@ -77563,18 +77480,6 @@
       "norm_label": ".tomarkdown()",
       "source_file": "cloudflare/epk-public/worker-configuration.d.ts",
       "source_location": "L10259"
-    },
-    {
-      "id": "d_app_en_dev_faderzeropwa_src_components_splashscreen_splashscreen",
-      "label": "SplashScreen()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 328,
-      "community_name": "../src/components/SplashScreen.tsx",
-      "file_type": "code",
-      "norm_label": "splashscreen()",
-      "source_file": "../../src/components/SplashScreen.tsx",
-      "source_location": "L12"
     },
     {
       "id": "cloudflare_epk_public_worker_configuration_d_error",
@@ -87810,7 +87715,7 @@
       "file_type": "code",
       "norm_label": "accountpage()",
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L387"
+      "source_location": "L309"
     },
     {
       "id": "src_features_account_accountpage_accountpage_copytexttoclipboard",
@@ -87822,7 +87727,7 @@
       "file_type": "code",
       "norm_label": "copytexttoclipboard()",
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L594"
+      "source_location": "L500"
     },
     {
       "id": "src_features_account_accountpage_accountpage_generateinvitelink",
@@ -87834,7 +87739,7 @@
       "file_type": "code",
       "norm_label": "generateinvitelink()",
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L782"
+      "source_location": "L683"
     },
     {
       "id": "src_features_account_accountpage_accountpage_handleaccountdeletionrequest",
@@ -87846,7 +87751,7 @@
       "file_type": "code",
       "norm_label": "handleaccountdeletionrequest()",
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L664"
+      "source_location": "L570"
     },
     {
       "id": "src_features_account_accountpage_accountpage_handleavatarchange",
@@ -87858,7 +87763,7 @@
       "file_type": "code",
       "norm_label": "handleavatarchange()",
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L574"
+      "source_location": "L480"
     },
     {
       "id": "src_features_account_accountpage_accountpage_handleclosesharedialog",
@@ -87870,7 +87775,7 @@
       "file_type": "code",
       "norm_label": "handleclosesharedialog()",
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L822"
+      "source_location": "L726"
     },
     {
       "id": "src_features_account_accountpage_accountpage_handlecopyinvitelink",
@@ -87882,7 +87787,7 @@
       "file_type": "code",
       "norm_label": "handlecopyinvitelink()",
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L814"
+      "source_location": "L717"
     },
     {
       "id": "src_features_account_accountpage_accountpage_handlecreateworkspace",
@@ -87894,7 +87799,7 @@
       "file_type": "code",
       "norm_label": "handlecreateworkspace()",
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L689"
+      "source_location": "L595"
     },
     {
       "id": "src_features_account_accountpage_accountpage_handleemailsubmit",
@@ -87906,7 +87811,7 @@
       "file_type": "code",
       "norm_label": "handleemailsubmit()",
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L646"
+      "source_location": "L552"
     },
     {
       "id": "src_features_account_accountpage_accountpage_handlefinalaccountdeletion",
@@ -87918,7 +87823,7 @@
       "file_type": "code",
       "norm_label": "handlefinalaccountdeletion()",
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L676"
+      "source_location": "L582"
     },
     {
       "id": "src_features_account_accountpage_accountpage_handlejoinworkspacewithlink",
@@ -87930,7 +87835,7 @@
       "file_type": "code",
       "norm_label": "handlejoinworkspacewithlink()",
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L831"
+      "source_location": "L735"
     },
     {
       "id": "src_features_account_accountpage_accountpage_handleleavegroup",
@@ -87942,7 +87847,7 @@
       "file_type": "code",
       "norm_label": "handleleavegroup()",
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L757"
+      "source_location": "L658"
     },
     {
       "id": "src_features_account_accountpage_accountpage_handlelinkgoogle",
@@ -87954,7 +87859,7 @@
       "file_type": "code",
       "norm_label": "handlelinkgoogle()",
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L636"
+      "source_location": "L542"
     },
     {
       "id": "src_features_account_accountpage_accountpage_handlememberrolechange",
@@ -87966,7 +87871,7 @@
       "file_type": "code",
       "norm_label": "handlememberrolechange()",
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L734"
+      "source_location": "L638"
     },
     {
       "id": "src_features_account_accountpage_accountpage_handleopensharedialog",
@@ -87978,7 +87883,7 @@
       "file_type": "code",
       "norm_label": "handleopensharedialog()",
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L798"
+      "source_location": "L700"
     },
     {
       "id": "src_features_account_accountpage_accountpage_handlepasswordsubmit",
@@ -87990,7 +87895,7 @@
       "file_type": "code",
       "norm_label": "handlepasswordsubmit()",
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L611"
+      "source_location": "L517"
     },
     {
       "id": "src_features_account_accountpage_accountpage_handleprofilesubmit",
@@ -88002,7 +87907,7 @@
       "file_type": "code",
       "norm_label": "handleprofilesubmit()",
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L555"
+      "source_location": "L461"
     },
     {
       "id": "src_features_account_accountpage_accountpage_handleremovemember",
@@ -88014,7 +87919,7 @@
       "file_type": "code",
       "norm_label": "handleremovemember()",
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L746"
+      "source_location": "L647"
     },
     {
       "id": "src_features_account_accountpage_accountpage_handlesoftdeletegroup",
@@ -88026,7 +87931,7 @@
       "file_type": "code",
       "norm_label": "handlesoftdeletegroup()",
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L767"
+      "source_location": "L668"
     },
     {
       "id": "src_features_account_accountpage_accountpage_handleupdategroupname",
@@ -88038,7 +87943,7 @@
       "file_type": "code",
       "norm_label": "handleupdategroupname()",
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L716"
+      "source_location": "L620"
     },
     {
       "id": "src_features_account_accountpage_accountpage_loadactiveinvites",
@@ -88050,19 +87955,31 @@
       "file_type": "code",
       "norm_label": "loadactiveinvites()",
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L777"
+      "source_location": "L678"
     },
     {
-      "id": "src_features_account_accountpage_accountpage_menurow",
-      "label": "menuRow()",
+      "id": "src_features_account_accountpage_accounttabicon",
+      "label": "AccountTabIcon()",
       "_callable": true,
       "_origin": "ast",
       "community": 502,
       "community_name": "AccountPage",
       "file_type": "code",
-      "norm_label": "menurow()",
+      "norm_label": "accounttabicon()",
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L862"
+      "source_location": "L222"
+    },
+    {
+      "id": "src_features_account_accountpage_copyicon",
+      "label": "CopyIcon()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 502,
+      "community_name": "AccountPage",
+      "file_type": "code",
+      "norm_label": "copyicon()",
+      "source_file": "src/features/account/AccountPage.tsx",
+      "source_location": "L213"
     },
     {
       "id": "src_features_account_accountpage_fallbackcopytexttoclipboard",
@@ -88074,7 +87991,7 @@
       "file_type": "code",
       "norm_label": "fallbackcopytexttoclipboard()",
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L343"
+      "source_location": "L251"
     },
     {
       "id": "src_features_account_accountpage_formatinviteremaining",
@@ -88086,7 +88003,19 @@
       "file_type": "code",
       "norm_label": "formatinviteremaining()",
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L334"
+      "source_location": "L204"
+    },
+    {
+      "id": "src_features_account_accountpage_getinitialtab",
+      "label": "getInitialTab()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 502,
+      "community_name": "AccountPage",
+      "file_type": "code",
+      "norm_label": "getinitialtab()",
+      "source_file": "src/features/account/AccountPage.tsx",
+      "source_location": "L293"
     },
     {
       "id": "src_features_account_accountpage_getworkspaceinitials",
@@ -88098,7 +88027,19 @@
       "file_type": "code",
       "norm_label": "getworkspaceinitials()",
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L62"
+      "source_location": "L52"
+    },
+    {
+      "id": "src_features_account_accountpage_grouptabicon",
+      "label": "GroupTabIcon()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 502,
+      "community_name": "AccountPage",
+      "file_type": "code",
+      "norm_label": "grouptabicon()",
+      "source_file": "src/features/account/AccountPage.tsx",
+      "source_location": "L231"
     },
     {
       "id": "src_features_account_accountpage_memberavatar",
@@ -88110,7 +88051,19 @@
       "file_type": "code",
       "norm_label": "memberavatar()",
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L74"
+      "source_location": "L64"
+    },
+    {
+      "id": "src_features_account_accountpage_synctabicon",
+      "label": "SyncTabIcon()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 502,
+      "community_name": "AccountPage",
+      "file_type": "code",
+      "norm_label": "synctabicon()",
+      "source_file": "src/features/account/AccountPage.tsx",
+      "source_location": "L242"
     },
     {
       "id": "src_features_account_accountpage_workspacememberlist",
@@ -88122,7 +88075,7 @@
       "file_type": "code",
       "norm_label": "workspacememberlist()",
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L118"
+      "source_location": "L108"
     },
     {
       "id": "src_services_supabase_workspace_acceptworkspaceinvite",
@@ -88134,7 +88087,7 @@
       "file_type": "code",
       "norm_label": "acceptworkspaceinvite()",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L474"
+      "source_location": "L468"
     },
     {
       "id": "src_services_supabase_workspace_buildworkspaceinviteurl",
@@ -88146,7 +88099,7 @@
       "file_type": "code",
       "norm_label": "buildworkspaceinviteurl()",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L263"
+      "source_location": "L260"
     },
     {
       "id": "src_services_supabase_workspace_canadministerworkspace",
@@ -88182,7 +88135,7 @@
       "file_type": "code",
       "norm_label": "createworkspace()",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L165"
+      "source_location": "L162"
     },
     {
       "id": "src_services_supabase_workspace_createworkspaceinvitelink",
@@ -88194,7 +88147,7 @@
       "file_type": "code",
       "norm_label": "createworkspaceinvitelink()",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L405"
+      "source_location": "L402"
     },
     {
       "id": "src_services_supabase_workspace_extractworkspaceinvitetoken",
@@ -88206,7 +88159,7 @@
       "file_type": "code",
       "norm_label": "extractworkspaceinvitetoken()",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L269"
+      "source_location": "L266"
     },
     {
       "id": "src_services_supabase_workspace_leaveworkspace",
@@ -88218,7 +88171,7 @@
       "file_type": "code",
       "norm_label": "leaveworkspace()",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L388"
+      "source_location": "L385"
     },
     {
       "id": "src_services_supabase_workspace_listworkspaceinvites",
@@ -88230,7 +88183,7 @@
       "file_type": "code",
       "norm_label": "listworkspaceinvites()",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L429"
+      "source_location": "L425"
     },
     {
       "id": "src_services_supabase_workspace_listworkspacememberswithprofiles",
@@ -88242,7 +88195,7 @@
       "file_type": "code",
       "norm_label": "listworkspacememberswithprofiles()",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L307"
+      "source_location": "L304"
     },
     {
       "id": "src_services_supabase_workspace_mapworkspacememberrow",
@@ -88254,7 +88207,7 @@
       "file_type": "code",
       "norm_label": "mapworkspacememberrow()",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L296"
+      "source_location": "L293"
     },
     {
       "id": "src_services_supabase_workspace_mapworkspacerow",
@@ -88266,7 +88219,7 @@
       "file_type": "code",
       "norm_label": "mapworkspacerow()",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L284"
+      "source_location": "L281"
     },
     {
       "id": "src_services_supabase_workspace_normalizeworkspaceerror",
@@ -88278,7 +88231,7 @@
       "file_type": "code",
       "norm_label": "normalizeworkspaceerror()",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L114"
+      "source_location": "L111"
     },
     {
       "id": "src_services_supabase_workspace_normalizeworkspacename",
@@ -88326,7 +88279,7 @@
       "file_type": "code",
       "norm_label": "removeworkspacemember()",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L373"
+      "source_location": "L370"
     },
     {
       "id": "src_services_supabase_workspace_resolveworkspaceinvite",
@@ -88338,7 +88291,7 @@
       "file_type": "code",
       "norm_label": "resolveworkspaceinvite()",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L454"
+      "source_location": "L448"
     },
     {
       "id": "src_services_supabase_workspace_restoreworkspace",
@@ -88350,7 +88303,7 @@
       "file_type": "code",
       "norm_label": "restoreworkspace()",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L227"
+      "source_location": "L224"
     },
     {
       "id": "src_services_supabase_workspace_revokeworkspaceinvite",
@@ -88362,7 +88315,7 @@
       "file_type": "code",
       "norm_label": "revokeworkspaceinvite()",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L446"
+      "source_location": "L440"
     },
     {
       "id": "src_services_supabase_workspace_setworkspacememberrole",
@@ -88374,7 +88327,7 @@
       "file_type": "code",
       "norm_label": "setworkspacememberrole()",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L350"
+      "source_location": "L347"
     },
     {
       "id": "src_services_supabase_workspace_softdeleteworkspace",
@@ -88386,7 +88339,7 @@
       "file_type": "code",
       "norm_label": "softdeleteworkspace()",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L220"
+      "source_location": "L217"
     },
     {
       "id": "src_services_supabase_workspace_stringifyworkspaceerror",
@@ -88398,7 +88351,7 @@
       "file_type": "code",
       "norm_label": "stringifyworkspaceerror()",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L93"
+      "source_location": "L90"
     },
     {
       "id": "src_services_supabase_workspace_updateworkspacegroup",
@@ -88410,7 +88363,7 @@
       "file_type": "code",
       "norm_label": "updateworkspacegroup()",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L184"
+      "source_location": "L181"
     },
     {
       "id": "cloudflare_audio_worker_worker_configuration_d_closeevent_constructor",
@@ -88737,6 +88690,42 @@
       "source_location": "L666"
     },
     {
+      "id": "cloudflare_audio_worker_worker_configuration_d_extendableevent_waituntil",
+      "label": ".waitUntil()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 504,
+      "community_name": "Event",
+      "file_type": "code",
+      "norm_label": ".waituntil()",
+      "source_file": "cloudflare/audio-worker/worker-configuration.d.ts",
+      "source_location": "L910"
+    },
+    {
+      "id": "cloudflare_audio_worker_worker_configuration_d_fetchevent_passthroughonexception",
+      "label": ".passThroughOnException()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 504,
+      "community_name": "Event",
+      "file_type": "code",
+      "norm_label": ".passthroughonexception()",
+      "source_file": "cloudflare/audio-worker/worker-configuration.d.ts",
+      "source_location": "L1610"
+    },
+    {
+      "id": "cloudflare_audio_worker_worker_configuration_d_fetchevent_respondwith",
+      "label": ".respondWith()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 504,
+      "community_name": "Event",
+      "file_type": "code",
+      "norm_label": ".respondwith()",
+      "source_file": "cloudflare/audio-worker/worker-configuration.d.ts",
+      "source_location": "L1609"
+    },
+    {
       "id": "cloudflare_audio_worker_worker_configuration_d_messageevent_constructor",
       "label": ".constructor()",
       "_callable": true,
@@ -88747,6 +88736,42 @@
       "norm_label": ".constructor()",
       "source_file": "cloudflare/audio-worker/worker-configuration.d.ts",
       "source_location": "L1386"
+    },
+    {
+      "id": "cloudflare_audio_worker_worker_configuration_d_queueevent_ackall",
+      "label": ".ackAll()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 504,
+      "community_name": "Event",
+      "file_type": "code",
+      "norm_label": ".ackall()",
+      "source_file": "cloudflare/audio-worker/worker-configuration.d.ts",
+      "source_location": "L2001"
+    },
+    {
+      "id": "cloudflare_audio_worker_worker_configuration_d_queueevent_retryall",
+      "label": ".retryAll()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 504,
+      "community_name": "Event",
+      "file_type": "code",
+      "norm_label": ".retryall()",
+      "source_file": "cloudflare/audio-worker/worker-configuration.d.ts",
+      "source_location": "L2000"
+    },
+    {
+      "id": "cloudflare_audio_worker_worker_configuration_d_scheduledevent_noretry",
+      "label": ".noRetry()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 504,
+      "community_name": "Event",
+      "file_type": "code",
+      "norm_label": ".noretry()",
+      "source_file": "cloudflare/audio-worker/worker-configuration.d.ts",
+      "source_location": "L2152"
     },
     {
       "id": "cloudflare_epk_public_worker_configuration_d_closeevent_constructor",
@@ -98982,7 +99007,7 @@
       "file_type": "code",
       "norm_label": "getuserworkspaces()",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L234"
+      "source_location": "L231"
     },
     {
       "id": "cloudflare_audio_worker_worker_configuration_d_blob_arraybuffer",
@@ -100795,54 +100820,6 @@
       "norm_label": ".waituntil()",
       "source_file": "cloudflare/audio-worker/worker-configuration.d.ts",
       "source_location": "L553"
-    },
-    {
-      "id": "src_features_account_accountpage_test_openmembers",
-      "label": "openMembers()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 649,
-      "community_name": "src/features/account/AccountPage.test.tsx",
-      "file_type": "code",
-      "norm_label": "openmembers()",
-      "source_file": "src/features/account/AccountPage.test.tsx",
-      "source_location": "L87"
-    },
-    {
-      "id": "src_features_account_accountpage_test_openprofile",
-      "label": "openProfile()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 649,
-      "community_name": "src/features/account/AccountPage.test.tsx",
-      "file_type": "code",
-      "norm_label": "openprofile()",
-      "source_file": "src/features/account/AccountPage.test.tsx",
-      "source_location": "L85"
-    },
-    {
-      "id": "src_features_account_accountpage_test_opensecurity",
-      "label": "openSecurity()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 649,
-      "community_name": "src/features/account/AccountPage.test.tsx",
-      "file_type": "code",
-      "norm_label": "opensecurity()",
-      "source_file": "src/features/account/AccountPage.test.tsx",
-      "source_location": "L86"
-    },
-    {
-      "id": "src_features_account_accountpage_test_render",
-      "label": "render()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 649,
-      "community_name": "src/features/account/AccountPage.test.tsx",
-      "file_type": "code",
-      "norm_label": "render()",
-      "source_file": "src/features/account/AccountPage.test.tsx",
-      "source_location": "L84"
     },
     {
       "id": "d_app_en_dev_faderzeropwa_src_db_repositories_setlistsongsrepository_setlistsongsrepository_addsongtosetlist",
@@ -105717,30 +105694,6 @@
       "source_location": "L14430"
     },
     {
-      "id": "d_app_en_dev_faderzeropwa_src_features_audio_audioquotabanner_audioquotabanner",
-      "label": "AudioQuotaBanner()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 706,
-      "community_name": "../src/features/audio/AudioQuotaBanner.tsx",
-      "file_type": "code",
-      "norm_label": "audioquotabanner()",
-      "source_file": "../../src/features/audio/AudioQuotaBanner.tsx",
-      "source_location": "L15"
-    },
-    {
-      "id": "d_app_en_dev_faderzeropwa_src_features_audio_audioquotabanner_formatquotavalue",
-      "label": "formatQuotaValue()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 706,
-      "community_name": "../src/features/audio/AudioQuotaBanner.tsx",
-      "file_type": "code",
-      "norm_label": "formatquotavalue()",
-      "source_file": "../../src/features/audio/AudioQuotaBanner.tsx",
-      "source_location": "L79"
-    },
-    {
       "id": "src_components_sortmenu_sorticon",
       "label": "SortIcon()",
       "_callable": true,
@@ -107719,6 +107672,66 @@
       "norm_label": ".withsession()",
       "source_file": "cloudflare/audio-worker/worker-configuration.d.ts",
       "source_location": "L12139"
+    },
+    {
+      "id": "cloudflare_audio_worker_worker_configuration_d_readablestreamdefaultreader_cancel",
+      "label": ".cancel()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 739,
+      "community_name": "D1Database",
+      "file_type": "code",
+      "norm_label": ".cancel()",
+      "source_file": "cloudflare/audio-worker/worker-configuration.d.ts",
+      "source_location": "L2295"
+    },
+    {
+      "id": "cloudflare_audio_worker_worker_configuration_d_readablestreamdefaultreader_closed",
+      "label": ".closed()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 739,
+      "community_name": "D1Database",
+      "file_type": "code",
+      "norm_label": ".closed()",
+      "source_file": "cloudflare/audio-worker/worker-configuration.d.ts",
+      "source_location": "L2294"
+    },
+    {
+      "id": "cloudflare_audio_worker_worker_configuration_d_readablestreamdefaultreader_constructor",
+      "label": ".constructor()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 739,
+      "community_name": "D1Database",
+      "file_type": "code",
+      "norm_label": ".constructor()",
+      "source_file": "cloudflare/audio-worker/worker-configuration.d.ts",
+      "source_location": "L2293"
+    },
+    {
+      "id": "cloudflare_audio_worker_worker_configuration_d_readablestreamdefaultreader_read",
+      "label": ".read()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 739,
+      "community_name": "D1Database",
+      "file_type": "code",
+      "norm_label": ".read()",
+      "source_file": "cloudflare/audio-worker/worker-configuration.d.ts",
+      "source_location": "L2301"
+    },
+    {
+      "id": "cloudflare_audio_worker_worker_configuration_d_readablestreamdefaultreader_releaselock",
+      "label": ".releaseLock()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 739,
+      "community_name": "D1Database",
+      "file_type": "code",
+      "norm_label": ".releaselock()",
+      "source_file": "cloudflare/audio-worker/worker-configuration.d.ts",
+      "source_location": "L2307"
     },
     {
       "id": "d_app_en_dev_faderzeropwa_cloudflare_audio_worker_worker_configuration_d_subtlecrypto_decrypt",
@@ -111597,30 +111610,6 @@
       "source_location": "L3159"
     },
     {
-      "id": "d_app_en_dev_faderzeropwa_src_features_events_calendarpage_test_locationprobe",
-      "label": "LocationProbe()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 800,
-      "community_name": "../src/features/events/CalendarPage.test.tsx",
-      "file_type": "code",
-      "norm_label": "locationprobe()",
-      "source_file": "../../src/features/events/CalendarPage.test.tsx",
-      "source_location": "L29"
-    },
-    {
-      "id": "d_app_en_dev_faderzeropwa_src_features_events_calendarpage_test_render",
-      "label": "render()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 800,
-      "community_name": "../src/features/events/CalendarPage.test.tsx",
-      "file_type": "code",
-      "norm_label": "render()",
-      "source_file": "../../src/features/events/CalendarPage.test.tsx",
-      "source_location": "L34"
-    },
-    {
       "id": "scripts_run_cloudflare_checks_assertequal",
       "label": "assertEqual()",
       "_callable": true,
@@ -114165,16 +114154,16 @@
       "source_location": "L1709"
     },
     {
-      "id": "d_app_en_dev_faderzeropwa_src_ui_components_fieldlabel_fieldlabel",
-      "label": "FieldLabel()",
+      "id": "src_components_splashscreen_splashscreen",
+      "label": "SplashScreen()",
       "_callable": true,
       "_origin": "ast",
       "community": 860,
-      "community_name": "../src/ui/components/FieldLabel.tsx",
+      "community_name": "src/components/SplashScreen.tsx",
       "file_type": "code",
-      "norm_label": "fieldlabel()",
-      "source_file": "../../src/ui/components/FieldLabel.tsx",
-      "source_location": "L11"
+      "norm_label": "splashscreen()",
+      "source_file": "src/components/SplashScreen.tsx",
+      "source_location": "L12"
     },
     {
       "id": "src_app_appcontent_test_finishsplash",
@@ -114441,28 +114430,52 @@
       "source_location": "L36"
     },
     {
-      "id": "src_features_audio_audioquotabanner_audioquotabanner",
-      "label": "AudioQuotaBanner()",
+      "id": "src_ui_components_detailheader_detailheader",
+      "label": "DetailHeader()",
       "_callable": true,
       "_origin": "ast",
-      "community": 873,
-      "community_name": "src/features/audio/AudioQuotaBanner.tsx",
+      "community": 874,
+      "community_name": "src/ui/components/DetailHeader.tsx",
       "file_type": "code",
-      "norm_label": "audioquotabanner()",
-      "source_file": "src/features/audio/AudioQuotaBanner.tsx",
-      "source_location": "L15"
+      "norm_label": "detailheader()",
+      "source_file": "src/ui/components/DetailHeader.tsx",
+      "source_location": "L13"
     },
     {
-      "id": "src_features_audio_audioquotabanner_formatquotavalue",
-      "label": "formatQuotaValue()",
+      "id": "src_components_workspaceselectionpage_workspaceselectionpage",
+      "label": "WorkspaceSelectionPage()",
       "_callable": true,
       "_origin": "ast",
-      "community": 873,
-      "community_name": "src/features/audio/AudioQuotaBanner.tsx",
+      "community": 875,
+      "community_name": "WorkspaceSelectionPage",
       "file_type": "code",
-      "norm_label": "formatquotavalue()",
-      "source_file": "src/features/audio/AudioQuotaBanner.tsx",
-      "source_location": "L79"
+      "norm_label": "workspaceselectionpage()",
+      "source_file": "src/components/WorkspaceSelectionPage.tsx",
+      "source_location": "L6"
+    },
+    {
+      "id": "src_components_workspaceselectionpage_workspaceselectionpage_handlecreate",
+      "label": "handleCreate()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 875,
+      "community_name": "WorkspaceSelectionPage",
+      "file_type": "code",
+      "norm_label": "handlecreate()",
+      "source_file": "src/components/WorkspaceSelectionPage.tsx",
+      "source_location": "L13"
+    },
+    {
+      "id": "src_components_workspaceselectionpage_workspaceselectionpage_handlejoinwithlink",
+      "label": "handleJoinWithLink()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 875,
+      "community_name": "WorkspaceSelectionPage",
+      "file_type": "code",
+      "norm_label": "handlejoinwithlink()",
+      "source_file": "src/components/WorkspaceSelectionPage.tsx",
+      "source_location": "L24"
     },
     {
       "id": "d_app_en_dev_faderzeropwa_cloudflare_epk_public_worker_configuration_d_urlpattern_constructor",
@@ -118111,6 +118124,36 @@
       "source_location": "L1"
     },
     {
+      "id": "githooks_pre_push",
+      "label": ".githooks/pre-push",
+      "_origin": "ast",
+      "community": 1020,
+      "community_name": ".githooks/pre-push",
+      "file_type": "code",
+      "metadata": {
+        "language": "bash",
+        "kind": "file"
+      },
+      "norm_label": ".githooks/pre-push",
+      "source_file": ".githooks/pre-push",
+      "source_location": "L1"
+    },
+    {
+      "id": "githooks_pre_push__entry",
+      "label": "pre-push script",
+      "_origin": "ast",
+      "community": 1020,
+      "community_name": ".githooks/pre-push",
+      "file_type": "code",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_entrypoint"
+      },
+      "norm_label": "pre-push script",
+      "source_file": ".githooks/pre-push",
+      "source_location": "L1"
+    },
+    {
       "id": "scripts_dev_audio_worker",
       "label": "scripts/dev-audio-worker.ps1",
       "_origin": "ast",
@@ -120157,6 +120200,28 @@
       "source_location": "L1"
     },
     {
+      "id": "ext_src_ui_components_faderlogo_test_tsx",
+      "label": "../src/ui/components/FaderLogo.test.tsx",
+      "_origin": "ast",
+      "community": 1130,
+      "community_name": "../src/ui/components/FaderLogo.tsx",
+      "file_type": "code",
+      "norm_label": "../src/ui/components/faderlogo.test.tsx",
+      "source_file": "../../src/ui/components/FaderLogo.test.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "ext_src_ui_components_faderlogo_tsx",
+      "label": "../src/ui/components/FaderLogo.tsx",
+      "_origin": "ast",
+      "community": 1130,
+      "community_name": "../src/ui/components/FaderLogo.tsx",
+      "file_type": "code",
+      "norm_label": "../src/ui/components/faderlogo.tsx",
+      "source_file": "../../src/ui/components/FaderLogo.tsx",
+      "source_location": "L1"
+    },
+    {
       "id": "d_app_en_dev_faderzeropwa_src_features_audio_audiocachestore_legacy_audio_cache_name",
       "label": "LEGACY_AUDIO_CACHE_NAME",
       "_origin": "ast",
@@ -122027,15 +122092,26 @@
       "source_location": ""
     },
     {
-      "id": "d_app_en_dev_faderzeropwa_src_ui_components_selectfield_selectfield",
-      "label": "SelectField",
+      "id": "d_app_en_dev_faderzeropwa_src_components_splashscreen_splash_animation_duration_ms",
+      "label": "SPLASH_ANIMATION_DURATION_MS",
       "_origin": "ast",
       "community": 15,
       "community_name": "react",
       "file_type": "code",
-      "norm_label": "selectfield",
-      "source_file": "../../src/ui/components/SelectField.tsx",
-      "source_location": "L5"
+      "norm_label": "splash_animation_duration_ms",
+      "source_file": "../../src/components/SplashScreen.tsx",
+      "source_location": "L3"
+    },
+    {
+      "id": "d_app_en_dev_faderzeropwa_src_features_events_calendarpage_test_eventmocks",
+      "label": "eventMocks",
+      "_origin": "ast",
+      "community": 15,
+      "community_name": "react",
+      "file_type": "code",
+      "norm_label": "eventmocks",
+      "source_file": "../../src/features/events/CalendarPage.test.tsx",
+      "source_location": "L6"
     },
     {
       "id": "ext_src_app_providers_tsx",
@@ -122060,47 +122136,36 @@
       "source_location": "L1"
     },
     {
-      "id": "ext_src_components_undotoast_test_tsx",
-      "label": "../src/components/UndoToast.test.tsx",
+      "id": "ext_src_components_splashscreen_tsx",
+      "label": "../src/components/SplashScreen.tsx",
       "_origin": "ast",
       "community": 15,
       "community_name": "react",
       "file_type": "code",
-      "norm_label": "../src/components/undotoast.test.tsx",
-      "source_file": "../../src/components/UndoToast.test.tsx",
+      "norm_label": "../src/components/splashscreen.tsx",
+      "source_file": "../../src/components/SplashScreen.tsx",
       "source_location": "L1"
     },
     {
-      "id": "ext_src_components_undotoast_tsx",
-      "label": "../src/components/UndoToast.tsx",
+      "id": "ext_src_features_audio_audioquotabanner_tsx",
+      "label": "../src/features/audio/AudioQuotaBanner.tsx",
       "_origin": "ast",
       "community": 15,
       "community_name": "react",
       "file_type": "code",
-      "norm_label": "../src/components/undotoast.tsx",
-      "source_file": "../../src/components/UndoToast.tsx",
+      "norm_label": "../src/features/audio/audioquotabanner.tsx",
+      "source_file": "../../src/features/audio/AudioQuotaBanner.tsx",
       "source_location": "L1"
     },
     {
-      "id": "ext_src_features_home_homepage_test_tsx",
-      "label": "../src/features/home/HomePage.test.tsx",
+      "id": "ext_src_features_events_calendarpage_test_tsx",
+      "label": "../src/features/events/CalendarPage.test.tsx",
       "_origin": "ast",
       "community": 15,
       "community_name": "react",
       "file_type": "code",
-      "norm_label": "../src/features/home/homepage.test.tsx",
-      "source_file": "../../src/features/home/HomePage.test.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "ext_src_features_home_homepage_tsx",
-      "label": "../src/features/home/HomePage.tsx",
-      "_origin": "ast",
-      "community": 15,
-      "community_name": "react",
-      "file_type": "code",
-      "norm_label": "../src/features/home/homepage.tsx",
-      "source_file": "../../src/features/home/HomePage.tsx",
+      "norm_label": "../src/features/events/calendarpage.test.tsx",
+      "source_file": "../../src/features/events/CalendarPage.test.tsx",
       "source_location": "L1"
     },
     {
@@ -122159,47 +122224,25 @@
       "source_location": "L1"
     },
     {
-      "id": "ext_src_ui_components_faderlogo_test_tsx",
-      "label": "../src/ui/components/FaderLogo.test.tsx",
+      "id": "ext_src_ui_components_fieldlabel_test_tsx",
+      "label": "../src/ui/components/FieldLabel.test.tsx",
       "_origin": "ast",
       "community": 15,
       "community_name": "react",
       "file_type": "code",
-      "norm_label": "../src/ui/components/faderlogo.test.tsx",
-      "source_file": "../../src/ui/components/FaderLogo.test.tsx",
+      "norm_label": "../src/ui/components/fieldlabel.test.tsx",
+      "source_file": "../../src/ui/components/FieldLabel.test.tsx",
       "source_location": "L1"
     },
     {
-      "id": "ext_src_ui_components_faderlogo_tsx",
-      "label": "../src/ui/components/FaderLogo.tsx",
+      "id": "ext_src_ui_components_fieldlabel_tsx",
+      "label": "../src/ui/components/FieldLabel.tsx",
       "_origin": "ast",
       "community": 15,
       "community_name": "react",
       "file_type": "code",
-      "norm_label": "../src/ui/components/faderlogo.tsx",
-      "source_file": "../../src/ui/components/FaderLogo.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "ext_src_ui_components_selectfield_test_tsx",
-      "label": "../src/ui/components/SelectField.test.tsx",
-      "_origin": "ast",
-      "community": 15,
-      "community_name": "react",
-      "file_type": "code",
-      "norm_label": "../src/ui/components/selectfield.test.tsx",
-      "source_file": "../../src/ui/components/SelectField.test.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "ext_src_ui_components_selectfield_tsx",
-      "label": "../src/ui/components/SelectField.tsx",
-      "_origin": "ast",
-      "community": 15,
-      "community_name": "react",
-      "file_type": "code",
-      "norm_label": "../src/ui/components/selectfield.tsx",
-      "source_file": "../../src/ui/components/SelectField.tsx",
+      "norm_label": "../src/ui/components/fieldlabel.tsx",
+      "source_file": "../../src/ui/components/FieldLabel.tsx",
       "source_location": "L1"
     },
     {
@@ -122225,36 +122268,14 @@
       "source_location": "L1"
     },
     {
-      "id": "src_components_splashscreen",
-      "label": "src/components/SplashScreen.tsx",
+      "id": "src_features_audio_audioquotabanner",
+      "label": "src/features/audio/AudioQuotaBanner.tsx",
       "_origin": "ast",
       "community": 15,
       "community_name": "react",
       "file_type": "code",
-      "norm_label": "src/components/splashscreen.tsx",
-      "source_file": "src/components/SplashScreen.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_components_splashscreen_splash_animation_duration_ms",
-      "label": "SPLASH_ANIMATION_DURATION_MS",
-      "_origin": "ast",
-      "community": 15,
-      "community_name": "react",
-      "file_type": "code",
-      "norm_label": "splash_animation_duration_ms",
-      "source_file": "src/components/SplashScreen.tsx",
-      "source_location": "L3"
-    },
-    {
-      "id": "src_components_workspaceselectionpage",
-      "label": "src/components/WorkspaceSelectionPage.tsx",
-      "_origin": "ast",
-      "community": 15,
-      "community_name": "react",
-      "file_type": "code",
-      "norm_label": "src/components/workspaceselectionpage.tsx",
-      "source_file": "src/components/WorkspaceSelectionPage.tsx",
+      "norm_label": "src/features/audio/audioquotabanner.tsx",
+      "source_file": "src/features/audio/AudioQuotaBanner.tsx",
       "source_location": "L1"
     },
     {
@@ -122332,28 +122353,6 @@
       "file_type": "code",
       "norm_label": "src/main.tsx",
       "source_file": "src/main.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_ui_components_detailheader",
-      "label": "src/ui/components/DetailHeader.tsx",
-      "_origin": "ast",
-      "community": 15,
-      "community_name": "react",
-      "file_type": "code",
-      "norm_label": "src/ui/components/detailheader.tsx",
-      "source_file": "src/ui/components/DetailHeader.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_ui_components_detailheader_test",
-      "label": "src/ui/components/DetailHeader.test.tsx",
-      "_origin": "ast",
-      "community": 15,
-      "community_name": "react",
-      "file_type": "code",
-      "norm_label": "src/ui/components/detailheader.test.tsx",
-      "source_file": "src/ui/components/DetailHeader.test.tsx",
       "source_location": "L1"
     },
     {
@@ -125617,7 +125616,7 @@
       "label": "prepare_workspace_invite_token",
       "_origin": "ast",
       "community": 260,
-      "community_name": "20260914190000_reusable_workspace_invite_links.sql",
+      "community_name": "../supabase/migrations/20260722100000_epic_2_1_expand_workspace_invites.sql",
       "file_type": "code",
       "norm_label": "prepare_workspace_invite_token",
       "source_file": "../../supabase/migrations/20260722100000_epic_2_1_expand_workspace_invites.sql",
@@ -125628,7 +125627,7 @@
       "label": "private.prepare_workspace_invite_token()",
       "_origin": "ast",
       "community": 260,
-      "community_name": "20260914190000_reusable_workspace_invite_links.sql",
+      "community_name": "../supabase/migrations/20260722100000_epic_2_1_expand_workspace_invites.sql",
       "file_type": "code",
       "norm_label": "private.prepare_workspace_invite_token()",
       "source_file": "../../supabase/migrations/20260722100000_epic_2_1_expand_workspace_invites.sql",
@@ -125639,7 +125638,7 @@
       "label": "private.workspace_invite_migration_journal",
       "_origin": "ast",
       "community": 260,
-      "community_name": "20260914190000_reusable_workspace_invite_links.sql",
+      "community_name": "../supabase/migrations/20260722100000_epic_2_1_expand_workspace_invites.sql",
       "file_type": "code",
       "norm_label": "private.workspace_invite_migration_journal",
       "source_file": "../../supabase/migrations/20260722100000_epic_2_1_expand_workspace_invites.sql",
@@ -125650,7 +125649,7 @@
       "label": "../supabase/migrations/20260722100000_epic_2_1_expand_workspace_invites.sql",
       "_origin": "ast",
       "community": 260,
-      "community_name": "20260914190000_reusable_workspace_invite_links.sql",
+      "community_name": "../supabase/migrations/20260722100000_epic_2_1_expand_workspace_invites.sql",
       "file_type": "code",
       "norm_label": "../supabase/migrations/20260722100000_epic_2_1_expand_workspace_invites.sql",
       "source_file": "../../supabase/migrations/20260722100000_epic_2_1_expand_workspace_invites.sql",
@@ -125661,42 +125660,9 @@
       "label": "private.prepare_workspace_invite_token",
       "_origin": "ast",
       "community": 260,
-      "community_name": "20260914190000_reusable_workspace_invite_links.sql",
+      "community_name": "../supabase/migrations/20260722100000_epic_2_1_expand_workspace_invites.sql",
       "file_type": "code",
       "norm_label": "private.prepare_workspace_invite_token",
-      "source_file": "",
-      "source_location": ""
-    },
-    {
-      "id": "public_workspace_invites",
-      "label": "public.workspace_invites",
-      "_origin": "ast",
-      "community": 260,
-      "community_name": "20260914190000_reusable_workspace_invite_links.sql",
-      "file_type": "code",
-      "norm_label": "public.workspace_invites",
-      "source_file": "",
-      "source_location": ""
-    },
-    {
-      "id": "public_workspace_members",
-      "label": "public.workspace_members",
-      "_origin": "ast",
-      "community": 260,
-      "community_name": "20260914190000_reusable_workspace_invite_links.sql",
-      "file_type": "code",
-      "norm_label": "public.workspace_members",
-      "source_file": "",
-      "source_location": ""
-    },
-    {
-      "id": "public_workspaces",
-      "label": "public.workspaces",
-      "_origin": "ast",
-      "community": 260,
-      "community_name": "20260914190000_reusable_workspace_invite_links.sql",
-      "file_type": "code",
-      "norm_label": "public.workspaces",
       "source_file": "",
       "source_location": ""
     },
@@ -125705,7 +125671,7 @@
       "label": "supabase/migrations/20260722100000_epic_2_1_expand_workspace_invites.sql",
       "_origin": "ast",
       "community": 260,
-      "community_name": "20260914190000_reusable_workspace_invite_links.sql",
+      "community_name": "../supabase/migrations/20260722100000_epic_2_1_expand_workspace_invites.sql",
       "file_type": "code",
       "norm_label": "supabase/migrations/20260722100000_epic_2_1_expand_workspace_invites.sql",
       "source_file": "supabase/migrations/20260722100000_epic_2_1_expand_workspace_invites.sql",
@@ -125716,7 +125682,7 @@
       "label": "prepare_workspace_invite_token",
       "_origin": "ast",
       "community": 260,
-      "community_name": "20260914190000_reusable_workspace_invite_links.sql",
+      "community_name": "../supabase/migrations/20260722100000_epic_2_1_expand_workspace_invites.sql",
       "file_type": "code",
       "norm_label": "prepare_workspace_invite_token",
       "source_file": "supabase/migrations/20260722100000_epic_2_1_expand_workspace_invites.sql",
@@ -125727,7 +125693,7 @@
       "label": "private.prepare_workspace_invite_token()",
       "_origin": "ast",
       "community": 260,
-      "community_name": "20260914190000_reusable_workspace_invite_links.sql",
+      "community_name": "../supabase/migrations/20260722100000_epic_2_1_expand_workspace_invites.sql",
       "file_type": "code",
       "norm_label": "private.prepare_workspace_invite_token()",
       "source_file": "supabase/migrations/20260722100000_epic_2_1_expand_workspace_invites.sql",
@@ -125738,88 +125704,11 @@
       "label": "private.workspace_invite_migration_journal",
       "_origin": "ast",
       "community": 260,
-      "community_name": "20260914190000_reusable_workspace_invite_links.sql",
+      "community_name": "../supabase/migrations/20260722100000_epic_2_1_expand_workspace_invites.sql",
       "file_type": "code",
       "norm_label": "private.workspace_invite_migration_journal",
       "source_file": "supabase/migrations/20260722100000_epic_2_1_expand_workspace_invites.sql",
       "source_location": "L5"
-    },
-    {
-      "id": "supabase_migrations_20260914190000_reusable_workspace_invite_links",
-      "label": "20260914190000_reusable_workspace_invite_links.sql",
-      "_origin": "ast",
-      "community": 260,
-      "community_name": "20260914190000_reusable_workspace_invite_links.sql",
-      "file_type": "code",
-      "norm_label": "20260914190000_reusable_workspace_invite_links.sql",
-      "source_file": "supabase/migrations/20260914190000_reusable_workspace_invite_links.sql",
-      "source_location": null
-    },
-    {
-      "id": "supabase_migrations_20260914190000_reusable_workspace_invite_links_prepare_workspace_invite_token",
-      "label": "prepare_workspace_invite_token",
-      "_origin": "ast",
-      "community": 260,
-      "community_name": "20260914190000_reusable_workspace_invite_links.sql",
-      "file_type": "code",
-      "norm_label": "prepare_workspace_invite_token",
-      "source_file": "supabase/migrations/20260914190000_reusable_workspace_invite_links.sql",
-      "source_location": "L55"
-    },
-    {
-      "id": "supabase_migrations_20260914190000_reusable_workspace_invite_links_private_prepare_workspace_invite_token",
-      "label": "private.prepare_workspace_invite_token()",
-      "_origin": "ast",
-      "community": 260,
-      "community_name": "20260914190000_reusable_workspace_invite_links.sql",
-      "file_type": "code",
-      "norm_label": "private.prepare_workspace_invite_token()",
-      "source_file": "supabase/migrations/20260914190000_reusable_workspace_invite_links.sql",
-      "source_location": "L10"
-    },
-    {
-      "id": "supabase_migrations_20260914190000_reusable_workspace_invite_links_public_accept_workspace_invite",
-      "label": "public.accept_workspace_invite()",
-      "_origin": "ast",
-      "community": 260,
-      "community_name": "20260914190000_reusable_workspace_invite_links.sql",
-      "file_type": "code",
-      "norm_label": "public.accept_workspace_invite()",
-      "source_file": "supabase/migrations/20260914190000_reusable_workspace_invite_links.sql",
-      "source_location": "L183"
-    },
-    {
-      "id": "supabase_migrations_20260914190000_reusable_workspace_invite_links_public_create_workspace_invite",
-      "label": "public.create_workspace_invite()",
-      "_origin": "ast",
-      "community": 260,
-      "community_name": "20260914190000_reusable_workspace_invite_links.sql",
-      "file_type": "code",
-      "norm_label": "public.create_workspace_invite()",
-      "source_file": "supabase/migrations/20260914190000_reusable_workspace_invite_links.sql",
-      "source_location": "L70"
-    },
-    {
-      "id": "supabase_migrations_20260914190000_reusable_workspace_invite_links_public_get_workspace_invite_by_token",
-      "label": "public.get_workspace_invite_by_token()",
-      "_origin": "ast",
-      "community": 260,
-      "community_name": "20260914190000_reusable_workspace_invite_links.sql",
-      "file_type": "code",
-      "norm_label": "public.get_workspace_invite_by_token()",
-      "source_file": "supabase/migrations/20260914190000_reusable_workspace_invite_links.sql",
-      "source_location": "L157"
-    },
-    {
-      "id": "supabase_migrations_20260914190000_reusable_workspace_invite_links_public_list_workspace_invites",
-      "label": "public.list_workspace_invites()",
-      "_origin": "ast",
-      "community": 260,
-      "community_name": "20260914190000_reusable_workspace_invite_links.sql",
-      "file_type": "code",
-      "norm_label": "public.list_workspace_invites()",
-      "source_file": "supabase/migrations/20260914190000_reusable_workspace_invite_links.sql",
-      "source_location": "L117"
     },
     {
       "id": "d_app_en_dev_faderzeropwa_supabase_migrations_20260723110000_epic_7_workspace_copy_public_copy_song_to_workspace",
@@ -127318,6 +127207,28 @@
       "source_location": "L1"
     },
     {
+      "id": "ext_src_components_undotoast_test_tsx",
+      "label": "../src/components/UndoToast.test.tsx",
+      "_origin": "ast",
+      "community": 317,
+      "community_name": "../src/components/UndoToast.tsx",
+      "file_type": "code",
+      "norm_label": "../src/components/undotoast.test.tsx",
+      "source_file": "../../src/components/UndoToast.test.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "ext_src_components_undotoast_tsx",
+      "label": "../src/components/UndoToast.tsx",
+      "_origin": "ast",
+      "community": 317,
+      "community_name": "../src/components/UndoToast.tsx",
+      "file_type": "code",
+      "norm_label": "../src/components/undotoast.tsx",
+      "source_file": "../../src/components/UndoToast.tsx",
+      "source_location": "L1"
+    },
+    {
       "id": "d_app_en_dev_faderzeropwa_src_db_userdatamigration_test_databases",
       "label": "databases",
       "_origin": "ast",
@@ -127392,6 +127303,28 @@
       "file_type": "code",
       "norm_label": "[slug].test.ts",
       "source_file": "functions/[slug].test.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "ext_src_features_home_homepage_test_tsx",
+      "label": "../src/features/home/HomePage.test.tsx",
+      "_origin": "ast",
+      "community": 321,
+      "community_name": "../src/features/home/HomePage.tsx",
+      "file_type": "code",
+      "norm_label": "../src/features/home/homepage.test.tsx",
+      "source_file": "../../src/features/home/HomePage.test.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "ext_src_features_home_homepage_tsx",
+      "label": "../src/features/home/HomePage.tsx",
+      "_origin": "ast",
+      "community": 321,
+      "community_name": "../src/features/home/HomePage.tsx",
+      "file_type": "code",
+      "norm_label": "../src/features/home/homepage.tsx",
+      "source_file": "../../src/features/home/HomePage.tsx",
       "source_location": "L1"
     },
     {
@@ -127692,25 +127625,36 @@
       "source_location": "L1"
     },
     {
-      "id": "d_app_en_dev_faderzeropwa_src_components_splashscreen_splash_animation_duration_ms",
-      "label": "SPLASH_ANIMATION_DURATION_MS",
+      "id": "d_app_en_dev_faderzeropwa_src_ui_components_selectfield_selectfield",
+      "label": "SelectField",
       "_origin": "ast",
       "community": 328,
-      "community_name": "../src/components/SplashScreen.tsx",
+      "community_name": "../src/ui/components/SelectField.tsx",
       "file_type": "code",
-      "norm_label": "splash_animation_duration_ms",
-      "source_file": "../../src/components/SplashScreen.tsx",
-      "source_location": "L3"
+      "norm_label": "selectfield",
+      "source_file": "../../src/ui/components/SelectField.tsx",
+      "source_location": "L5"
     },
     {
-      "id": "ext_src_components_splashscreen_tsx",
-      "label": "../src/components/SplashScreen.tsx",
+      "id": "ext_src_ui_components_selectfield_test_tsx",
+      "label": "../src/ui/components/SelectField.test.tsx",
       "_origin": "ast",
       "community": 328,
-      "community_name": "../src/components/SplashScreen.tsx",
+      "community_name": "../src/ui/components/SelectField.tsx",
       "file_type": "code",
-      "norm_label": "../src/components/splashscreen.tsx",
-      "source_file": "../../src/components/SplashScreen.tsx",
+      "norm_label": "../src/ui/components/selectfield.test.tsx",
+      "source_file": "../../src/ui/components/SelectField.test.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "ext_src_ui_components_selectfield_tsx",
+      "label": "../src/ui/components/SelectField.tsx",
+      "_origin": "ast",
+      "community": 328,
+      "community_name": "../src/ui/components/SelectField.tsx",
+      "file_type": "code",
+      "norm_label": "../src/ui/components/selectfield.tsx",
+      "source_file": "../../src/ui/components/SelectField.tsx",
       "source_location": "L1"
     },
     {
@@ -131885,7 +131829,7 @@
       "file_type": "code",
       "norm_label": "invite_role_labels",
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L56"
+      "source_location": "L46"
     },
     {
       "id": "src_services_supabase_workspace",
@@ -135859,28 +135803,6 @@
       "source_location": ""
     },
     {
-      "id": "profile",
-      "label": "@/services/supabase/profile",
-      "_origin": "ast",
-      "community": 649,
-      "community_name": "src/features/account/AccountPage.test.tsx",
-      "confidence": "EXTRACTED",
-      "file_type": "code",
-      "norm_label": "@/services/supabase/profile",
-      "source_file": "@/services/supabase/profile"
-    },
-    {
-      "id": "workspace",
-      "label": "@/services/supabase/workspace",
-      "_origin": "ast",
-      "community": 649,
-      "community_name": "src/features/account/AccountPage.test.tsx",
-      "confidence": "EXTRACTED",
-      "file_type": "code",
-      "norm_label": "@/services/supabase/workspace",
-      "source_file": "@/services/supabase/workspace"
-    },
-    {
       "id": "src_features_account_accountpage_test",
       "label": "src/features/account/AccountPage.test.tsx",
       "_origin": "ast",
@@ -135900,18 +135822,7 @@
       "file_type": "code",
       "norm_label": "adminworkspace",
       "source_file": "src/features/account/AccountPage.test.tsx",
-      "source_location": "L50"
-    },
-    {
-      "id": "src_features_account_accountpage_test_initialauthstate",
-      "label": "initialAuthState",
-      "_origin": "ast",
-      "community": 649,
-      "community_name": "src/features/account/AccountPage.test.tsx",
-      "file_type": "code",
-      "norm_label": "initialauthstate",
-      "source_file": "src/features/account/AccountPage.test.tsx",
-      "source_location": "L91"
+      "source_location": "L46"
     },
     {
       "id": "src_features_account_accountpage_test_profile",
@@ -135922,7 +135833,7 @@
       "file_type": "code",
       "norm_label": "profile",
       "source_file": "src/features/account/AccountPage.test.tsx",
-      "source_location": "L75"
+      "source_location": "L71"
     },
     {
       "id": "src_features_account_accountpage_test_profilemocks",
@@ -135933,7 +135844,7 @@
       "file_type": "code",
       "norm_label": "profilemocks",
       "source_file": "src/features/account/AccountPage.test.tsx",
-      "source_location": "L19"
+      "source_location": "L16"
     },
     {
       "id": "src_features_account_accountpage_test_usersession",
@@ -135944,7 +135855,7 @@
       "file_type": "code",
       "norm_label": "usersession",
       "source_file": "src/features/account/AccountPage.test.tsx",
-      "source_location": "L60"
+      "source_location": "L56"
     },
     {
       "id": "src_features_account_accountpage_test_workspacemocks",
@@ -135955,7 +135866,7 @@
       "file_type": "code",
       "norm_label": "workspacemocks",
       "source_file": "src/features/account/AccountPage.test.tsx",
-      "source_location": "L10"
+      "source_location": "L8"
     },
     {
       "id": "ext_src_db_repositories_setlistsongsrepository_ts",
@@ -137918,15 +137829,235 @@
       "source_location": "L5"
     },
     {
-      "id": "ext_src_features_audio_audioquotabanner_tsx",
-      "label": "../src/features/audio/AudioQuotaBanner.tsx",
+      "id": "scripts_ai_push_cloudflare",
+      "label": "scripts/ai/push-cloudflare.ps1",
       "_origin": "ast",
       "community": 706,
-      "community_name": "../src/features/audio/AudioQuotaBanner.tsx",
+      "community_name": "scripts/ai/push-cloudflare.ps1",
       "file_type": "code",
-      "norm_label": "../src/features/audio/audioquotabanner.tsx",
-      "source_file": "../../src/features/audio/AudioQuotaBanner.tsx",
+      "norm_label": "scripts/ai/push-cloudflare.ps1",
+      "source_file": "scripts/ai/push-cloudflare.ps1",
       "source_location": "L1"
+    },
+    {
+      "id": "scripts_ai_push_cloudflare_ensure_dockerengine",
+      "label": "Ensure-DockerEngine()",
+      "_origin": "ast",
+      "community": 706,
+      "community_name": "scripts/ai/push-cloudflare.ps1",
+      "file_type": "code",
+      "norm_label": "ensure-dockerengine()",
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L294"
+    },
+    {
+      "id": "scripts_ai_push_cloudflare_ensure_githooks",
+      "label": "Ensure-GitHooks()",
+      "_origin": "ast",
+      "community": 706,
+      "community_name": "scripts/ai/push-cloudflare.ps1",
+      "file_type": "code",
+      "norm_label": "ensure-githooks()",
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L279"
+    },
+    {
+      "id": "scripts_ai_push_cloudflare_find_sensitivepath",
+      "label": "Find-SensitivePath()",
+      "_origin": "ast",
+      "community": 706,
+      "community_name": "scripts/ai/push-cloudflare.ps1",
+      "file_type": "code",
+      "norm_label": "find-sensitivepath()",
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L179"
+    },
+    {
+      "id": "scripts_ai_push_cloudflare_get_changedpaths",
+      "label": "Get-ChangedPaths()",
+      "_origin": "ast",
+      "community": 706,
+      "community_name": "scripts/ai/push-cloudflare.ps1",
+      "file_type": "code",
+      "norm_label": "get-changedpaths()",
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L170"
+    },
+    {
+      "id": "scripts_ai_push_cloudflare_get_jsonpayload",
+      "label": "Get-JsonPayload()",
+      "_origin": "ast",
+      "community": 706,
+      "community_name": "scripts/ai/push-cloudflare.ps1",
+      "file_type": "code",
+      "norm_label": "get-jsonpayload()",
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L200"
+    },
+    {
+      "id": "scripts_ai_push_cloudflare_get_pagesprojectname",
+      "label": "Get-PagesProjectName()",
+      "_origin": "ast",
+      "community": 706,
+      "community_name": "scripts/ai/push-cloudflare.ps1",
+      "file_type": "code",
+      "norm_label": "get-pagesprojectname()",
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L225"
+    },
+    {
+      "id": "scripts_ai_push_cloudflare_get_projectdomaintext",
+      "label": "Get-ProjectDomainText()",
+      "_origin": "ast",
+      "community": 706,
+      "community_name": "scripts/ai/push-cloudflare.ps1",
+      "file_type": "code",
+      "norm_label": "get-projectdomaintext()",
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L214"
+    },
+    {
+      "id": "scripts_ai_push_cloudflare_invoke_dockerdesktopcommand",
+      "label": "Invoke-DockerDesktopCommand()",
+      "_origin": "ast",
+      "community": 706,
+      "community_name": "scripts/ai/push-cloudflare.ps1",
+      "file_type": "code",
+      "norm_label": "invoke-dockerdesktopcommand()",
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L139"
+    },
+    {
+      "id": "scripts_ai_push_cloudflare_invoke_git",
+      "label": "Invoke-Git()",
+      "_origin": "ast",
+      "community": 706,
+      "community_name": "scripts/ai/push-cloudflare.ps1",
+      "file_type": "code",
+      "norm_label": "invoke-git()",
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L90"
+    },
+    {
+      "id": "scripts_ai_push_cloudflare_invoke_gitpush",
+      "label": "Invoke-GitPush()",
+      "_origin": "ast",
+      "community": 706,
+      "community_name": "scripts/ai/push-cloudflare.ps1",
+      "file_type": "code",
+      "norm_label": "invoke-gitpush()",
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L314"
+    },
+    {
+      "id": "scripts_ai_push_cloudflare_invoke_nativecapture",
+      "label": "Invoke-NativeCapture()",
+      "_origin": "ast",
+      "community": 706,
+      "community_name": "scripts/ai/push-cloudflare.ps1",
+      "file_type": "code",
+      "norm_label": "invoke-nativecapture()",
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L69"
+    },
+    {
+      "id": "scripts_ai_push_cloudflare_invoke_nativelogged",
+      "label": "Invoke-NativeLogged()",
+      "_origin": "ast",
+      "community": 706,
+      "community_name": "scripts/ai/push-cloudflare.ps1",
+      "file_type": "code",
+      "norm_label": "invoke-nativelogged()",
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L52"
+    },
+    {
+      "id": "scripts_ai_push_cloudflare_invoke_smokeurl",
+      "label": "Invoke-SmokeUrl()",
+      "_origin": "ast",
+      "community": 706,
+      "community_name": "scripts/ai/push-cloudflare.ps1",
+      "file_type": "code",
+      "norm_label": "invoke-smokeurl()",
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L254"
+    },
+    {
+      "id": "scripts_ai_push_cloudflare_invoke_wrangler",
+      "label": "Invoke-Wrangler()",
+      "_origin": "ast",
+      "community": 706,
+      "community_name": "scripts/ai/push-cloudflare.ps1",
+      "file_type": "code",
+      "norm_label": "invoke-wrangler()",
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L99"
+    },
+    {
+      "id": "scripts_ai_push_cloudflare_invoke_wranglercapture",
+      "label": "Invoke-WranglerCapture()",
+      "_origin": "ast",
+      "community": 706,
+      "community_name": "scripts/ai/push-cloudflare.ps1",
+      "file_type": "code",
+      "norm_label": "invoke-wranglercapture()",
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L106"
+    },
+    {
+      "id": "scripts_ai_push_cloudflare_read_deployexamplemap",
+      "label": "Read-DeployExampleMap()",
+      "_origin": "ast",
+      "community": 706,
+      "community_name": "scripts/ai/push-cloudflare.ps1",
+      "file_type": "code",
+      "norm_label": "read-deployexamplemap()",
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L188"
+    },
+    {
+      "id": "scripts_ai_push_cloudflare_test_dockerready",
+      "label": "Test-DockerReady()",
+      "_origin": "ast",
+      "community": 706,
+      "community_name": "scripts/ai/push-cloudflare.ps1",
+      "file_type": "code",
+      "norm_label": "test-dockerready()",
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L113"
+    },
+    {
+      "id": "scripts_ai_push_cloudflare_write_failurescoreboard",
+      "label": "Write-FailureScoreboard()",
+      "_origin": "ast",
+      "community": 706,
+      "community_name": "scripts/ai/push-cloudflare.ps1",
+      "file_type": "code",
+      "norm_label": "write-failurescoreboard()",
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L40"
+    },
+    {
+      "id": "scripts_ai_push_cloudflare_write_pushlog",
+      "label": "Write-PushLog()",
+      "_origin": "ast",
+      "community": 706,
+      "community_name": "scripts/ai/push-cloudflare.ps1",
+      "file_type": "code",
+      "norm_label": "write-pushlog()",
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L26"
+    },
+    {
+      "id": "scripts_ai_push_cloudflare_write_score",
+      "label": "Write-Score()",
+      "_origin": "ast",
+      "community": 706,
+      "community_name": "scripts/ai/push-cloudflare.ps1",
+      "file_type": "code",
+      "norm_label": "write-score()",
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L33"
     },
     {
       "id": "src_components_sortmenu",
@@ -139616,26 +139747,59 @@
       "source_location": "L1"
     },
     {
-      "id": "d_app_en_dev_faderzeropwa_src_features_events_calendarpage_test_eventmocks",
-      "label": "eventMocks",
+      "id": "scripts_install_git_hooks",
+      "label": "scripts/install-git-hooks.mjs",
       "_origin": "ast",
       "community": 800,
-      "community_name": "../src/features/events/CalendarPage.test.tsx",
+      "community_name": "scripts/install-git-hooks.mjs",
       "file_type": "code",
-      "norm_label": "eventmocks",
-      "source_file": "../../src/features/events/CalendarPage.test.tsx",
-      "source_location": "L6"
+      "norm_label": "scripts/install-git-hooks.mjs",
+      "source_file": "scripts/install-git-hooks.mjs",
+      "source_location": "L1"
     },
     {
-      "id": "ext_src_features_events_calendarpage_test_tsx",
-      "label": "../src/features/events/CalendarPage.test.tsx",
+      "id": "scripts_install_git_hooks_hookpath",
+      "label": "hookPath",
       "_origin": "ast",
       "community": 800,
-      "community_name": "../src/features/events/CalendarPage.test.tsx",
+      "community_name": "scripts/install-git-hooks.mjs",
       "file_type": "code",
-      "norm_label": "../src/features/events/calendarpage.test.tsx",
-      "source_file": "../../src/features/events/CalendarPage.test.tsx",
-      "source_location": "L1"
+      "norm_label": "hookpath",
+      "source_file": "scripts/install-git-hooks.mjs",
+      "source_location": "L8"
+    },
+    {
+      "id": "scripts_install_git_hooks_projectroot",
+      "label": "projectRoot",
+      "_origin": "ast",
+      "community": 800,
+      "community_name": "scripts/install-git-hooks.mjs",
+      "file_type": "code",
+      "norm_label": "projectroot",
+      "source_file": "scripts/install-git-hooks.mjs",
+      "source_location": "L7"
+    },
+    {
+      "id": "scripts_install_git_hooks_repositorycheck",
+      "label": "repositoryCheck",
+      "_origin": "ast",
+      "community": 800,
+      "community_name": "scripts/install-git-hooks.mjs",
+      "file_type": "code",
+      "norm_label": "repositorycheck",
+      "source_file": "scripts/install-git-hooks.mjs",
+      "source_location": "L9"
+    },
+    {
+      "id": "scripts_install_git_hooks_result",
+      "label": "result",
+      "_origin": "ast",
+      "community": 800,
+      "community_name": "scripts/install-git-hooks.mjs",
+      "file_type": "code",
+      "norm_label": "result",
+      "source_file": "scripts/install-git-hooks.mjs",
+      "source_location": "L16"
     },
     {
       "id": "scripts_run_cloudflare_checks",
@@ -140177,26 +140341,26 @@
       "source_location": "L49"
     },
     {
-      "id": "ext_src_ui_components_fieldlabel_test_tsx",
-      "label": "../src/ui/components/FieldLabel.test.tsx",
+      "id": "src_components_splashscreen",
+      "label": "src/components/SplashScreen.tsx",
       "_origin": "ast",
       "community": 860,
-      "community_name": "../src/ui/components/FieldLabel.tsx",
+      "community_name": "src/components/SplashScreen.tsx",
       "file_type": "code",
-      "norm_label": "../src/ui/components/fieldlabel.test.tsx",
-      "source_file": "../../src/ui/components/FieldLabel.test.tsx",
+      "norm_label": "src/components/splashscreen.tsx",
+      "source_file": "src/components/SplashScreen.tsx",
       "source_location": "L1"
     },
     {
-      "id": "ext_src_ui_components_fieldlabel_tsx",
-      "label": "../src/ui/components/FieldLabel.tsx",
+      "id": "src_components_splashscreen_splash_animation_duration_ms",
+      "label": "SPLASH_ANIMATION_DURATION_MS",
       "_origin": "ast",
       "community": 860,
-      "community_name": "../src/ui/components/FieldLabel.tsx",
+      "community_name": "src/components/SplashScreen.tsx",
       "file_type": "code",
-      "norm_label": "../src/ui/components/fieldlabel.tsx",
-      "source_file": "../../src/ui/components/FieldLabel.tsx",
-      "source_location": "L1"
+      "norm_label": "splash_animation_duration_ms",
+      "source_file": "src/components/SplashScreen.tsx",
+      "source_location": "L3"
     },
     {
       "id": "githooks_post_checkout",
@@ -140651,25 +140815,88 @@
       "source_location": "L3"
     },
     {
-      "id": "src_features_audio_audioquotabanner",
-      "label": "src/features/audio/AudioQuotaBanner.tsx",
+      "id": "cursor_skills_push_cloudflare_skill",
+      "label": "SKILL.md",
       "_origin": "ast",
       "community": 873,
-      "community_name": "src/features/audio/AudioQuotaBanner.tsx",
-      "file_type": "code",
-      "norm_label": "src/features/audio/audioquotabanner.tsx",
-      "source_file": "src/features/audio/AudioQuotaBanner.tsx",
+      "community_name": "Push Cloudflare",
+      "file_type": "document",
+      "frontmatter": {
+        "name": "push-cloudflare",
+        "description": "Publie FaderZero sur main apr\u00e8s gates locale, live Cloudflare et GitHub. Utiliser pour /push-cloudflare, publier sur main sans PR, ou commit et push vers Cloudflare."
+      },
+      "node_kind": "page",
+      "norm_label": "skill.md",
+      "source_file": ".cursor/skills/push-cloudflare/SKILL.md",
       "source_location": "L1"
     },
     {
-      "id": "scripts_patch_issue15",
-      "label": "_patch_issue15.py",
+      "id": "cursor_skills_push_cloudflare_skill_push_cloudflare",
+      "label": "Push Cloudflare",
+      "_origin": "ast",
+      "community": 873,
+      "community_name": "Push Cloudflare",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "push cloudflare",
+      "source_file": ".cursor/skills/push-cloudflare/SKILL.md",
+      "source_location": "L6"
+    },
+    {
+      "id": "cursor_skills_push_cloudflare_skill_r\u00e9ponse",
+      "label": "R\u00e9ponse",
+      "_origin": "ast",
+      "community": 873,
+      "community_name": "Push Cloudflare",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "reponse",
+      "source_file": ".cursor/skills/push-cloudflare/SKILL.md",
+      "source_location": "L22"
+    },
+    {
+      "id": "cursor_skills_push_cloudflare_skill_workflow",
+      "label": "Workflow",
+      "_origin": "ast",
+      "community": 873,
+      "community_name": "Push Cloudflare",
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "workflow",
+      "source_file": ".cursor/skills/push-cloudflare/SKILL.md",
+      "source_location": "L10"
+    },
+    {
+      "id": "src_ui_components_detailheader",
+      "label": "src/ui/components/DetailHeader.tsx",
       "_origin": "ast",
       "community": 874,
-      "community_name": "_patch_issue15.py",
+      "community_name": "src/ui/components/DetailHeader.tsx",
       "file_type": "code",
-      "norm_label": "_patch_issue15.py",
-      "source_file": "scripts/_patch_issue15.py",
+      "norm_label": "src/ui/components/detailheader.tsx",
+      "source_file": "src/ui/components/DetailHeader.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_ui_components_detailheader_test",
+      "label": "src/ui/components/DetailHeader.test.tsx",
+      "_origin": "ast",
+      "community": 874,
+      "community_name": "src/ui/components/DetailHeader.tsx",
+      "file_type": "code",
+      "norm_label": "src/ui/components/detailheader.test.tsx",
+      "source_file": "src/ui/components/DetailHeader.test.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_components_workspaceselectionpage",
+      "label": "src/components/WorkspaceSelectionPage.tsx",
+      "_origin": "ast",
+      "community": 875,
+      "community_name": "WorkspaceSelectionPage",
+      "file_type": "code",
+      "norm_label": "src/components/workspaceselectionpage.tsx",
+      "source_file": "src/components/WorkspaceSelectionPage.tsx",
       "source_location": "L1"
     },
     {
@@ -152913,7 +153140,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L1191",
+      "source_location": "L1260",
       "weight": 1.0
     },
     {
@@ -152925,7 +153152,19 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L1327",
+      "source_location": "L1418",
+      "weight": 1.0
+    },
+    {
+      "source": "src_features_account_accountpage_accountpage",
+      "target": "src_features_account_accountpage_getinitialtab",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/features/account/AccountPage.tsx",
+      "source_location": "L310",
       "weight": 1.0
     },
     {
@@ -152937,7 +153176,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L602",
+      "source_location": "L508",
       "weight": 1.0
     },
     {
@@ -152949,7 +153188,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L787",
+      "source_location": "L689",
       "weight": 1.0
     },
     {
@@ -152961,7 +153200,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L788",
+      "source_location": "L690",
       "weight": 1.0
     },
     {
@@ -152973,7 +153212,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L819",
+      "source_location": "L723",
       "weight": 1.0
     },
     {
@@ -152985,7 +153224,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L806",
+      "source_location": "L709",
       "weight": 1.0
     },
     {
@@ -158277,7 +158516,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L481",
+      "source_location": "L475",
       "weight": 1.0
     },
     {
@@ -158289,7 +158528,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L483",
+      "source_location": "L477",
       "weight": 1.0
     },
     {
@@ -158313,7 +158552,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L166",
+      "source_location": "L163",
       "weight": 1.0
     },
     {
@@ -158325,7 +158564,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L170",
+      "source_location": "L167",
       "weight": 1.0
     },
     {
@@ -158337,7 +158576,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L179",
+      "source_location": "L176",
       "weight": 1.0
     },
     {
@@ -158349,7 +158588,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L181",
+      "source_location": "L178",
       "weight": 1.0
     },
     {
@@ -158361,7 +158600,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L416",
+      "source_location": "L413",
       "weight": 1.0
     },
     {
@@ -158373,7 +158612,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L422",
+      "source_location": "L419",
       "weight": 1.0
     },
     {
@@ -158385,7 +158624,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L423",
+      "source_location": "L420",
       "weight": 1.0
     },
     {
@@ -158397,7 +158636,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L235",
+      "source_location": "L232",
       "weight": 1.0
     },
     {
@@ -158409,7 +158648,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L245",
+      "source_location": "L242",
       "weight": 1.0
     },
     {
@@ -158421,7 +158660,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L257",
+      "source_location": "L254",
       "weight": 1.0
     },
     {
@@ -158433,7 +158672,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L258",
+      "source_location": "L255",
       "weight": 1.0
     },
     {
@@ -158445,7 +158684,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L389",
+      "source_location": "L386",
       "weight": 1.0
     },
     {
@@ -158457,7 +158696,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L391",
+      "source_location": "L388",
       "weight": 1.0
     },
     {
@@ -158469,12 +158708,24 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L402",
+      "source_location": "L399",
       "weight": 1.0
     },
     {
       "source": "src_services_supabase_workspace_listworkspaceinvites",
       "target": "src_services_supabase_workspace_normalizeworkspaceerror",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/services/supabase/workspace.ts",
+      "source_location": "L430",
+      "weight": 1.0
+    },
+    {
+      "source": "src_services_supabase_workspace_listworkspaceinvites",
+      "target": "src_services_supabase_workspace_normalizeworkspacerole",
       "relation": "calls",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -158485,18 +158736,6 @@
       "weight": 1.0
     },
     {
-      "source": "src_services_supabase_workspace_listworkspaceinvites",
-      "target": "src_services_supabase_workspace_normalizeworkspacerole",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L438",
-      "weight": 1.0
-    },
-    {
       "source": "src_services_supabase_workspace_listworkspacememberswithprofiles",
       "target": "src_services_supabase_workspace_normalizeworkspaceerror",
       "relation": "calls",
@@ -158505,7 +158744,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L313",
+      "source_location": "L310",
       "weight": 1.0
     },
     {
@@ -158517,7 +158756,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L333",
+      "source_location": "L330",
       "weight": 1.0
     },
     {
@@ -158529,7 +158768,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L301",
+      "source_location": "L298",
       "weight": 1.0
     },
     {
@@ -158541,7 +158780,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L291",
+      "source_location": "L288",
       "weight": 1.0
     },
     {
@@ -158553,7 +158792,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L292",
+      "source_location": "L289",
       "weight": 1.0
     },
     {
@@ -158565,7 +158804,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L115",
+      "source_location": "L112",
       "weight": 1.0
     },
     {
@@ -158577,7 +158816,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L374",
+      "source_location": "L371",
       "weight": 1.0
     },
     {
@@ -158589,7 +158828,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L385",
+      "source_location": "L382",
       "weight": 1.0
     },
     {
@@ -158601,7 +158840,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L462",
+      "source_location": "L456",
       "weight": 1.0
     },
     {
@@ -158613,7 +158852,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L469",
+      "source_location": "L463",
       "weight": 1.0
     },
     {
@@ -158625,7 +158864,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L231",
+      "source_location": "L228",
       "weight": 1.0
     },
     {
@@ -158637,7 +158876,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L451",
+      "source_location": "L445",
       "weight": 1.0
     },
     {
@@ -158649,7 +158888,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L356",
+      "source_location": "L353",
       "weight": 1.0
     },
     {
@@ -158661,7 +158900,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L369",
+      "source_location": "L366",
       "weight": 1.0
     },
     {
@@ -158673,7 +158912,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L370",
+      "source_location": "L367",
       "weight": 1.0
     },
     {
@@ -158685,7 +158924,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L224",
+      "source_location": "L221",
       "weight": 1.0
     },
     {
@@ -158697,7 +158936,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L190",
+      "source_location": "L187",
       "weight": 1.0
     },
     {
@@ -158709,7 +158948,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L207",
+      "source_location": "L204",
       "weight": 1.0
     },
     {
@@ -158721,7 +158960,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L216",
+      "source_location": "L213",
       "weight": 1.0
     },
     {
@@ -160581,7 +160820,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L574",
+      "source_location": "L480",
       "weight": 1.0
     },
     {
@@ -160593,7 +160832,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L636",
+      "source_location": "L542",
       "weight": 1.0
     },
     {
@@ -160605,7 +160844,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L716",
+      "source_location": "L620",
       "weight": 1.0
     },
     {
@@ -160617,7 +160856,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L734",
+      "source_location": "L638",
       "weight": 1.0
     },
     {
@@ -160629,7 +160868,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L746",
+      "source_location": "L647",
       "weight": 1.0
     },
     {
@@ -160641,7 +160880,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L757",
+      "source_location": "L658",
       "weight": 1.0
     },
     {
@@ -160653,7 +160892,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L767",
+      "source_location": "L668",
       "weight": 1.0
     },
     {
@@ -160665,7 +160904,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L782",
+      "source_location": "L683",
       "weight": 1.0
     },
     {
@@ -160677,7 +160916,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L798",
+      "source_location": "L700",
       "weight": 1.0
     },
     {
@@ -160689,19 +160928,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L814",
-      "weight": 1.0
-    },
-    {
-      "source": "src_features_account_accountpage_accountpage",
-      "target": "src_features_account_accountpage_accountpage_menurow",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L862",
+      "source_location": "L717",
       "weight": 1.0
     },
     {
@@ -173833,19 +174060,6 @@
       "weight": 1.0
     },
     {
-      "source": "src_features_account_accountpage_test",
-      "target": "ref_react",
-      "relation": "imports_from",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "src/features/account/AccountPage.test.tsx",
-      "source_location": "L1",
-      "type_only": true,
-      "weight": 1.0
-    },
-    {
       "source": "src_features_audio_audioquotabanner",
       "target": "ref_react",
       "relation": "imports_from",
@@ -179176,6 +179390,182 @@
       "context": "type",
       "source_file": "src/ui/components/ContentRow.tsx",
       "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_ai_push_cloudflare_ensure_dockerengine",
+      "target": "scripts_ai_push_cloudflare_test_dockerready",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L295",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_ai_push_cloudflare_ensure_dockerengine",
+      "target": "scripts_ai_push_cloudflare_write_pushlog",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L300",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_ai_push_cloudflare_ensure_dockerengine",
+      "target": "scripts_ai_push_cloudflare_invoke_dockerdesktopcommand",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L301",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_ai_push_cloudflare_ensure_githooks",
+      "target": "scripts_ai_push_cloudflare_invoke_nativecapture",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L280",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_ai_push_cloudflare_ensure_githooks",
+      "target": "scripts_ai_push_cloudflare_invoke_nativelogged",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L288",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_ai_push_cloudflare_get_pagesprojectname",
+      "target": "scripts_ai_push_cloudflare_invoke_wranglercapture",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L230",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_ai_push_cloudflare_get_pagesprojectname",
+      "target": "scripts_ai_push_cloudflare_get_jsonpayload",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L235",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_ai_push_cloudflare_get_pagesprojectname",
+      "target": "scripts_ai_push_cloudflare_get_projectdomaintext",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L244",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_ai_push_cloudflare_invoke_git",
+      "target": "scripts_ai_push_cloudflare_invoke_nativelogged",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L93",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_ai_push_cloudflare_invoke_gitpush",
+      "target": "scripts_ai_push_cloudflare_write_score",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L316",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_ai_push_cloudflare_invoke_gitpush",
+      "target": "scripts_ai_push_cloudflare_invoke_nativelogged",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L317",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_ai_push_cloudflare_invoke_gitpush",
+      "target": "scripts_ai_push_cloudflare_invoke_nativecapture",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L322",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_ai_push_cloudflare_invoke_smokeurl",
+      "target": "scripts_ai_push_cloudflare_write_pushlog",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L264",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_ai_push_cloudflare_invoke_wrangler",
+      "target": "scripts_ai_push_cloudflare_invoke_nativelogged",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L103",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_ai_push_cloudflare_invoke_wranglercapture",
+      "target": "scripts_ai_push_cloudflare_invoke_nativecapture",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L110",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_ai_push_cloudflare_write_score",
+      "target": "scripts_ai_push_cloudflare_write_pushlog",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L36",
       "weight": 1.0
     },
     {
@@ -203739,6 +204129,39 @@
       "confidence_score": 1.0,
       "source_file": "cloudflare/epk-public/worker-configuration.d.ts",
       "source_location": "L9997",
+      "weight": 1.0
+    },
+    {
+      "source": "cursor_skills_push_cloudflare_skill",
+      "target": "cursor_skills_push_cloudflare_skill_push_cloudflare",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".cursor/skills/push-cloudflare/SKILL.md",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "cursor_skills_push_cloudflare_skill_push_cloudflare",
+      "target": "cursor_skills_push_cloudflare_skill_workflow",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".cursor/skills/push-cloudflare/SKILL.md",
+      "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "cursor_skills_push_cloudflare_skill_push_cloudflare",
+      "target": "cursor_skills_push_cloudflare_skill_r\u00e9ponse",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".cursor/skills/push-cloudflare/SKILL.md",
+      "source_location": "L22",
       "weight": 1.0
     },
     {
@@ -245256,6 +245679,17 @@
       "weight": 1.0
     },
     {
+      "source": "githooks_pre_push",
+      "target": "githooks_pre_push__entry",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".githooks/pre-push",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
       "source": "oxlintrc",
       "target": "oxlintrc_schema",
       "relation": "contains",
@@ -246158,6 +246592,226 @@
       "weight": 1.0
     },
     {
+      "source": "scripts_ai_push_cloudflare",
+      "target": "scripts_ai_push_cloudflare_invoke_wranglercapture",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L106",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_ai_push_cloudflare",
+      "target": "scripts_ai_push_cloudflare_test_dockerready",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L113",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_ai_push_cloudflare",
+      "target": "scripts_ai_push_cloudflare_invoke_dockerdesktopcommand",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L139",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_ai_push_cloudflare",
+      "target": "scripts_ai_push_cloudflare_get_changedpaths",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L170",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_ai_push_cloudflare",
+      "target": "scripts_ai_push_cloudflare_find_sensitivepath",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L179",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_ai_push_cloudflare",
+      "target": "scripts_ai_push_cloudflare_read_deployexamplemap",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L188",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_ai_push_cloudflare",
+      "target": "scripts_ai_push_cloudflare_get_jsonpayload",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L200",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_ai_push_cloudflare",
+      "target": "scripts_ai_push_cloudflare_get_projectdomaintext",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L214",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_ai_push_cloudflare",
+      "target": "scripts_ai_push_cloudflare_get_pagesprojectname",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L225",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_ai_push_cloudflare",
+      "target": "scripts_ai_push_cloudflare_invoke_smokeurl",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L254",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_ai_push_cloudflare",
+      "target": "scripts_ai_push_cloudflare_write_pushlog",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L26",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_ai_push_cloudflare",
+      "target": "scripts_ai_push_cloudflare_ensure_githooks",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L279",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_ai_push_cloudflare",
+      "target": "scripts_ai_push_cloudflare_ensure_dockerengine",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L294",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_ai_push_cloudflare",
+      "target": "scripts_ai_push_cloudflare_invoke_gitpush",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L314",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_ai_push_cloudflare",
+      "target": "scripts_ai_push_cloudflare_write_score",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L33",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_ai_push_cloudflare",
+      "target": "scripts_ai_push_cloudflare_write_failurescoreboard",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L40",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_ai_push_cloudflare",
+      "target": "scripts_ai_push_cloudflare_invoke_nativelogged",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L52",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_ai_push_cloudflare",
+      "target": "scripts_ai_push_cloudflare_invoke_nativecapture",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L69",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_ai_push_cloudflare",
+      "target": "scripts_ai_push_cloudflare_invoke_git",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L90",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_ai_push_cloudflare",
+      "target": "scripts_ai_push_cloudflare_invoke_wrangler",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/ai/push-cloudflare.ps1",
+      "source_location": "L99",
+      "weight": 1.0
+    },
+    {
       "source": "scripts_cloudflare_check",
       "target": "scripts_cloudflare_check_publicenvkeys",
       "relation": "contains",
@@ -246308,6 +246962,50 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "scripts/dev-audio-worker.ps1",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_install_git_hooks",
+      "target": "scripts_install_git_hooks_result",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/install-git-hooks.mjs",
+      "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_install_git_hooks",
+      "target": "scripts_install_git_hooks_projectroot",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/install-git-hooks.mjs",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_install_git_hooks",
+      "target": "scripts_install_git_hooks_hookpath",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/install-git-hooks.mjs",
+      "source_location": "L8",
+      "weight": 1.0
+    },
+    {
+      "source": "scripts_install_git_hooks",
+      "target": "scripts_install_git_hooks_repositorycheck",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "scripts/install-git-hooks.mjs",
       "source_location": "L9",
       "weight": 1.0
     },
@@ -248970,7 +249668,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L118",
+      "source_location": "L108",
       "weight": 1.0
     },
     {
@@ -248981,7 +249679,51 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L334",
+      "source_location": "L204",
+      "weight": 1.0
+    },
+    {
+      "source": "src_features_account_accountpage",
+      "target": "src_features_account_accountpage_copyicon",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/features/account/AccountPage.tsx",
+      "source_location": "L213",
+      "weight": 1.0
+    },
+    {
+      "source": "src_features_account_accountpage",
+      "target": "src_features_account_accountpage_accounttabicon",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/features/account/AccountPage.tsx",
+      "source_location": "L222",
+      "weight": 1.0
+    },
+    {
+      "source": "src_features_account_accountpage",
+      "target": "src_features_account_accountpage_grouptabicon",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/features/account/AccountPage.tsx",
+      "source_location": "L231",
+      "weight": 1.0
+    },
+    {
+      "source": "src_features_account_accountpage",
+      "target": "src_features_account_accountpage_synctabicon",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/features/account/AccountPage.tsx",
+      "source_location": "L242",
       "weight": 1.0
     },
     {
@@ -248992,7 +249734,29 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L343",
+      "source_location": "L251",
+      "weight": 1.0
+    },
+    {
+      "source": "src_features_account_accountpage",
+      "target": "src_features_account_accountpage_settingstab",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/features/account/AccountPage.tsx",
+      "source_location": "L291",
+      "weight": 1.0
+    },
+    {
+      "source": "src_features_account_accountpage",
+      "target": "src_features_account_accountpage_getinitialtab",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/features/account/AccountPage.tsx",
+      "source_location": "L293",
       "weight": 1.0
     },
     {
@@ -249003,7 +249767,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L383",
+      "source_location": "L305",
       "weight": 1.0
     },
     {
@@ -249014,7 +249778,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L387",
+      "source_location": "L309",
       "weight": 1.0
     },
     {
@@ -249025,7 +249789,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L56",
+      "source_location": "L46",
       "weight": 1.0
     },
     {
@@ -249036,7 +249800,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L62",
+      "source_location": "L52",
       "weight": 1.0
     },
     {
@@ -249047,7 +249811,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L74",
+      "source_location": "L64",
       "weight": 1.0
     },
     {
@@ -249058,7 +249822,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L555",
+      "source_location": "L461",
       "weight": 1.0
     },
     {
@@ -249069,7 +249833,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L594",
+      "source_location": "L500",
       "weight": 1.0
     },
     {
@@ -249080,7 +249844,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L611",
+      "source_location": "L517",
       "weight": 1.0
     },
     {
@@ -249091,7 +249855,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L646",
+      "source_location": "L552",
       "weight": 1.0
     },
     {
@@ -249102,7 +249866,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L664",
+      "source_location": "L570",
       "weight": 1.0
     },
     {
@@ -249113,7 +249877,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L676",
+      "source_location": "L582",
       "weight": 1.0
     },
     {
@@ -249124,7 +249888,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L689",
+      "source_location": "L595",
       "weight": 1.0
     },
     {
@@ -249135,7 +249899,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L777",
+      "source_location": "L678",
       "weight": 1.0
     },
     {
@@ -249146,7 +249910,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L822",
+      "source_location": "L726",
       "weight": 1.0
     },
     {
@@ -249157,18 +249921,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/features/account/AccountPage.tsx",
-      "source_location": "L831",
-      "weight": 1.0
-    },
-    {
-      "source": "src_features_account_accountpage_test",
-      "target": "src_features_account_accountpage_test_workspacemocks",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/features/account/AccountPage.test.tsx",
-      "source_location": "L10",
+      "source_location": "L735",
       "weight": 1.0
     },
     {
@@ -249179,7 +249932,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/features/account/AccountPage.test.tsx",
-      "source_location": "L19",
+      "source_location": "L16",
       "weight": 1.0
     },
     {
@@ -249190,7 +249943,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/features/account/AccountPage.test.tsx",
-      "source_location": "L50",
+      "source_location": "L46",
       "weight": 1.0
     },
     {
@@ -249201,7 +249954,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/features/account/AccountPage.test.tsx",
-      "source_location": "L60",
+      "source_location": "L56",
       "weight": 1.0
     },
     {
@@ -249212,62 +249965,18 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/features/account/AccountPage.test.tsx",
-      "source_location": "L75",
+      "source_location": "L71",
       "weight": 1.0
     },
     {
       "source": "src_features_account_accountpage_test",
-      "target": "src_features_account_accountpage_test_render",
+      "target": "src_features_account_accountpage_test_workspacemocks",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/features/account/AccountPage.test.tsx",
-      "source_location": "L84",
-      "weight": 1.0
-    },
-    {
-      "source": "src_features_account_accountpage_test",
-      "target": "src_features_account_accountpage_test_openprofile",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/features/account/AccountPage.test.tsx",
-      "source_location": "L85",
-      "weight": 1.0
-    },
-    {
-      "source": "src_features_account_accountpage_test",
-      "target": "src_features_account_accountpage_test_opensecurity",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/features/account/AccountPage.test.tsx",
-      "source_location": "L86",
-      "weight": 1.0
-    },
-    {
-      "source": "src_features_account_accountpage_test",
-      "target": "src_features_account_accountpage_test_openmembers",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/features/account/AccountPage.test.tsx",
-      "source_location": "L87",
-      "weight": 1.0
-    },
-    {
-      "source": "src_features_account_accountpage_test",
-      "target": "src_features_account_accountpage_test_initialauthstate",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/features/account/AccountPage.test.tsx",
-      "source_location": "L91",
+      "source_location": "L8",
       "weight": 1.0
     },
     {
@@ -257924,7 +258633,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L114",
+      "source_location": "L111",
       "weight": 1.0
     },
     {
@@ -257957,7 +258666,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L165",
+      "source_location": "L162",
       "weight": 1.0
     },
     {
@@ -257979,7 +258688,18 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L184",
+      "source_location": "L181",
+      "weight": 1.0
+    },
+    {
+      "source": "src_services_supabase_workspace",
+      "target": "src_services_supabase_workspace_softdeleteworkspace",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/services/supabase/workspace.ts",
+      "source_location": "L217",
       "weight": 1.0
     },
     {
@@ -257995,24 +258715,13 @@
     },
     {
       "source": "src_services_supabase_workspace",
-      "target": "src_services_supabase_workspace_softdeleteworkspace",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L220",
-      "weight": 1.0
-    },
-    {
-      "source": "src_services_supabase_workspace",
       "target": "src_services_supabase_workspace_restoreworkspace",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L227",
+      "source_location": "L224",
       "weight": 1.0
     },
     {
@@ -258023,7 +258732,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L234",
+      "source_location": "L231",
       "weight": 1.0
     },
     {
@@ -258034,7 +258743,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L263",
+      "source_location": "L260",
       "weight": 1.0
     },
     {
@@ -258045,7 +258754,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L269",
+      "source_location": "L266",
       "weight": 1.0
     },
     {
@@ -258067,7 +258776,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L284",
+      "source_location": "L281",
       "weight": 1.0
     },
     {
@@ -258078,7 +258787,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L296",
+      "source_location": "L293",
       "weight": 1.0
     },
     {
@@ -258089,7 +258798,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L307",
+      "source_location": "L304",
       "weight": 1.0
     },
     {
@@ -258111,7 +258820,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L350",
+      "source_location": "L347",
       "weight": 1.0
     },
     {
@@ -258133,7 +258842,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L373",
+      "source_location": "L370",
       "weight": 1.0
     },
     {
@@ -258144,7 +258853,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L388",
+      "source_location": "L385",
       "weight": 1.0
     },
     {
@@ -258166,7 +258875,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L405",
+      "source_location": "L402",
       "weight": 1.0
     },
     {
@@ -258188,7 +258897,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L429",
+      "source_location": "L425",
       "weight": 1.0
     },
     {
@@ -258199,7 +258908,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L446",
+      "source_location": "L440",
       "weight": 1.0
     },
     {
@@ -258210,7 +258919,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L454",
+      "source_location": "L448",
       "weight": 1.0
     },
     {
@@ -258221,7 +258930,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L474",
+      "source_location": "L468",
       "weight": 1.0
     },
     {
@@ -258243,7 +258952,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L65",
+      "source_location": "L64",
       "weight": 1.0
     },
     {
@@ -258254,7 +258963,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L74",
+      "source_location": "L71",
       "weight": 1.0
     },
     {
@@ -258265,7 +258974,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L82",
+      "source_location": "L79",
       "weight": 1.0
     },
     {
@@ -258276,7 +258985,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/services/supabase/workspace.ts",
-      "source_location": "L93",
+      "source_location": "L90",
       "weight": 1.0
     },
     {
@@ -261250,72 +261959,6 @@
       "weight": 1.0
     },
     {
-      "source": "supabase_migrations_20260914190000_reusable_workspace_invite_links",
-      "target": "supabase_migrations_20260914190000_reusable_workspace_invite_links_private_prepare_workspace_invite_token",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "supabase/migrations/20260914190000_reusable_workspace_invite_links.sql",
-      "source_location": "L10",
-      "weight": 1.0
-    },
-    {
-      "source": "supabase_migrations_20260914190000_reusable_workspace_invite_links",
-      "target": "supabase_migrations_20260914190000_reusable_workspace_invite_links_public_list_workspace_invites",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "supabase/migrations/20260914190000_reusable_workspace_invite_links.sql",
-      "source_location": "L117",
-      "weight": 1.0
-    },
-    {
-      "source": "supabase_migrations_20260914190000_reusable_workspace_invite_links",
-      "target": "supabase_migrations_20260914190000_reusable_workspace_invite_links_public_get_workspace_invite_by_token",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "supabase/migrations/20260914190000_reusable_workspace_invite_links.sql",
-      "source_location": "L157",
-      "weight": 1.0
-    },
-    {
-      "source": "supabase_migrations_20260914190000_reusable_workspace_invite_links",
-      "target": "supabase_migrations_20260914190000_reusable_workspace_invite_links_public_accept_workspace_invite",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "supabase/migrations/20260914190000_reusable_workspace_invite_links.sql",
-      "source_location": "L183",
-      "weight": 1.0
-    },
-    {
-      "source": "supabase_migrations_20260914190000_reusable_workspace_invite_links",
-      "target": "supabase_migrations_20260914190000_reusable_workspace_invite_links_prepare_workspace_invite_token",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "supabase/migrations/20260914190000_reusable_workspace_invite_links.sql",
-      "source_location": "L55",
-      "weight": 1.0
-    },
-    {
-      "source": "supabase_migrations_20260914190000_reusable_workspace_invite_links",
-      "target": "supabase_migrations_20260914190000_reusable_workspace_invite_links_public_create_workspace_invite",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "supabase/migrations/20260914190000_reusable_workspace_invite_links.sql",
-      "source_location": "L70",
-      "weight": 1.0
-    },
-    {
       "source": "supabase_tests_epic_1_rls",
       "target": "supabase_tests_epic_1_rls_pg_temp_assert_affected",
       "relation": "contains",
@@ -262028,24 +262671,6 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "../../src/features/recorder/QuickVoiceRecorder.test.tsx"
-    },
-    {
-      "source": "src_features_account_accountpage_test",
-      "target": "profile",
-      "relation": "dynamic_import",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/features/account/AccountPage.test.tsx"
-    },
-    {
-      "source": "src_features_account_accountpage_test",
-      "target": "workspace",
-      "relation": "dynamic_import",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/features/account/AccountPage.test.tsx"
     },
     {
       "source": "src_features_recorder_quickvoicerecorder_test",
@@ -294736,72 +295361,6 @@
       "weight": 1.0
     },
     {
-      "source": "supabase_migrations_20260914190000_reusable_workspace_invite_links_public_accept_workspace_invite",
-      "target": "public_workspace_invites",
-      "relation": "reads_from",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "supabase/migrations/20260914190000_reusable_workspace_invite_links.sql",
-      "source_location": "L201",
-      "weight": 1.0
-    },
-    {
-      "source": "supabase_migrations_20260914190000_reusable_workspace_invite_links_public_accept_workspace_invite",
-      "target": "public_workspaces",
-      "relation": "reads_from",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "supabase/migrations/20260914190000_reusable_workspace_invite_links.sql",
-      "source_location": "L240",
-      "weight": 1.0
-    },
-    {
-      "source": "supabase_migrations_20260914190000_reusable_workspace_invite_links_public_accept_workspace_invite",
-      "target": "public_workspace_members",
-      "relation": "reads_from",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "supabase/migrations/20260914190000_reusable_workspace_invite_links.sql",
-      "source_location": "L241",
-      "weight": 1.0
-    },
-    {
-      "source": "supabase_migrations_20260914190000_reusable_workspace_invite_links_public_get_workspace_invite_by_token",
-      "target": "public_workspace_invites",
-      "relation": "reads_from",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "supabase/migrations/20260914190000_reusable_workspace_invite_links.sql",
-      "source_location": "L168",
-      "weight": 1.0
-    },
-    {
-      "source": "supabase_migrations_20260914190000_reusable_workspace_invite_links_public_get_workspace_invite_by_token",
-      "target": "public_workspaces",
-      "relation": "reads_from",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "supabase/migrations/20260914190000_reusable_workspace_invite_links.sql",
-      "source_location": "L169",
-      "weight": 1.0
-    },
-    {
-      "source": "supabase_migrations_20260914190000_reusable_workspace_invite_links_public_list_workspace_invites",
-      "target": "public_workspace_invites",
-      "relation": "reads_from",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "supabase/migrations/20260914190000_reusable_workspace_invite_links.sql",
-      "source_location": "L147",
-      "weight": 1.0
-    },
-    {
       "source": "d_app_en_dev_faderzeropwa_supabase_migrations_20260717142736_bootstrap_schema_public_setlist_songs",
       "target": "d_app_en_dev_faderzeropwa_supabase_migrations_20260717142736_bootstrap_schema_public_setlists",
       "relation": "references",
@@ -296504,17 +297063,6 @@
       "confidence_score": 1.0,
       "source_file": "supabase/migrations/20260826090000_epk_public.sql",
       "source_location": "L128",
-      "weight": 1.0
-    },
-    {
-      "source": "supabase_migrations_20260914190000_reusable_workspace_invite_links_prepare_workspace_invite_token",
-      "target": "private_prepare_workspace_invite_token",
-      "relation": "triggers",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "supabase/migrations/20260914190000_reusable_workspace_invite_links.sql",
-      "source_location": "L55",
       "weight": 1.0
     },
     {
@@ -298288,5 +298836,5 @@
       "source_file": ".github/workflows/ci.yml"
     }
   ],
-  "built_at_commit": "24ab820e4e0143adb5ff5123061b6b2021890795"
+  "built_at_commit": "75a995ea977e3ba1abfc85ce0d6e20463b1d543a"
 }
