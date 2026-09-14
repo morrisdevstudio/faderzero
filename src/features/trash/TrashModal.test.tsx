@@ -4,7 +4,6 @@ import { TrashModal } from './TrashModal';
 const trashMocks = vi.hoisted(() => ({
   listTrashedItems: vi.fn(),
   restoreTrashedContent: vi.fn(),
-  purgeExpiredTrash: vi.fn(),
 }));
 
 vi.mock('@/services/supabase/trash', () => trashMocks);
@@ -23,7 +22,6 @@ describe('TrashModal', () => {
       },
     ]);
     trashMocks.restoreTrashedContent.mockResolvedValue(undefined);
-    trashMocks.purgeExpiredTrash.mockResolvedValue({ purgedCount: 2, dryRun: true });
   });
 
   it('utilise le dialogue canonique et charge les contenus supprimés', async () => {
@@ -53,16 +51,5 @@ describe('TrashModal', () => {
       expect(trashMocks.listTrashedItems).toHaveBeenCalledTimes(2);
       expect(onItemRestored).toHaveBeenCalledOnce();
     });
-  });
-
-  it('conserve la simulation de purge', async () => {
-    render(<TrashModal workspaceId="workspace-1" isOpen onClose={() => {}} />);
-
-    fireEvent.click(await screen.findByRole('button', { name: /Simuler la purge/ }));
-
-    expect(await screen.findByRole('status')).toHaveTextContent(
-      'Dry-run termine : 2 elements expirés identifies pour la purge.',
-    );
-    expect(trashMocks.purgeExpiredTrash).toHaveBeenCalledWith('workspace-1', true);
   });
 });

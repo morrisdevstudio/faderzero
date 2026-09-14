@@ -91,6 +91,7 @@ describe('workspace invite helpers', () => {
           token: 'invite-secret',
           role: 'guest',
           expires_at: '2026-07-23T12:00:00.000Z',
+          is_reusable: true,
         },
         error: null,
       }),
@@ -104,6 +105,7 @@ describe('workspace invite helpers', () => {
       url: `${window.location.origin}/account?invite=invite-secret`,
       role: 'guest',
       expiresAt: '2026-07-23T12:00:00.000Z',
+      isReusable: true,
     });
     expect(rpcMock).toHaveBeenCalledWith('create_workspace_invite', {
       p_workspace_id: 'workspace-123',
@@ -119,6 +121,8 @@ describe('workspace invite helpers', () => {
           role: 'member',
           created_at: '2026-07-22T10:00:00.000Z',
           expires_at: '2026-07-23T10:00:00.000Z',
+          is_reusable: false,
+          token: null,
         }],
         error: null,
       })
@@ -129,6 +133,8 @@ describe('workspace invite helpers', () => {
       role: 'member',
       createdAt: '2026-07-22T10:00:00.000Z',
       expiresAt: '2026-07-23T10:00:00.000Z',
+      isReusable: false,
+      token: null,
     }]);
     await revokeWorkspaceInvite('invite-id');
 

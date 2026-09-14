@@ -12,6 +12,7 @@ import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { useAuthStore } from '@/stores/authStore';
 import {
   createWorkspaceInviteLink,
+  buildWorkspaceInviteUrl,
   canAdministerWorkspace,
   extractWorkspaceInviteToken,
   listWorkspaceInvites,
@@ -339,15 +340,6 @@ function formatInviteRemaining(expiresAt: string): string {
   return hours > 0 ? `${hours} h ${minutes} min` : `${minutes} min`;
 }
 
-function CopyIcon() {
-  return (
-    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-    </svg>
-  );
-}
-
 function fallbackCopyTextToClipboard(text: string) {
   const textArea = document.createElement('textarea');
   textArea.value = text;
@@ -552,8 +544,8 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
   const [shareWorkspace, setShareWorkspace] = useState<Workspace | null>(null);
   const [inviteRole, setInviteRole] = useState<WorkspaceRole>('member');
   const [activeInvites, setActiveInvites] = useState<WorkspaceInviteSummary[]>([]);
-  const [inviteLinks, setInviteLinks] = useState<Record<string, string>>({});
   const [inviteToRevoke, setInviteToRevoke] = useState<WorkspaceInviteSummary | null>(null);
+  const [isInviteReplacementOpen, setIsInviteReplacementOpen] = useState(false);
   const [inviteFeedback, setInviteFeedback] = useState<string | null>(null);
   const [inviteLoading, setInviteLoading] = useState(false);
   const [joinInviteValue, setJoinInviteValue] = useState('');
@@ -792,7 +784,6 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
     setInviteFeedback(null);
     try {
       const invite = await createWorkspaceInviteLink(workspace.id, role);
-      setInviteLinks((currentLinks) => ({ ...currentLinks, [invite.id]: invite.url }));
       await loadActiveInvites(workspace);
       await copyTextToClipboard(invite.url);
       return invite;
@@ -809,7 +800,6 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
     setShareWorkspace(workspace);
     setInviteRole('member');
     setActiveInvites([]);
-    setInviteLinks({});
     setInviteFeedback(null);
     setInviteLoading(true);
     try {
@@ -821,20 +811,19 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
     }
   }
 
-  async function handleCopyInviteLink(inviteId: string) {
-    const inviteLink = inviteLinks[inviteId];
-    if (!inviteLink) {
-      setInviteFeedback('Ce secret n’est plus disponible. Créez un nouveau lien pour pouvoir le copier.');
+  async function handleCopyInviteLink(invite: WorkspaceInviteSummary) {
+    if (!invite.isReusable || !invite.token) {
+      setInviteFeedback('Seul le lien réutilisable actif peut être copié.');
       return;
     }
-    await copyTextToClipboard(inviteLink);
+    await copyTextToClipboard(buildWorkspaceInviteUrl(invite.token));
   }
 
   function handleCloseShareDialog() {
     setShareWorkspace(null);
     setActiveInvites([]);
-    setInviteLinks({});
     setInviteToRevoke(null);
+    setIsInviteReplacementOpen(false);
     setInviteFeedback(null);
     setInviteLoading(false);
   }
@@ -1292,7 +1281,7 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
         <FormDialog title={`Inviter dans ${shareWorkspace.name}`} onClose={handleCloseShareDialog}>
           <div className="space-y-4">
             <p className="text-sm leading-relaxed text-[var(--fz-text-muted)]">
-              Les liens expirent après 24 heures et ne peuvent être utilisés qu’une fois.
+              Le lien est utilisable par plusieurs personnes pendant 7 jours.
             </p>
 
             <div className="rounded-[1.2rem] border border-orange-500/18 bg-orange-500/8 p-4">
@@ -1305,30 +1294,32 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
                     id="inviteRole"
                     value={inviteRole}
                     onChange={(event) => setInviteRole(event.target.value as WorkspaceRole)}
-                    disabled={inviteLoading}
+                  disabled={inviteLoading}
                   >
-                    <option value="admin">Administrateur</option>
                     <option value="member">Membre</option>
                     <option value="guest">Invité</option>
                   </SelectField>
                 </div>
                 <Button
                   type="button"
-                  onClick={() => void generateInviteLink(shareWorkspace, inviteRole)}
+                  onClick={() => {
+                    if (activeInvites.some((invite) => invite.isReusable)) {
+                      setIsInviteReplacementOpen(true);
+                    } else {
+                      void generateInviteLink(shareWorkspace, inviteRole);
+                    }
+                  }}
                   disabled={inviteLoading}
                   variant="secondary"
                 >
-                  {inviteLoading ? 'Création...' : 'Créer'}
+                  {inviteLoading ? 'Création...' : activeInvites.some((invite) => invite.isReusable) ? 'Remplacer' : 'Créer'}
                 </Button>
               </div>
             </div>
 
             <div className="space-y-2">
-              <p className="text-[0.64rem] font-black uppercase tracking-[0.18em] text-white/50">Liens actifs</p>
-              {activeInvites.length === 0 && !inviteLoading ? (
-                <p className="rounded-[1rem] border border-dashed border-white/10 p-4 text-sm text-white/45">Aucun lien actif.</p>
-              ) : null}
-              {activeInvites.map((invite) => (
+              <p className="text-[0.64rem] font-black uppercase tracking-[0.18em] text-white/50">Lien actif</p>
+              {activeInvites.filter((invite) => invite.isReusable).map((invite) => (
                 <div key={invite.id} className="rounded-[1rem] border border-white/10 bg-black/20 p-3">
                   <div className="flex items-center justify-between gap-3">
                     <div>
@@ -1336,14 +1327,32 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
                       <p className="mt-1 text-[0.68rem] text-white/45">Expire dans {formatInviteRemaining(invite.expiresAt)}</p>
                     </div>
                     <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => void handleCopyInviteLink(invite.id)}
-                        aria-label="Copier le lien"
-                        className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/70"
-                      >
-                        <CopyIcon />
-                      </button>
+                      <Button type="button" onClick={() => void handleCopyInviteLink(invite)} variant="secondary" size="sm">
+                        Copier
+                      </Button>
+                      <Button type="button" onClick={() => setInviteToRevoke(invite)} variant="danger" size="sm">
+                        Révoquer
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {!activeInvites.some((invite) => invite.isReusable) && !inviteLoading ? (
+                <p className="rounded-[1rem] border border-dashed border-white/10 p-4 text-sm text-white/45">Aucun lien actif.</p>
+              ) : null}
+            </div>
+
+            {activeInvites.some((invite) => !invite.isReusable) ? (
+              <div className="space-y-2">
+                <p className="text-[0.64rem] font-black uppercase tracking-[0.18em] text-white/50">Anciens liens</p>
+                {activeInvites.filter((invite) => !invite.isReusable).map((invite) => (
+                <div key={invite.id} className="rounded-[1rem] border border-white/10 bg-black/20 p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-white">{INVITE_ROLE_LABELS[invite.role]}</p>
+                      <p className="mt-1 text-[0.68rem] text-white/45">Expire dans {formatInviteRemaining(invite.expiresAt)}</p>
+                    </div>
+                    <div className="flex gap-2">
                       <Button
                         type="button"
                         onClick={() => setInviteToRevoke(invite)}
@@ -1353,12 +1362,10 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
                       </Button>
                     </div>
                   </div>
-                  {!inviteLinks[invite.id] ? (
-                    <p className="mt-2 text-[0.66rem] text-white/35">Secret non conservé : créez un nouveau lien pour le copier.</p>
-                  ) : null}
                 </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : null}
 
             {inviteFeedback ? <p className="text-[0.75rem] text-white/70">{inviteFeedback}</p> : null}
 
@@ -1372,6 +1379,20 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
           </div>
         </FormDialog>
       ) : null}
+
+      <ConfirmDialog
+        isOpen={isInviteReplacementOpen}
+        title="Remplacer ce lien ?"
+        description="L’ancien lien partagé cessera immédiatement de fonctionner."
+        confirmLabel="Remplacer"
+        isBusy={inviteLoading}
+        onCancel={() => setIsInviteReplacementOpen(false)}
+        onConfirm={async () => {
+          if (!shareWorkspace) return;
+          const invite = await generateInviteLink(shareWorkspace, inviteRole);
+          if (invite) setIsInviteReplacementOpen(false);
+        }}
+      />
 
       <ConfirmDialog
         isOpen={Boolean(memberToRemove)}
@@ -1425,11 +1446,6 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
           try {
             await revokeWorkspaceInvite(revokedInviteId);
             setActiveInvites((currentInvites) => currentInvites.filter((invite) => invite.id !== revokedInviteId));
-            setInviteLinks((currentLinks) => {
-              const nextLinks = { ...currentLinks };
-              delete nextLinks[revokedInviteId];
-              return nextLinks;
-            });
             setInviteToRevoke(null);
             setInviteFeedback('Invitation révoquée.');
           } catch (error) {

@@ -252,6 +252,8 @@ describe('AccountPage', () => {
       role: 'member',
       createdAt: '2026-07-22T10:00:00.000Z',
       expiresAt: '2099-07-23T10:00:00.000Z',
+      isReusable: true,
+      token: 'reusable-secret',
     }]);
     workspaceMocks.revokeWorkspaceInvite.mockResolvedValue(undefined);
 

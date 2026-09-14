@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { FormDialog } from '@/components/FormDialog';
 import { ContentRow } from '@/ui/components/ContentRow';
-import { listTrashedItems, restoreTrashedContent, purgeExpiredTrash, type TrashedItem } from '@/services/supabase/trash';
+import { listTrashedItems, restoreTrashedContent, type TrashedItem } from '@/services/supabase/trash';
 
 interface TrashModalProps {
   workspaceId: string;
@@ -19,7 +19,6 @@ export const TrashModal: React.FC<TrashModalProps> = ({
   const [items, setItems] = useState<TrashedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [dryRunReport, setDryRunReport] = useState<string | null>(null);
 
   const loadItems = useCallback(async () => {
     setLoading(true);
@@ -53,16 +52,6 @@ export const TrashModal: React.FC<TrashModalProps> = ({
     }
   };
 
-  const handlePurgeDryRun = async () => {
-    setError(null);
-    try {
-      const report = await purgeExpiredTrash(workspaceId, true);
-      setDryRunReport(`Dry-run termine : ${report.purgedCount} elements expirés identifies pour la purge.`);
-    } catch (err: any) {
-      setError(err.message || 'Echec du calcul dry-run.');
-    }
-  };
-
   return (
     <FormDialog title="Corbeille des contenus" closeLabel="Fermer la corbeille" onClose={onClose}>
       <p className="text-sm leading-6 text-[var(--fz-text-muted)]">
@@ -75,15 +64,6 @@ export const TrashModal: React.FC<TrashModalProps> = ({
             <path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
           </svg>
           <span>{error}</span>
-        </div>
-      )}
-
-      {dryRunReport && (
-        <div role="status" className="mt-4 flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-300">
-          <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-          </svg>
-          <span>{dryRunReport}</span>
         </div>
       )}
 
@@ -135,14 +115,7 @@ export const TrashModal: React.FC<TrashModalProps> = ({
         )}
       </div>
 
-      <div className="mt-6 flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
-        <button
-          type="button"
-          onClick={handlePurgeDryRun}
-          className="min-h-11 text-left text-xs text-white/70 underline transition-colors hover:text-white"
-        >
-          Simuler la purge des contenus expirés (Dry-Run)
-        </button>
+      <div className="mt-6 flex justify-end border-t border-white/10 pt-4">
         <button
           type="button"
           onClick={onClose}

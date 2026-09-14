@@ -59,6 +59,7 @@ export interface WorkspaceInviteLink {
   url: string;
   role: WorkspaceRole;
   expiresAt: string;
+  isReusable: boolean;
 }
 
 export interface WorkspaceInviteSummary {
@@ -66,6 +67,8 @@ export interface WorkspaceInviteSummary {
   role: WorkspaceRole;
   createdAt: string;
   expiresAt: string;
+  isReusable: boolean;
+  token: string | null;
 }
 
 export interface WorkspaceInvitePreview {
@@ -419,6 +422,7 @@ export async function createWorkspaceInviteLink(
     url: buildWorkspaceInviteUrl(inviteRow.token),
     role: normalizeWorkspaceRole(inviteRow.role),
     expiresAt: inviteRow.expires_at,
+    isReusable: Boolean(inviteRow.is_reusable ?? true),
   };
 }
 
@@ -434,6 +438,8 @@ export async function listWorkspaceInvites(workspaceId: string): Promise<Workspa
     role: normalizeWorkspaceRole(inviteRow.role),
     createdAt: inviteRow.created_at,
     expiresAt: inviteRow.expires_at,
+    isReusable: Boolean(inviteRow.is_reusable),
+    token: typeof inviteRow.token === 'string' && inviteRow.token.length > 0 ? inviteRow.token : null,
   }));
 }
 
