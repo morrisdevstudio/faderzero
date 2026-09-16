@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useAuthStore } from '@/stores/authStore';
@@ -46,7 +46,7 @@ export function HomePage() {
 
   const currentPlayingTrack = currentIndex >= 0 ? queue[currentIndex] : undefined;
 
-  const workspacesKey = workspaces.map((w) => w.id).join(',');
+  const workspaceIds = useMemo(() => workspaces.map((workspace) => workspace.id), [workspaces]);
 
   useEffect(() => {
     let active = true;
@@ -54,7 +54,6 @@ export function HomePage() {
     const loadData = async () => {
       setLoading(true);
       try {
-        const workspaceIds = workspaces.map((w) => w.id);
         // 1. Prochains événements à travers tous les espaces
         const eventsData = await eventsRepository.listUpcoming(workspaceIds.length > 0 ? workspaceIds : undefined, 3);
 
@@ -100,7 +99,7 @@ export function HomePage() {
     return () => {
       active = false;
     };
-  }, [activeWorkspace?.id, workspacesKey]);
+  }, [activeWorkspace?.id, workspaceIds]);
 
   const handlePlaySongAsset = async (song: SongRecord, asset: SongAssetRecord) => {
     const isThisPlaying = currentPlayingTrack?.assetId === asset.id;

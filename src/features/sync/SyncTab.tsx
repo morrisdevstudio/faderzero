@@ -659,7 +659,7 @@ export function SyncTab() {
           <div>
             <h2 className="text-[1.45rem] font-black uppercase tracking-[0.18em] text-white">Synchronisation hors ligne</h2>
             <p className="mt-1 text-sm leading-relaxed text-[var(--fz-text-muted)]">
-              Échangez des setlists et morceaux ciblés entre appareils sans réseau grâce aux QR codes animés.
+              Échangez des morceaux, des setlists et leur ordre entre appareils sans réseau grâce aux QR codes animés. Les événements, le booking et les fichiers audio ne sont pas inclus.
             </p>
           </div>
 

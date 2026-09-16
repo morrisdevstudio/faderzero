@@ -1,5 +1,3 @@
-import { Mp3Encoder } from '@breezystack/lamejs';
-
 export const MAX_AUDIO_FILE_SIZE_BYTES = 50 * 1024 * 1024;
 
 const DEFAULT_MP3_MIME_TYPE = 'audio/mpeg';
@@ -114,6 +112,7 @@ function encodeAudioBufferToMp3(
 }
 
 async function encodeOnCurrentThread(left: Int16Array, right: Int16Array, channels: number, sampleRate: number, onProgress?: (progress: number) => void) {
+  const { Mp3Encoder } = await import('@breezystack/lamejs');
   const encoder = new Mp3Encoder(channels, sampleRate, MP3_BITRATE_KBPS);
   const chunks: Uint8Array[] = [];
   for (let offset = 0; offset < left.length; offset += MP3_FRAME_SAMPLE_COUNT) {

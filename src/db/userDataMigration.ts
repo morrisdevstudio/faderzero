@@ -24,6 +24,22 @@ const USER_DATABASE_PREFIX = 'faderzero-pwa-user-';
 const DOMAIN_TABLES = ['songs', 'setlists', 'setlistSongs', 'songAssets'] as const;
 const SYNC_TABLES = ['syncQueue', 'syncConflicts', 'syncState'] as const;
 const ALL_MIGRATION_TABLES = [...DOMAIN_TABLES, ...SYNC_TABLES] as const;
+const WORKSPACE_DATA_TABLES = [
+  'songs',
+  'setlists',
+  'setlistSongs',
+  'songAssets',
+  'events',
+  'eventContacts',
+  'workspaceContacts',
+  'bookingLeads',
+  'bookingNotes',
+  'bookingLeadContacts',
+  'pendingAudioUploads',
+  'syncQueue',
+  'syncConflicts',
+  'syncState',
+] as const;
 
 type DomainTableName = (typeof DOMAIN_TABLES)[number];
 type MigrationTableName = (typeof ALL_MIGRATION_TABLES)[number];
@@ -270,25 +286,11 @@ export async function activateUserData(userId: string, workspaceIds: Iterable<st
 export async function purgeWorkspaceData(workspaceId: string, database = getActiveDatabase()) {
   await database.transaction(
     'rw',
-    [
-      database.songs,
-      database.setlists,
-      database.setlistSongs,
-      database.songAssets,
-      database.syncQueue,
-      database.syncConflicts,
-      database.syncState,
-    ],
+    WORKSPACE_DATA_TABLES.map((tableName) => database.table(tableName)),
     async () => {
-      await Promise.all([
-        database.songs.where('workspaceId').equals(workspaceId).delete(),
-        database.setlists.where('workspaceId').equals(workspaceId).delete(),
-        database.setlistSongs.where('workspaceId').equals(workspaceId).delete(),
-        database.songAssets.where('workspaceId').equals(workspaceId).delete(),
-        database.syncQueue.where('workspaceId').equals(workspaceId).delete(),
-        database.syncConflicts.where('workspaceId').equals(workspaceId).delete(),
-        database.syncState.where('workspaceId').equals(workspaceId).delete(),
-      ]);
+      await Promise.all(WORKSPACE_DATA_TABLES.map((tableName) =>
+        database.table(tableName).where('workspaceId').equals(workspaceId).delete(),
+      ));
     },
   );
 }
@@ -298,7 +300,7 @@ export async function purgeRevokedWorkspaceData(
   database = getActiveDatabase(),
 ) {
   const workspaceIds = new Set<string>();
-  for (const tableName of ALL_MIGRATION_TABLES) {
+  for (const tableName of WORKSPACE_DATA_TABLES) {
     const keys = await database.table(tableName).orderBy('workspaceId').uniqueKeys();
     for (const key of keys) {
       if (typeof key === 'string' && key !== 'default-workspace') workspaceIds.add(key);

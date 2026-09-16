@@ -95,6 +95,33 @@ describe('user local data migration', () => {
   it('purges revoked workspace rows and their pending synchronization state', async () => {
     const database = await testDatabase('revocation');
     await database.songs.bulkPut([song('kept', 'workspace-a'), song('revoked', 'workspace-b')]);
+    await database.events.put({
+      id: 'revoked-event', workspaceId: 'workspace-b', title: 'Événement privé', eventType: 'rehearsal',
+      startAt: 1, createdAt: 1, updatedAt: 1, syncStatus: 'synced',
+    });
+    await database.eventContacts.put({
+      id: 'revoked-event-contact', workspaceId: 'workspace-b', eventId: 'revoked-event', contactId: 'revoked-contact',
+      createdAt: 1, updatedAt: 1, syncStatus: 'synced',
+    });
+    await database.workspaceContacts.put({
+      id: 'revoked-contact', workspaceId: 'workspace-b', name: 'Contact privé', createdAt: 1, updatedAt: 1, syncStatus: 'synced',
+    });
+    await database.bookingLeads.put({
+      id: 'revoked-lead', workspaceId: 'workspace-b', venueName: 'Salle privée', stage: 'to_contact', priority: 'normal',
+      ownerId: 'user-a', nextAction: 'Relancer', nextActionAt: 1, createdAt: 1, updatedAt: 1, syncStatus: 'synced',
+    });
+    await database.bookingNotes.put({
+      id: 'revoked-note', workspaceId: 'workspace-b', leadId: 'revoked-lead', authorId: 'user-a', type: 'free_note',
+      occurredAt: 1, summary: 'Note privée', createdAt: 1, updatedAt: 1, syncStatus: 'synced',
+    });
+    await database.bookingLeadContacts.put({
+      id: 'revoked-lead-contact', workspaceId: 'workspace-b', leadId: 'revoked-lead', contactId: 'revoked-contact',
+      createdAt: 1, updatedAt: 1, syncStatus: 'synced',
+    });
+    await database.pendingAudioUploads.put({
+      id: 'revoked-upload', workspaceId: 'workspace-b', songId: 'revoked', filename: 'privé.mp3', originalFilename: 'privé.mp3',
+      mimeType: 'audio/mpeg', sizeBytes: 1, fileBlob: new Blob(['x']), status: 'pending', queuedAt: 1, updatedAt: 1,
+    });
     await database.syncQueue.add({
       workspaceId: 'workspace-b',
       entityType: 'song',
@@ -108,5 +135,12 @@ describe('user local data migration', () => {
     await expect(purgeRevokedWorkspaceData(new Set(['workspace-a']), database)).resolves.toEqual(['workspace-b']);
     expect((await database.songs.toArray()).map(({ id }) => id)).toEqual(['kept']);
     expect(await database.syncQueue.count()).toBe(0);
+    await expect(database.events.count()).resolves.toBe(0);
+    await expect(database.eventContacts.count()).resolves.toBe(0);
+    await expect(database.workspaceContacts.count()).resolves.toBe(0);
+    await expect(database.bookingLeads.count()).resolves.toBe(0);
+    await expect(database.bookingNotes.count()).resolves.toBe(0);
+    await expect(database.bookingLeadContacts.count()).resolves.toBe(0);
+    await expect(database.pendingAudioUploads.count()).resolves.toBe(0);
   });
 });

@@ -169,8 +169,7 @@ describe('Sync Engine', () => {
       expect(syncedSong?.syncStatus).toBe('synced');
       expect(syncedSong?.serverVersion).toBe(15);
 
-      const checkpoint = await database.syncState.get(`${workspaceId}:songs`);
-      expect(checkpoint?.lastPulledVersion).toBe(15);
+      expect(await database.syncState.get(`${workspaceId}:songs`)).toBeUndefined();
     });
 
     it('retries transient failures three times and marks the outbox item as failed', async () => {
@@ -357,9 +356,144 @@ describe('Sync Engine', () => {
       expect(song?.updatedAt).toBe(new Date(remoteTimestamp).getTime());
       expect(song?.serverVersion).toBe(5);
     });
+
+    it('keeps a local edit queued while an earlier creation is acknowledged', async () => {
+      const songId = 'edited-during-upload';
+      const timestamp = now();
+      await database.songs.add({
+        id: songId,
+        workspaceId,
+        title: 'Version A',
+        lyrics: '',
+        status: 'Pret',
+        durationSeconds: 120,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+        syncStatus: 'pending',
+      });
+      await database.syncQueue.add({
+        workspaceId,
+        entityType: 'song',
+        entityId: songId,
+        operation: 'create',
+        payload: { title: 'Version A' },
+        status: 'pending',
+        queuedAt: timestamp,
+      });
+
+      singleMock.mockImplementationOnce(async () => {
+        await database.songs.update(songId, {
+          title: 'Version B',
+          updatedAt: timestamp + 1,
+          syncStatus: 'pending',
+        });
+        await database.syncQueue.add({
+          workspaceId,
+          entityType: 'song',
+          entityId: songId,
+          operation: 'update',
+          payload: { title: 'Version B' },
+          status: 'pending',
+          queuedAt: timestamp + 1,
+        });
+        return { data: makeRemoteSongRow({ id: songId, title: 'Version A', server_version: 15 }), error: null } as any;
+      });
+
+      await pushPendingMutations(workspaceId, { retryDelayMs: 0 });
+
+      expect((await database.songs.get(songId))?.title).toBe('Version B');
+      expect(await database.syncQueue.toArray()).toEqual([
+        expect.objectContaining({ entityId: songId, operation: 'update', status: 'pending' }),
+      ]);
+    });
+
+    it('records a conflict when the remote version changes between read and write', async () => {
+      const songId = 'concurrent-update';
+      const timestamp = now();
+      await database.songs.add({
+        id: songId,
+        workspaceId,
+        title: 'Local change',
+        lyrics: '',
+        status: 'Pret',
+        durationSeconds: 120,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+        serverVersion: 3,
+        syncStatus: 'pending',
+      });
+      await database.syncQueue.add({
+        workspaceId,
+        entityType: 'song',
+        entityId: songId,
+        operation: 'update',
+        payload: { title: 'Local change' },
+        baseServerVersion: 3,
+        status: 'pending',
+        queuedAt: timestamp,
+      });
+      maybeSingleMock
+        .mockResolvedValueOnce({ data: makeRemoteSongRow({ id: songId, server_version: 3 }), error: null } as any)
+        .mockResolvedValueOnce({ data: null, error: null } as any)
+        .mockResolvedValueOnce({ data: makeRemoteSongRow({ id: songId, title: 'Concurrent change', server_version: 4 }), error: null } as any);
+
+      await pushPendingMutations(workspaceId, { retryDelayMs: 0 });
+
+      expect(eqMock).toHaveBeenCalledWith('server_version', 3);
+      expect((await database.syncQueue.toArray())[0]).toMatchObject({ status: 'conflict' });
+      expect((await database.syncConflicts.toArray())[0]).toMatchObject({
+        remoteRecord: expect.objectContaining({ title: 'Concurrent change', serverVersion: 4 }),
+      });
+    });
   });
 
   describe('pullRemoteChanges', () => {
+    it('does not skip earlier remote versions after an acknowledged local push', async () => {
+      const timestamp = now();
+      await database.songs.add({
+        id: 'local-song',
+        workspaceId,
+        title: 'Local song',
+        lyrics: '',
+        status: 'Pret',
+        durationSeconds: 120,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+        syncStatus: 'pending',
+      });
+      await database.syncQueue.add({
+        workspaceId,
+        entityType: 'song',
+        entityId: 'local-song',
+        operation: 'create',
+        payload: { title: 'Local song' },
+        status: 'pending',
+        queuedAt: timestamp,
+      });
+      await database.syncState.put({
+        id: `${workspaceId}:songs`,
+        workspaceId,
+        tableName: 'songs',
+        lastPulledVersion: 10,
+        lastPulledAt: timestamp,
+      });
+      singleMock.mockResolvedValueOnce({
+        data: makeRemoteSongRow({ id: 'local-song', title: 'Local song', server_version: 15 }),
+        error: null,
+      } as any);
+
+      await pushPendingMutations(workspaceId, { retryDelayMs: 0 });
+      orderMock.mockResolvedValueOnce({
+        data: [makeRemoteSongRow({ id: 'other-device-song', title: 'Other device', server_version: 11 })],
+        error: null,
+      } as any);
+
+      await pullRemoteChanges(workspaceId);
+
+      expect((await database.songs.get('other-device-song'))?.title).toBe('Other device');
+      expect((await database.syncState.get(`${workspaceId}:songs`))?.lastPulledVersion).toBe(11);
+    });
+
     it('pulls remote changes and keeps the checkpoint behind skipped pending rows', async () => {
       await database.syncState.put({
         id: `${workspaceId}:songs`,

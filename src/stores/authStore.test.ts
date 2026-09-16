@@ -38,7 +38,7 @@ describe('sélection initiale du workspace', () => {
 
 
 describe('createWorkspace store action', () => {
-  it('ajoute syst?matiquement le nouveau groupe ? la liste des workspaces', async () => {
+  it('refuse de créer un groupe fictif hors ligne', async () => {
     const { useAuthStore } = await import('@/stores/authStore');
     useAuthStore.setState({
       session: {
@@ -53,15 +53,13 @@ describe('createWorkspace store action', () => {
       loading: false,
     });
 
-    const initialCount = useAuthStore.getState().workspaces.length;
-
-    // Simulate creating workspace locally/offline
     Object.defineProperty(navigator, 'onLine', { configurable: true, value: false });
-    await useAuthStore.getState().createWorkspace('Nouveau Groupe Test');
+    await expect(useAuthStore.getState().createWorkspace('Nouveau Groupe Test')).rejects.toThrow(
+      'La création d’un espace nécessite une connexion internet.',
+    );
 
     const state = useAuthStore.getState();
-    expect(state.workspaces.length).toBe(initialCount + 1);
-    expect(state.workspaces.some((w) => w.name === 'Nouveau Groupe Test')).toBe(true);
-    expect(state.activeWorkspace?.name).toBe('Nouveau Groupe Test');
+    expect(state.workspaces).toEqual([personalWorkspace]);
+    expect(state.activeWorkspace).toEqual(personalWorkspace);
   });
 });

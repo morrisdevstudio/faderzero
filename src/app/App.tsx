@@ -14,20 +14,16 @@ import { clearPendingInviteToken, readPendingInviteToken } from '@/services/supa
 import { processPendingAudioUploads } from '@/services/audio/pendingUploads';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { FzIcon } from '@/ui/icons';
+import { PwaUpdateNotice } from '@/app/PwaUpdateNotice';
+import { AppErrorBoundary } from '@/app/AppErrorBoundary';
 import { resolveViewTarget } from '@/utils/domainRouting';
+import { normalizeOAuthCallbackPath } from '@/utils/oauthCallback';
 
 import { SplashScreen } from '@/components/SplashScreen';
 
 const LandingPage = lazy(async () => ({ default: (await import('@/features/landing/LandingPage')).LandingPage }));
 const LegalPage = lazy(async () => ({ default: (await import('@/features/legal/LegalPage')).LegalPage }));
 const EpkPublicPage = lazy(async () => ({ default: (await import('@/features/epk/EpkPublicPage')).EpkPublicPage }));
-
-export function normalizeOAuthCallbackPath() {
-  if (window.location.pathname !== '/auth/callback') return;
-  const search = new URLSearchParams(window.location.search);
-  search.set('view', 'app');
-  window.history.replaceState({}, '', `/?${search.toString()}${window.location.hash}`);
-}
 
 function SyncBootstrap() {
   const activeWorkspace = useAuthStore((state) => state.activeWorkspace);
@@ -317,9 +313,12 @@ export function App() {
       ) : (
         <>
           <SyncBootstrap />
-          <AppContent />
+          <AppErrorBoundary>
+            <AppContent />
+          </AppErrorBoundary>
         </>
       )}
+      <PwaUpdateNotice />
     </AppProviders>
   );
 }

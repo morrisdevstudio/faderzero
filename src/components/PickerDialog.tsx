@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type PropsWithChildren, type UIEvent } from 'react';
+import { useCallback, useEffect, useId, useRef, useState, type PropsWithChildren, type UIEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { FzIcon } from '@/ui/icons';
 import { useDialogAccessibility } from './useDialogAccessibility';
@@ -109,7 +109,7 @@ export function WheelColumn({
   const [centeredValue, setCenteredValue] = useState(selectedValue);
   const emphasizedItemRef = useRef<HTMLButtonElement | null>(null);
 
-  function updateEmphasis(element: HTMLDivElement, scrollTop: number) {
+  const updateEmphasis = useCallback((element: HTMLDivElement, scrollTop: number) => {
     const index = Math.max(0, Math.min(options.length - 1, Math.round(scrollTop / wheelItemHeight)));
     const item = element.querySelectorAll('button')[index];
     if (emphasizedItemRef.current !== item) {
@@ -118,7 +118,7 @@ export function WheelColumn({
     const proximity = Math.max(0, 1 - Math.abs(scrollTop - index * wheelItemHeight) / (wheelItemHeight / 2));
     item?.style.setProperty('--wheel-emphasis', String(proximity));
     emphasizedItemRef.current = item ?? null;
-  }
+  }, [options.length]);
 
   useEffect(() => {
     if (hasInitializedScrollRef.current) {
@@ -140,7 +140,7 @@ export function WheelColumn({
     element.scrollTop = nextScrollTop;
     updateEmphasis(element, nextScrollTop);
     hasInitializedScrollRef.current = true;
-  }, [options, selectedValue]);
+  }, [options, selectedValue, updateEmphasis]);
 
   useEffect(() => {
     return () => {

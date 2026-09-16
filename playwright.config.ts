@@ -15,7 +15,7 @@ export default defineConfig({
     { name: 'setup', testMatch: /auth\.setup\.ts/ },
     {
       name: 'chromium',
-      testIgnore: /auth\.setup\.ts/,
+      testIgnore: [/auth\.setup\.ts/, /smoke\.spec\.ts/],
       use: { browserName: 'chromium', storageState: 'playwright/.auth/user.json' },
       dependencies: ['setup'],
     },

@@ -1,8 +1,9 @@
 import { lazy, Suspense } from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import { AppShell } from '@/components/AppShell';
 import { SplashScreen } from '@/components/SplashScreen';
-import { EpkPage } from '@/features/epk/EpkPage';
+import { Button } from '@/ui/components/Button';
+import { FzIcon } from '@/ui/icons';
 
 const BookingPage = lazy(async () => ({ default: (await import('@/features/booking/BookingPage')).BookingPage }));
 const AccountPage = lazy(async () => ({ default: (await import('@/features/account/AccountPage')).AccountPage }));
@@ -18,6 +19,7 @@ const SyncPage = lazy(async () => ({ default: (await import('@/features/sync/Syn
 const HomePage = lazy(async () => ({ default: (await import('@/features/home/HomePage')).HomePage }));
 const CalendarPage = lazy(async () => ({ default: (await import('@/features/events/CalendarPage')).CalendarPage }));
 const LandingPage = lazy(async () => ({ default: (await import('@/features/landing/LandingPage')).LandingPage }));
+const EpkPage = lazy(async () => ({ default: (await import('@/features/epk/EpkPage')).EpkPage }));
 
 function RouteFallback() {
   return <SplashScreen animated={false} />;
@@ -47,8 +49,25 @@ export function AppRouter() {
         <Route path="/sync" element={<SyncPage />} />
         <Route path="/metronome" element={<MetronomePage />} />
         <Route path="/account" element={<AccountPage />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Route>
       </Routes>
     </Suspense>
+  );
+}
+
+function NotFoundPage() {
+  const navigate = useNavigate();
+
+  return (
+    <main className="flex min-h-[60dvh] flex-col items-center justify-center gap-4 px-6 text-center">
+      <div className="space-y-2">
+        <h1 className="text-xl font-semibold text-fz-text">Page introuvable</h1>
+        <p className="text-sm text-fz-text-muted">Cette page n’existe pas ou a été déplacée.</p>
+      </div>
+      <Button variant="primary" leadingIcon={<FzIcon name="home" usageId="router.not-found.home" size="sm" />} onClick={() => navigate('/home')}>
+        Retour à l’accueil
+      </Button>
+    </main>
   );
 }

@@ -1,7 +1,8 @@
 import { act, render, screen } from '@testing-library/react';
 import type { Session } from '@supabase/supabase-js';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { AppContent, normalizeOAuthCallbackPath } from '@/app/App';
+import { AppContent } from '@/app/App';
+import { normalizeOAuthCallbackPath } from '@/utils/oauthCallback';
 import { SPLASH_ANIMATION_DURATION_MS } from '@/components/SplashScreen';
 import { useAuthStore } from '@/stores/authStore';
 

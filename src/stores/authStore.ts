@@ -132,12 +132,7 @@ async function loadWorkspaces(userId: string): Promise<LoadedWorkspaces> {
     if (cachedWorkspaces.length > 0) {
       return { workspaces: cachedWorkspaces, verifiedByServer: false };
     }
-    const demoWorkspaces: Workspace[] = [
-      { id: 'ws-alpha', name: 'Groupe Alpha', createdBy: userId, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), role: 'admin', type: 'group' },
-      { id: 'ws-beta', name: 'Groupe Beta', createdBy: userId, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), role: 'admin', type: 'group' },
-      { id: 'ws-personal', name: 'Mon Espace', createdBy: userId, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), role: 'admin', type: 'personal' },
-    ];
-    return { workspaces: demoWorkspaces, verifiedByServer: false };
+    throw new Error('Impossible de charger vos espaces. Reconnectez-vous puis réessayez.');
   }
 }
 
@@ -480,25 +475,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   createWorkspace: async (name) => {
     set({ loading: true, error: null, infoMessage: null });
     try {
-      const userId = get().session?.user.id ?? '';
-      let newWorkspace: Workspace;
-      try {
-        newWorkspace = await apiCreateWorkspace(name);
-      } catch (err: any) {
-        if (!isAppOnline() || err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) {
-          newWorkspace = {
-            id: `ws-${Date.now()}`,
-            name: name.trim(),
-            createdBy: userId,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            role: 'admin',
-            type: 'group',
-          };
-        } else {
-          throw err;
-        }
+      if (!isAppOnline()) {
+        throw new Error('La création d’un espace nécessite une connexion internet.');
       }
+      const userId = get().session?.user.id ?? '';
+      const newWorkspace = await apiCreateWorkspace(name);
 
       const loaded = await loadWorkspaces(userId);
       const existingWorkspaces = get().workspaces;

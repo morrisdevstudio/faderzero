@@ -155,14 +155,42 @@ async function fetchRemoteRow(tableName: string, entityId: string) {
 }
 
 async function adoptRemoteRow(
-  workspaceId: string,
   mutation: SyncQueueItem,
   remoteRow: Record<string, unknown>,
   config: (typeof ENTITY_CONFIGS)[SyncQueueItem['entityType']]
 ) {
-  await db.table(config.localTable).put(config.toLocal(remoteRow as never));
-  await db.syncQueue.delete(mutation.id!);
-  await updateStateCheckpoint(workspaceId, config.localTable, Number(remoteRow.server_version));
+  await commitRemoteMutation(mutation, remoteRow, config);
+}
+
+async function hasFollowUpMutation(mutation: SyncQueueItem) {
+  return db.syncQueue
+    .where('entityId')
+    .equals(mutation.entityId)
+    .filter(
+      (item) =>
+        item.id !== mutation.id &&
+        item.workspaceId === mutation.workspaceId &&
+        item.entityType === mutation.entityType &&
+        (item.status === 'pending' || item.status === 'failed'),
+    )
+    .first();
+}
+
+async function commitRemoteMutation(
+  mutation: SyncQueueItem,
+  remoteRow: Record<string, unknown>,
+  config: (typeof ENTITY_CONFIGS)[SyncQueueItem['entityType']],
+) {
+  const localTable = db.table(config.localTable);
+
+  await db.transaction('rw', db.syncQueue, localTable, async () => {
+    // A local edit can occur while the request is in flight. Its queued
+    // follow-up is authoritative until it has been sent in a later cycle.
+    if (!(await hasFollowUpMutation(mutation))) {
+      await localTable.put(config.toLocal(remoteRow as never));
+    }
+    await db.syncQueue.delete(mutation.id!);
+  });
 }
 
 async function applyMutation(
@@ -188,16 +216,14 @@ async function applyMutation(
     if (insertError) {
       const existingRemoteRow = await fetchRemoteRow(config.dbTable, mutation.entityId);
       if (existingRemoteRow) {
-        await adoptRemoteRow(workspaceId, mutation, existingRemoteRow, config);
+        await adoptRemoteRow(mutation, existingRemoteRow, config);
         return;
       }
 
       throw insertError;
     }
 
-    await localTable.put(config.toLocal(remoteRow));
-    await db.syncQueue.delete(mutation.id!);
-    await updateStateCheckpoint(workspaceId, config.localTable, Number(remoteRow.server_version));
+    await commitRemoteMutation(mutation, remoteRow, config);
     return;
   }
 
@@ -223,7 +249,7 @@ async function applyMutation(
 
   if (mutation.baseServerVersion !== undefined && mutation.baseServerVersion !== serverVersion) {
     if (localLogicalUpdatedAt <= remoteLogicalUpdatedAt) {
-      await adoptRemoteRow(workspaceId, mutation, remoteRow, config);
+      await adoptRemoteRow(mutation, remoteRow, config);
       return;
     }
   }
@@ -233,16 +259,20 @@ async function applyMutation(
     .from(config.dbTable)
     .update(dbPayload)
     .eq('id', mutation.entityId)
+    .eq('server_version', serverVersion)
     .select()
-    .single();
+    .maybeSingle();
 
   if (updateError) {
     throw updateError;
   }
 
-  await localTable.put(config.toLocal(updatedRow));
-  await db.syncQueue.delete(mutation.id!);
-  await updateStateCheckpoint(workspaceId, config.localTable, Number(updatedRow.server_version));
+  if (!updatedRow) {
+    await handleConflict(workspaceId, mutation, await fetchRemoteRow(config.dbTable, mutation.entityId));
+    return;
+  }
+
+  await commitRemoteMutation(mutation, updatedRow, config);
 }
 
 export async function pushPendingMutations(
@@ -338,6 +368,7 @@ export async function pushPendingMutations(
 async function handleConflict(workspaceId: string, mutation: SyncQueueItem, remoteRecord: any) {
   const config = ENTITY_CONFIGS[mutation.entityType];
   const localRecord = await db.table(config.localTable).get(mutation.entityId);
+  const localRemoteRecord = remoteRecord ? config.toLocal(remoteRecord) : null;
 
   await db.transaction('rw', db.syncQueue, db.syncConflicts, db.table(config.localTable), async () => {
     await db.syncConflicts.put({
@@ -346,7 +377,7 @@ async function handleConflict(workspaceId: string, mutation: SyncQueueItem, remo
       entityType: mutation.entityType,
       entityId: mutation.entityId,
       localRecord,
-      remoteRecord,
+      remoteRecord: localRemoteRecord,
       detectedAt: now(),
     });
 
@@ -356,22 +387,6 @@ async function handleConflict(workspaceId: string, mutation: SyncQueueItem, remo
       await db.table(config.localTable).update(mutation.entityId, { syncStatus: 'conflict' });
     }
   });
-}
-
-async function updateStateCheckpoint(workspaceId: string, tableName: string, serverVersion: number) {
-  const stateKey = `${workspaceId}:${tableName}`;
-  const existingState = await db.syncState.get(stateKey);
-  const currentVersion = existingState ? existingState.lastPulledVersion : 0;
-
-  if (serverVersion > currentVersion) {
-    await db.syncState.put({
-      id: stateKey,
-      workspaceId,
-      tableName,
-      lastPulledVersion: serverVersion,
-      lastPulledAt: now(),
-    });
-  }
 }
 
 export async function pullRemoteChanges(workspaceId: string): Promise<void> {
