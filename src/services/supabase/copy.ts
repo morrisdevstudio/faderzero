@@ -37,27 +37,20 @@ export async function copySongToWorkspace(
   if (includeAudio) {
     const { data: assets } = await supabase
       .from('song_assets')
-      .select('size_bytes, duration_seconds')
+      .select('duration_seconds')
       .eq('song_id', songId)
       .is('deleted_at', null);
 
     if (assets && assets.length > 0) {
-      const totalSize = assets.reduce((sum: number, a: any) => sum + (a.size_bytes || 0), 0);
       const totalDuration = assets.reduce((sum: number, a: any) => sum + (a.duration_seconds || 0), 0);
 
       try {
         const quota = await refreshAudioQuota(targetWorkspaceId);
-        if (quota.unit === 'bytes') {
-          if (quota.usedAmount + totalSize > quota.limitAmount) {
-            throw new Error("La copie est impossible : l'espace de destination n'a pas assez de quota audio (limite de 5 Gio dépassée).");
-          }
-        } else {
-          if (quota.usedAmount + totalDuration > quota.limitAmount) {
-            throw new Error("La copie est impossible : l'espace personnel de destination a dépassé sa limite de 1 heure d'audio.");
-          }
+        if (quota.usedAmount + quota.reservedAmount + totalDuration > quota.limitAmount) {
+          throw new Error("La copie est impossible : l'espace de destination a dépassé sa limite d'audio.");
         }
       } catch (err: any) {
-        if (err.message?.includes('dépassée')) throw err;
+        if (err.message?.startsWith('La copie est impossible')) throw err;
       }
     }
   }
@@ -74,6 +67,9 @@ export async function copySongToWorkspace(
     }
     if (error.message?.includes('SONG_NOT_FOUND')) {
       throw new Error('Chanson introuvable.');
+    }
+    if (error.message?.includes('TARGET_AUDIO_QUOTA_EXCEEDED')) {
+      throw new Error("La copie est impossible : l'espace de destination a dépassé sa limite d'audio.");
     }
     throw new Error(error.message || 'Échec de la copie de la chanson.');
   }

@@ -144,10 +144,16 @@ BEGIN
     ) VALUES (
         'epic-5-2-group-asset', group_workspace,
         'workspaces/' || group_workspace::TEXT || '/imports/existing.mp3',
-        'existing.mp3', 'audio/mpeg', 5368709110, 60, quota_user
+        'existing.mp3', 'audio/mpeg', 1000, 143930, quota_user
     );
 
     group_reservation := public.reserve_audio_upload(group_workspace, 10, 60);
+
+    quota_snapshot := public.get_audio_quota(group_workspace);
+    IF quota_snapshot->>'unit' <> 'seconds'
+       OR (quota_snapshot->>'limitAmount')::BIGINT <> 144000 THEN
+        RAISE EXCEPTION 'GROUP_QUOTA_SNAPSHOT_INVALID';
+    END IF;
 
     BEGIN
         PERFORM public.reserve_audio_upload(group_workspace, 1, 60);

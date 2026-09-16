@@ -57,18 +57,18 @@ describe('trash service', () => {
     expect(items.map(i => i.entityType)).toContain('songAsset');
   });
 
-  it('restoreTrashedContent blocks restoration if group audio quota would be exceeded', async () => {
+  it('restoreTrashedContent blocks restoration if audio duration quota would be exceeded', async () => {
     vi.spyOn(audioQuotaModule, 'refreshAudioQuota').mockResolvedValueOnce({
-      unit: 'bytes',
-      usedAmount: 5 * 1024 * 1024 * 1024 - 100,
+      unit: 'seconds',
+      usedAmount: 40 * 60 * 60 - 30,
       reservedAmount: 0,
-      limitAmount: 5 * 1024 * 1024 * 1024,
-      remainingAmount: 100,
+      limitAmount: 40 * 60 * 60,
+      remainingAmount: 30,
       percentUsed: 99.9,
     });
 
     const mockSingle = vi.fn().mockResolvedValue({
-      data: { size_bytes: 1000, duration_seconds: 60 },
+      data: { duration_seconds: 60 },
     });
 
     vi.mocked(supabase.from).mockReturnValue({
@@ -78,7 +78,7 @@ describe('trash service', () => {
     } as any);
 
     await expect(restoreTrashedContent('ws1', 'songAsset', 'a1')).rejects.toThrow(
-      "quota d'espace de groupe"
+      "quota d'espace audio"
     );
   });
 

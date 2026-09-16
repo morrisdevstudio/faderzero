@@ -63,21 +63,21 @@ describe('copy service', () => {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
       is: vi.fn().mockResolvedValue({
-        data: [{ size_bytes: 100000, duration_seconds: 120 }],
+        data: [{ duration_seconds: 120 }],
       }),
     } as any);
 
     vi.spyOn(audioQuotaModule, 'refreshAudioQuota').mockResolvedValueOnce({
-      unit: 'bytes',
-      usedAmount: 5 * 1024 * 1024 * 1024 - 10,
+      unit: 'seconds',
+      usedAmount: 40 * 60 * 60 - 10,
       reservedAmount: 0,
-      limitAmount: 5 * 1024 * 1024 * 1024,
+      limitAmount: 40 * 60 * 60,
       remainingAmount: 10,
       percentUsed: 99.9,
     });
 
     await expect(copySongToWorkspace('song-1', 'ws2', { includeAudio: true })).rejects.toThrow(
-      "l'espace de destination n'a pas assez de quota audio"
+      "l'espace de destination a dépassé sa limite d'audio"
     );
   });
 });

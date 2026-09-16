@@ -1,7 +1,7 @@
 import { supabase } from '@/services/supabase/client';
 
 export interface AudioQuotaSnapshot {
-  unit: 'seconds' | 'bytes';
+  unit: 'seconds';
   usedAmount: number;
   reservedAmount: number;
   limitAmount: number;
@@ -43,7 +43,7 @@ function getCacheKey(workspaceId: string) {
 }
 
 function parseAudioQuota(value: unknown): AudioQuotaSnapshot | null {
-  if (!isRecord(value) || (value.unit !== 'seconds' && value.unit !== 'bytes')) return null;
+  if (!isRecord(value) || value.unit !== 'seconds') return null;
 
   const usedAmount = toNonNegativeNumber(value.usedAmount);
   const reservedAmount = toNonNegativeNumber(value.reservedAmount);

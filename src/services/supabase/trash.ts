@@ -114,23 +114,16 @@ export async function restoreTrashedContent(
   if (entityType === 'songAsset') {
     const { data: asset } = await supabase
       .from('song_assets')
-      .select('size_bytes, duration_seconds')
+      .select('duration_seconds')
       .eq('id', entityId)
       .single();
 
     if (asset) {
       try {
         const quota = await refreshAudioQuota(workspaceId);
-        if (quota.unit === 'bytes') {
-          const potentialUsed = quota.usedAmount + (asset.size_bytes || 0);
-          if (potentialUsed > quota.limitAmount) {
-            throw new Error("Impossible de restaurer cet audio : le quota d'espace de groupe (5 Gio) serait depasse.");
-          }
-        } else {
-          const potentialUsed = quota.usedAmount + (asset.duration_seconds || 0);
-          if (potentialUsed > quota.limitAmount) {
-            throw new Error("Impossible de restaurer cet audio : le quota d'espace personnel (1 heure) serait depasse.");
-          }
+        const potentialUsed = quota.usedAmount + quota.reservedAmount + (asset.duration_seconds || 0);
+        if (potentialUsed > quota.limitAmount) {
+          throw new Error("Impossible de restaurer cet audio : le quota d'espace audio serait depasse.");
         }
       } catch (err: any) {
         if (err.message?.includes('depasse')) throw err;
