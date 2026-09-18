@@ -157,8 +157,35 @@ async function hasUnresolvedCreateDependency(mutation: SyncQueueItem): Promise<b
   return false;
 }
 
+function isUniqueViolation(error: { code?: string; message?: string } | null | undefined) {
+  if (!error) return false;
+  return error.code === '23505' || /duplicate key value violates unique constraint/i.test(error.message ?? '');
+}
+
+function readSongId(record: unknown) {
+  if (!record || typeof record !== 'object') return undefined;
+  const songId = (record as { songId?: unknown }).songId;
+  return typeof songId === 'string' ? songId : undefined;
+}
+
 async function fetchRemoteRow(tableName: string, entityId: string) {
   const { data, error } = await supabase.from(tableName).select('*').eq('id', entityId).maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return data as Record<string, unknown> | null;
+}
+
+async function fetchRemoteSongTimelineBySongId(songId: string, workspaceId: string) {
+  const { data, error } = await supabase
+    .from('song_timelines')
+    .select('*')
+    .eq('song_id', songId)
+    .eq('workspace_id', workspaceId)
+    .is('deleted_at', null)
+    .maybeSingle();
 
   if (error) {
     throw error;
@@ -173,6 +200,38 @@ async function adoptRemoteRow(
   config: (typeof ENTITY_CONFIGS)[SyncQueueItem['entityType']]
 ) {
   await commitRemoteMutation(mutation, remoteRow, config);
+}
+
+async function adoptExistingSongTimelineForSong(
+  mutation: SyncQueueItem,
+  remoteRow: Record<string, unknown>,
+  config: (typeof ENTITY_CONFIGS)['songTimeline'],
+) {
+  const remoteTimeline = config.toLocal(remoteRow as never);
+  const localId = mutation.entityId;
+  const remoteId = remoteTimeline.id;
+
+  await db.transaction('rw', db.syncQueue, db.songTimelines, db.timelineSections, async () => {
+    if (localId !== remoteId) {
+      const localSections = await db.timelineSections.where('timelineId').equals(localId).toArray();
+      const sectionIds = new Set(localSections.map((section) => section.id));
+      if (localSections.length > 0) {
+        await db.timelineSections.bulkDelete(localSections.map((section) => section.id));
+      }
+      await db.songTimelines.delete(localId);
+      const queued = await db.syncQueue.where('workspaceId').equals(mutation.workspaceId).toArray();
+      for (const item of queued) {
+        if (item.id === mutation.id) continue;
+        if (item.entityType === 'timelineSection' && sectionIds.has(item.entityId)) {
+          await db.syncQueue.delete(item.id!);
+        }
+      }
+    }
+    if (!(await hasFollowUpMutation(mutation))) {
+      await db.songTimelines.put(remoteTimeline);
+    }
+    await db.syncQueue.delete(mutation.id!);
+  });
 }
 
 async function hasFollowUpMutation(mutation: SyncQueueItem) {
@@ -231,6 +290,17 @@ async function applyMutation(
       if (existingRemoteRow) {
         await adoptRemoteRow(mutation, existingRemoteRow, config);
         return;
+      }
+
+      if (mutation.entityType === 'songTimeline' && isUniqueViolation(insertError)) {
+        const songId = readSongId(localRecord);
+        if (songId) {
+          const existingBySong = await fetchRemoteSongTimelineBySongId(songId, mutation.workspaceId);
+          if (existingBySong) {
+            await adoptExistingSongTimelineForSong(mutation, existingBySong, ENTITY_CONFIGS.songTimeline);
+            return;
+          }
+        }
       }
 
       throw insertError;
@@ -339,6 +409,7 @@ export async function pushPendingMutations(
   for (const mutation of mutations) {
     const config = ENTITY_CONFIGS[mutation.entityType];
     if (!config) continue;
+    if (!(await db.syncQueue.get(mutation.id!))) continue;
     if (mutation.operation === 'create' && await hasUnresolvedCreateDependency(mutation)) continue;
 
     for (let attempt = 1; attempt <= maxRetries; attempt += 1) {

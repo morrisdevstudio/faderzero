@@ -30,6 +30,7 @@ const updateMock = vi.fn();
 const eqMock = vi.fn();
 const gtMock = vi.fn();
 const orderMock = vi.fn();
+const isMock = vi.fn();
 
 const queryBuilder = {
   select: selectMock,
@@ -37,6 +38,7 @@ const queryBuilder = {
   update: updateMock,
   eq: eqMock,
   gt: gtMock,
+  is: isMock,
   order: orderMock,
   maybeSingle: maybeSingleMock,
   single: singleMock,
@@ -47,6 +49,7 @@ insertMock.mockReturnValue(queryBuilder);
 updateMock.mockReturnValue(queryBuilder);
 eqMock.mockReturnValue(queryBuilder);
 gtMock.mockReturnValue(queryBuilder);
+isMock.mockReturnValue(queryBuilder);
 orderMock.mockReturnValue(queryBuilder);
 maybeSingleMock.mockReturnValue(queryBuilder);
 singleMock.mockReturnValue(queryBuilder);
@@ -91,6 +94,7 @@ describe('Sync Engine', () => {
     updateMock.mockReturnValue(queryBuilder);
     eqMock.mockReturnValue(queryBuilder);
     gtMock.mockReturnValue(queryBuilder);
+    isMock.mockReturnValue(queryBuilder);
     orderMock.mockReturnValue(queryBuilder);
     maybeSingleMock.mockReturnValue(queryBuilder);
     singleMock.mockReturnValue(queryBuilder);
@@ -216,6 +220,107 @@ describe('Sync Engine', () => {
       expect(queue[0]?.status).toBe('failed');
       expect(queue[0]?.retryCount).toBe(3);
       expect(queue[0]?.errorMessage).toBe('timeout');
+    });
+
+    it('adopts the remote song timeline when create hits song_id uniqueness', async () => {
+      const timestamp = now();
+      const songId = 'song-with-timeline';
+      const localTimelineId = 'local-timeline-id';
+      const remoteTimelineId = 'remote-timeline-id';
+      const localSectionId = 'local-section-id';
+      const localTimeline = {
+        id: localTimelineId,
+        songId,
+        workspaceId,
+        startCountInBars: 1,
+        volume: 0.75,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+        syncStatus: 'pending' as const,
+      };
+      const localSection = {
+        id: localSectionId,
+        timelineId: localTimelineId,
+        workspaceId,
+        position: 0,
+        name: 'Intro',
+        bars: 4,
+        tempo: 135,
+        numerator: 4,
+        denominator: 4 as const,
+        tempoUnit: 'quarter' as const,
+        clickEnabled: true,
+        accentFirstBeat: true,
+        clickResolution: 'denominator' as const,
+        subdivision: 1 as const,
+        beatSounds: [[0], [1], [1], [1]],
+        countInMode: 'none' as const,
+        countInBars: 0,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+        syncStatus: 'pending' as const,
+      };
+      await database.songTimelines.add(localTimeline);
+      await database.timelineSections.add(localSection);
+      await database.syncQueue.bulkAdd([
+        {
+          workspaceId,
+          entityType: 'songTimeline',
+          entityId: localTimelineId,
+          operation: 'create',
+          payload: localTimeline,
+          status: 'pending',
+          queuedAt: timestamp,
+        },
+        {
+          workspaceId,
+          entityType: 'timelineSection',
+          entityId: localSectionId,
+          operation: 'create',
+          payload: localSection,
+          status: 'pending',
+          queuedAt: timestamp + 1,
+        },
+      ]);
+
+      const remoteTimelineRow = {
+        id: remoteTimelineId,
+        workspace_id: workspaceId,
+        song_id: songId,
+        start_count_in_bars: 1,
+        volume: 0.8,
+        created_at: new Date(timestamp).toISOString(),
+        updated_at: new Date(timestamp).toISOString(),
+        client_updated_at: new Date(timestamp).toISOString(),
+        deleted_at: null,
+        server_version: 4,
+        last_modified_by: 'user-2',
+      };
+
+      singleMock.mockResolvedValueOnce({
+        data: null,
+        error: {
+          code: '23505',
+          message: 'duplicate key value violates unique constraint "song_timelines_one_per_song"',
+        },
+      } as any);
+      maybeSingleMock
+        .mockResolvedValueOnce({ data: null, error: null } as any)
+        .mockResolvedValueOnce({ data: remoteTimelineRow, error: null } as any);
+
+      const report = await pushPendingMutations(workspaceId, { retryDelayMs: 0 });
+
+      expect(report).toEqual({ processedCount: 1, failedCount: 0, recoveredCount: 0 });
+      expect(await database.songTimelines.get(localTimelineId)).toBeUndefined();
+      expect(await database.timelineSections.get(localSectionId)).toBeUndefined();
+      expect(await database.songTimelines.get(remoteTimelineId)).toMatchObject({
+        id: remoteTimelineId,
+        songId,
+        volume: 0.8,
+        serverVersion: 4,
+        syncStatus: 'synced',
+      });
+      expect(await database.syncQueue.toArray()).toEqual([]);
     });
 
     it('defers a booking relation while its contact creation remains unresolved', async () => {
