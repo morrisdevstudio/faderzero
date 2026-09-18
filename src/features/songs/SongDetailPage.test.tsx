@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   unlinkedTracks: [] as any[],
   timelineBundle: undefined as any,
   updateSong: vi.fn(),
+  updateTimeline: vi.fn(),
 }));
 
 vi.mock('dexie-react-hooks', () => ({
@@ -51,6 +52,7 @@ vi.mock('@/db/repositories/songsRepository', () => ({
 vi.mock('@/db/repositories/songTimelinesRepository', () => ({
   songTimelinesRepository: {
     getBySongId: () => mocks.timelineBundle,
+    updateTimeline: (...args: unknown[]) => mocks.updateTimeline(...args),
   },
 }));
 
@@ -138,6 +140,7 @@ describe('SongDetailPage - Notes', () => {
     mocks.unlinkedTracks = [];
     mocks.timelineBundle = undefined;
     mocks.updateSong.mockResolvedValue(undefined);
+    mocks.updateTimeline.mockResolvedValue(undefined);
     mocks.currentSong = {
       id: 'song-1',
       workspaceId: 'workspace-1',
@@ -258,6 +261,67 @@ describe('SongDetailPage - Notes', () => {
     expect(screen.queryByText('Structure & métronome')).not.toBeInTheDocument();
   });
 
+  it('bloque le changement de tempo si une structure est déjà définie', () => {
+    mocks.timelineBundle = {
+      timeline: { id: 'timeline-1' },
+      sections: [{ tempo: 128 }, { tempo: 90 }, { tempo: 150 }],
+    };
+
+    renderSongDetail();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Modifier le tempo' }));
+
+    expect(screen.getByRole('status')).toHaveTextContent('Une structure est déjà définie');
+    expect(screen.getByText('123')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Valider' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '140 BPM' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Modifier la structure' }));
+
+    expect(screen.getByText('Programmation métronome')).toBeInTheDocument();
+    expect(mocks.updateSong).not.toHaveBeenCalled();
+  });
+
+  it('propose de passer à un tempo unique quand une structure est active', async () => {
+    mocks.timelineBundle = {
+      timeline: { id: 'timeline-1', enabled: true },
+      sections: [{ tempo: 128 }, { tempo: 90 }, { tempo: 150 }],
+    };
+
+    renderSongDetail();
+    fireEvent.click(screen.getByRole('button', { name: 'Modifier le tempo' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Utiliser un tempo unique' }));
+
+    await waitFor(() => {
+      expect(mocks.updateTimeline).toHaveBeenCalledWith('timeline-1', { enabled: false });
+    });
+    expect(screen.getByRole('dialog', { name: 'Sélectionner le tempo' })).toBeInTheDocument();
+  });
+
+  it('permet de réactiver une structure désactivée depuis le sélecteur de tempo', async () => {
+    mocks.timelineBundle = {
+      timeline: { id: 'timeline-1', enabled: false },
+      sections: [{ tempo: 128 }, { tempo: 90 }],
+    };
+
+    renderSongDetail();
+
+    const tempoButton = screen.getByRole('button', { name: 'Modifier le tempo' });
+    expect(tempoButton).toHaveTextContent('120');
+    expect(tempoButton).not.toHaveTextContent('128');
+    expect(screen.queryByTitle('Métronome programmé')).not.toBeInTheDocument();
+
+    fireEvent.click(tempoButton);
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Valider' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Réactiver la structure' }));
+
+    await waitFor(() => {
+      expect(mocks.updateTimeline).toHaveBeenCalledWith('timeline-1', { enabled: true });
+    });
+  });
+
   it("annule la modification du tempo si on ferme la pop-up sans valider", () => {
     renderSongDetail();
 
@@ -286,11 +350,11 @@ describe('SongDetailPage - Notes', () => {
     expect(screen.queryByRole('dialog', { name: 'Sélectionner le tempo' })).not.toBeInTheDocument();
   });
 
-  it('ouvre la programmation du métronome depuis le sélecteur de tempo', () => {
+  it('ouvre la structure depuis le sélecteur de tempo', () => {
     renderSongDetail();
 
     fireEvent.click(screen.getByRole('button', { name: 'Modifier le tempo' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Ouvrir la programmation du métronome' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ouvrir la structure' }));
 
     expect(screen.getByText('Programmation métronome')).toBeInTheDocument();
   });

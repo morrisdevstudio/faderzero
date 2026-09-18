@@ -266,11 +266,16 @@ function validateSetlistSongPayload(value: unknown, index: number): asserts valu
 function validateSongTimelinePayload(value: unknown, index: number): asserts value is SyncSongTimelinePayload {
   const label = `payload.songTimelines[${index}]`;
   assertRecord(value, label);
-  assertExactKeys(value, ['id', 'songId', 'startCountInBars', 'volume', 'createdAt', 'updatedAt'], label);
+  const allowedKeys = ['id', 'songId', 'startCountInBars', 'volume', 'createdAt', 'updatedAt'];
+  if (Object.prototype.hasOwnProperty.call(value, 'enabled')) allowedKeys.push('enabled');
+  assertExactKeys(value, allowedKeys, label);
   assertIdentifier(value.id, `${label}.id`);
   assertIdentifier(value.songId, `${label}.songId`);
   assertInteger(value.startCountInBars, `${label}.startCountInBars`, 0, 8);
   assertFiniteNumber(value.volume, `${label}.volume`, 0, 1);
+  if (value.enabled !== undefined && typeof value.enabled !== 'boolean') {
+    throw new Error(`${label}.enabled is invalid.`);
+  }
   assertFiniteNumber(value.createdAt, `${label}.createdAt`);
   assertFiniteNumber(value.updatedAt, `${label}.updatedAt`);
 }
@@ -283,7 +288,7 @@ function validateTimelineSectionPayload(value: unknown, index: number): asserts 
   assertIdentifier(value.timelineId, `${label}.timelineId`);
   assertInteger(value.position, `${label}.position`, 0, MAX_QR_RECORDS_PER_TYPE - 1);
   assertString(value.name, `${label}.name`, MAX_SHORT_TEXT_LENGTH);
-  assertInteger(value.bars, `${label}.bars`, 1, 999);
+  assertInteger(value.bars, `${label}.bars`, 0, 999);
   assertInteger(value.tempo, `${label}.tempo`, 20, 400);
   assertInteger(value.numerator, `${label}.numerator`, 1, 32);
   if (![1, 2, 4, 8, 16, 32].includes(value.denominator as number)) throw new Error(`${label}.denominator is invalid.`);

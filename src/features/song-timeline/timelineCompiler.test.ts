@@ -40,4 +40,13 @@ describe('timelineCompiler', () => {
     expect(getTimelinePosition(compiled, 7.1)?.section.name).toBe('Couplet');
     expect(getTimelinePosition(compiled, 7.1)?.barIndex).toBe(0);
   });
+
+  it('compiles an infinite section as a looping one-bar window', () => {
+    const compiled = compileTimeline({ startCountInBars: 0 }, [section({ bars: 0 })]);
+    expect(compiled.duration).toBe(2);
+    expect(compiled.events).toHaveLength(4);
+    expect(compiled.sections[0]).toMatchObject({ bars: 0, infinite: true, startTime: 0, endTime: 2 });
+    expect(getTimelinePosition(compiled, 20.5)?.section.id).toBe('section-1');
+    expect(getTimelinePosition(compiled, 20.5)?.barIndex).toBe(10);
+  });
 });

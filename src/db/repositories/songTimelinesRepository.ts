@@ -30,13 +30,19 @@ export class SongTimelinesRepository {
 
   async listProgrammedSongIds(workspaceId: string) {
     return (await this.database.songTimelines.where('workspaceId').equals(workspaceId).toArray())
-      .filter((item) => item.deletedAt === undefined)
+      .filter((item) => item.deletedAt === undefined && item.enabled !== false)
+      .map((item) => item.songId);
+  }
+
+  async listInactiveStructureSongIds(workspaceId: string) {
+    return (await this.database.songTimelines.where('workspaceId').equals(workspaceId).toArray())
+      .filter((item) => item.deletedAt === undefined && item.enabled === false)
       .map((item) => item.songId);
   }
 
   async listProgrammedAverageBpms(workspaceId: string) {
     const timelines = (await this.database.songTimelines.where('workspaceId').equals(workspaceId).toArray())
-      .filter((item) => item.deletedAt === undefined);
+      .filter((item) => item.deletedAt === undefined && item.enabled !== false);
     if (timelines.length === 0) return {};
     const timelineIds = new Set(timelines.map((item) => item.id));
     const sections = (await this.database.timelineSections.where('workspaceId').equals(workspaceId).toArray())
@@ -63,7 +69,7 @@ export class SongTimelinesRepository {
     if (existing) return existing;
     const timestamp = now();
     const timeline: SongTimelineRecord = {
-      id: createId(), songId, workspaceId: song.workspaceId, startCountInBars: 1, volume: 0.75,
+      id: createId(), songId, workspaceId: song.workspaceId, startCountInBars: 1, volume: 1, enabled: true,
       createdAt: timestamp, updatedAt: timestamp, syncStatus: 'pending',
     };
     const section: TimelineSectionRecord = {
@@ -84,13 +90,23 @@ export class SongTimelinesRepository {
     return { timeline, sections: [section] };
   }
 
-  async updateTimeline(id: string, patch: Partial<Pick<SongTimelineRecord, 'startCountInBars' | 'volume'>>) {
+  async updateTimeline(id: string, patch: Partial<Pick<SongTimelineRecord, 'startCountInBars' | 'volume' | 'enabled'>>) {
     const current = await this.database.songTimelines.get(id);
     if (!current) throw new Error('Timeline introuvable.');
-    const updated = { ...current, ...patch, updatedAt: now(), syncStatus: 'pending' as const };
-    await this.database.transaction('rw', this.database.songTimelines, this.database.syncQueue, async () => {
+    const timestamp = now();
+    const updated = { ...current, ...patch, updatedAt: timestamp, syncStatus: 'pending' as const };
+    const song = patch.enabled === true ? await this.database.songs.get(current.songId) : undefined;
+    const firstSection = patch.enabled === true
+      ? await this.database.timelineSections.where('timelineId').equals(id).filter((item) => item.deletedAt === undefined).sortBy('position').then((sections) => sections[0])
+      : undefined;
+    await this.database.transaction('rw', this.database.songTimelines, this.database.songs, this.database.syncQueue, async () => {
       await this.database.songTimelines.put(updated);
       await enqueueMutation(this.database, updated.workspaceId, 'songTimeline', id, 'update', updated, current.serverVersion);
+      if (firstSection && song && song.bpm !== firstSection.tempo) {
+        const nextSong = { ...song, bpm: firstSection.tempo, updatedAt: timestamp, syncStatus: 'pending' as const };
+        await this.database.songs.put(nextSong);
+        await enqueueMutation(this.database, song.workspaceId, 'song', song.id, 'update', { bpm: firstSection.tempo, updatedAt: timestamp }, song.serverVersion);
+      }
     });
     return updated;
   }
@@ -128,7 +144,7 @@ export class SongTimelinesRepository {
     await this.database.transaction('rw', this.database.timelineSections, this.database.songs, this.database.syncQueue, async () => {
       await this.database.timelineSections.put(updated);
       await enqueueMutation(this.database, updated.workspaceId, 'timelineSection', id, 'update', updated, current.serverVersion);
-      if (updated.position === 0 && song && song.bpm !== updated.tempo) {
+      if (updated.position === 0 && song && song.bpm !== updated.tempo && timeline?.enabled !== false) {
         const nextSong = { ...song, bpm: updated.tempo, updatedAt: timestamp, syncStatus: 'pending' as const };
         await this.database.songs.put(nextSong);
         await enqueueMutation(this.database, song.workspaceId, 'song', song.id, 'update', { bpm: updated.tempo, updatedAt: timestamp }, song.serverVersion);
@@ -168,7 +184,7 @@ export class SongTimelinesRepository {
         if (previous?.position === section.position) continue;
         await enqueueMutation(this.database, section.workspaceId, 'timelineSection', section.id, 'update', section, previous?.serverVersion);
       }
-      if (first && song && song.bpm !== first.tempo) {
+      if (first && song && song.bpm !== first.tempo && timeline?.enabled !== false) {
         const nextSong = { ...song, bpm: first.tempo, updatedAt: timestamp, syncStatus: 'pending' as const };
         await this.database.songs.put(nextSong);
         await enqueueMutation(this.database, song.workspaceId, 'song', song.id, 'update', { bpm: first.tempo, updatedAt: timestamp }, song.serverVersion);

@@ -8,6 +8,22 @@ export const TIMELINE_LIMITS = {
   countInBars: { min: 0, max: 8 },
 } as const;
 
+export const INFINITE_SECTION_BARS = 0;
+
+export function isInfiniteSectionBars(bars: number) {
+  return bars === INFINITE_SECTION_BARS;
+}
+
+export function formatSectionBarsLabel(bars: number) {
+  return isInfiniteSectionBars(bars) ? 'Infini' : `${bars} mesures`;
+}
+
+function normalizeSectionBars(bars: number) {
+  return isInfiniteSectionBars(bars)
+    ? INFINITE_SECTION_BARS
+    : clampTimelineNumber(bars, TIMELINE_LIMITS.bars.min, TIMELINE_LIMITS.bars.max);
+}
+
 const QUARTER_LENGTHS: Record<TimelineTempoUnit, number> = {
   quarter: 1,
   eighth: 0.5,
@@ -35,6 +51,7 @@ export interface CompiledTimelineSection {
   endTime: number;
   barDuration: number;
   bars: number;
+  infinite: boolean;
   tempo: number;
   numerator: number;
   denominator: number;
@@ -101,7 +118,9 @@ export function compileTimeline(
   }
 
   sections.forEach((section, sectionIndex) => {
-    const bars = clampTimelineNumber(section.bars, TIMELINE_LIMITS.bars.min, TIMELINE_LIMITS.bars.max);
+    const infinite = isInfiniteSectionBars(section.bars);
+    const bars = normalizeSectionBars(section.bars);
+    const compiledEventBars = infinite ? 1 : bars;
     const countInBars = clampTimelineNumber(section.countInBars, 0, TIMELINE_LIMITS.countInBars.max);
     const barDuration = getBarDuration(section);
     if (sectionIndex > 0 && section.countInMode === 'inserted' && countInBars > 0) {
@@ -110,7 +129,7 @@ export function compileTimeline(
     }
 
     const startTime = cursor;
-    const endTime = startTime + bars * barDuration;
+    const endTime = startTime + compiledEventBars * barDuration;
     compiledSections.push({
       id: section.id,
       name: section.name,
@@ -119,6 +138,7 @@ export function compileTimeline(
       endTime,
       barDuration,
       bars,
+      infinite,
       tempo: section.tempo,
       numerator: section.numerator,
       denominator: section.denominator,
@@ -128,7 +148,7 @@ export function compileTimeline(
       const subdivision = section.subdivision ?? 1;
       const pulseDuration = barDuration / section.numerator / subdivision;
       const beatSounds = normalizeBeatSounds(section.beatSounds, section.numerator, subdivision);
-      for (let barIndex = 0; barIndex < bars; barIndex += 1) {
+      for (let barIndex = 0; barIndex < compiledEventBars; barIndex += 1) {
         for (let pulseIndex = 0; pulseIndex * pulseDuration < barDuration - 0.000_001; pulseIndex += 1) {
           const beatIndex = Math.floor(pulseIndex / subdivision);
           const subdivisionIndex = pulseIndex % subdivision;
@@ -165,14 +185,26 @@ export function compileTimeline(
 }
 
 export function getTimelinePosition(compiled: CompiledTimeline, time: number) {
+  const last = compiled.sections.at(-1);
+  if (!last) return null;
+  if (last.infinite && time >= last.startTime) return positionInInfiniteSection(last, time - last.startTime);
   const safeTime = Math.min(compiled.duration, Math.max(0, time));
-  const section = compiled.sections.find((candidate) => safeTime < candidate.endTime)
-    ?? compiled.sections.at(-1);
-  if (!section) return null;
+  const section = compiled.sections.find((candidate) => safeTime < candidate.endTime) ?? last;
   const elapsed = Math.max(0, safeTime - section.startTime);
+  if (section.infinite) return positionInInfiniteSection(section, elapsed);
   return {
     section,
     barIndex: Math.min(section.bars - 1, Math.floor(elapsed / section.barDuration)),
     progress: section.endTime === section.startTime ? 1 : elapsed / (section.endTime - section.startTime),
+  };
+}
+
+function positionInInfiniteSection(section: CompiledTimelineSection, elapsed: number) {
+  const barDuration = section.barDuration || 1;
+  const safeElapsed = Math.max(0, elapsed);
+  return {
+    section,
+    barIndex: Math.floor(safeElapsed / barDuration),
+    progress: (safeElapsed % barDuration) / barDuration,
   };
 }

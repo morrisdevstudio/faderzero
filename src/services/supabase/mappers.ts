@@ -94,6 +94,7 @@ export interface DbSongTimeline {
   song_id: string;
   start_count_in_bars: number;
   volume: number;
+  enabled: boolean;
   created_at: string;
   updated_at: string;
   client_updated_at: string | null;
@@ -132,7 +133,7 @@ export interface DbTimelineSection {
 export function toLocalSongTimeline(row: DbSongTimeline): SongTimelineRecord {
   const record: SongTimelineRecord = {
     id: row.id, workspaceId: row.workspace_id, songId: row.song_id,
-    startCountInBars: row.start_count_in_bars, volume: row.volume,
+    startCountInBars: row.start_count_in_bars, volume: row.volume, enabled: row.enabled !== false,
     createdAt: mapTimestampToMs(row.created_at)!,
     updatedAt: mapTimestampToMs(row.client_updated_at) ?? mapTimestampToMs(row.updated_at)!,
     serverVersion: row.server_version, syncStatus: 'synced',
@@ -145,7 +146,7 @@ export function toLocalSongTimeline(row: DbSongTimeline): SongTimelineRecord {
 export function toDbSongTimeline(record: SongTimelineRecord): Omit<DbSongTimeline, 'server_version' | 'last_modified_by'> {
   return {
     id: record.id, workspace_id: record.workspaceId, song_id: record.songId,
-    start_count_in_bars: record.startCountInBars, volume: record.volume,
+    start_count_in_bars: record.startCountInBars, volume: record.volume, enabled: record.enabled !== false,
     created_at: mapMsToTimestamp(record.createdAt)!, updated_at: mapMsToTimestamp(record.updatedAt)!,
     client_updated_at: mapMsToTimestamp(record.updatedAt), deleted_at: mapMsToTimestamp(record.deletedAt),
   };

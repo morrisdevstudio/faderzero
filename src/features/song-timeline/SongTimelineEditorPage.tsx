@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import type { TimelineSectionRecord } from '@/db/schema';
 import { useGoBack } from '@/hooks/useGoBack';
 import { songTimelinesRepository } from '@/db/repositories/songTimelinesRepository';
@@ -17,21 +17,21 @@ import { FieldLabel } from '@/ui/components/FieldLabel';
 import { SelectField } from '@/ui/components/SelectField';
 import { TextField } from '@/ui/components/TextField';
 import { FzIcon } from '@/ui/icons';
-import { compileTimeline, getTimelinePosition, TIMELINE_LIMITS, type CompiledTimelineEvent } from './timelineCompiler';
+import { compileTimeline, formatSectionBarsLabel, getTimelinePosition, TIMELINE_LIMITS, type CompiledTimelineEvent } from './timelineCompiler';
 import { TimelinePlaybackEngine } from './timelinePlaybackEngine';
 
 const TEMPO_OPTIONS = Array.from({ length: TIMELINE_LIMITS.tempo.max - TIMELINE_LIMITS.tempo.min + 1 }, (_, index) => String(index + TIMELINE_LIMITS.tempo.min));
-const BAR_OPTIONS = Array.from({ length: TIMELINE_LIMITS.bars.max }, (_, index) => String(index + 1));
+const BAR_OPTIONS = ['0', ...Array.from({ length: TIMELINE_LIMITS.bars.max }, (_, index) => String(index + 1))];
+const BAR_LABELS = [{ value: '0', label: 'Infini' }] as const;
 const NUMERATOR_OPTIONS = Array.from({ length: 12 }, (_, index) => String(index + 1));
 const COUNT_IN_OPTIONS = [
   { value: 'none', label: 'Aucun' },
-  { value: 'inserted', label: 'Inséré' },
-  { value: 'overlay', label: 'Superposé' },
+  { value: 'inserted', label: 'Avant la première mesure' },
+  { value: 'overlay', label: 'Sur la première mesure' },
 ] as const;
 
 export function SongTimelineEditorPage() {
   const { songId = '' } = useParams();
-  const navigate = useNavigate();
   const goBack = useGoBack(`/songs/${songId}`);
   const workspace = useAuthStore((state) => state.activeWorkspace);
   const canWrite = canWriteWorkspace(workspace?.role);
@@ -41,6 +41,7 @@ export function SongTimelineEditorPage() {
   const [error, setError] = useState<string | null>(null);
   const [playback, setPlayback] = useState<'stopped' | 'playing' | 'paused' | 'ended'>('stopped');
   const [position, setPosition] = useState(0);
+  const [loopBar, setLoopBar] = useState<number | undefined>();
   const [currentEvent, setCurrentEvent] = useState<CompiledTimelineEvent | undefined>();
   const engineRef = useRef<TimelinePlaybackEngine | null>(null);
   if (!engineRef.current) engineRef.current = new TimelinePlaybackEngine();
@@ -57,6 +58,7 @@ export function SongTimelineEditorPage() {
     engine.setListener((snapshot) => {
       setPlayback(snapshot.status);
       setPosition(snapshot.position);
+      setLoopBar(snapshot.loopBar);
       if (snapshot.status === 'stopped' || snapshot.status === 'ended') setCurrentEvent(undefined);
       else if (snapshot.event) setCurrentEvent(snapshot.event);
     });
@@ -163,7 +165,9 @@ export function SongTimelineEditorPage() {
               void songTimelinesRepository.updateSection(sectionId, { beatSounds });
             } : undefined}
             sectionName={currentPosition?.section.name ?? bundle.sections[0]?.name ?? 'Prêt'}
-            positionLabel={`${formatDuration(position)} / ${formatDuration(compiled?.duration ?? 0)}`}
+            positionLabel={currentPosition?.section.infinite
+              ? `Mesure ${loopBar ?? 1}`
+              : `${formatDuration(position)} / ${compiled?.sections.some((section) => section.infinite) ? '∞' : formatDuration(compiled?.duration ?? 0)}`}
           />
 
           <section className="grid grid-cols-2 gap-3">
@@ -195,7 +199,7 @@ export function SongTimelineEditorPage() {
                 <article className="fz-card-soft overflow-hidden rounded-[1.3rem] border border-white/8">
                   <button type="button" disabled={editingLocked} onClick={() => setEditing(section)} className="flex min-h-20 w-full items-center gap-3 px-4 py-3 text-left disabled:cursor-not-allowed">
                     <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-300/12 text-sm font-black text-amber-300">{index + 1}</span>
-                    <span className="min-w-0 flex-1"><span className="block truncate font-black text-white">{section.name}</span><span className="mt-1 block text-xs font-semibold text-white/50">{section.bars} mesures · {section.tempo} BPM · {section.numerator}/{section.denominator}</span></span>
+                    <span className="min-w-0 flex-1"><span className="block truncate font-black text-white">{section.name}</span><span className="mt-1 block text-xs font-semibold text-white/50">{formatSectionBarsLabel(section.bars)} · {section.tempo} BPM · {section.numerator}/{section.denominator}</span></span>
                     <FzIcon name="edit" usageId="timeline.section.edit" size="sm" className="text-white/45" />
                   </button>
                   {canWrite ? <div className="grid grid-cols-4 border-t border-white/8">
@@ -209,7 +213,6 @@ export function SongTimelineEditorPage() {
             ))}
           </section>
           {canWrite ? <Button fullWidth disabled={editingLocked} leadingIcon={<FzIcon name="add" usageId="timeline.section.add" size="sm" />} onClick={() => void songTimelinesRepository.addSection(bundle.timeline.id)}>Ajouter une section</Button> : null}
-          <Button fullWidth variant="primary" leadingIcon={<FzIcon name="fullscreen" usageId="timeline.open-live" size="sm" />} onClick={() => navigate(`/songs/${songId}/live`)}>Ouvrir le mode Live</Button>
         </>
       )}
 
@@ -377,7 +380,7 @@ function SectionDialog({ section, onClose, onUpdate }: { section: TimelineSectio
         void applyPatch({ beatSounds });
       }} />
       <div className="grid grid-cols-2 gap-2">
-        <SectionValueButton label="Mesures" value={`${draft.bars}`} onClick={() => openPicker('bars')} disabled={isSaving} />
+        <SectionValueButton label="Mesures" value={draft.bars === 0 ? 'Infini' : `${draft.bars}`} onClick={() => openPicker('bars')} disabled={isSaving} />
         <SectionValueButton label="Décompte" value={countInLabel(draft)} onClick={() => openPicker('countIn')} disabled={isSaving} />
       </div>
       {saveError ? <p role="alert" className="text-sm font-semibold text-rose-300">{saveError}</p> : null}
@@ -391,7 +394,7 @@ function SectionDialog({ section, onClose, onUpdate }: { section: TimelineSectio
     </FormDialog> : null}
 
     {picker === 'tempo' ? <SectionWheelPicker title="Sélectionner le tempo" value={pickerValue} options={TEMPO_OPTIONS} suffix="BPM" onSelect={setPickerValue} onClose={() => setPicker(null)} onConfirm={() => void confirmPicker()} /> : null}
-    {picker === 'bars' ? <SectionWheelPicker title="Nombre de mesures" value={pickerValue} options={BAR_OPTIONS} suffix="mesures" onSelect={setPickerValue} onClose={() => setPicker(null)} onConfirm={() => void confirmPicker()} /> : null}
+    {picker === 'bars' ? <SectionWheelPicker title="Nombre de mesures" value={pickerValue} options={BAR_OPTIONS} labels={BAR_LABELS} suffix={(option) => option === 'Infini' ? undefined : 'mesures'} onSelect={setPickerValue} onClose={() => setPicker(null)} onConfirm={() => void confirmPicker()} /> : null}
     {picker === 'subdivision' ? <PickerDialog title="Subdivision des temps" onClose={() => setPicker(null)}>
       <SubdivisionSelector value={draft.subdivision} onChange={(subdivision) => void selectSubdivision(subdivision)} />
     </PickerDialog> : null}
@@ -440,7 +443,7 @@ function SectionValueButton({ label, value, disabled, onClick }: { label: string
   return <button type="button" disabled={disabled} onClick={onClick} className="flex min-h-[4.6rem] min-w-0 flex-col justify-center rounded-2xl border border-cyan-400/55 bg-cyan-400/15 px-3 text-left transition hover:bg-cyan-400/25 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300 disabled:opacity-55"><span className="text-[0.62rem] font-black uppercase tracking-[0.13em] text-cyan-100/65">{label}</span><span className="mt-1 truncate text-sm font-black text-white">{value}</span></button>;
 }
 
-function SectionWheelPicker({ title, value, options, labels, suffix, onSelect, onClose, onConfirm }: { title: string; value: string; options: readonly string[]; labels?: readonly { value: string; label: string }[]; suffix?: string; onSelect: (value: string) => void; onClose: () => void; onConfirm: () => void }) {
+function SectionWheelPicker({ title, value, options, labels, suffix, onSelect, onClose, onConfirm }: { title: string; value: string; options: readonly string[]; labels?: readonly { value: string; label: string }[]; suffix?: string | ((option: string) => string | undefined); onSelect: (value: string) => void; onClose: () => void; onConfirm: () => void }) {
   const labelFor = (option: string) => labels?.find((item) => item.value === option)?.label ?? option;
   const pickerOptions = labels ? options.map(labelFor) : options;
   const selectedValue = labels ? labelFor(value) : value;

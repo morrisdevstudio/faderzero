@@ -110,7 +110,7 @@ export function WheelColumn({
   options: readonly string[];
   selectedValue: string;
   onSelect: (value: string) => void;
-  suffix?: string;
+  suffix?: string | ((option: string) => string | undefined);
   emptyLabel?: string;
   framed?: boolean;
 }) {
@@ -233,14 +233,15 @@ export function WheelColumn({
         <div style={{ height: `${wheelCenterPadding}px` }} />
         {options.map((option, index) => {
           const displayValue = option || emptyLabel;
+          const itemSuffix = typeof suffix === 'function' ? suffix(option) : suffix;
 
           return (
             <button
-              key={`${suffix ?? 'value'}-${displayValue}`}
+              key={`${itemSuffix ?? 'value'}-${displayValue}`}
               type="button"
               data-picker-selected={option === centeredValue ? 'true' : 'false'}
               aria-pressed={option === centeredValue}
-              aria-label={suffix ? `${displayValue} ${suffix}` : displayValue}
+              aria-label={itemSuffix ? `${displayValue} ${itemSuffix}` : displayValue}
               tabIndex={option === centeredValue || (!options.includes(centeredValue) && index === 0) ? 0 : -1}
               onClick={() => selectIndex(index)}
               onKeyDown={(event) => {
@@ -261,7 +262,7 @@ export function WheelColumn({
                 className="inline-block text-xl"
                 style={{ fontWeight: 'calc(500 + var(--wheel-emphasis, 0) * 400)', transform: 'scale(calc(1 + var(--wheel-emphasis, 0) * 0.4))' }}
               >{displayValue}</span>
-              {suffix ? <span className="text-xs font-semibold text-[var(--fz-text-muted)]">{suffix}</span> : null}
+              {itemSuffix ? <span className="text-xs font-semibold text-[var(--fz-text-muted)]">{itemSuffix}</span> : null}
             </button>
           );
         })}

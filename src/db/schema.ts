@@ -83,6 +83,7 @@ export interface SongTimelineRecord {
   workspaceId: string;
   startCountInBars: number;
   volume: number;
+  enabled?: boolean;
   createdAt: number;
   updatedAt: number;
   deletedAt?: number;

@@ -11,6 +11,7 @@ describe('SongTimelinesRepository', () => {
       const repository = new SongTimelinesRepository(database);
       const song = await songs.create({ title: 'Progressive', bpm: 110 });
       const created = await repository.create(song.id);
+      expect(created.timeline.volume).toBe(1);
       expect(created.sections[0]).toMatchObject({ name: 'Intro', tempo: 110, position: 0 });
 
       await repository.updateSection(created.sections[0]!.id, { tempo: 128, name: 'Départ' });
@@ -64,6 +65,32 @@ describe('SongTimelinesRepository', () => {
       await repository.updateSection(second.id, { tempo: 90 });
       const averages = await repository.listProgrammedAverageBpms(song.workspaceId);
       expect(averages).toEqual({ [song.id]: 109 });
+    } finally {
+      await destroyTestDatabase(database);
+    }
+  });
+
+  it('hides a disabled structure from programmed tempos and restores the first section on re-enable', async () => {
+    const database = await createTestDatabase('song-timelines-disable');
+    try {
+      const songs = new SongsRepository(database);
+      const repository = new SongTimelinesRepository(database);
+      const song = await songs.create({ title: 'Unique', bpm: 110 });
+      const created = await repository.create(song.id);
+      await repository.updateSection(created.sections[0]!.id, { tempo: 128 });
+      await songs.update(song.id, { bpm: 96 });
+      await repository.updateTimeline(created.timeline.id, { enabled: false });
+
+      expect((await repository.listProgrammedAverageBpms(song.workspaceId))[song.id]).toBeUndefined();
+      expect(await repository.listInactiveStructureSongIds(song.workspaceId)).toEqual([song.id]);
+      expect((await songs.getById(song.id))?.bpm).toBe(96);
+
+      await repository.updateSection(created.sections[0]!.id, { tempo: 140 });
+      expect((await songs.getById(song.id))?.bpm).toBe(96);
+
+      await repository.updateTimeline(created.timeline.id, { enabled: true });
+      expect((await songs.getById(song.id))?.bpm).toBe(140);
+      expect((await repository.listProgrammedAverageBpms(song.workspaceId))[song.id]).toBe(140);
     } finally {
       await destroyTestDatabase(database);
     }

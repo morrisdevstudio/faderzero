@@ -25,6 +25,7 @@ import { songTimelinesRepository, type SongTimelineBundle } from '@/db/repositor
 import type { TimelineSectionRecord } from '@/db/schema';
 import { compileTimeline, getTimelinePosition, type CompiledTimelineEvent } from '@/features/song-timeline/timelineCompiler';
 import { TimelinePlaybackEngine, type TimelinePlaybackSnapshot } from '@/features/song-timeline/timelinePlaybackEngine';
+import { StructureLockedTempoNotice } from '@/features/song-timeline/StructureLockedTempoNotice';
 
 const TAP_MEMORY = 5;
 
@@ -321,14 +322,18 @@ export function MetronomePage() {
   const [isLiveViewOpen, setIsLiveViewOpen] = useState(false);
   const [selectedSongId, setSelectedSongId] = useState<string | null>(null);
   const [editingBpmSongId, setEditingBpmSongId] = useState<string | null>(null);
+  const [structureEnabledOverride, setStructureEnabledOverride] = useState<boolean | null>(null);
   const [programmedBundle, setProgrammedBundle] = useState<SongTimelineBundle | null>(null);
   const [timelineSnapshot, setTimelineSnapshot] = useState<TimelinePlaybackSnapshot>({ status: 'stopped', position: 0 });
   const [timelineEvent, setTimelineEvent] = useState<CompiledTimelineEvent | undefined>();
 
   const setlists = useLiveQuery(() => setlistsRepository.listSummaries(), [activeWorkspaceId]);
   const songs = useLiveQuery(() => songsRepository.list(), [activeWorkspaceId]);
-  const programmedBpms = useLiveQuery(() => songTimelinesRepository.listProgrammedAverageBpms(activeWorkspaceId ?? 'default-workspace'), [activeWorkspaceId]) ?? {};
+  const programmedBpmsQuery = useLiveQuery(() => songTimelinesRepository.listProgrammedAverageBpms(activeWorkspaceId ?? 'default-workspace'), [activeWorkspaceId]);
+  const programmedBpms = programmedBpmsQuery ?? {};
   const programmedSongIdSet = useMemo(() => new Set(Object.keys(programmedBpms)), [programmedBpms]);
+  const inactiveStructureSongIds = useLiveQuery(() => songTimelinesRepository.listInactiveStructureSongIds(activeWorkspaceId ?? 'default-workspace'), [activeWorkspaceId]) ?? [];
+  const inactiveStructureSongIdSet = useMemo(() => new Set(inactiveStructureSongIds), [inactiveStructureSongIds]);
   const setlistSongs = useLiveQuery(
     () => (selectedSetlistId ? setlistSongsRepository.listDetailedBySetlistId(selectedSetlistId) : Promise.resolve([])),
     [selectedSetlistId, activeWorkspaceId]
@@ -345,7 +350,7 @@ export function MetronomePage() {
   const currentProgrammedSection = programmedBundle && timelinePosition
     ? programmedBundle.sections.find((section) => section.id === timelinePosition.section.id) ?? programmedBundle.sections[timelinePosition.section.sectionIndex]
     : programmedBundle?.sections[0];
-  const isProgrammedMode = Boolean(programmedBundle?.sections.length);
+  const isProgrammedMode = Boolean(programmedBundle?.sections.length && programmedBundle.timeline.enabled !== false);
   const displayBpm = currentProgrammedSection?.tempo ?? bpm;
   const displayBeatsPerBar = currentProgrammedSection?.numerator ?? beatsPerBar;
   const displaySubdivision = (currentProgrammedSection?.subdivision ?? subdivision) as MetronomeSubdivision;
@@ -472,6 +477,7 @@ export function MetronomePage() {
   }
 
   function openTempoPicker(songId: string | null = null, initialBpm = bpm) {
+    setStructureEnabledOverride(null);
     setEditingBpmSongId(songId);
     setDraftBpm(initialBpm);
     setIsTempoPickerOpen(true);
@@ -483,12 +489,29 @@ export function MetronomePage() {
   }
 
   async function handleConfirmTempo() {
+    if (editingBpmSongId && programmedBpms[editingBpmSongId] !== undefined) {
+      setIsTempoPickerOpen(false);
+      setEditingBpmSongId(null);
+      return;
+    }
     updateBpm(draftBpm);
     if (editingBpmSongId) {
       await songsRepository.update(editingBpmSongId, { bpm: draftBpm });
     }
     setIsTempoPickerOpen(false);
     setEditingBpmSongId(null);
+  }
+
+  async function handleSetStructureEnabled(enabled: boolean) {
+    const songId = editingBpmSongId;
+    if (!songId) return;
+    setStructureEnabledOverride(enabled);
+    const bundle = await songTimelinesRepository.getBySongId(songId);
+    if (!bundle) {
+      setStructureEnabledOverride(null);
+      return;
+    }
+    await songTimelinesRepository.updateTimeline(bundle.timeline.id, { enabled });
   }
 
   function handleConfirmTimeSignature() {
@@ -546,12 +569,21 @@ export function MetronomePage() {
     setTimelineSnapshot({ status: 'stopped', position: 0 });
   }
 
+  useEffect(() => {
+    if (programmedBpmsQuery === undefined || !programmedBundle) return;
+    const songId = programmedBundle.timeline.songId;
+    if (programmedBundle.timeline.enabled === false || programmedBpms[songId] === undefined) {
+      clearProgrammedPlayback();
+      setIsRunning(false);
+    }
+  }, [programmedBpmsQuery, programmedBpms, programmedBundle]);
+
   async function startProgrammedSong(songId: string) {
     setSelectedSongId(songId);
     engineRef.current?.stop();
     try {
       const bundle = await songTimelinesRepository.getBySongId(songId);
-      if (!bundle || bundle.sections.length === 0) {
+      if (!bundle || bundle.sections.length === 0 || bundle.timeline.enabled === false) {
         clearProgrammedPlayback();
         return;
       }
@@ -801,7 +833,7 @@ export function MetronomePage() {
             <ProgrammedSectionControls
               sections={programmedBundle.sections}
               currentIndex={programmedSectionIndex}
-              currentBar={(timelinePosition?.barIndex ?? 0) + 1}
+              currentBar={timelineSnapshot.loopBar ?? (timelinePosition?.barIndex ?? 0) + 1}
               barCount={currentProgrammedSection?.bars ?? 1}
               onPrevious={() => void jumpProgrammedSection(-1)}
               onNext={() => void jumpProgrammedSection(1)}
@@ -1010,7 +1042,7 @@ export function MetronomePage() {
                   <ProgrammedSectionControls
                     sections={programmedBundle.sections}
                     currentIndex={programmedSectionIndex}
-                    currentBar={(timelinePosition?.barIndex ?? 0) + 1}
+                    currentBar={timelineSnapshot.loopBar ?? (timelinePosition?.barIndex ?? 0) + 1}
                     barCount={currentProgrammedSection?.bars ?? 1}
                     onPrevious={() => void jumpProgrammedSection(-1)}
                     onNext={() => void jumpProgrammedSection(1)}
@@ -1140,47 +1172,69 @@ export function MetronomePage() {
           title={editingBpmSongId ? 'Régler le tempo de la chanson' : 'Sélectionner le tempo'}
           closeLabel="Fermer"
           headerActions={
-            <Button
-              size="sm"
-              variant="secondary"
-              disabled={!editingBpmSongId && !selectedSongId}
-              aria-label="Ouvrir la programmation du métronome"
-              leadingIcon={<FzIcon name="metronome" usageId="metronome.tempo.structure" size="sm" />}
-              onClick={() => {
-                const songId = editingBpmSongId ?? selectedSongId;
-                if (!songId) return;
-                setIsTempoPickerOpen(false);
-                setEditingBpmSongId(null);
-                navigate(`/songs/${songId}/structure`);
-              }}
-            >
-              Métronome
-            </Button>
+            editingBpmSongId && (structureEnabledOverride ?? programmedBpms[editingBpmSongId] !== undefined) === true ? null : (
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={!editingBpmSongId && !selectedSongId}
+                aria-label="Ouvrir la structure"
+                leadingIcon={<FzIcon name="metronome" usageId="metronome.tempo.structure" size="sm" />}
+                onClick={() => {
+                  const songId = editingBpmSongId ?? selectedSongId;
+                  if (!songId) return;
+                  setIsTempoPickerOpen(false);
+                  setEditingBpmSongId(null);
+                  navigate(`/songs/${songId}/structure`);
+                }}
+              >
+                Structure
+              </Button>
+            )
           }
           onClose={() => {
+            setStructureEnabledOverride(null);
             setIsTempoPickerOpen(false);
             setEditingBpmSongId(null);
           }}
         >
-          <WheelColumn
-            options={bpmOptions}
-            selectedValue={String(draftBpm)}
-            onSelect={(value) => {
-              if (value) {
-                setDraftBpm(Number(value));
-              }
-            }}
-            suffix="BPM"
-          />
-          <div className="mt-5">
-            <Button
-              variant="primary"
-              fullWidth
-              onClick={() => void handleConfirmTempo()}
-            >
-              Valider
-            </Button>
-          </div>
+          {editingBpmSongId && (structureEnabledOverride ?? programmedBpms[editingBpmSongId] !== undefined) === true ? (
+            <StructureLockedTempoNotice
+              bpm={programmedBpms[editingBpmSongId] ?? draftBpm}
+              onOpenStructure={() => {
+                setIsTempoPickerOpen(false);
+                setEditingBpmSongId(null);
+                navigate(`/songs/${editingBpmSongId}/structure`);
+              }}
+              onUseSingleTempo={() => void handleSetStructureEnabled(false)}
+            />
+          ) : (
+            <>
+              <WheelColumn
+                options={bpmOptions}
+                selectedValue={String(draftBpm)}
+                onSelect={(value) => {
+                  if (value) {
+                    setDraftBpm(Number(value));
+                  }
+                }}
+                suffix="BPM"
+              />
+              <div className="mt-5 space-y-3">
+                <Button
+                  variant="primary"
+                  fullWidth
+                  onClick={() => void handleConfirmTempo()}
+                >
+                  Valider
+                </Button>
+                {editingBpmSongId && (structureEnabledOverride ?? !inactiveStructureSongIdSet.has(editingBpmSongId)) === false ? (
+                  <Button variant="secondary" fullWidth onClick={() => void handleSetStructureEnabled(true)}>
+                    Réactiver la structure
+                  </Button>
+                ) : null}
+              </div>
+            </>
+          )}
         </PickerDialog>
       ) : null}
 
@@ -1256,14 +1310,15 @@ function ProgrammedSectionControls({
   if (!current) return null;
   const previous = currentIndex > 0 ? sections[currentIndex - 1] : undefined;
   const next = currentIndex < sections.length - 1 ? sections[currentIndex + 1] : undefined;
-  const barNumber = Math.min(barCount, Math.max(1, currentBar));
+  const infinite = barCount === 0;
+  const barNumber = infinite ? Math.max(1, currentBar) : Math.min(barCount, Math.max(1, currentBar));
 
   return (
     <div className="mt-4 space-y-3" role="region" aria-label="Sections du métronome programmé">
       <div className="min-w-0 px-1 text-center">
         <p className="truncate text-2xl font-black leading-tight tracking-tight text-white sm:text-[1.75rem]">{current.name}</p>
         <p className="mt-1 text-base font-black uppercase tracking-[0.14em] text-amber-300 tabular-nums">
-          Mesure {barNumber} / {barCount}
+          Mesure {barNumber} / {infinite ? '∞' : barCount}
         </p>
         <p className="mt-0.5 text-sm font-black uppercase tracking-[0.16em] text-white/50">
           Section {currentIndex + 1} / {sections.length}

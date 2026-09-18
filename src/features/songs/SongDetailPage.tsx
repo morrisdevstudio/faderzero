@@ -39,6 +39,7 @@ import { SelectField } from '@/ui/components/SelectField';
 import { TextArea } from '@/ui/components/TextArea';
 import { TextField } from '@/ui/components/TextField';
 import { Button } from '@/ui/components/Button';
+import { StructureLockedTempoNotice } from '@/features/song-timeline/StructureLockedTempoNotice';
 
 const initialFormValues: SongFormValues = {
   title: '',
@@ -206,6 +207,7 @@ export function SongDetailPage() {
   const [quickEditField, setQuickEditField] = useState<QuickEditField>(null);
   const [quickValue, setQuickValue] = useState<string>('');
   const [quickDuration, setQuickDuration] = useState<{ minutes: string; seconds: string }>({ minutes: '00', seconds: '00' });
+  const [structureEnabledOverride, setStructureEnabledOverride] = useState<boolean | null>(null);
 
   const titleLongPress = useLongPress({
     onLongPress: () => {
@@ -229,6 +231,10 @@ export function SongDetailPage() {
       } else if (quickEditField === 'key') {
         await songsRepository.update(song.id, { key: quickValue.trim() });
       } else if (quickEditField === 'bpm') {
+        const programmed = await songTimelinesRepository.getBySongId(song.id);
+        if (programmed && programmed.sections.length > 0 && programmed.timeline.enabled !== false) {
+          return;
+        }
         const parsed = quickValue.trim() ? Number(quickValue) : undefined;
         if (parsed !== undefined && !Number.isNaN(parsed)) {
           await songsRepository.update(song.id, { bpm: parsed });
@@ -261,10 +267,23 @@ export function SongDetailPage() {
   );
   const unlinkedAssets = useLiveQuery(() => songAssetsRepository.listUnlinkedTracks(), [activeWorkspaceId]);
   const timelineBundle = useLiveQuery(() => songTimelinesRepository.getBySongId(songId), [songId, activeWorkspaceId]);
+  const hasStoredStructure = Boolean(timelineBundle && timelineBundle.sections.length > 0);
+  const isStructureActive = hasStoredStructure && (structureEnabledOverride ?? timelineBundle?.timeline.enabled) !== false;
   const programmedAverageBpm =
-    timelineBundle && timelineBundle.sections.length > 0
+    isStructureActive && timelineBundle
       ? Math.round(timelineBundle.sections.reduce((sum, section) => sum + section.tempo, 0) / timelineBundle.sections.length)
       : undefined;
+
+  async function handleSetStructureEnabled(enabled: boolean) {
+    if (!canWrite || !timelineBundle) return;
+    setStructureEnabledOverride(enabled);
+    try {
+      await songTimelinesRepository.updateTimeline(timelineBundle.timeline.id, { enabled });
+    } catch (err: any) {
+      setStructureEnabledOverride(null);
+      setError(err.message || 'Erreur lors de la mise a jour.');
+    }
+  }
   const playQueue = useAudioPlayerStore((state) => state.playQueue);
   const stop = useAudioPlayerStore((state) => state.stop);
   const currentIndex = useAudioPlayerStore((state) => state.currentIndex);
@@ -1349,38 +1368,58 @@ export function SongDetailPage() {
           title="Sélectionner le tempo"
           closeLabel="Fermer"
           headerActions={
-            <Button
-              size="sm"
-              variant="secondary"
-              aria-label="Ouvrir la programmation du métronome"
-              leadingIcon={<FzIcon name="metronome" usageId="song-detail.tempo.structure" size="sm" />}
-              onClick={() => {
-                setQuickEditField(null);
-                navigate(`/songs/${songId}/structure`);
-              }}
-            >
-              Métronome
-            </Button>
+            isStructureActive ? null : (
+              <Button
+                size="sm"
+                variant="secondary"
+                aria-label="Ouvrir la structure"
+                leadingIcon={<FzIcon name="metronome" usageId="song-detail.tempo.structure" size="sm" />}
+                onClick={() => {
+                  setQuickEditField(null);
+                  navigate(`/songs/${songId}/structure`);
+                }}
+              >
+                Structure
+              </Button>
+            )
           }
           onClose={() => setQuickEditField(null)}
         >
-          <WheelColumn
-            options={bpmOptions}
-            selectedValue={quickValue}
-            onSelect={(val) => {
-              setQuickValue(val);
-            }}
-            suffix="BPM"
-          />
-          <div className="mt-5">
-            <Button
-              variant="primary"
-              fullWidth
-              onClick={() => void handleSaveQuickField()}
-            >
-              Valider
-            </Button>
-          </div>
+          {isStructureActive && programmedAverageBpm !== undefined ? (
+            <StructureLockedTempoNotice
+              bpm={programmedAverageBpm}
+              onOpenStructure={() => {
+                setQuickEditField(null);
+                navigate(`/songs/${songId}/structure`);
+              }}
+              {...(canWrite ? { onUseSingleTempo: () => void handleSetStructureEnabled(false) } : {})}
+            />
+          ) : (
+            <>
+              <WheelColumn
+                options={bpmOptions}
+                selectedValue={quickValue}
+                onSelect={(val) => {
+                  setQuickValue(val);
+                }}
+                suffix="BPM"
+              />
+              <div className="mt-5 space-y-3">
+                <Button
+                  variant="primary"
+                  fullWidth
+                  onClick={() => void handleSaveQuickField()}
+                >
+                  Valider
+                </Button>
+                {canWrite && hasStoredStructure ? (
+                  <Button variant="secondary" fullWidth onClick={() => void handleSetStructureEnabled(true)}>
+                    Réactiver la structure
+                  </Button>
+                ) : null}
+              </div>
+            </>
+          )}
         </PickerDialog>
       ) : null}
 

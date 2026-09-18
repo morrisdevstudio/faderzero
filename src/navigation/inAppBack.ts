@@ -13,6 +13,7 @@ export interface HistoryIndexSource {
 
 let nextBackLayerId = 1;
 let suppressBackLayerDismiss = false;
+let ignoreNextBackLayerPop = false;
 const backLayers: Array<{ id: number; dismiss: () => void }> = [];
 
 function historyState(): RouterHistoryState {
@@ -101,8 +102,21 @@ export function shouldSuppressBackLayerDismiss(): boolean {
   return suppressBackLayerDismiss;
 }
 
+export function ignoreNextBackLayerPopState(): void {
+  ignoreNextBackLayerPop = true;
+}
+
+export function consumeIgnoredBackLayerPop(): boolean {
+  if (!ignoreNextBackLayerPop) {
+    return false;
+  }
+  ignoreNextBackLayerPop = false;
+  return true;
+}
+
 export function resetBackLayersForTests(): void {
   backLayers.length = 0;
   suppressBackLayerDismiss = false;
+  ignoreNextBackLayerPop = false;
   nextBackLayerId = 1;
 }

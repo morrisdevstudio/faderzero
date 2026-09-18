@@ -1,12 +1,32 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
-import { useState } from 'react';
-import { afterEach } from 'vitest';
+import { StrictMode, useState } from 'react';
+import { afterEach, beforeEach } from 'vitest';
 import { resetBackLayersForTests } from '@/navigation/inAppBack';
 import { PickerDialog, WheelColumn } from './PickerDialog';
+
+beforeEach(() => {
+  resetBackLayersForTests();
+});
 
 afterEach(() => {
   resetBackLayersForTests();
 });
+
+function TestPicker({ onClose }: { onClose?: () => void }) {
+  const [open, setOpen] = useState(true);
+  if (!open) return null;
+  return (
+    <PickerDialog
+      title="Sélectionner le tempo"
+      onClose={() => {
+        onClose?.();
+        setOpen(false);
+      }}
+    >
+      <button type="button">120 BPM</button>
+    </PickerDialog>
+  );
+}
 
 function TestWheel() {
   const [value, setValue] = useState('94');
@@ -171,5 +191,19 @@ describe('PickerDialog', () => {
     });
 
     expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it('reste ouvert après le double montage Strict Mode', async () => {
+    render(
+      <StrictMode>
+        <TestPicker />
+      </StrictMode>,
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(screen.getByRole('dialog', { name: 'Sélectionner le tempo' })).toBeInTheDocument();
   });
 });
