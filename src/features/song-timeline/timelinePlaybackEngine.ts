@@ -1,4 +1,10 @@
-import type { AudioContextLike, OscillatorNodeLike } from '@/features/metronome/metronomeEngine';
+import type { AudioContextLike } from '@/features/metronome/metronomeEngine';
+import {
+  countInVoiceBufferIndex,
+  loadCountInVoiceBuffers,
+  type AudioBufferSourceNodeLike,
+  type TimelineAudioContextLike,
+} from './countInVoice';
 import type { CompiledTimeline, CompiledTimelineEvent, CompiledTimelineSection } from './timelineCompiler';
 
 const LOOKAHEAD_MS = 25;
@@ -6,6 +12,7 @@ const SCHEDULE_AHEAD_SECONDS = 0.12;
 const START_DELAY_SECONDS = 0.05;
 
 type TimerId = ReturnType<typeof window.setTimeout>;
+type ScheduledAudioNode = { stop(time: number): void };
 
 export interface TimelinePlaybackSnapshot {
   status: 'stopped' | 'playing' | 'paused' | 'ended';
@@ -20,6 +27,7 @@ interface TimelinePlaybackOptions {
   clearTimer?: (timerId: TimerId) => void;
   lookaheadMs?: number;
   scheduleAheadSeconds?: number;
+  loadCountInVoiceBuffers?: (context: TimelineAudioContextLike) => Promise<(AudioBuffer | undefined)[]>;
 }
 
 export class TimelinePlaybackEngine {
@@ -28,11 +36,13 @@ export class TimelinePlaybackEngine {
   private readonly clearTimer: (timerId: TimerId) => void;
   private readonly lookaheadMs: number;
   private readonly scheduleAheadSeconds: number;
+  private readonly loadCountInVoiceBuffers: (context: TimelineAudioContextLike) => Promise<(AudioBuffer | undefined)[]>;
   private audioContext: AudioContextLike | null = null;
   private timeline: CompiledTimeline | null = null;
   private timerId: TimerId | null = null;
   private notificationTimers = new Set<TimerId>();
-  private scheduledNodes = new Set<OscillatorNodeLike>();
+  private scheduledNodes = new Set<ScheduledAudioNode>();
+  private voiceBuffers: (AudioBuffer | undefined)[] = [];
   private eventIndex = 0;
   private anchorAudioTime = 0;
   private pausedPosition = 0;
@@ -50,6 +60,7 @@ export class TimelinePlaybackEngine {
     this.clearTimer = options.clearTimer ?? window.clearTimeout.bind(window);
     this.lookaheadMs = options.lookaheadMs ?? LOOKAHEAD_MS;
     this.scheduleAheadSeconds = options.scheduleAheadSeconds ?? SCHEDULE_AHEAD_SECONDS;
+    this.loadCountInVoiceBuffers = options.loadCountInVoiceBuffers ?? loadCountInVoiceBuffers;
   }
 
   setListener(listener: ((snapshot: TimelinePlaybackSnapshot) => void) | null) {
@@ -77,6 +88,7 @@ export class TimelinePlaybackEngine {
     this.pausedPosition = this.loopingSectionId
       ? Math.max(0, position)
       : Math.min(this.timeline.duration, Math.max(0, position));
+    if (this.timeline.countInSound === 'voice') await this.ensureVoiceBuffers();
     this.anchorAudioTime = context.currentTime + START_DELAY_SECONDS - this.pausedPosition;
     this.eventIndex = this.timeline.events.findIndex((event) => event.time >= this.pausedPosition);
     if (this.eventIndex < 0) this.eventIndex = this.timeline.events.length;
@@ -127,6 +139,10 @@ export class TimelinePlaybackEngine {
   private getAudioContext() {
     if (!this.audioContext) this.audioContext = this.createAudioContext();
     return this.audioContext;
+  }
+
+  private async ensureVoiceBuffers() {
+    this.voiceBuffers = await this.loadCountInVoiceBuffers(this.getAudioContext());
   }
 
   private getRawPosition() {
@@ -246,6 +262,26 @@ export class TimelinePlaybackEngine {
   }
 
   private scheduleEvent(event: CompiledTimelineEvent, audioTime: number, generation: number) {
+    if (event.countIn && this.timeline?.countInSound === 'voice') this.scheduleVoice(event, audioTime);
+    this.scheduleClick(event, audioTime, generation);
+  }
+
+  private scheduleVoice(event: CompiledTimelineEvent, audioTime: number) {
+    const voiceIndex = countInVoiceBufferIndex(event.pulseIndex);
+    const buffer = voiceIndex === null ? undefined : this.voiceBuffers[voiceIndex];
+    const context = this.getAudioContext() as TimelineAudioContextLike;
+    if (!buffer || !context.createBufferSource) return;
+    const source = context.createBufferSource();
+    const gain = context.createGain();
+    source.buffer = buffer;
+    gain.gain.setValueAtTime(Math.max(0.0001, 0.9 * this.volume), audioTime);
+    source.connect(gain);
+    gain.connect(context.destination);
+    source.start(audioTime);
+    this.scheduledNodes.add(source);
+  }
+
+  private scheduleClick(event: CompiledTimelineEvent, audioTime: number, generation: number) {
     const context = this.getAudioContext();
     const oscillator = context.createOscillator();
     const gain = context.createGain();
@@ -260,11 +296,15 @@ export class TimelinePlaybackEngine {
     gain.connect(context.destination);
     oscillator.start(audioTime);
     oscillator.stop(audioTime + 0.03);
-    this.scheduledNodes.add(oscillator);
+    this.trackScheduledNode(oscillator, event, audioTime, generation);
+  }
 
+  private trackScheduledNode(node: ScheduledAudioNode | AudioBufferSourceNodeLike, event: CompiledTimelineEvent, audioTime: number, generation: number) {
+    const context = this.getAudioContext();
+    this.scheduledNodes.add(node);
     const notificationTimer = this.setTimer(() => {
       this.notificationTimers.delete(notificationTimer);
-      this.scheduledNodes.delete(oscillator);
+      this.scheduledNodes.delete(node);
       if (generation === this.generation && this.status === 'playing') {
         this.listener?.(this.buildSnapshot(event));
       }

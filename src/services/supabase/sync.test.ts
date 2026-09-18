@@ -289,6 +289,7 @@ describe('Sync Engine', () => {
         song_id: songId,
         start_count_in_bars: 1,
         volume: 0.8,
+        count_in_sound: 'voice',
         created_at: new Date(timestamp).toISOString(),
         updated_at: new Date(timestamp).toISOString(),
         client_updated_at: new Date(timestamp).toISOString(),
@@ -317,6 +318,7 @@ describe('Sync Engine', () => {
         id: remoteTimelineId,
         songId,
         volume: 0.8,
+        countInSound: 'voice',
         serverVersion: 4,
         syncStatus: 'synced',
       });

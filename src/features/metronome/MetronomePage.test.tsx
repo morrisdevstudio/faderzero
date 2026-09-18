@@ -498,6 +498,35 @@ describe('MetronomePage - Morceaux programmés', () => {
     expect(screen.getByText('Section 1 / 1')).toBeInTheDocument();
   });
 
+  it('ne lance pas une chanson structurée depuis la setlist si le métronome est en pause', async () => {
+    mocks.setlists = [{ id: 'set-1', name: 'Set A', songCount: 1, totalDurationSeconds: 180 }];
+    mocks.setlistSongs = [
+      {
+        id: 'entry-1',
+        songId: 'song-2',
+        songTitle: 'Chanson programmée',
+        songBpm: 135,
+        songKey: 'C',
+      },
+    ];
+    renderProgrammedMetronome();
+
+    fireEvent.click(screen.getByRole('button', { name: /Set A/ }));
+    const liveList = screen.getByRole('region', { name: 'Liste des chansons' });
+    fireEvent.click(within(liveList).getByRole('button', { name: /Chanson programmée/ }));
+
+    await waitFor(() => {
+      expect(mocks.getBySongId).toHaveBeenCalledWith('song-2');
+    });
+    expect(mocks.timelineEngineInstances[0]?.play).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getAllByTitle('Lancer le métronome')[0]!);
+
+    await waitFor(() => {
+      expect(mocks.timelineEngineInstances[0]?.play).toHaveBeenCalled();
+    });
+  });
+
   it('bloque le tempo d’une chanson programmée dans le sélecteur', async () => {
     mocks.setlists = [{ id: 'set-1', name: 'Set A', songCount: 1, totalDurationSeconds: 180 }];
     mocks.setlistSongs = [

@@ -12,7 +12,11 @@ describe('SongTimelinesRepository', () => {
       const song = await songs.create({ title: 'Progressive', bpm: 110 });
       const created = await repository.create(song.id);
       expect(created.timeline.volume).toBe(1);
+      expect(created.timeline.countInSound).toBe('click');
       expect(created.sections[0]).toMatchObject({ name: 'Intro', tempo: 110, position: 0 });
+
+      await repository.updateTimeline(created.timeline.id, { countInSound: 'voice' });
+      expect((await repository.getBySongId(song.id))?.timeline.countInSound).toBe('voice');
 
       await repository.updateSection(created.sections[0]!.id, { tempo: 128, name: 'Départ' });
       expect((await songs.getById(song.id))?.bpm).toBe(128);

@@ -18,7 +18,16 @@ describe('timelineCompiler', () => {
     expect(compiled.duration).toBe(6);
     expect(compiled.events).toHaveLength(12);
     expect(compiled.sections[0]).toMatchObject({ startTime: 2, endTime: 6 });
-    expect(compiled.events[0]).toMatchObject({ time: 0, countIn: true, sound: 'accent' });
+    expect(compiled.events[0]).toMatchObject({ time: 0, countIn: true, sound: 'countIn' });
+    expect(compiled.events.filter((event) => event.countIn).every((event) => event.sound === 'countIn')).toBe(true);
+    expect(compiled.countInSound).toBe('click');
+  });
+
+  it('propagates a spoken count-in setting without changing event sounds', () => {
+    const compiled = compileTimeline({ startCountInBars: 1, countInSound: 'voice' }, [section()]);
+    expect(compiled.countInSound).toBe('voice');
+    expect(compiled.events[0]).toMatchObject({ pulseIndex: 0, countIn: true, sound: 'countIn' });
+    expect(compiled.events[1]).toMatchObject({ pulseIndex: 1, countIn: true, sound: 'countIn' });
   });
 
   it('supports compound meters and subdivisions with per-pulse sounds', () => {

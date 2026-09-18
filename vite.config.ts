@@ -54,7 +54,7 @@ export default defineConfig(({ mode }) => {
       tailwindcss(),
       VitePWA({
         registerType: 'prompt',
-        includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png', 'maskable-icon-512x512.png'],
+        includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png', 'maskable-icon-512x512.png', 'sounds/count-in/*.wav'],
         manifest: {
           name: 'FaderZero PWA',
           short_name: 'FaderZero',

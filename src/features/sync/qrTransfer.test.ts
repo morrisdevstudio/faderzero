@@ -274,4 +274,26 @@ describe('qrTransfer', () => {
       isDirectSegue: true,
     });
   });
+
+  it('accepts an optional spoken count-in setting on song timelines', async () => {
+    const exportPayload = await buildSyncExportPayload({
+      songs: [{ id: 'song-1', title: 'Song', lyrics: '', createdAt: 1, updatedAt: 1 }],
+      setlists: [],
+      setlistSongs: [],
+      songTimelines: [{
+        id: 'timeline-1',
+        songId: 'song-1',
+        startCountInBars: 1,
+        volume: 1,
+        countInSound: 'voice',
+        createdAt: 1,
+        updatedAt: 1,
+      }],
+      timelineSections: [],
+    });
+    const compressedPayload = LZString.compressToEncodedURIComponent(JSON.stringify(exportPayload));
+    const fragments = fragmentCompressedPayload(compressedPayload, exportPayload.payloadHash);
+    const rebuilt = await reconstructSyncExportPayload(fragments);
+    expect(rebuilt.payload.songTimelines[0]).toMatchObject({ countInSound: 'voice' });
+  });
 });

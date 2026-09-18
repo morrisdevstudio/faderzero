@@ -69,7 +69,7 @@ export class SongTimelinesRepository {
     if (existing) return existing;
     const timestamp = now();
     const timeline: SongTimelineRecord = {
-      id: createId(), songId, workspaceId: song.workspaceId, startCountInBars: 1, volume: 1, enabled: true,
+      id: createId(), songId, workspaceId: song.workspaceId, startCountInBars: 1, volume: 1, enabled: true, countInSound: 'click',
       createdAt: timestamp, updatedAt: timestamp, syncStatus: 'pending',
     };
     const section: TimelineSectionRecord = {
@@ -90,7 +90,7 @@ export class SongTimelinesRepository {
     return { timeline, sections: [section] };
   }
 
-  async updateTimeline(id: string, patch: Partial<Pick<SongTimelineRecord, 'startCountInBars' | 'volume' | 'enabled'>>) {
+  async updateTimeline(id: string, patch: Partial<Pick<SongTimelineRecord, 'startCountInBars' | 'volume' | 'enabled' | 'countInSound'>>) {
     const current = await this.database.songTimelines.get(id);
     if (!current) throw new Error('Timeline introuvable.');
     const timestamp = now();

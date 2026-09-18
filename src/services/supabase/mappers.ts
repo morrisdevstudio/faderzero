@@ -1,17 +1,18 @@
-import type {
-  SongRecord,
-  SetlistRecord,
-  SetlistSongRecord,
-  SongAssetRecord,
-  EventRecord,
-  PersonalContactRecord,
-  WorkspaceContactRecord,
-  BookingLeadRecord,
-  BookingNoteRecord,
-  BookingLeadContactRecord,
-  EventContactRecord,
-  SongTimelineRecord,
-  TimelineSectionRecord,
+import {
+  normalizeCountInSound,
+  type SongRecord,
+  type SetlistRecord,
+  type SetlistSongRecord,
+  type SongAssetRecord,
+  type EventRecord,
+  type PersonalContactRecord,
+  type WorkspaceContactRecord,
+  type BookingLeadRecord,
+  type BookingNoteRecord,
+  type BookingLeadContactRecord,
+  type EventContactRecord,
+  type SongTimelineRecord,
+  type TimelineSectionRecord,
 } from '@/db/schema';
 import { normalizeSongDocument, SONG_DOCUMENT_VERSION } from '@/db/songDocument';
 
@@ -95,6 +96,7 @@ export interface DbSongTimeline {
   start_count_in_bars: number;
   volume: number;
   enabled: boolean;
+  count_in_sound?: string | null;
   created_at: string;
   updated_at: string;
   client_updated_at: string | null;
@@ -133,7 +135,7 @@ export interface DbTimelineSection {
 export function toLocalSongTimeline(row: DbSongTimeline): SongTimelineRecord {
   const record: SongTimelineRecord = {
     id: row.id, workspaceId: row.workspace_id, songId: row.song_id,
-    startCountInBars: row.start_count_in_bars, volume: row.volume, enabled: row.enabled !== false,
+    startCountInBars: row.start_count_in_bars, volume: row.volume, enabled: row.enabled !== false, countInSound: normalizeCountInSound(row.count_in_sound),
     createdAt: mapTimestampToMs(row.created_at)!,
     updatedAt: mapTimestampToMs(row.client_updated_at) ?? mapTimestampToMs(row.updated_at)!,
     serverVersion: row.server_version, syncStatus: 'synced',
@@ -146,7 +148,7 @@ export function toLocalSongTimeline(row: DbSongTimeline): SongTimelineRecord {
 export function toDbSongTimeline(record: SongTimelineRecord): Omit<DbSongTimeline, 'server_version' | 'last_modified_by'> {
   return {
     id: record.id, workspace_id: record.workspaceId, song_id: record.songId,
-    start_count_in_bars: record.startCountInBars, volume: record.volume, enabled: record.enabled !== false,
+    start_count_in_bars: record.startCountInBars, volume: record.volume, enabled: record.enabled !== false, count_in_sound: normalizeCountInSound(record.countInSound),
     created_at: mapMsToTimestamp(record.createdAt)!, updated_at: mapMsToTimestamp(record.updatedAt)!,
     client_updated_at: mapMsToTimestamp(record.updatedAt), deleted_at: mapMsToTimestamp(record.deletedAt),
   };

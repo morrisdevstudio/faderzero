@@ -75,7 +75,12 @@ export interface SongAssetRecord {
 export type TimelineTempoUnit = 'quarter' | 'eighth' | 'dottedQuarter' | 'half';
 export type TimelineClickResolution = 'tempoUnit' | 'denominator';
 export type TimelineCountInMode = 'none' | 'inserted' | 'overlay';
+export type TimelineCountInSound = 'click' | 'voice';
 export type TimelineSubdivision = 1 | 2 | 3 | 4 | 5 | 6;
+
+export function normalizeCountInSound(value: unknown): TimelineCountInSound {
+  return value === 'voice' ? 'voice' : 'click';
+}
 
 export interface SongTimelineRecord {
   id: string;
@@ -84,6 +89,7 @@ export interface SongTimelineRecord {
   startCountInBars: number;
   volume: number;
   enabled?: boolean;
+  countInSound?: TimelineCountInSound;
   createdAt: number;
   updatedAt: number;
   deletedAt?: number;

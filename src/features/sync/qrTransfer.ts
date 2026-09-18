@@ -1,6 +1,6 @@
 import LZString from 'lz-string';
 import { db, type FaderZeroDatabase } from '@/db/db';
-import type { SetlistRecord, SetlistSongRecord, SongRecord, SongStatus, SongTimelineRecord, TimelineSectionRecord } from '@/db/schema';
+import { normalizeCountInSound, type SetlistRecord, type SetlistSongRecord, type SongRecord, type SongStatus, type SongTimelineRecord, type TimelineSectionRecord } from '@/db/schema';
 import { createId } from '@/lib/createId';
 import { now } from '@/lib/now';
 import {
@@ -268,6 +268,7 @@ function validateSongTimelinePayload(value: unknown, index: number): asserts val
   assertRecord(value, label);
   const allowedKeys = ['id', 'songId', 'startCountInBars', 'volume', 'createdAt', 'updatedAt'];
   if (Object.prototype.hasOwnProperty.call(value, 'enabled')) allowedKeys.push('enabled');
+  if (Object.prototype.hasOwnProperty.call(value, 'countInSound')) allowedKeys.push('countInSound');
   assertExactKeys(value, allowedKeys, label);
   assertIdentifier(value.id, `${label}.id`);
   assertIdentifier(value.songId, `${label}.songId`);
@@ -275,6 +276,9 @@ function validateSongTimelinePayload(value: unknown, index: number): asserts val
   assertFiniteNumber(value.volume, `${label}.volume`, 0, 1);
   if (value.enabled !== undefined && typeof value.enabled !== 'boolean') {
     throw new Error(`${label}.enabled is invalid.`);
+  }
+  if (value.countInSound !== undefined && value.countInSound !== 'click' && value.countInSound !== 'voice') {
+    throw new Error(`${label}.countInSound is invalid.`);
   }
   assertFiniteNumber(value.createdAt, `${label}.createdAt`);
   assertFiniteNumber(value.updatedAt, `${label}.updatedAt`);
@@ -743,7 +747,7 @@ export async function applySyncImport(
       if (!songId) throw new Error('QR payload contains an invalid timeline song.');
       const id = createUniqueImportId(existingTimelineIds);
       timelineIdMap.set(timeline.id, id);
-      return { ...timeline, id, songId, workspaceId: targetWorkspaceId, syncStatus: 'pending' };
+      return { ...timeline, id, songId, workspaceId: targetWorkspaceId, countInSound: normalizeCountInSound(timeline.countInSound), syncStatus: 'pending' };
     });
 
     const sectionsToAdd: TimelineSectionRecord[] = exportPayload.payload.timelineSections.map((section) => {

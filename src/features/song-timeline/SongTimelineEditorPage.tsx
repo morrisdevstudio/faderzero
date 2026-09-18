@@ -181,6 +181,18 @@ export function SongTimelineEditorPage() {
               <FieldLabel htmlFor="timeline-volume">Volume {Math.round(bundle.timeline.volume * 100)} %</FieldLabel>
               <input id="timeline-volume" aria-label="Volume du clic" type="range" min="0" max="1" step="0.05" disabled={!canWrite || editingLocked} value={bundle.timeline.volume} onChange={(event) => void songTimelinesRepository.updateTimeline(bundle.timeline.id, { volume: Number(event.target.value) })} className="mt-3 h-11 w-full accent-amber-300" />
             </label>
+            <label className="col-span-2 block p-1">
+              <FieldLabel htmlFor="timeline-count-in-sound">Son du décompte</FieldLabel>
+              <SelectField
+                id="timeline-count-in-sound"
+                disabled={!canWrite || editingLocked}
+                value={bundle.timeline.countInSound === 'voice' ? 'voice' : 'click'}
+                onChange={(event) => void songTimelinesRepository.updateTimeline(bundle.timeline.id, { countInSound: event.target.value === 'voice' ? 'voice' : 'click' })}
+              >
+                <option value="click">Bip distinct</option>
+                <option value="voice">Voix (one two three four)</option>
+              </SelectField>
+            </label>
           </section>
 
           <section aria-labelledby="timeline-sections-title" className="space-y-3">

@@ -578,9 +578,10 @@ export function MetronomePage() {
     }
   }, [programmedBpmsQuery, programmedBpms, programmedBundle]);
 
-  async function startProgrammedSong(songId: string) {
+  async function startProgrammedSong(songId: string, autoplay = true) {
     setSelectedSongId(songId);
     engineRef.current?.stop();
+    timelineEngineRef.current?.stop();
     try {
       const bundle = await songTimelinesRepository.getBySongId(songId);
       if (!bundle || bundle.sections.length === 0 || bundle.timeline.enabled === false) {
@@ -598,6 +599,10 @@ export function MetronomePage() {
       setTimelineSnapshot({ status: 'stopped', position: 0 });
       setTimelineEvent(undefined);
       setAudioError(null);
+      if (!autoplay) {
+        setIsRunning(false);
+        return;
+      }
       await timelineEngineRef.current?.play(compiled, 0, bundle.timeline.volume);
       setIsRunning(true);
     } catch {
@@ -684,7 +689,7 @@ export function MetronomePage() {
     setSelectedSongId(songId);
 
     if (programmedSongIdSet.has(songId)) {
-      void startProgrammedSong(songId);
+      void startProgrammedSong(songId, isRunning);
       return;
     }
 

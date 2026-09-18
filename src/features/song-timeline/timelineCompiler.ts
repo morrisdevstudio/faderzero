@@ -1,5 +1,5 @@
 import { normalizeBeatSounds } from '@/features/metronome/metronomeEngine';
-import type { SongTimelineRecord, TimelineSectionRecord, TimelineTempoUnit } from '@/db/schema';
+import { normalizeCountInSound, type SongTimelineRecord, type TimelineCountInSound, type TimelineSectionRecord, type TimelineTempoUnit } from '@/db/schema';
 
 export const TIMELINE_LIMITS = {
   tempo: { min: 20, max: 400 },
@@ -61,6 +61,7 @@ export interface CompiledTimeline {
   duration: number;
   events: CompiledTimelineEvent[];
   sections: CompiledTimelineSection[];
+  countInSound: TimelineCountInSound;
 }
 
 export function clampTimelineNumber(value: number, min: number, max: number) {
@@ -90,7 +91,7 @@ function addCountInEvents(
         sectionIndex,
         barIndex: -bars + barIndex,
         pulseIndex,
-        sound: pulseIndex === 0 ? 'accent' : 'countIn',
+        sound: 'countIn',
         countIn: true,
       });
     }
@@ -98,13 +99,14 @@ function addCountInEvents(
 }
 
 export function compileTimeline(
-  timeline: Pick<SongTimelineRecord, 'startCountInBars'>,
+  timeline: Pick<SongTimelineRecord, 'startCountInBars' | 'countInSound'>,
   sourceSections: TimelineSectionRecord[],
 ): CompiledTimeline {
+  const countInSound = normalizeCountInSound(timeline.countInSound);
   const sections = sourceSections
     .filter((section) => section.deletedAt === undefined)
     .sort((left, right) => left.position - right.position);
-  if (sections.length === 0) return { duration: 0, events: [], sections: [] };
+  if (sections.length === 0) return { duration: 0, events: [], sections: [], countInSound };
 
   const events: CompiledTimelineEvent[] = [];
   const compiledSections: CompiledTimelineSection[] = [];
@@ -181,7 +183,7 @@ export function compileTimeline(
   });
 
   events.sort((left, right) => left.time - right.time);
-  return { duration: cursor, events, sections: compiledSections };
+  return { duration: cursor, events, sections: compiledSections, countInSound };
 }
 
 export function getTimelinePosition(compiled: CompiledTimeline, time: number) {
