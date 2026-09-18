@@ -1,6 +1,12 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { useState } from 'react';
+import { afterEach } from 'vitest';
+import { resetBackLayersForTests } from '@/navigation/inAppBack';
 import { PickerDialog, WheelColumn } from './PickerDialog';
+
+afterEach(() => {
+  resetBackLayersForTests();
+});
 
 function TestWheel() {
   const [value, setValue] = useState('94');
@@ -84,6 +90,21 @@ describe('PickerDialog', () => {
     expect(screen.getByRole('button', { name: 'Fermer' })).toHaveFocus();
   });
 
+  it('affiche une action d’en-tête à côté de la fermeture', () => {
+    render(
+      <PickerDialog
+        title="Sélectionner le tempo"
+        headerActions={<button type="button">Métronome</button>}
+        onClose={() => {}}
+      >
+        Contenu
+      </PickerDialog>,
+    );
+
+    expect(screen.getByRole('button', { name: 'Métronome' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Fermer' })).toBeInTheDocument();
+  });
+
   it('respecte les safe areas du viewport', () => {
     render(<PickerDialog title="Sélectionner le tempo" onClose={() => {}}>Contenu</PickerDialog>);
 
@@ -133,6 +154,21 @@ describe('PickerDialog', () => {
     const backdrop = dialog.parentElement;
     expect(backdrop).not.toBeNull();
     fireEvent.click(backdrop!);
+
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it('ferme le picker sur le retour navigateur', () => {
+    const onClose = vi.fn();
+    render(
+      <PickerDialog title="Sélectionner le tempo" onClose={onClose}>
+        <button type="button">120 BPM</button>
+      </PickerDialog>,
+    );
+
+    act(() => {
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    });
 
     expect(onClose).toHaveBeenCalledOnce();
   });

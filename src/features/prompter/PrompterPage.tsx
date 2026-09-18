@@ -1,12 +1,15 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useCallback, useEffect, useMemo, useRef, useState, type SVGProps } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import type { SongRecord } from '@/db/schema';
+import { useGoBack } from '@/hooks/useGoBack';
+import { HOME_FALLBACK } from '@/navigation/inAppBack';
 import { setlistSongsRepository } from '@/db/repositories/setlistSongsRepository';
 import { setlistsRepository } from '@/db/repositories/setlistsRepository';
 import { songsRepository } from '@/db/repositories/songsRepository';
 import { useAuthStore } from '@/stores/authStore';
 import { FzIcon } from '@/ui/icons';
+import { useBackLayer } from '@/hooks/useBackLayer';
 
 type Speed = 0 | 1 | 2 | 3;
 type Preferences = { speed: Speed; scale: number };
@@ -39,7 +42,7 @@ function Lyrics({ text, scale }: { text: string; scale: number }) {
 }
 
 export function PrompterPage() {
-  const navigate = useNavigate();
+  const goBack = useGoBack(HOME_FALLBACK);
   const [params, setParams] = useSearchParams();
   const workspaceId = useAuthStore((state) => state.activeWorkspace?.id);
   const [preferences, setPreferences] = useState<Preferences>(readPreferences);
@@ -106,15 +109,20 @@ export function PrompterPage() {
     };
   }, []);
 
-  function moveSong(song: SongRecord | undefined) { if (!song) return; setSelectedSongId(song.id); setParams((current) => { const next = new URLSearchParams(current); next.set('songId', song.id); return next; }); }
+  function moveSong(song: SongRecord | undefined) { if (!song) return; setSelectedSongId(song.id); setParams((current) => { const next = new URLSearchParams(current); next.set('songId', song.id); return next; }, { replace: true }); }
   async function toggleFullscreen() { if (!document.fullscreenElement) await document.documentElement.requestFullscreen?.(); else await document.exitFullscreen?.(); }
   async function closePrompter() {
+    if (settingsOpen) {
+      setSettingsOpen(false);
+      return;
+    }
     try {
       if (document.fullscreenElement) await document.exitFullscreen?.();
     } finally {
-      navigate('/prompter');
+      goBack();
     }
   }
+  useBackLayer(settingsOpen, () => setSettingsOpen(false));
 
   if (setlists === undefined || songs === undefined || (setlistId && entries === undefined)) return <div className="flex min-h-[100dvh] items-center justify-center bg-[#08090b] text-sm text-white/60">Chargement du prompteur...</div>;
   return (

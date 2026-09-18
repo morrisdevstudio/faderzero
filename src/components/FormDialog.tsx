@@ -1,5 +1,6 @@
 import { useId, type PropsWithChildren, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { useBackLayer } from '@/hooks/useBackLayer';
 import { FzIcon } from '@/ui/icons';
 import { useDialogAccessibility } from './useDialogAccessibility';
 
@@ -29,6 +30,7 @@ export function FormDialog({
     }
   };
   const dialogRef = useDialogAccessibility(requestClose);
+  useBackLayer(true, requestClose);
 
   return createPortal(
     (

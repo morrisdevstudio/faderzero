@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { bookingRepository, BOOKING_STAGE_LABELS } from '@/db/repositories/bookingRepository';
 import { FormDialog } from '@/components/FormDialog';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { useGoBack, useLeaveScreen } from '@/hooks/useGoBack';
+import { HOME_FALLBACK } from '@/navigation/inAppBack';
 import type { BookingNoteType, BookingStage, WorkspaceContactRecord } from '@/db/schema';
 import { useAuthStore } from '@/stores/authStore';
 import { canWriteWorkspace } from '@/services/supabase/workspace';
@@ -114,7 +116,8 @@ function contactInputFromForm(data: FormData) {
 }
 
 function BookingDetail({ bookingId }: { bookingId: string }) {
-  const navigate = useNavigate();
+  const goBack = useGoBack(HOME_FALLBACK);
+  const leave = useLeaveScreen(HOME_FALLBACK);
   const activeWorkspace = useAuthStore((state) => state.activeWorkspace);
   const canWrite = canWriteWorkspace(activeWorkspace?.role);
   const selectedId = bookingId;
@@ -235,7 +238,7 @@ function BookingDetail({ bookingId }: { bookingId: string }) {
 
   async function deleteSelected() {
     if (!selected) return; setError(null);
-    try { await bookingRepository.archiveLead(selected.id); setIsDeleteConfirmOpen(false); setIsEditingLead(false); navigate('/booking'); } catch (reason) { setError(reason instanceof Error ? reason.message : 'Impossible de supprimer cette salle.'); }
+    try { await bookingRepository.archiveLead(selected.id); setIsDeleteConfirmOpen(false); setIsEditingLead(false); await leave(); } catch (reason) { setError(reason instanceof Error ? reason.message : 'Impossible de supprimer cette salle.'); }
   }
 
   async function updateStage(stage: BookingStage) {
@@ -249,8 +252,8 @@ function BookingDetail({ bookingId }: { bookingId: string }) {
       <DetailHeader
         title={selected.venueName}
         subtitle={`${selected.city || 'Ville non renseignée'} · ${targetDateLabel(selected)}`}
-        onBack={() => navigate('/booking')}
-        backLabel="Retour au booking"
+        onBack={goBack}
+        backLabel="Retour"
         actions={canWrite ? (
           <button type="button" onClick={() => setIsEditingLead(true)} aria-label="Modifier la salle">
             <FzIcon name="edit" usageId="booking-detail.edit" size="md" />

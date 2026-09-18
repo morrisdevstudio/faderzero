@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Button } from '@/ui/components/Button';
 import { StatusPill } from '@/ui/components/StatusPill';
 import { FzIcon } from '@/ui/icons';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { useBackLayer } from '@/hooks/useBackLayer';
+import { useLeaveTo } from '@/hooks/useGoBack';
 import { useAuthStore } from '@/stores/authStore';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { canAdministerWorkspace } from '@/services/supabase/workspace';
@@ -13,7 +14,7 @@ import { EpkEditorFields } from './EpkEditorFields';
 import { DEFAULT_EPK_ACCENT, DEFAULT_EPK_EDITORIAL, DEFAULT_EPK_SECTION_ORDER, type EpkDocumentIcon, type EpkPublicModel } from './epkPresentation';
 
 export function EpkPage() {
-  const navigate = useNavigate();
+  const leaveTo = useLeaveTo();
   const workspace = useAuthStore((state) => state.activeWorkspace);
   const isOnline = useOnlineStatus();
   const [epk, setEpk] = useState<EpkRecord | null>(null);
@@ -71,7 +72,7 @@ export function EpkPage() {
   }
   function requestLeave() {
     if (!epk || !epkHasUnpublishedChanges(dirtyThisSession, epk)) {
-      navigate('/account?tab=groupe');
+      void leaveTo('/account?tab=groupe');
       return;
     }
     setConfirmLeave(true);
@@ -82,7 +83,7 @@ export function EpkPage() {
     if (epk) {
       try { await saveEpk(epk); } catch { /* still leave */ }
     }
-    navigate('/account?tab=groupe');
+    await leaveTo('/account?tab=groupe');
   }
   async function publishPresentation(options?: { leaveAfter?: boolean }) {
     if (!epk) return;
@@ -97,7 +98,7 @@ export function EpkPage() {
       setConfirmLeave(false);
       const verified = await verifyPublishedRevision(value.slug, value.publishedRevision);
       setMessage(verified ? 'Publié' : 'La publication prend plus de temps — Réessayer');
-      if (options?.leaveAfter) navigate('/account?tab=groupe');
+      if (options?.leaveAfter) await leaveTo('/account?tab=groupe');
     } catch (error) { setMessage(getEpkErrorMessage(error, 'Publication impossible.')); }
     finally { setSaving(false); }
   }
@@ -186,6 +187,10 @@ export function EpkPage() {
   async function addEditorTrack(id: string, title: string) { if (!epk) return; const track = availableTracks.find((item) => item.id === id); if (!track) return; setSaving(true); setMessage(null); try { const value = await addEpkTrack(epk.id, track, tracks.length, title); setTracks((items) => [...items, value]); noteUnpublishedChanges(); setMessage('Piste ajoutée.'); } catch (error) { setMessage(error instanceof Error ? error.message : 'Ajout de la piste impossible.'); } finally { setSaving(false); } }
   async function addEditorVideo(url: string, title: string, type: EpkVideoType) { if (!epk) return; setSaving(true); setMessage(null); try { const value = await addEpkVideo(epk.id, { url, title, videoType: type }, videos.length); setVideos((items) => [...items, value]); noteUnpublishedChanges(); setMessage('Vidéo ajoutée.'); } catch (error) { setMessage(error instanceof Error ? error.message : 'Ajout de la vidéo impossible.'); } finally { setSaving(false); } }
 
+  useBackLayer(!confirmLeave, () => {
+    requestLeave();
+  });
+
   if (!isAdmin) {
     return (
       <div className="flex min-h-[100dvh] flex-col bg-[#09090b] text-[#f5f0ea]">
@@ -194,8 +199,8 @@ export function EpkPage() {
             <div className="relative flex h-11 items-center">
               <button
                 type="button"
-                onClick={() => navigate('/account?tab=groupe')}
-                aria-label="Retour aux paramètres"
+                onClick={() => void leaveTo('/account?tab=groupe')}
+                aria-label="Retour"
                 className="absolute left-0 z-10 flex h-11 w-11 items-center justify-center text-white/72 transition hover:text-white"
               >
                 <FzIcon name="back" usageId="epk.not-admin.back" size="md" />
@@ -223,8 +228,8 @@ export function EpkPage() {
             <div className="relative flex h-11 items-center">
               <button
                 type="button"
-                onClick={() => navigate('/account?tab=groupe')}
-                aria-label="Retour aux paramètres"
+                onClick={() => void leaveTo('/account?tab=groupe')}
+                aria-label="Retour"
                 className="absolute left-0 z-10 flex h-11 w-11 items-center justify-center text-white/72 transition hover:text-white"
               >
                 <FzIcon name="back" usageId="epk.loading.back" size="md" />
@@ -252,8 +257,8 @@ export function EpkPage() {
             <div className="relative flex h-11 items-center">
               <button
                 type="button"
-                onClick={() => navigate('/account?tab=groupe')}
-                aria-label="Retour aux paramètres"
+                onClick={() => void leaveTo('/account?tab=groupe')}
+                aria-label="Retour"
                 className="absolute left-0 z-10 flex h-11 w-11 items-center justify-center text-white/72 transition hover:text-white"
               >
                 <FzIcon name="back" usageId="epk.empty.back" size="md" />
@@ -366,7 +371,7 @@ export function EpkPage() {
     <ConfirmDialog isOpen={confirmLeave} title={leavePrompt.title} description={leavePrompt.description} confirmLabel={leavePrompt.confirmLabel} cancelLabel="Quitter" closeLabel="Fermer et rester dans l’éditeur" confirmVariant="primary" isBusy={saving} onDismiss={() => setConfirmLeave(false)} onCancel={() => void leaveWithoutPublishing()} onConfirm={() => void publishPresentation({ leaveAfter: true })} />
     <ConfirmDialog isOpen={confirmUnpublish} title="Retirer la page publique ?" description="La page ne sera plus accessible publiquement." confirmLabel="Retirer" isBusy={saving} onCancel={() => setConfirmUnpublish(false)} onConfirm={() => void removePublication()} />
   </>;
-  if (showPreview) return <div className="flex h-[100dvh] flex-col overflow-hidden bg-[#09090b]"><EpkLiveHeader status={liveStatus} onBack={requestLeave} backLabel="Retour aux paramètres" onEdit={() => setShowPreview(false)} /><main className="min-h-0 flex-1 overflow-y-auto"><EpkPublicView model={previewModel} /></main>{message ? <p className="px-4 py-2 text-center text-sm text-white/65" role="status">{message}</p> : null}{epkDialogs}</div>;
+  if (showPreview) return <div className="flex h-[100dvh] flex-col overflow-hidden bg-[#09090b]"><EpkLiveHeader status={liveStatus} onBack={requestLeave} backLabel="Fermer" onEdit={() => setShowPreview(false)} /><main className="min-h-0 flex-1 overflow-y-auto"><EpkPublicView model={previewModel} /></main>{message ? <p className="px-4 py-2 text-center text-sm text-white/65" role="status">{message}</p> : null}{epkDialogs}</div>;
   return <div className="flex h-[100dvh] flex-col overflow-hidden bg-[#09090b]"><EpkLiveHeader status={liveStatus} onBack={requestLeave} backLabel="Quitter l’éditeur EPK" onPreview={() => setShowPreview(true)} /><main className="min-h-0 flex-1 overflow-y-auto px-4 pb-8 pt-4"><div className="mx-auto w-full max-w-md"><EpkEditorFields epk={epk} onChange={updateDraft} onPublish={() => void publishPresentation()} onUnpublish={() => setConfirmUnpublish(true)} onViewPublished={() => window.open(`https://faderzero.com/${epk.slug}`, '_blank', 'noopener,noreferrer')} saving={saving} tracks={tracks} availableTracks={availableTracks} videos={videos} photos={photos} {...(epk.heroAssetId && epkAssetUrls[epk.heroAssetId] ? { heroPreviewUrl: epkAssetUrls[epk.heroAssetId] } : {})} photoPreviewUrls={epkAssetUrls} documents={documents} contacts={contacts} links={links} onAddTrack={(id, title) => void addEditorTrack(id, title)} onRemoveTrack={(item) => void removeTrack(item)} onAddVideo={(url, title, type) => void addEditorVideo(url, title, type)} onRemoveVideo={(item) => void removeVideo(item)} onUploadHero={(file) => void uploadHero(file)} onRemoveHero={() => void removeHero()} onUploadPhoto={(file) => void addEditorPhoto(file)} onRemovePhoto={(item) => void removePhoto(item)} onUploadDocument={(file, title, description, icon) => void addEditorDocument(file, title, description, icon)} onUpdateDocument={(item, title, description, icon, file) => void updateEditorDocument(item, title, description, icon, file)} onRemoveDocument={(item) => void removeDocument(item)} onAddContact={(name, role, email, phone) => void addEditorContact(name, role, email, phone)} onUpdateContact={(id, name, role, email, phone) => void updateEditorContact(id, name, role, email, phone)} onRemoveContact={(item) => void removeContact(item)} onAddLink={(name, url) => void addEditorLink(name, url)} onUpdateLink={(id, name, url) => void updateEditorLink(id, name, url)} onRemoveLink={(item) => void removeLink(item)} />{message ? <p className="mt-3 text-center text-sm text-white/65" role="status">{message}</p> : null}</div></main>{epkDialogs}</div>;
 }
 

@@ -46,6 +46,7 @@ describe('BookingPage detail', () => {
           <Route path="/booking" element={<BookingPage />} />
           <Route path="/booking/:bookingId" element={<BookingPage />} />
           <Route path="/calendar" element={<p>Calendrier</p>} />
+          <Route path="/home" element={<p>Accueil</p>} />
         </Routes>
       </MemoryRouter>,
     );
@@ -156,7 +157,7 @@ describe('BookingPage detail', () => {
     fireEvent.click(screen.getByRole('link', { name: /Le Chabada/ }));
 
     expect(screen.getByRole('heading', { level: 1, name: 'Le Chabada' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Retour au booking' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Retour' })).toBeInTheDocument();
   });
 
   it('renders the compact contact actions, global notes and the future action in the timeline', () => {

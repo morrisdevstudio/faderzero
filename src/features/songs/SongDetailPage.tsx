@@ -4,6 +4,8 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { FeatureCard } from '@/components/FeatureCard';
 import { FormDialog } from '@/components/FormDialog';
+import { useGoBack, useLeaveScreen } from '@/hooks/useGoBack';
+import { HOME_FALLBACK } from '@/navigation/inAppBack';
 import { songsRepository } from '@/db/repositories/songsRepository';
 import type { AudioTrack } from '@/features/audio/audioPlayerStore';
 import { useAudioPlayerStore } from '@/features/audio/audioPlayerStore';
@@ -132,6 +134,8 @@ function areFormValuesEqual(left: SongFormValues, right: SongFormValues) {
 export function SongDetailPage() {
   const { songId = '' } = useParams();
   const navigate = useNavigate();
+  const goBack = useGoBack(HOME_FALLBACK);
+  const leave = useLeaveScreen(HOME_FALLBACK);
   const activeWorkspace = useAuthStore((state) => state.activeWorkspace);
   const workspaces = useAuthStore((state) => state.workspaces);
   const setActiveWorkspace = useAuthStore((state) => state.setActiveWorkspace);
@@ -525,7 +529,7 @@ export function SongDetailPage() {
       const songToDelete = currentSong;
       await songsRepository.softDelete(songToDelete.id);
       setIsDeleteDialogOpen(false);
-      navigate('/songs');
+      await leave();
       useUndoToastStore.getState().showUndoToast({
         message: `Morceau « ${songToDelete.title} » supprimé`,
         onUndo: async () => {
@@ -652,8 +656,8 @@ export function SongDetailPage() {
     <div className="space-y-4">
       <DetailHeader
         title={currentSong.title || 'Sans titre'}
-        onBack={() => navigate('/songs')}
-        backLabel="Retour aux morceaux"
+        onBack={goBack}
+        backLabel="Retour"
         titleInteraction={canWrite ? { title: 'Appui long pour modifier le titre', ...titleLongPress } : undefined}
         actions={
           <>

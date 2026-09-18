@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useNavigate } from 'react-router-dom';
 import { FormDialog } from '@/components/FormDialog';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { useGoBack } from '@/hooks/useGoBack';
 import {
   BOOKING_STAGE_LABELS,
   bookingRepository,
@@ -150,6 +151,7 @@ function ReadOnlyField({ label, value }: { label: string; value?: string | undef
 
 export function BookingOverview() {
   const navigate = useNavigate();
+  const goBack = useGoBack('/calendar');
   const activeWorkspace = useAuthStore((state) => state.activeWorkspace);
   const workspaces = useAuthStore((state) => state.workspaces);
   const session = useAuthStore((state) => state.session);
@@ -361,8 +363,8 @@ export function BookingOverview() {
   return <section className="space-y-4 pb-6">
     <DetailHeader
       title="Booking"
-      onBack={() => navigate('/calendar')}
-      backLabel="Retour au calendrier"
+      onBack={goBack}
+      backLabel="Retour"
       actions={canWrite ? <>
         <button type="button" onClick={() => setIsAddingContact(true)} aria-label="Ajouter un contact">
           <HeaderPhoneAddIcon />

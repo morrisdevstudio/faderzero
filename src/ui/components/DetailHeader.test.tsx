@@ -10,11 +10,11 @@ describe('DetailHeader', () => {
         title="Le Chabada"
         subtitle="Angers · 22 août 2026"
         onBack={onBack}
-        backLabel="Retour au booking"
+        backLabel="Retour"
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Retour au booking' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Retour' }));
 
     expect(onBack).toHaveBeenCalledOnce();
     expect(screen.getByRole('heading', { level: 1, name: 'Le Chabada' })).toBeInTheDocument();
@@ -26,7 +26,7 @@ describe('DetailHeader', () => {
       <DetailHeader
         title="Booking"
         onBack={() => {}}
-        backLabel="Retour au calendrier"
+        backLabel="Retour"
         actions={<button type="button" aria-label="Ajouter une proposition"><FzIcon name="add" usageId="detail-header.test-add" /></button>}
       />,
     );
@@ -35,7 +35,7 @@ describe('DetailHeader', () => {
   });
 
   it('renders optional leading identity content before the title', () => {
-    render(<DetailHeader title="Groupe 1" leading={<span data-testid="group-badge">G1</span>} onBack={() => {}} backLabel="Retour" />);
+    render(<DetailHeader title="Groupe 1" leading={<span data-testid="group-badge">G1</span>} onBack={() => {}} />);
     const badge = screen.getByTestId('group-badge');
     expect(badge.parentElement?.nextElementSibling).toHaveTextContent('Groupe 1');
   });

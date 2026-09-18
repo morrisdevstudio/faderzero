@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { resetBackLayersForTests } from '@/navigation/inAppBack';
 import { SongDetailPage } from './SongDetailPage';
 
 const mocks = vi.hoisted(() => ({
@@ -103,16 +104,22 @@ vi.mock('@/stores/undoToastStore', () => ({
     }),
 }));
 
-function renderSongDetail(songId = 'song-1') {
+function renderSongDetail(entries: string[] = ['/songs/song-1']) {
   return render(
-    <MemoryRouter initialEntries={[`/songs/${songId}`]}>
+    <MemoryRouter initialEntries={entries}>
       <Routes>
+        <Route path="/home" element={<div>Accueil test</div>} />
+        <Route path="/songs" element={<div>Répertoire test</div>} />
         <Route path="/songs/:songId" element={<SongDetailPage />} />
         <Route path="/songs/:songId/write" element={<div>Éditeur de paroles</div>} />
       </Routes>
     </MemoryRouter>,
   );
 }
+
+afterEach(() => {
+  resetBackLayersForTests();
+});
 
 describe('SongDetailPage - Notes', () => {
   beforeEach(() => {
@@ -285,3 +292,45 @@ describe('SongDetailPage - Notes', () => {
     expect(screen.queryByRole('dialog', { name: 'Sélectionner la durée' })).not.toBeInTheDocument();
   });
 });
+
+describe('SongDetailPage - Retour', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.canWrite = true;
+    mocks.assets = [];
+    mocks.pendingAudioUploads = [];
+    mocks.unlinkedTracks = [];
+    mocks.updateSong.mockResolvedValue(undefined);
+    mocks.currentSong = {
+      id: 'song-1',
+      workspaceId: 'workspace-1',
+      title: 'Chanson sans note',
+      status: 'Idee',
+      lyrics: 'Paroles du morceau',
+      key: 'Am',
+      bpm: 120,
+      durationSeconds: 180,
+      notes: '',
+      updatedAt: 1000,
+    };
+  });
+
+  it('revient à l’accueil quand le morceau a été ouvert depuis l’accueil', async () => {
+    renderSongDetail(['/home', '/songs/song-1']);
+    fireEvent.click(screen.getByRole('button', { name: 'Retour' }));
+    expect(await screen.findByText('Accueil test')).toBeInTheDocument();
+  });
+
+  it('revient à la liste des morceaux quand le morceau a été ouvert depuis le répertoire', async () => {
+    renderSongDetail(['/songs', '/songs/song-1']);
+    fireEvent.click(screen.getByRole('button', { name: 'Retour' }));
+    expect(await screen.findByText('Répertoire test')).toBeInTheDocument();
+  });
+
+  it('tombe sur l’accueil sans historique interne', async () => {
+    renderSongDetail(['/songs/song-1']);
+    fireEvent.click(screen.getByRole('button', { name: 'Retour' }));
+    expect(await screen.findByText('Accueil test')).toBeInTheDocument();
+  });
+});
+

@@ -2,6 +2,8 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { FormDialog } from '@/components/FormDialog';
+import { useBackLayer } from '@/hooks/useBackLayer';
+import { useLeaveTo } from '@/hooks/useGoBack';
 import { db } from '@/db/db';
 import { songsRepository } from '@/db/repositories/songsRepository';
 import {
@@ -62,6 +64,7 @@ export function SongWriterPage() {
   const { songId = '' } = useParams();
   const isDraft = songId === 'new';
   const navigate = useNavigate();
+  const leaveTo = useLeaveTo();
   const activeWorkspace = useAuthStore((state) => state.activeWorkspace);
   const workspaces = useAuthStore((state) => state.workspaces);
   const setActiveWorkspace = useAuthStore((state) => state.setActiveWorkspace);
@@ -204,7 +207,7 @@ export function SongWriterPage() {
     if (isDraft) {
       const draftDocument = documentRef.current ?? draftDocumentRef.current;
       if (!songDocumentToText(draftDocument).trim()) {
-        navigate('/songs');
+        await leaveTo('/songs');
         return;
       }
 
@@ -218,8 +221,12 @@ export function SongWriterPage() {
     }
 
     await flush();
-    navigate(`/songs/${songId}`);
+    await leaveTo(`/songs/${songId}`);
   }
+
+  useBackLayer(!isDraftSaveOpen, () => {
+    void handleBack();
+  });
 
   function handleDocumentChange(nextDocument: SongDocumentV1) {
     documentRef.current = nextDocument;
@@ -264,7 +271,7 @@ export function SongWriterPage() {
     return (
       <div className="fz-writer-state">
         <p>Ce morceau n’est plus disponible.</p>
-        <button type="button" onClick={() => navigate('/songs')}>Retour au répertoire</button>
+        <button type="button" onClick={() => void leaveTo('/songs')}>Retour</button>
       </div>
     );
   }
@@ -273,7 +280,7 @@ export function SongWriterPage() {
     return (
       <div className="fz-writer-state">
         <p>Tu peux consulter ce morceau, mais pas modifier ses paroles.</p>
-        <button type="button" onClick={() => navigate(isDraft ? '/songs' : `/songs/${song?.id}`)}>Retour au morceau</button>
+        <button type="button" onClick={() => void leaveTo(isDraft ? '/songs' : `/songs/${song?.id}`)}>Retour</button>
       </div>
     );
   }
@@ -307,7 +314,7 @@ export function SongWriterPage() {
   return (
     <div className="fz-writer-page" style={pageStyle}>
       <header className="fz-writer-header">
-        <button type="button" onClick={() => void handleBack()} aria-label="Retour au morceau">
+        <button type="button" onClick={() => void handleBack()} aria-label="Retour">
           <FzIcon name="back" usageId="songwriter.header.back" />
         </button>
         {isDraft ? (
@@ -372,7 +379,7 @@ export function SongWriterPage() {
               </button>
               <button
                 type="button"
-                onClick={() => navigate('/songs')}
+                onClick={() => void leaveTo('/songs')}
                 disabled={isCreatingDraft}
                 className="fz-button-secondary w-full px-4 py-3 text-sm font-black text-white disabled:opacity-60"
               >

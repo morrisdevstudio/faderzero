@@ -113,10 +113,10 @@ describe('EpkPage - Empty state', () => {
     renderEpkPage();
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Retour aux paramètres' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Retour' })).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Retour aux paramètres' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Retour' }));
 
     await waitFor(() => {
       expect(screen.getByText('Page Paramètres')).toBeInTheDocument();

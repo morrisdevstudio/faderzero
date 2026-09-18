@@ -1,5 +1,6 @@
 import { useId } from 'react';
 import { createPortal } from 'react-dom';
+import { useBackLayer } from '@/hooks/useBackLayer';
 import { Button } from '@/ui/components/Button';
 import { FzIcon } from '@/ui/icons';
 import { useDialogAccessibility } from './useDialogAccessibility';
@@ -44,6 +45,7 @@ export function ConfirmDialog({
     }
   };
   const dialogRef = useDialogAccessibility(requestDismiss, isOpen);
+  useBackLayer(isOpen, requestDismiss);
 
   if (!isOpen) {
     return null;

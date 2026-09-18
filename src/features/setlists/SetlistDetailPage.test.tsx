@@ -78,12 +78,13 @@ vi.mock('@/features/setlists/setlistPdf', () => ({
   downloadSetlistPdf: vi.fn(),
 }));
 
-function renderPage() {
+function renderPage(entries = ['/setlists/setlist-test']) {
   return render(
-    <MemoryRouter initialEntries={['/setlists/setlist-test']}>
+    <MemoryRouter initialEntries={entries}>
       <Routes>
         <Route path="/setlists/:setlistId" element={<SetlistDetailPage />} />
         <Route path="/setlists" element={<p>Liste des setlists</p>} />
+        <Route path="/home" element={<p>Accueil</p>} />
       </Routes>
     </MemoryRouter>,
   );
@@ -111,7 +112,7 @@ describe('SetlistDetailPage suppressions', () => {
   });
 
   it('rend la suppression de setlist accessible depuis le formulaire de modification', async () => {
-    renderPage();
+    renderPage(['/setlists', '/setlists/setlist-test']);
 
     fireEvent.click(screen.getByRole('button', { name: 'Modifier la setlist' }));
     const editDialog = screen.getByRole('dialog', { name: 'Modifier la setlist' });

@@ -5,13 +5,13 @@ interface DetailHeaderProps {
   title: string;
   subtitle?: string | undefined;
   onBack: () => void;
-  backLabel: string;
+  backLabel?: string;
   actions?: ReactNode;
   leading?: ReactNode;
   titleInteraction?: Omit<ComponentPropsWithoutRef<'h1'>, 'children' | 'className' | 'style'> | undefined;
 }
 
-export function DetailHeader({ title, subtitle, onBack, backLabel, actions, leading, titleInteraction }: DetailHeaderProps) {
+export function DetailHeader({ title, subtitle, onBack, backLabel = 'Retour', actions, leading, titleInteraction }: DetailHeaderProps) {
   return (
     <header
       className="sticky z-30 -mx-3 -mt-5 border-b border-white/8 bg-[var(--fz-bg)] px-3 pb-4 pt-2 transition-[top] duration-200 ease-out will-change-[top] before:pointer-events-none before:absolute before:bottom-full before:inset-x-0 before:h-32 before:bg-[var(--fz-bg)] before:content-[''] sm:-mx-4 sm:px-4"

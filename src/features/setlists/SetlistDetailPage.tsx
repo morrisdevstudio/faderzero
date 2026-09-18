@@ -1,9 +1,11 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type SVGProps } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { FeatureCard } from '@/components/FeatureCard';
 import { FormDialog } from '@/components/FormDialog';
+import { useGoBack, useLeaveScreen } from '@/hooks/useGoBack';
+import { HOME_FALLBACK } from '@/navigation/inAppBack';
 import type { SetlistDisplayMode, SetlistSongDetail } from '@/db/schema';
 import { setlistSongsRepository } from '@/db/repositories/setlistSongsRepository';
 import { setlistsRepository } from '@/db/repositories/setlistsRepository';
@@ -92,7 +94,8 @@ function DisplayModeSelector({
 
 export function SetlistDetailPage() {
   const { setlistId = '' } = useParams();
-  const navigate = useNavigate();
+  const goBack = useGoBack(HOME_FALLBACK);
+  const leave = useLeaveScreen(HOME_FALLBACK);
   const activeWorkspace = useAuthStore((state) => state.activeWorkspace);
   const activeWorkspaceId = activeWorkspace?.id;
   const canWrite = canWriteWorkspace(activeWorkspace?.role);
@@ -272,7 +275,7 @@ export function SetlistDetailPage() {
       const setlistToDelete = currentSetlist;
       await setlistsRepository.softDelete(setlistToDelete.id);
       setIsDeleteDialogOpen(false);
-      navigate('/setlists');
+      await leave();
       useUndoToastStore.getState().showUndoToast({
         message: `Setlist « ${setlistToDelete.name} » supprimée`,
         onUndo: async () => {
@@ -445,8 +448,8 @@ export function SetlistDetailPage() {
       <DetailHeader
         title={currentSetlist.name}
         subtitle={`${songCount} morceau${songCount > 1 ? 'x' : ''} · ${formatSetDuration(totalDurationSeconds)}`}
-        onBack={() => navigate('/setlists')}
-        backLabel="Retour aux setlists"
+        onBack={goBack}
+        backLabel="Retour"
         actions={
           <>
             <Link

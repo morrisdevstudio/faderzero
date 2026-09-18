@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useId, useRef, useState, type PropsWithChildren, type UIEvent } from 'react';
+import { useCallback, useEffect, useId, useRef, useState, type PropsWithChildren, type ReactNode, type UIEvent } from 'react';
 import { createPortal } from 'react-dom';
+import { useBackLayer } from '@/hooks/useBackLayer';
 import { FzIcon } from '@/ui/icons';
 import { useDialogAccessibility } from './useDialogAccessibility';
 
@@ -11,12 +12,20 @@ export function PickerDialog({
   title,
   description,
   closeLabel = 'Fermer',
+  headerActions,
   onClose,
   children,
-}: PropsWithChildren<{ title: string; description?: string; closeLabel?: string; onClose: () => void }>) {
+}: PropsWithChildren<{
+  title: string;
+  description?: string | undefined;
+  closeLabel?: string | undefined;
+  headerActions?: ReactNode | undefined;
+  onClose: () => void;
+}>) {
   const titleId = useId();
   const descriptionId = useId();
   const dialogRef = useDialogAccessibility(onClose);
+  useBackLayer(true, onClose);
 
   return createPortal(
     <div
@@ -37,18 +46,21 @@ export function PickerDialog({
         className="fz-card fz-dialog-panel fz-dialog-panel--bottom w-full max-w-md rounded-[1.6rem] p-5"
       >
         <div className="flex items-start justify-between gap-4">
-          <div>
+          <div className="min-w-0">
             <h2 id={titleId} className="text-[1.28rem] font-black tracking-tight text-white">{title}</h2>
             {description ? <p id={descriptionId} className="mt-1 text-sm leading-6 text-[var(--fz-text-muted)]">{description}</p> : null}
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label={closeLabel}
-            className="fz-dialog-close"
-          >
-            <FzIcon name="close" usageId="picker-dialog.close" size="md" />
-          </button>
+          <div className="flex shrink-0 items-center gap-1">
+            {headerActions}
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label={closeLabel}
+              className="fz-dialog-close"
+            >
+              <FzIcon name="close" usageId="picker-dialog.close" size="md" />
+            </button>
+          </div>
         </div>
 
         <div className="mt-5">{children}</div>

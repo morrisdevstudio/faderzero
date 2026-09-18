@@ -53,6 +53,7 @@ function renderDraftWriter() {
       <Routes>
         <Route path="/songs/:songId/write" element={<SongWriterPage />} />
         <Route path="/songs" element={<div>Répertoire test</div>} />
+        <Route path="/home" element={<div>Accueil test</div>} />
         <Route path="/songs/:songId" element={<div>Chanson enregistrée</div>} />
       </Routes>
     </MemoryRouter>,
@@ -107,7 +108,7 @@ describe('SongWriterPage draft flow', () => {
   it("quitte immédiatement sans créer de chanson quand l'éditeur est vide", async () => {
     renderDraftWriter();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Retour au morceau' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Retour' }));
 
     expect(await screen.findByText('Répertoire test')).toBeInTheDocument();
     expect(repositoryMocks.create).not.toHaveBeenCalled();
@@ -118,7 +119,7 @@ describe('SongWriterPage draft flow', () => {
     renderDraftWriter();
 
     fireEvent.click(screen.getByRole('button', { name: 'Écrire une ligne' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Retour au morceau' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Retour' }));
 
     const dialog = screen.getByRole('dialog', { name: 'Enregistrer la chanson ?' });
     expect(dialog.parentElement?.parentElement?.parentElement).toBe(document.body);
@@ -136,7 +137,7 @@ describe('SongWriterPage draft flow', () => {
     renderDraftWriter();
 
     fireEvent.click(screen.getByRole('button', { name: 'Écrire une ligne' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Retour au morceau' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Retour' }));
     fireEvent.change(screen.getByRole('textbox', { name: 'Titre' }), {
       target: { value: '  Ma nouvelle chanson  ' },
     });
