@@ -1,6 +1,6 @@
 import LZString from 'lz-string';
 import { db, type FaderZeroDatabase } from '@/db/db';
-import type { SetlistRecord, SetlistSongRecord, SongRecord, SongStatus } from '@/db/schema';
+import type { SetlistRecord, SetlistSongRecord, SongRecord, SongStatus, SongTimelineRecord, TimelineSectionRecord } from '@/db/schema';
 import { createId } from '@/lib/createId';
 import { now } from '@/lib/now';
 import {
@@ -11,7 +11,8 @@ import {
 } from '@/db/songDocument';
 
 export const SYNC_PROTOCOL = 'faderzero-sync';
-export const SYNC_PROTOCOL_VERSION = 1;
+export const SYNC_PROTOCOL_VERSION = 2;
+export const LEGACY_SYNC_PROTOCOL_VERSION = 1;
 export const SYNC_SOURCE_APP = 'faderzero-pwa';
 export const QR_CHUNK_SIZE = 250;
 export const MAX_QR_FRAGMENTS = 128;
@@ -69,6 +70,9 @@ export interface SyncSetlistSongPayload {
   updatedAt: number;
 }
 
+export type SyncSongTimelinePayload = Omit<SongTimelineRecord, 'workspaceId' | 'deletedAt' | 'serverVersion' | 'syncStatus'>;
+export type SyncTimelineSectionPayload = Omit<TimelineSectionRecord, 'workspaceId' | 'deletedAt' | 'serverVersion' | 'syncStatus'>;
+
 export interface SyncExportSelection {
   workspaceId?: string;
   setlistIds?: string[];
@@ -77,7 +81,7 @@ export interface SyncExportSelection {
 
 export interface SyncExportPayload {
   protocol: typeof SYNC_PROTOCOL;
-  protocolVersion: typeof SYNC_PROTOCOL_VERSION;
+  protocolVersion: typeof SYNC_PROTOCOL_VERSION | typeof LEGACY_SYNC_PROTOCOL_VERSION;
   exportedAt: number;
   sourceApp: typeof SYNC_SOURCE_APP;
   payloadHash: string;
@@ -85,12 +89,19 @@ export interface SyncExportPayload {
     songs: SyncSongPayload[];
     setlists: SyncSetlistPayload[];
     setlistSongs: SyncSetlistSongPayload[];
+    songTimelines: SyncSongTimelinePayload[];
+    timelineSections: SyncTimelineSectionPayload[];
   };
 }
 
+type SyncExportPayloadInput = Omit<SyncExportPayload['payload'], 'songTimelines' | 'timelineSections'> & {
+  songTimelines?: SyncSongTimelinePayload[];
+  timelineSections?: SyncTimelineSectionPayload[];
+};
+
 export interface SyncQrFragment {
   protocol: typeof SYNC_PROTOCOL;
-  protocolVersion: typeof SYNC_PROTOCOL_VERSION;
+  protocolVersion: typeof SYNC_PROTOCOL_VERSION | typeof LEGACY_SYNC_PROTOCOL_VERSION;
   transferId: string;
   index: number;
   total: number;
@@ -252,6 +263,40 @@ function validateSetlistSongPayload(value: unknown, index: number): asserts valu
   assertFiniteNumber(value.updatedAt, `${label}.updatedAt`);
 }
 
+function validateSongTimelinePayload(value: unknown, index: number): asserts value is SyncSongTimelinePayload {
+  const label = `payload.songTimelines[${index}]`;
+  assertRecord(value, label);
+  assertExactKeys(value, ['id', 'songId', 'startCountInBars', 'volume', 'createdAt', 'updatedAt'], label);
+  assertIdentifier(value.id, `${label}.id`);
+  assertIdentifier(value.songId, `${label}.songId`);
+  assertInteger(value.startCountInBars, `${label}.startCountInBars`, 0, 8);
+  assertFiniteNumber(value.volume, `${label}.volume`, 0, 1);
+  assertFiniteNumber(value.createdAt, `${label}.createdAt`);
+  assertFiniteNumber(value.updatedAt, `${label}.updatedAt`);
+}
+
+function validateTimelineSectionPayload(value: unknown, index: number): asserts value is SyncTimelineSectionPayload {
+  const label = `payload.timelineSections[${index}]`;
+  assertRecord(value, label);
+  assertExactKeys(value, ['id', 'timelineId', 'position', 'name', 'bars', 'tempo', 'numerator', 'denominator', 'tempoUnit', 'clickEnabled', 'accentFirstBeat', 'clickResolution', 'countInMode', 'countInBars', 'color', 'createdAt', 'updatedAt'], label);
+  assertIdentifier(value.id, `${label}.id`);
+  assertIdentifier(value.timelineId, `${label}.timelineId`);
+  assertInteger(value.position, `${label}.position`, 0, MAX_QR_RECORDS_PER_TYPE - 1);
+  assertString(value.name, `${label}.name`, MAX_SHORT_TEXT_LENGTH);
+  assertInteger(value.bars, `${label}.bars`, 1, 999);
+  assertInteger(value.tempo, `${label}.tempo`, 20, 400);
+  assertInteger(value.numerator, `${label}.numerator`, 1, 32);
+  if (![1, 2, 4, 8, 16, 32].includes(value.denominator as number)) throw new Error(`${label}.denominator is invalid.`);
+  if (!['quarter', 'eighth', 'dottedQuarter', 'half'].includes(value.tempoUnit as string)) throw new Error(`${label}.tempoUnit is invalid.`);
+  if (typeof value.clickEnabled !== 'boolean' || typeof value.accentFirstBeat !== 'boolean') throw new Error(`${label}.click settings are invalid.`);
+  if (!['tempoUnit', 'denominator'].includes(value.clickResolution as string)) throw new Error(`${label}.clickResolution is invalid.`);
+  if (!['none', 'inserted', 'overlay'].includes(value.countInMode as string)) throw new Error(`${label}.countInMode is invalid.`);
+  assertInteger(value.countInBars, `${label}.countInBars`, 0, 8);
+  assertOptionalString(value.color, `${label}.color`, 32);
+  assertFiniteNumber(value.createdAt, `${label}.createdAt`);
+  assertFiniteNumber(value.updatedAt, `${label}.updatedAt`);
+}
+
 function assertUniqueIds(records: Array<{ id: string }>, label: string) {
   const ids = new Set<string>();
   for (const record of records) {
@@ -265,7 +310,7 @@ function assertUniqueIds(records: Array<{ id: string }>, label: string) {
 function validateExportPayload(value: unknown): SyncExportPayload {
   assertRecord(value, 'QR payload');
   assertExactKeys(value, ['protocol', 'protocolVersion', 'exportedAt', 'sourceApp', 'payloadHash', 'payload'], 'QR payload');
-  if (value.protocol !== SYNC_PROTOCOL || value.protocolVersion !== SYNC_PROTOCOL_VERSION || value.sourceApp !== SYNC_SOURCE_APP) {
+  if (value.protocol !== SYNC_PROTOCOL || ![LEGACY_SYNC_PROTOCOL_VERSION, SYNC_PROTOCOL_VERSION].includes(value.protocolVersion as number) || value.sourceApp !== SYNC_SOURCE_APP) {
     throw new Error('Unexpected sync protocol.');
   }
   assertFiniteNumber(value.exportedAt, 'QR payload exportedAt');
@@ -273,32 +318,47 @@ function validateExportPayload(value: unknown): SyncExportPayload {
     throw new Error('QR payload hash is invalid.');
   }
   assertRecord(value.payload, 'QR payload data');
-  assertExactKeys(value.payload, ['songs', 'setlists', 'setlistSongs'], 'QR payload data');
+  const isLegacy = value.protocolVersion === LEGACY_SYNC_PROTOCOL_VERSION;
+  assertExactKeys(value.payload, isLegacy ? ['songs', 'setlists', 'setlistSongs'] : ['songs', 'setlists', 'setlistSongs', 'songTimelines', 'timelineSections'], 'QR payload data');
   const { songs, setlists, setlistSongs } = value.payload;
+  const songTimelines = isLegacy ? [] : value.payload.songTimelines;
+  const timelineSections = isLegacy ? [] : value.payload.timelineSections;
   if (!Array.isArray(songs) || !Array.isArray(setlists) || !Array.isArray(setlistSongs) ||
+      !Array.isArray(songTimelines) || !Array.isArray(timelineSections) ||
       songs.length > MAX_QR_RECORDS_PER_TYPE || setlists.length > MAX_QR_RECORDS_PER_TYPE || setlistSongs.length > MAX_QR_RECORDS_PER_TYPE) {
     throw new Error('QR payload exceeds allowed record limits.');
   }
   songs.forEach(validateSongPayload);
   setlists.forEach(validateSetlistPayload);
   setlistSongs.forEach(validateSetlistSongPayload);
+  songTimelines.forEach(validateSongTimelinePayload);
+  timelineSections.forEach(validateTimelineSectionPayload);
   assertUniqueIds(songs, 'Songs');
   assertUniqueIds(setlists, 'Setlists');
   assertUniqueIds(setlistSongs, 'Setlist songs');
+  assertUniqueIds(songTimelines, 'Song timelines');
+  assertUniqueIds(timelineSections, 'Timeline sections');
 
   const songIds = new Set(songs.map((song) => song.id));
   const setlistIds = new Set(setlists.map((setlist) => setlist.id));
   if (setlistSongs.some((entry) => !songIds.has(entry.songId) || !setlistIds.has(entry.setlistId))) {
     throw new Error('QR payload contains invalid relationships.');
   }
+  const timelineIds = new Set(songTimelines.map((timeline) => timeline.id));
+  if (songTimelines.some((timeline) => !songIds.has(timeline.songId)) || timelineSections.some((section) => !timelineIds.has(section.timelineId))) {
+    throw new Error('QR payload contains invalid timeline relationships.');
+  }
 
-  return value as unknown as SyncExportPayload;
+  return {
+    ...(value as unknown as SyncExportPayload),
+    payload: { songs, setlists, setlistSongs, songTimelines, timelineSections },
+  };
 }
 
 function validateQrFragment(value: unknown): SyncQrFragment {
   assertRecord(value, 'QR fragment');
   assertExactKeys(value, ['protocol', 'protocolVersion', 'transferId', 'index', 'total', 'payloadHash', 'chunk'], 'QR fragment');
-  if (value.protocol !== SYNC_PROTOCOL || value.protocolVersion !== SYNC_PROTOCOL_VERSION) {
+  if (value.protocol !== SYNC_PROTOCOL || ![LEGACY_SYNC_PROTOCOL_VERSION, SYNC_PROTOCOL_VERSION].includes(value.protocolVersion as number)) {
     throw new Error('Unexpected QR fragment protocol.');
   }
   assertIdentifier(value.transferId, 'QR fragment transferId');
@@ -365,10 +425,12 @@ export async function collectSyncExportData(
   database: FaderZeroDatabase = db,
   selection?: SyncExportSelection,
 ) {
-  let [allSongs, allSetlists, setlistSongs] = await Promise.all([
+  let [allSongs, allSetlists, setlistSongs, songTimelines, timelineSections] = await Promise.all([
     database.songs.toArray(),
     database.setlists.toArray(),
     database.setlistSongs.toArray(),
+    database.songTimelines.toArray(),
+    database.timelineSections.toArray(),
   ]);
 
   if (selection?.workspaceId) {
@@ -400,6 +462,9 @@ export async function collectSyncExportData(
 
   const activeSongIds = new Set(songs.map((song) => song.id));
   const activeSetlistIds = new Set(setlists.map((setlist) => setlist.id));
+  const filteredTimelines = songTimelines.filter((timeline) => timeline.deletedAt === undefined && activeSongIds.has(timeline.songId));
+  const activeTimelineIds = new Set(filteredTimelines.map((timeline) => timeline.id));
+  const filteredTimelineSections = timelineSections.filter((section) => section.deletedAt === undefined && activeTimelineIds.has(section.timelineId));
 
   const filteredSetlistSongs = setlistSongs.filter(
     (entry) => entry.deletedAt === undefined && activeSongIds.has(entry.songId) && activeSetlistIds.has(entry.setlistId),
@@ -423,10 +488,12 @@ export async function collectSyncExportData(
         return compareStrings(left.id, right.id);
       })
       .map(toSyncSetlistSong),
+    songTimelines: filteredTimelines.sort((left, right) => compareStrings(left.id, right.id)).map(({ workspaceId: _workspaceId, deletedAt: _deletedAt, serverVersion: _serverVersion, syncStatus: _syncStatus, ...timeline }) => timeline),
+    timelineSections: filteredTimelineSections.sort((left, right) => left.position - right.position || compareStrings(left.id, right.id)).map(({ workspaceId: _workspaceId, deletedAt: _deletedAt, serverVersion: _serverVersion, syncStatus: _syncStatus, ...section }) => section),
   };
 }
 
-export async function createPayloadHash(payload: SyncExportPayload['payload']) {
+export async function createPayloadHash(payload: SyncExportPayload['payload'] | SyncExportPayloadInput) {
   const input = JSON.stringify(payload);
   const bytes = new TextEncoder().encode(input);
   const digest = await globalThis.crypto.subtle.digest('SHA-256', bytes);
@@ -434,9 +501,14 @@ export async function createPayloadHash(payload: SyncExportPayload['payload']) {
 }
 
 export async function buildSyncExportPayload(
-  payload: SyncExportPayload['payload'],
+  input: SyncExportPayloadInput,
   exportedAt = now(),
 ): Promise<SyncExportPayload> {
+  const payload: SyncExportPayload['payload'] = {
+    ...input,
+    songTimelines: input.songTimelines ?? [],
+    timelineSections: input.timelineSections ?? [],
+  };
   const payloadHash = await createPayloadHash(payload);
 
   return {
@@ -534,7 +606,7 @@ export async function reconstructSyncExportPayload(
     sortedFragments.some(
       (fragment) =>
         fragment.protocol !== SYNC_PROTOCOL ||
-        fragment.protocolVersion !== SYNC_PROTOCOL_VERSION ||
+        fragment.protocolVersion !== firstFragment.protocolVersion ||
         fragment.transferId !== firstFragment.transferId ||
         fragment.total !== firstFragment.total ||
         fragment.payloadHash !== firstFragment.payloadHash,
@@ -567,7 +639,14 @@ export async function reconstructSyncExportPayload(
 
   const exportPayload = validateExportPayload(JSON.parse(decompressedPayload) as unknown);
 
-  const recalculatedPayloadHash = await createPayloadHash(exportPayload.payload);
+  const hashPayload = exportPayload.protocolVersion === LEGACY_SYNC_PROTOCOL_VERSION
+    ? {
+        songs: exportPayload.payload.songs,
+        setlists: exportPayload.payload.setlists,
+        setlistSongs: exportPayload.payload.setlistSongs,
+      }
+    : exportPayload.payload;
+  const recalculatedPayloadHash = await createPayloadHash(hashPayload);
   if (recalculatedPayloadHash !== firstFragment.payloadHash || recalculatedPayloadHash !== exportPayload.payloadHash) {
     throw new Error('Payload hash mismatch.');
   }
@@ -601,12 +680,15 @@ export async function applySyncImport(
     setlistSongsSkipped: 0,
   };
 
-  await database.transaction('rw', database.songs, database.setlists, database.setlistSongs, database.syncQueue, async () => {
+  await database.transaction('rw', [database.songs, database.setlists, database.setlistSongs, database.songTimelines, database.timelineSections, database.syncQueue], async () => {
     const existingSongIds = new Set(await database.songs.toCollection().primaryKeys() as string[]);
     const existingSetlistIds = new Set(await database.setlists.toCollection().primaryKeys() as string[]);
     const existingSetlistSongIds = new Set(await database.setlistSongs.toCollection().primaryKeys() as string[]);
+    const existingTimelineIds = new Set(await database.songTimelines.toCollection().primaryKeys() as string[]);
+    const existingSectionIds = new Set(await database.timelineSections.toCollection().primaryKeys() as string[]);
     const songIdMap = new Map<string, string>();
     const setlistIdMap = new Map<string, string>();
+    const timelineIdMap = new Map<string, string>();
 
     const songsToAdd: SongRecord[] = exportPayload.payload.songs.map((song) => {
       const id = createUniqueImportId(existingSongIds);
@@ -649,6 +731,20 @@ export async function applySyncImport(
         workspaceId: targetWorkspaceId,
         syncStatus: 'pending',
       };
+    });
+
+    const timelinesToAdd: SongTimelineRecord[] = exportPayload.payload.songTimelines.map((timeline) => {
+      const songId = songIdMap.get(timeline.songId);
+      if (!songId) throw new Error('QR payload contains an invalid timeline song.');
+      const id = createUniqueImportId(existingTimelineIds);
+      timelineIdMap.set(timeline.id, id);
+      return { ...timeline, id, songId, workspaceId: targetWorkspaceId, syncStatus: 'pending' };
+    });
+
+    const sectionsToAdd: TimelineSectionRecord[] = exportPayload.payload.timelineSections.map((section) => {
+      const timelineId = timelineIdMap.get(section.timelineId);
+      if (!timelineId) throw new Error('QR payload contains an invalid timeline section.');
+      return { ...section, id: createUniqueImportId(existingSectionIds), timelineId, workspaceId: targetWorkspaceId, syncStatus: 'pending' };
     });
 
     if (songsToAdd.length > 0) {
@@ -722,6 +818,19 @@ export async function applySyncImport(
             updatedAt: item.updatedAt,
           },
         );
+      }
+    }
+
+    if (timelinesToAdd.length > 0) {
+      await database.songTimelines.bulkAdd(timelinesToAdd);
+      for (const timeline of timelinesToAdd) {
+        await enqueueMutation(database, targetWorkspaceId, 'songTimeline', timeline.id, 'create', timeline);
+      }
+    }
+    if (sectionsToAdd.length > 0) {
+      await database.timelineSections.bulkAdd(sectionsToAdd);
+      for (const section of sectionsToAdd) {
+        await enqueueMutation(database, targetWorkspaceId, 'timelineSection', section.id, 'create', section);
       }
     }
 

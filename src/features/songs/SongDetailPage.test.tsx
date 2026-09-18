@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   assets: [] as any[],
   pendingAudioUploads: [] as any[],
   unlinkedTracks: [] as any[],
+  timelineBundle: undefined as any,
   updateSong: vi.fn(),
 }));
 
@@ -44,6 +45,12 @@ vi.mock('@/db/repositories/songsRepository', () => ({
   songsRepository: {
     getById: () => mocks.currentSong,
     update: (...args: unknown[]) => mocks.updateSong(...args),
+  },
+}));
+
+vi.mock('@/db/repositories/songTimelinesRepository', () => ({
+  songTimelinesRepository: {
+    getBySongId: () => mocks.timelineBundle,
   },
 }));
 
@@ -112,6 +119,7 @@ function renderSongDetail(entries: string[] = ['/songs/song-1']) {
         <Route path="/songs" element={<div>Répertoire test</div>} />
         <Route path="/songs/:songId" element={<SongDetailPage />} />
         <Route path="/songs/:songId/write" element={<div>Éditeur de paroles</div>} />
+        <Route path="/songs/:songId/structure" element={<div>Programmation métronome</div>} />
       </Routes>
     </MemoryRouter>,
   );
@@ -128,6 +136,7 @@ describe('SongDetailPage - Notes', () => {
     mocks.assets = [];
     mocks.pendingAudioUploads = [];
     mocks.unlinkedTracks = [];
+    mocks.timelineBundle = undefined;
     mocks.updateSong.mockResolvedValue(undefined);
     mocks.currentSong = {
       id: 'song-1',
@@ -234,6 +243,21 @@ describe('SongDetailPage - Notes', () => {
     expect(screen.getByRole('button', { name: 'Modifier le tempo' })).toBeDisabled();
   });
 
+  it('affiche la moyenne des tempos programmés avec le badge ambre', () => {
+    mocks.timelineBundle = {
+      timeline: { id: 'timeline-1' },
+      sections: [{ tempo: 128 }, { tempo: 90 }, { tempo: 150 }],
+    };
+
+    renderSongDetail();
+
+    const tempoButton = screen.getByRole('button', { name: 'Modifier le tempo' });
+    expect(tempoButton).toHaveTextContent('123 BPM');
+    expect(tempoButton).not.toHaveTextContent('120');
+    expect(screen.getByTitle('Métronome programmé')).toHaveClass('bg-amber-400/20', 'text-amber-300');
+    expect(screen.queryByText('Structure & métronome')).not.toBeInTheDocument();
+  });
+
   it("annule la modification du tempo si on ferme la pop-up sans valider", () => {
     renderSongDetail();
 
@@ -260,6 +284,15 @@ describe('SongDetailPage - Notes', () => {
       expect(mocks.updateSong).toHaveBeenCalledWith('song-1', { bpm: 140 });
     });
     expect(screen.queryByRole('dialog', { name: 'Sélectionner le tempo' })).not.toBeInTheDocument();
+  });
+
+  it('ouvre la programmation du métronome depuis le sélecteur de tempo', () => {
+    renderSongDetail();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Modifier le tempo' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ouvrir la programmation du métronome' }));
+
+    expect(screen.getByText('Programmation métronome')).toBeInTheDocument();
   });
 
   it("annule la modification de la durée si on ferme la pop-up sans valider", () => {
@@ -300,6 +333,7 @@ describe('SongDetailPage - Retour', () => {
     mocks.assets = [];
     mocks.pendingAudioUploads = [];
     mocks.unlinkedTracks = [];
+    mocks.timelineBundle = undefined;
     mocks.updateSong.mockResolvedValue(undefined);
     mocks.currentSong = {
       id: 'song-1',

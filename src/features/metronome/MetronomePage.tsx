@@ -20,10 +20,15 @@ import { PageHeader } from '@/ui/components/PageHeader';
 import { StatusPill } from '@/ui/components/StatusPill';
 import { Button } from '@/ui/components/Button';
 import { FzIcon } from '@/ui/icons';
+import { useNavigate } from 'react-router-dom';
+import { songTimelinesRepository, type SongTimelineBundle } from '@/db/repositories/songTimelinesRepository';
+import type { TimelineSectionRecord } from '@/db/schema';
+import { compileTimeline, getTimelinePosition, type CompiledTimelineEvent } from '@/features/song-timeline/timelineCompiler';
+import { TimelinePlaybackEngine, type TimelinePlaybackSnapshot } from '@/features/song-timeline/timelinePlaybackEngine';
 
 const TAP_MEMORY = 5;
 
-type MetronomeSubdivision = 1 | 2 | 3 | 4 | 5 | 6;
+export type MetronomeSubdivision = 1 | 2 | 3 | 4 | 5 | 6;
 
 const subdivisionOptions: Array<{ value: MetronomeSubdivision; symbol: string; label: string }> = [
   { value: 1, symbol: '♩', label: 'Noire' },
@@ -36,7 +41,7 @@ const subdivisionOptions: Array<{ value: MetronomeSubdivision; symbol: string; l
 
 
 
-function SubdivisionIcon({ value, className = 'h-7 w-7' }: { value: MetronomeSubdivision; className?: string }) {
+export function SubdivisionIcon({ value, className = 'h-7 w-7' }: { value: MetronomeSubdivision; className?: string }) {
   switch (value) {
     case 1:
       // Quarter Note (Noire)
@@ -133,7 +138,7 @@ function SubdivisionIcon({ value, className = 'h-7 w-7' }: { value: MetronomeSub
   }
 }
 
-function SubdivisionSelector({
+export function SubdivisionSelector({
   value,
   onChange,
   compact = false,
@@ -200,7 +205,7 @@ const SOUND_CONFIGS = [
   },
 ] as const;
 
-function MetronomeBeatGrid({
+export function MetronomeBeatGrid({
   engine,
   beatsPerBar,
   subdivision,
@@ -208,35 +213,41 @@ function MetronomeBeatGrid({
   onCycleSubdivisionSound,
   isRunning,
   heightClass = 'h-7 sm:h-8',
+  activeBeat: controlledBeat,
+  activeSubdivision: controlledSubdivision,
 }: {
-  engine: MetronomeEngine | null;
+  engine?: MetronomeEngine | null;
   beatsPerBar: number;
   subdivision: MetronomeSubdivision;
   beatSounds: number[][];
-  onCycleSubdivisionSound?: (beatIndex: number, subdivisionIndex: number) => void;
+  onCycleSubdivisionSound?: ((beatIndex: number, subdivisionIndex: number) => void) | undefined;
   isRunning: boolean;
   heightClass?: string;
+  activeBeat?: number;
+  activeSubdivision?: number;
 }) {
-  const [activeBeat, setActiveBeat] = useState(0);
-  const [activeSubdivision, setActiveSubdivision] = useState(0);
+  const [internalBeat, setInternalBeat] = useState(0);
+  const [internalSubdivision, setInternalSubdivision] = useState(0);
+  const isControlled = controlledBeat !== undefined;
+  const activeBeat = isControlled ? controlledBeat : internalBeat;
+  const activeSubdivision = isControlled ? (controlledSubdivision ?? 0) : internalSubdivision;
 
   useEffect(() => {
-    if (!engine) return;
+    if (!engine || isControlled) return;
     engine.setBeatListener(({ beatInBar, subdivisionInBeat }) => {
-      setActiveBeat(beatInBar);
-      setActiveSubdivision(subdivisionInBeat);
+      setInternalBeat(beatInBar);
+      setInternalSubdivision(subdivisionInBeat);
     });
     return () => {
       engine.setBeatListener(null);
     };
-  }, [engine]);
+  }, [engine, isControlled]);
 
   useEffect(() => {
-    if (!isRunning) {
-      setActiveBeat(0);
-      setActiveSubdivision(0);
-    }
-  }, [isRunning]);
+    if (isControlled || isRunning) return;
+    setInternalBeat(0);
+    setInternalSubdivision(0);
+  }, [isControlled, isRunning]);
 
   const beatSlots = useMemo(() => Array.from({ length: beatsPerBar }, (_, index) => index), [beatsPerBar]);
   const subdivisionSlots = useMemo(() => Array.from({ length: subdivision }, (_, index) => index), [subdivision]);
@@ -264,11 +275,13 @@ function MetronomeBeatGrid({
                 <button
                   key={subdivisionSlot}
                   type="button"
+                  disabled={!onCycleSubdivisionSound}
                   onClick={() => onCycleSubdivisionSound?.(slot, subdivisionSlot)}
                   title={`Temps ${slot + 1}${subdivision > 1 ? `.${subdivisionSlot + 1}` : ''} : ${config.label} (cliquer pour changer)`}
                   aria-label={`Temps ${slot + 1}${subdivision > 1 ? ` subdivision ${subdivisionSlot + 1}` : ''} : ${config.label}. Cliquer pour changer.`}
                   className={[
-                    'h-full w-full rounded-lg border transition-all duration-75 cursor-pointer active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60',
+                    'h-full w-full rounded-lg border transition-all duration-75 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60',
+                    onCycleSubdivisionSound ? 'cursor-pointer' : 'cursor-default',
                     isActive
                       ? config.activeMainClass
                       : config.idleClass,
@@ -284,8 +297,10 @@ function MetronomeBeatGrid({
 }
 
 export function MetronomePage() {
+  const navigate = useNavigate();
   const activeWorkspaceId = useAuthStore((state) => state.activeWorkspace?.id);
   const engineRef = useRef<MetronomeEngine | null>(null);
+  const timelineEngineRef = useRef<TimelinePlaybackEngine | null>(null);
   const tapTimesRef = useRef<number[]>([]);
   const longPressTimerRef = useRef<number | null>(null);
   const isLongPressRef = useRef<boolean>(false);
@@ -306,9 +321,14 @@ export function MetronomePage() {
   const [isLiveViewOpen, setIsLiveViewOpen] = useState(false);
   const [selectedSongId, setSelectedSongId] = useState<string | null>(null);
   const [editingBpmSongId, setEditingBpmSongId] = useState<string | null>(null);
+  const [programmedBundle, setProgrammedBundle] = useState<SongTimelineBundle | null>(null);
+  const [timelineSnapshot, setTimelineSnapshot] = useState<TimelinePlaybackSnapshot>({ status: 'stopped', position: 0 });
+  const [timelineEvent, setTimelineEvent] = useState<CompiledTimelineEvent | undefined>();
 
   const setlists = useLiveQuery(() => setlistsRepository.listSummaries(), [activeWorkspaceId]);
   const songs = useLiveQuery(() => songsRepository.list(), [activeWorkspaceId]);
+  const programmedBpms = useLiveQuery(() => songTimelinesRepository.listProgrammedAverageBpms(activeWorkspaceId ?? 'default-workspace'), [activeWorkspaceId]) ?? {};
+  const programmedSongIdSet = useMemo(() => new Set(Object.keys(programmedBpms)), [programmedBpms]);
   const setlistSongs = useLiveQuery(
     () => (selectedSetlistId ? setlistSongsRepository.listDetailedBySetlistId(selectedSetlistId) : Promise.resolve([])),
     [selectedSetlistId, activeWorkspaceId]
@@ -317,6 +337,26 @@ export function MetronomePage() {
     () => setlists?.find((item) => item.id === selectedSetlistId),
     [setlists, selectedSetlistId]
   );
+  const compiledTimeline = useMemo(
+    () => (programmedBundle ? compileTimeline(programmedBundle.timeline, programmedBundle.sections) : null),
+    [programmedBundle],
+  );
+  const timelinePosition = compiledTimeline ? getTimelinePosition(compiledTimeline, timelineSnapshot.position) : null;
+  const currentProgrammedSection = programmedBundle && timelinePosition
+    ? programmedBundle.sections.find((section) => section.id === timelinePosition.section.id) ?? programmedBundle.sections[timelinePosition.section.sectionIndex]
+    : programmedBundle?.sections[0];
+  const isProgrammedMode = Boolean(programmedBundle?.sections.length);
+  const displayBpm = currentProgrammedSection?.tempo ?? bpm;
+  const displayBeatsPerBar = currentProgrammedSection?.numerator ?? beatsPerBar;
+  const displaySubdivision = (currentProgrammedSection?.subdivision ?? subdivision) as MetronomeSubdivision;
+  const displayBeatSounds = currentProgrammedSection
+    ? normalizeBeatSounds(currentProgrammedSection.beatSounds, displayBeatsPerBar, displaySubdivision)
+    : beatSounds;
+  const programmedActiveBeat = timelineEvent
+    ? (timelineEvent.countIn ? timelineEvent.pulseIndex : Math.floor(timelineEvent.pulseIndex / displaySubdivision))
+    : 0;
+  const programmedActiveSubdivision = timelineEvent && !timelineEvent.countIn ? timelineEvent.pulseIndex % displaySubdivision : 0;
+  const programmedSectionIndex = timelinePosition?.section.sectionIndex ?? 0;
 
   const currentIndex = useMemo(() => {
     if (!setlistSongs || !selectedSongId) return -1;
@@ -349,11 +389,39 @@ export function MetronomePage() {
   if (engineRef.current === null) {
     engineRef.current = new MetronomeEngine();
   }
+  if (timelineEngineRef.current === null) {
+    timelineEngineRef.current = new TimelinePlaybackEngine();
+  }
 
   useEffect(() => {
     const engine = engineRef.current;
+    const timelineEngine = timelineEngineRef.current;
     return () => {
       engine?.stop();
+      timelineEngine?.stop();
+    };
+  }, []);
+
+  useEffect(() => {
+    const timelineEngine = timelineEngineRef.current;
+    if (!timelineEngine) return;
+    timelineEngine.setListener((snapshot) => {
+      setTimelineSnapshot(snapshot);
+      if (snapshot.status === 'stopped' || snapshot.status === 'ended') {
+        setTimelineEvent(undefined);
+        setIsRunning(false);
+      } else if (snapshot.event) {
+        setTimelineEvent(snapshot.event);
+      }
+      if (snapshot.status === 'playing') setIsRunning(true);
+      if (snapshot.status === 'paused') setIsRunning(false);
+    });
+    const ticker = window.setInterval(() => {
+      if (timelineEngine.snapshot.status === 'playing') setTimelineSnapshot(timelineEngine.snapshot);
+    }, 100);
+    return () => {
+      window.clearInterval(ticker);
+      timelineEngine.setListener(null);
     };
   }, []);
 
@@ -429,16 +497,38 @@ export function MetronomePage() {
   }
 
   async function handleTogglePlayback() {
-    const engine = engineRef.current;
-    if (engine === null) {
-      return;
-    }
-
     try {
+      if (isProgrammedMode && compiledTimeline && programmedBundle) {
+        const timelineEngine = timelineEngineRef.current;
+        if (!timelineEngine) return;
+        if (timelineSnapshot.status === 'playing') {
+          timelineEngine.pause();
+          setIsRunning(false);
+          return;
+        }
+        engineRef.current?.stop();
+        setAudioError(null);
+        const atEnd = compiledTimeline.duration > 0 && timelineSnapshot.position >= compiledTimeline.duration - 0.05;
+        const startAt = timelineSnapshot.status === 'ended' && atEnd
+          ? 0
+          : timelineSnapshot.status === 'stopped' && timelineSnapshot.position === 0
+            ? 0
+            : timelineSnapshot.position;
+        await timelineEngine.play(compiledTimeline, startAt, programmedBundle.timeline.volume);
+        setIsRunning(true);
+        return;
+      }
+
+      const engine = engineRef.current;
+      if (engine === null) {
+        return;
+      }
+
       if (isRunning) {
         engine.stop();
         setIsRunning(false);
       } else {
+        timelineEngineRef.current?.stop();
         setAudioError(null);
         await engine.start({ bpm, beatsPerBar, subdivision, beatSounds });
         setIsRunning(true);
@@ -449,7 +539,60 @@ export function MetronomePage() {
     }
   }
 
+  function clearProgrammedPlayback() {
+    timelineEngineRef.current?.stop();
+    setProgrammedBundle(null);
+    setTimelineEvent(undefined);
+    setTimelineSnapshot({ status: 'stopped', position: 0 });
+  }
+
+  async function startProgrammedSong(songId: string) {
+    setSelectedSongId(songId);
+    engineRef.current?.stop();
+    try {
+      const bundle = await songTimelinesRepository.getBySongId(songId);
+      if (!bundle || bundle.sections.length === 0) {
+        clearProgrammedPlayback();
+        return;
+      }
+      setProgrammedBundle(bundle);
+      const compiled = compileTimeline(bundle.timeline, bundle.sections);
+      const first = bundle.sections[0]!;
+      const nextSub = clampSubdivision(first.subdivision) as MetronomeSubdivision;
+      setBpm(clampBpm(first.tempo));
+      setBeatsPerBar(clampBeatsPerBar(first.numerator));
+      setSubdivision(nextSub);
+      setBeatSounds(normalizeBeatSounds(first.beatSounds, first.numerator, nextSub));
+      setTimelineSnapshot({ status: 'stopped', position: 0 });
+      setTimelineEvent(undefined);
+      setAudioError(null);
+      await timelineEngineRef.current?.play(compiled, 0, bundle.timeline.volume);
+      setIsRunning(true);
+    } catch {
+      setAudioError("Impossible de démarrer l'audio sur cet appareil.");
+      setIsRunning(false);
+    }
+  }
+
+  async function seekProgrammed(position: number) {
+    if (!compiledTimeline || !programmedBundle) return;
+    const timelineEngine = timelineEngineRef.current;
+    if (!timelineEngine) return;
+    if (timelineSnapshot.status === 'playing' || timelineSnapshot.status === 'ended') {
+      await timelineEngine.play(compiledTimeline, position, programmedBundle.timeline.volume);
+      return;
+    }
+    await timelineEngine.seek(position);
+  }
+
+  async function jumpProgrammedSection(direction: -1 | 1) {
+    if (!compiledTimeline || !timelinePosition) return;
+    const target = compiledTimeline.sections[timelinePosition.section.sectionIndex + direction];
+    if (target) await seekProgrammed(target.startTime);
+  }
+
   async function playSongTempo(songBpm?: number, songId?: string) {
+    clearProgrammedPlayback();
     if (songId) {
       setSelectedSongId(songId);
     }
@@ -470,6 +613,14 @@ export function MetronomePage() {
         setIsRunning(false);
       }
     }
+  }
+
+  function playOrOpenProgrammed(songId: string, songBpm?: number) {
+    if (programmedSongIdSet.has(songId)) {
+      void startProgrammedSong(songId);
+      return;
+    }
+    void playSongTempo(songBpm, songId);
   }
 
   function startLongPress(songId: string, songBpm?: number) {
@@ -500,6 +651,13 @@ export function MetronomePage() {
 
     setSelectedSongId(songId);
 
+    if (programmedSongIdSet.has(songId)) {
+      void startProgrammedSong(songId);
+      return;
+    }
+
+    clearProgrammedPlayback();
+
     if (songBpm && songBpm > 0) {
       if (isRunning) {
         void playSongTempo(songBpm, songId);
@@ -512,6 +670,9 @@ export function MetronomePage() {
   }
 
   function handleTapTempo() {
+    if (isProgrammedMode) {
+      return;
+    }
     const now = performance.now();
     const tapTimes = tapTimesRef.current.filter((time) => now - time < 2000);
     tapTimes.push(now);
@@ -560,19 +721,21 @@ export function MetronomePage() {
               <button
                 type="button"
                 onClick={handleTapTempo}
+                disabled={isProgrammedMode}
                 aria-label="Tap tempo"
-                className="flex h-10 px-3 items-center justify-center rounded-xl border border-white/10 bg-white/6 hover:bg-white/12 active:scale-95 text-xs font-black uppercase tracking-wider text-white transition shrink-0"
-                title="Taper pour calculer le tempo"
+                className="flex h-11 px-3 items-center justify-center rounded-xl border border-white/10 bg-white/6 hover:bg-white/12 active:scale-95 text-xs font-black uppercase tracking-wider text-white transition shrink-0 disabled:cursor-not-allowed disabled:opacity-35"
+                title={isProgrammedMode ? 'Tap indisponible sur un métronome programmé' : 'Taper pour calculer le tempo'}
               >
                 TAP
               </button>
               <button
                 type="button"
                 onClick={() => openTempoPicker()}
-                className="group flex items-baseline gap-1 rounded-xl p-1 text-left transition hover:bg-white/6 focus-visible:outline-none"
-                title="Cliquer pour changer le tempo"
+                disabled={isProgrammedMode}
+                className="group flex items-baseline gap-1 rounded-xl p-1 text-left transition hover:bg-white/6 focus-visible:outline-none disabled:hover:bg-transparent"
+                title={isProgrammedMode ? 'Tempo de la section en cours' : 'Cliquer pour changer le tempo'}
               >
-                <span className="text-3xl font-black tracking-tight text-white leading-none">{bpm}</span>
+                <span className="text-3xl font-black tracking-tight text-white leading-none tabular-nums">{displayBpm}</span>
                 <span className="text-[0.65rem] font-black uppercase tracking-wider text-[var(--fz-text-muted)] group-hover:text-white/80">BPM</span>
               </button>
             </div>
@@ -581,7 +744,7 @@ export function MetronomePage() {
             <div className="flex items-center justify-center justify-self-center">
               <button
                 type="button"
-                onClick={handleTogglePlayback}
+                onClick={() => void handleTogglePlayback()}
                 className={[
                   'flex h-12 w-12 items-center justify-center rounded-full transition transform active:scale-95 shadow-lg shrink-0',
                   isRunning
@@ -603,18 +766,20 @@ export function MetronomePage() {
               <button
                 type="button"
                 onClick={() => openTimeSignaturePicker()}
-                className="group rounded-xl p-1 text-right transition hover:bg-white/6 focus-visible:outline-none"
-                title="Cliquer pour changer la signature rythmique"
+                disabled={isProgrammedMode}
+                className="group rounded-xl p-1 text-right transition hover:bg-white/6 focus-visible:outline-none disabled:hover:bg-transparent"
+                title={isProgrammedMode ? 'Signature de la section en cours' : 'Cliquer pour changer la signature rythmique'}
               >
-                <span className="text-3xl font-black text-white leading-none">{beatsPerBar}/4</span>
+                <span className="text-3xl font-black text-white leading-none tabular-nums">{displayBeatsPerBar}/4</span>
               </button>
               <button
                 type="button"
                 onClick={() => setIsSubdivisionPickerOpen(true)}
-                className="group rounded-xl p-1 text-right transition hover:bg-white/6 flex items-center justify-center"
-                title="Cliquer pour changer la subdivision"
+                disabled={isProgrammedMode}
+                className="group rounded-xl p-1 text-right transition hover:bg-white/6 flex items-center justify-center disabled:hover:bg-transparent"
+                title={isProgrammedMode ? 'Subdivision de la section en cours' : 'Cliquer pour changer la subdivision'}
               >
-                <SubdivisionIcon value={subdivision} className="h-9 w-9 text-white" />
+                <SubdivisionIcon value={displaySubdivision} className="h-9 w-9 text-white" />
               </button>
             </div>
           </div>
@@ -622,14 +787,26 @@ export function MetronomePage() {
           {/* Barres de pulsation compactes */}
           <div className="mt-3.5">
             <MetronomeBeatGrid
-              engine={engineRef.current}
-              beatsPerBar={beatsPerBar}
-              subdivision={subdivision}
-              beatSounds={beatSounds}
-              onCycleSubdivisionSound={cycleSubdivisionSound}
-              isRunning={isRunning}
+              engine={isProgrammedMode ? null : engineRef.current}
+              beatsPerBar={displayBeatsPerBar}
+              subdivision={displaySubdivision}
+              beatSounds={displayBeatSounds}
+              {...(isProgrammedMode
+                ? { isRunning, activeBeat: programmedActiveBeat, activeSubdivision: programmedActiveSubdivision }
+                : { isRunning, onCycleSubdivisionSound: cycleSubdivisionSound })}
             />
           </div>
+
+          {isProgrammedMode && programmedBundle ? (
+            <ProgrammedSectionControls
+              sections={programmedBundle.sections}
+              currentIndex={programmedSectionIndex}
+              currentBar={(timelinePosition?.barIndex ?? 0) + 1}
+              barCount={currentProgrammedSection?.bars ?? 1}
+              onPrevious={() => void jumpProgrammedSection(-1)}
+              onNext={() => void jumpProgrammedSection(1)}
+            />
+          ) : null}
 
           {audioError ? <p className="mt-2 text-center text-xs font-semibold text-rose-400">{audioError}</p> : null}
         </section>
@@ -690,16 +867,32 @@ export function MetronomePage() {
           </div>
         ) : (
           <div className="divide-y divide-white/10">
-            {songs.map((song) => (
+            {songs.map((song) => {
+              const programmedBpm = programmedBpms[song.id];
+              const isProgrammed = programmedBpm !== undefined;
+              return (
               <ContentRow
                 key={song.id}
                 mode="button"
-                onClick={() => void playSongTempo(song.bpm, song.id)}
+                onClick={() => playOrOpenProgrammed(song.id, song.bpm)}
                 title={song.title || 'Sans titre'}
-                metadata={`${song.bpm ? `${song.bpm} BPM` : 'BPM --'} · ${song.key || 'Ton --'} · ${formatSongDuration(song.durationSeconds)}`}
+                metadata={
+                  <>
+                    {isProgrammed ? (
+                      <ProgrammedBpmHighlight bpm={programmedBpm} />
+                    ) : (
+                      song.bpm ? `${song.bpm} BPM` : 'BPM --'
+                    )}
+                    {` · ${song.key || 'Ton --'} · ${formatSongDuration(song.durationSeconds)}`}
+                  </>
+                }
                 status={<StatusPill label={getSongStatusLabel(song.status)} tone={getSongStatusTone(song.status)} />}
+                {...(isProgrammed ? {
+                  'aria-label': `Lancer le métronome programmé de ${song.title || 'Sans titre'}`,
+                } : {})}
               />
-            ))}
+              );
+            })}
           </div>
         )}
       </section>
@@ -749,17 +942,18 @@ export function MetronomePage() {
                   <button
                     type="button"
                     onClick={() => openTempoPicker()}
-                    className="group flex items-baseline gap-1.5 rounded-xl p-1 text-left transition hover:bg-white/5 justify-self-start"
-                    title="Changer le tempo"
+                    disabled={isProgrammedMode}
+                    className="group flex items-baseline gap-1.5 rounded-xl p-1 text-left transition hover:bg-white/5 justify-self-start disabled:hover:bg-transparent"
+                    title={isProgrammedMode ? 'Tempo de la section en cours' : 'Changer le tempo'}
                   >
-                    <span className="text-4xl font-black tracking-tight text-white leading-none">{bpm}</span>
+                    <span className="text-4xl font-black tracking-tight text-white leading-none tabular-nums">{displayBpm}</span>
                     <span className="text-xs font-black uppercase tracking-wider text-[var(--fz-text-muted)] group-hover:text-white/80">BPM</span>
                   </button>
 
                     <div className="flex items-center justify-center justify-self-center">
                     <button
                       type="button"
-                      onClick={handleTogglePlayback}
+                      onClick={() => void handleTogglePlayback()}
                       className={[
                         'flex h-14 w-14 items-center justify-center rounded-full transition transform active:scale-95 shadow-lg shrink-0',
                         isRunning
@@ -780,34 +974,48 @@ export function MetronomePage() {
                     <button
                       type="button"
                       onClick={() => openTimeSignaturePicker()}
-                      className="group rounded-xl p-1 text-right transition hover:bg-white/5"
-                      title="Changer la signature rythmique"
+                      disabled={isProgrammedMode}
+                      className="group rounded-xl p-1 text-right transition hover:bg-white/5 disabled:hover:bg-transparent"
+                      title={isProgrammedMode ? 'Signature de la section en cours' : 'Changer la signature rythmique'}
                     >
-                      <span className="text-4xl font-black text-white leading-none">{beatsPerBar}/4</span>
+                      <span className="text-4xl font-black text-white leading-none tabular-nums">{displayBeatsPerBar}/4</span>
                     </button>
 
                     <button
                       type="button"
                       onClick={() => setIsSubdivisionPickerOpen(true)}
-                      className="group rounded-xl p-1 text-right transition hover:bg-white/5 flex items-center justify-center"
-                      title="Changer la subdivision"
+                      disabled={isProgrammedMode}
+                      className="group rounded-xl p-1 text-right transition hover:bg-white/5 flex items-center justify-center disabled:hover:bg-transparent"
+                      title={isProgrammedMode ? 'Subdivision de la section en cours' : 'Changer la subdivision'}
                     >
-                      <SubdivisionIcon value={subdivision} className="h-10 w-10 text-white" />
+                      <SubdivisionIcon value={displaySubdivision} className="h-10 w-10 text-white" />
                     </button>
                   </div>
                 </div>
 
                 <div className="mt-5">
                   <MetronomeBeatGrid
-                    engine={engineRef.current}
-                    beatsPerBar={beatsPerBar}
-                    subdivision={subdivision}
-                    beatSounds={beatSounds}
-                    onCycleSubdivisionSound={cycleSubdivisionSound}
-                    isRunning={isRunning}
+                    engine={isProgrammedMode ? null : engineRef.current}
+                    beatsPerBar={displayBeatsPerBar}
+                    subdivision={displaySubdivision}
+                    beatSounds={displayBeatSounds}
                     heightClass="h-8 sm:h-9"
+                    {...(isProgrammedMode
+                      ? { isRunning, activeBeat: programmedActiveBeat, activeSubdivision: programmedActiveSubdivision }
+                      : { isRunning, onCycleSubdivisionSound: cycleSubdivisionSound })}
                   />
                 </div>
+
+                {isProgrammedMode && programmedBundle ? (
+                  <ProgrammedSectionControls
+                    sections={programmedBundle.sections}
+                    currentIndex={programmedSectionIndex}
+                    currentBar={(timelinePosition?.barIndex ?? 0) + 1}
+                    barCount={currentProgrammedSection?.bars ?? 1}
+                    onPrevious={() => void jumpProgrammedSection(-1)}
+                    onNext={() => void jumpProgrammedSection(1)}
+                  />
+                ) : null}
 
                 {audioError ? <p className="mt-3 text-sm font-semibold text-rose-400 text-center">{audioError}</p> : null}
               </section>
@@ -828,6 +1036,7 @@ export function MetronomePage() {
                   <div className="space-y-2">
                     {setlistSongs.map((entry, index) => {
                       const isSelected = entry.songId === selectedSongId;
+                      const programmedBpm = programmedBpms[entry.songId];
                       return (
                         <button
                           key={entry.id}
@@ -865,14 +1074,18 @@ export function MetronomePage() {
                                 {entry.songKey}
                               </span>
                             ) : null}
-                            <span
-                              className={[
-                                'rounded-lg px-2.5 py-1 text-xs font-black',
-                                entry.songBpm ? 'bg-amber-500/15 text-amber-400' : 'text-white/40',
-                              ].join(' ')}
-                            >
-                              {entry.songBpm ? `${entry.songBpm} BPM` : 'BPM --'}
-                            </span>
+                            {programmedBpm !== undefined ? (
+                              <ProgrammedBpmHighlight bpm={programmedBpm} />
+                            ) : (
+                              <span
+                                className={[
+                                  'rounded-lg px-2.5 py-1 text-xs font-black',
+                                  entry.songBpm ? 'bg-amber-500/15 text-amber-400' : 'text-white/40',
+                                ].join(' ')}
+                              >
+                                {entry.songBpm ? `${entry.songBpm} BPM` : 'BPM --'}
+                              </span>
+                            )}
                           </div>
                         </button>
                       );
@@ -926,6 +1139,24 @@ export function MetronomePage() {
         <PickerDialog
           title={editingBpmSongId ? 'Régler le tempo de la chanson' : 'Sélectionner le tempo'}
           closeLabel="Fermer"
+          headerActions={
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={!editingBpmSongId && !selectedSongId}
+              aria-label="Ouvrir la programmation du métronome"
+              leadingIcon={<FzIcon name="metronome" usageId="metronome.tempo.structure" size="sm" />}
+              onClick={() => {
+                const songId = editingBpmSongId ?? selectedSongId;
+                if (!songId) return;
+                setIsTempoPickerOpen(false);
+                setEditingBpmSongId(null);
+                navigate(`/songs/${songId}/structure`);
+              }}
+            >
+              Métronome
+            </Button>
+          }
           onClose={() => {
             setIsTempoPickerOpen(false);
             setEditingBpmSongId(null);
@@ -991,6 +1222,75 @@ export function MetronomePage() {
           <SubdivisionSelector value={subdivision} onChange={updateSubdivisionValue} />
         </PickerDialog>
       ) : null}
+    </div>
+  );
+}
+
+function ProgrammedBpmHighlight({ bpm }: { bpm: number }) {
+  return (
+    <span
+      className="rounded-md bg-amber-400/20 px-1.5 py-0.5 font-black tabular-nums text-amber-300"
+      title="Métronome programmé"
+    >
+      {bpm} BPM
+    </span>
+  );
+}
+
+function ProgrammedSectionControls({
+  sections,
+  currentIndex,
+  currentBar,
+  barCount,
+  onPrevious,
+  onNext,
+}: {
+  sections: TimelineSectionRecord[];
+  currentIndex: number;
+  currentBar: number;
+  barCount: number;
+  onPrevious: () => void;
+  onNext: () => void;
+}) {
+  const current = sections[currentIndex];
+  if (!current) return null;
+  const previous = currentIndex > 0 ? sections[currentIndex - 1] : undefined;
+  const next = currentIndex < sections.length - 1 ? sections[currentIndex + 1] : undefined;
+  const barNumber = Math.min(barCount, Math.max(1, currentBar));
+
+  return (
+    <div className="mt-4 space-y-3" role="region" aria-label="Sections du métronome programmé">
+      <div className="min-w-0 px-1 text-center">
+        <p className="truncate text-2xl font-black leading-tight tracking-tight text-white sm:text-[1.75rem]">{current.name}</p>
+        <p className="mt-1 text-base font-black uppercase tracking-[0.14em] text-amber-300 tabular-nums">
+          Mesure {barNumber} / {barCount}
+        </p>
+        <p className="mt-0.5 text-sm font-black uppercase tracking-[0.16em] text-white/50">
+          Section {currentIndex + 1} / {sections.length}
+        </p>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          disabled={!previous}
+          onClick={onPrevious}
+          aria-label={previous ? `Section précédente : ${previous.name}` : 'Section précédente'}
+          className="flex min-h-12 min-w-0 items-center justify-start gap-2 rounded-xl px-3 text-left text-white/70 transition hover:bg-white/6 hover:text-white disabled:opacity-25"
+        >
+          <FzIcon name="back" usageId="metronome.programmed.previous" size="md" />
+          {previous ? <span className="min-w-0 truncate text-sm font-black">{previous.name}</span> : null}
+        </button>
+        <button
+          type="button"
+          disabled={!next}
+          onClick={onNext}
+          aria-label={next ? `Section suivante : ${next.name}` : 'Section suivante'}
+          className="flex min-h-12 min-w-0 items-center justify-end gap-2 rounded-xl px-3 text-right text-white/70 transition hover:bg-white/6 hover:text-white disabled:opacity-25"
+        >
+          {next ? <span className="min-w-0 truncate text-sm font-black">{next.name}</span> : null}
+          <FzIcon name="next" usageId="metronome.programmed.next" size="md" />
+        </button>
+      </div>
     </div>
   );
 }

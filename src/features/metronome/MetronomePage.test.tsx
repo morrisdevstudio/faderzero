@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MetronomePage } from './MetronomePage';
 
@@ -9,6 +9,9 @@ const mocks = vi.hoisted(() => ({
   setlists: [] as any[],
   setlistSongs: [] as any[],
   engineInstances: [] as any[],
+  timelineEngineInstances: [] as any[],
+  programmedBpms: {} as Record<string, number>,
+  getBySongId: vi.fn(async (_songId?: string) => null as any),
 }));
 
 vi.mock('dexie-react-hooks', () => ({
@@ -52,6 +55,29 @@ vi.mock('@/db/repositories/setlistSongsRepository', () => ({
   },
 }));
 
+vi.mock('@/db/repositories/songTimelinesRepository', () => ({
+  songTimelinesRepository: {
+    listProgrammedAverageBpms: () => mocks.programmedBpms,
+    getBySongId: (songId: string) => mocks.getBySongId(songId),
+  },
+}));
+
+vi.mock('@/features/song-timeline/timelinePlaybackEngine', () => {
+  class FakeTimelinePlaybackEngine {
+    play = vi.fn().mockResolvedValue(undefined);
+    pause = vi.fn();
+    stop = vi.fn();
+    seek = vi.fn().mockResolvedValue(undefined);
+    setListener = vi.fn();
+    snapshot = { status: 'stopped', position: 0 };
+
+    constructor() {
+      mocks.timelineEngineInstances.push(this);
+    }
+  }
+  return { TimelinePlaybackEngine: FakeTimelinePlaybackEngine };
+});
+
 vi.mock('@/features/metronome/metronomeEngine', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/features/metronome/metronomeEngine')>();
   class FakeMetronomeEngine {
@@ -93,6 +119,8 @@ describe('MetronomePage - Pickers Valider & Annuler', () => {
     ];
     mocks.setlists = [];
     mocks.setlistSongs = [];
+    mocks.programmedBpms = {};
+    mocks.getBySongId.mockResolvedValue(null);
   });
 
   it('annule la modification du tempo si la pop-up est fermée sans valider', () => {
@@ -125,6 +153,23 @@ describe('MetronomePage - Pickers Valider & Annuler', () => {
 
     expect(screen.queryByRole('dialog', { name: 'Sélectionner le tempo' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /140\s*BPM/i })).toBeInTheDocument();
+  });
+
+  it('ouvre la programmation du métronome depuis le sélecteur de tempo', async () => {
+    render(
+      <MemoryRouter initialEntries={['/metronome']}>
+        <Routes>
+          <Route path="/metronome" element={<MetronomePage />} />
+          <Route path="/songs/:songId/structure" element={<p>Programmation métronome</p>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Chanson 1/ }));
+    fireEvent.click(screen.getByRole('button', { name: /^100\s*BPM$/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ouvrir la programmation du métronome' }));
+
+    expect(screen.getByText('Programmation métronome')).toBeInTheDocument();
   });
 
   it('annule la modification de la signature rythmique si fermée sans valider', () => {
@@ -217,6 +262,8 @@ describe('MetronomePage - Personnalisation des 3 sons par temps', () => {
     mocks.setlists = [];
     mocks.setlistSongs = [];
     mocks.engineInstances = [];
+    mocks.programmedBpms = {};
+    mocks.getBySongId.mockResolvedValue(null);
   });
 
   it('affiche les 4 temps avec leurs sons et couleurs par défaut', () => {
@@ -297,6 +344,127 @@ describe('MetronomePage - Personnalisation des 3 sons par temps', () => {
     // 2ème clic sur la 2ème croche : passe à médium (1)
     fireEvent.click(screen.getByRole('button', { name: 'Temps 1 subdivision 2 : Son aigu. Cliquer pour changer.' }));
     expect(screen.getByRole('button', { name: 'Temps 1 subdivision 2 : Son médium. Cliquer pour changer.' })).toBeInTheDocument();
+  });
+});
+
+describe('MetronomePage - Morceaux programmés', () => {
+  function makeSection(overrides: Record<string, unknown> = {}) {
+    return {
+      id: 'section-1',
+      timelineId: 'timeline-1',
+      workspaceId: 'workspace-1',
+      position: 0,
+      name: 'Intro',
+      bars: 4,
+      tempo: 128,
+      numerator: 4,
+      denominator: 4,
+      tempoUnit: 'quarter',
+      clickEnabled: true,
+      accentFirstBeat: true,
+      clickResolution: 'denominator',
+      subdivision: 1,
+      beatSounds: [[0], [1], [1], [1]],
+      countInMode: 'none',
+      countInBars: 0,
+      createdAt: 1,
+      updatedAt: 1,
+      ...overrides,
+    };
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.songs = [
+      {
+        id: 'song-1',
+        title: 'Chanson 1',
+        bpm: 100,
+        status: 'Idee',
+        durationSeconds: 120,
+      },
+      {
+        id: 'song-2',
+        title: 'Chanson programmée',
+        bpm: 135,
+        status: 'Pret',
+        durationSeconds: 180,
+      },
+    ];
+    mocks.setlists = [];
+    mocks.setlistSongs = [];
+    mocks.programmedBpms = { 'song-2': 128 };
+    mocks.engineInstances = [];
+    mocks.timelineEngineInstances = [];
+    mocks.getBySongId.mockResolvedValue({
+      timeline: {
+        id: 'timeline-1',
+        songId: 'song-2',
+        workspaceId: 'workspace-1',
+        startCountInBars: 0,
+        volume: 0.75,
+        createdAt: 1,
+        updatedAt: 1,
+      },
+      sections: [
+        makeSection(),
+        makeSection({ id: 'section-2', position: 1, name: 'Couplet', tempo: 90 }),
+      ],
+    });
+  });
+
+  function renderWithLiveRoute() {
+    return render(
+      <MemoryRouter initialEntries={['/metronome']}>
+        <Routes>
+          <Route path="/metronome" element={<MetronomePage />} />
+          <Route path="/songs/:songId/live" element={<p>Mode live timeline</p>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+  }
+
+  it('n’affiche plus de section dédiée et marque le morceau programmé', () => {
+    renderWithLiveRoute();
+
+    expect(screen.queryByRole('heading', { name: 'Morceaux programmés' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Lancer le métronome programmé de Chanson programmée' })).toBeInTheDocument();
+    expect(screen.getByTitle('Métronome programmé')).toHaveTextContent('128 BPM');
+    expect(screen.getByRole('button', { name: 'Lancer le métronome programmé de Chanson programmée' })).not.toHaveTextContent('135 BPM');
+  });
+
+  it('lance le métronome programmé sous le contrôleur au lieu d’ouvrir la page live', async () => {
+    renderWithLiveRoute();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Lancer le métronome programmé de Chanson programmée' }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('region', { name: 'Sections du métronome programmé' })).toBeInTheDocument();
+    });
+    expect(screen.queryByText('Mode live timeline')).not.toBeInTheDocument();
+    expect(screen.getByText('Section 1 / 2')).toBeInTheDocument();
+    expect(screen.getByText('Mesure 1 / 4')).toBeInTheDocument();
+    expect(screen.getByText('Intro')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Section précédente' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Section suivante : Couplet' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Section suivante : Couplet' })).toHaveTextContent('Couplet');
+    expect(mocks.engineInstances[0]?.start).not.toHaveBeenCalled();
+    expect(mocks.timelineEngineInstances[0]?.play).toHaveBeenCalled();
+  });
+
+  it('passe à la section suivante depuis le contrôleur', async () => {
+    renderWithLiveRoute();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Lancer le métronome programmé de Chanson programmée' }));
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Section suivante : Couplet' })).toBeEnabled();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Section suivante : Couplet' }));
+
+    await waitFor(() => {
+      expect(mocks.timelineEngineInstances[0]?.seek).toHaveBeenCalled();
+    });
   });
 });
 

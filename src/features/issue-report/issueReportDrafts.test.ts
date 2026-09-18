@@ -60,7 +60,7 @@ describe('issue report drafts', () => {
     const upgraded = createDatabase(name);
     try {
       await upgraded.open();
-      expect(upgraded.verno).toBe(15);
+      expect(upgraded.verno).toBe(17);
       expect(upgraded.tables.map(({ name: tableName }) => tableName)).toContain('issueReportDrafts');
     } finally {
       upgraded.close();

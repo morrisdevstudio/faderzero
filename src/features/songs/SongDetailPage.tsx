@@ -7,6 +7,7 @@ import { FormDialog } from '@/components/FormDialog';
 import { useGoBack, useLeaveScreen } from '@/hooks/useGoBack';
 import { HOME_FALLBACK } from '@/navigation/inAppBack';
 import { songsRepository } from '@/db/repositories/songsRepository';
+import { songTimelinesRepository } from '@/db/repositories/songTimelinesRepository';
 import type { AudioTrack } from '@/features/audio/audioPlayerStore';
 import { useAudioPlayerStore } from '@/features/audio/audioPlayerStore';
 import { SongFormFields, type SongFormValues } from '@/features/songs/SongFormFields';
@@ -259,6 +260,11 @@ export function SongDetailPage() {
     [songId, activeWorkspaceId]
   );
   const unlinkedAssets = useLiveQuery(() => songAssetsRepository.listUnlinkedTracks(), [activeWorkspaceId]);
+  const timelineBundle = useLiveQuery(() => songTimelinesRepository.getBySongId(songId), [songId, activeWorkspaceId]);
+  const programmedAverageBpm =
+    timelineBundle && timelineBundle.sections.length > 0
+      ? Math.round(timelineBundle.sections.reduce((sum, section) => sum + section.tempo, 0) / timelineBundle.sections.length)
+      : undefined;
   const playQueue = useAudioPlayerStore((state) => state.playQueue);
   const stop = useAudioPlayerStore((state) => state.stop);
   const currentIndex = useAudioPlayerStore((state) => state.currentIndex);
@@ -797,7 +803,16 @@ export function SongDetailPage() {
                   title={canWrite ? 'Modifier le tempo' : undefined}
                 >
                   <p className="text-[0.58rem] font-medium uppercase leading-tight text-[var(--fz-text-muted)]">Tempo</p>
-                  <p className="whitespace-nowrap text-[0.9rem] font-black leading-tight text-white">{currentSong.bpm || '--'}</p>
+                  {programmedAverageBpm !== undefined ? (
+                    <span
+                      className="whitespace-nowrap rounded-md bg-amber-400/20 px-1.5 py-0.5 text-[0.9rem] font-black tabular-nums leading-tight text-amber-300"
+                      title="Métronome programmé"
+                    >
+                      {programmedAverageBpm} BPM
+                    </span>
+                  ) : (
+                    <p className="whitespace-nowrap text-[0.9rem] font-black leading-tight text-white">{currentSong.bpm || '--'}</p>
+                  )}
                 </button>
                 <button
                   type="button"
@@ -1330,7 +1345,25 @@ export function SongDetailPage() {
       ) : null}
 
       {quickEditField === 'bpm' ? (
-        <PickerDialog title="Sélectionner le tempo" closeLabel="Fermer" onClose={() => setQuickEditField(null)}>
+        <PickerDialog
+          title="Sélectionner le tempo"
+          closeLabel="Fermer"
+          headerActions={
+            <Button
+              size="sm"
+              variant="secondary"
+              aria-label="Ouvrir la programmation du métronome"
+              leadingIcon={<FzIcon name="metronome" usageId="song-detail.tempo.structure" size="sm" />}
+              onClick={() => {
+                setQuickEditField(null);
+                navigate(`/songs/${songId}/structure`);
+              }}
+            >
+              Métronome
+            </Button>
+          }
+          onClose={() => setQuickEditField(null)}
+        >
           <WheelColumn
             options={bpmOptions}
             selectedValue={quickValue}

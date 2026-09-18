@@ -15,6 +15,7 @@ import {
   toLocalEvent,
   toDbPersonalContact, toLocalPersonalContact, toDbWorkspaceContact, toLocalWorkspaceContact, toDbEventContact, toLocalEventContact,
   toDbBookingLead, toLocalBookingLead, toDbBookingNote, toLocalBookingNote, toDbBookingLeadContact, toLocalBookingLeadContact,
+  toDbSongTimeline, toLocalSongTimeline, toDbTimelineSection, toLocalTimelineSection,
   mapTimestampToMs,
 } from './mappers';
 
@@ -46,6 +47,14 @@ const ENTITY_CONFIGS = {
     toDb: toDbSongAsset,
     toLocal: toLocalSongAsset,
     scope: 'workspace',
+  },
+  songTimeline: {
+    dbTable: 'song_timelines', localTable: 'songTimelines',
+    toDb: toDbSongTimeline, toLocal: toLocalSongTimeline, scope: 'workspace',
+  },
+  timelineSection: {
+    dbTable: 'timeline_sections', localTable: 'timelineSections',
+    toDb: toDbTimelineSection, toLocal: toLocalTimelineSection, scope: 'workspace',
   },
   event: {
     dbTable: 'events',
@@ -131,6 +140,10 @@ async function hasUnresolvedCreateDependency(mutation: SyncQueueItem): Promise<b
       { entityType: 'event', entityId: String(mutation.payload.eventId) },
       { entityType: 'workspaceContact', entityId: String(mutation.payload.contactId) },
     );
+  } else if (mutation.entityType === 'songTimeline') {
+    dependencies.push({ entityType: 'song', entityId: String(mutation.payload.songId) });
+  } else if (mutation.entityType === 'timelineSection') {
+    dependencies.push({ entityType: 'songTimeline', entityId: String(mutation.payload.timelineId) });
   }
 
   for (const dependency of dependencies) {
@@ -292,6 +305,9 @@ export async function pushPendingMutations(
     .toArray();
 
   const createDependencyOrder: Partial<Record<SyncQueueItem['entityType'], number>> = {
+    song: 0,
+    songTimeline: 1,
+    timelineSection: 2,
     workspaceContact: 0,
     bookingLead: 1,
     bookingLeadContact: 2,
@@ -299,6 +315,8 @@ export async function pushPendingMutations(
     eventContact: 2,
   };
   const deleteDependencyOrder: Partial<Record<SyncQueueItem['entityType'], number>> = {
+    timelineSection: 0,
+    songTimeline: 1,
     bookingLeadContact: 0,
     eventContact: 0,
     workspaceContact: 1,

@@ -10,6 +10,8 @@ import type {
   BookingNoteRecord,
   BookingLeadContactRecord,
   EventContactRecord,
+  SongTimelineRecord,
+  TimelineSectionRecord,
 } from '@/db/schema';
 import { normalizeSongDocument, SONG_DOCUMENT_VERSION } from '@/db/songDocument';
 
@@ -84,6 +86,100 @@ export interface DbSongAsset {
   deleted_at: string | null;
   server_version: number;
   last_modified_by: string | null;
+}
+
+export interface DbSongTimeline {
+  id: string;
+  workspace_id: string;
+  song_id: string;
+  start_count_in_bars: number;
+  volume: number;
+  created_at: string;
+  updated_at: string;
+  client_updated_at: string | null;
+  deleted_at: string | null;
+  server_version: number;
+  last_modified_by: string | null;
+}
+
+export interface DbTimelineSection {
+  id: string;
+  workspace_id: string;
+  timeline_id: string;
+  position: number;
+  name: string;
+  bars: number;
+  tempo: number;
+  numerator: number;
+  denominator: 1 | 2 | 4 | 8 | 16 | 32;
+  tempo_unit: TimelineSectionRecord['tempoUnit'];
+  click_enabled: boolean;
+  accent_first_beat: boolean;
+  click_resolution: TimelineSectionRecord['clickResolution'];
+  subdivision: TimelineSectionRecord['subdivision'];
+  beat_sounds: number[][];
+  count_in_mode: TimelineSectionRecord['countInMode'];
+  count_in_bars: number;
+  color: string | null;
+  created_at: string;
+  updated_at: string;
+  client_updated_at: string | null;
+  deleted_at: string | null;
+  server_version: number;
+  last_modified_by: string | null;
+}
+
+export function toLocalSongTimeline(row: DbSongTimeline): SongTimelineRecord {
+  const record: SongTimelineRecord = {
+    id: row.id, workspaceId: row.workspace_id, songId: row.song_id,
+    startCountInBars: row.start_count_in_bars, volume: row.volume,
+    createdAt: mapTimestampToMs(row.created_at)!,
+    updatedAt: mapTimestampToMs(row.client_updated_at) ?? mapTimestampToMs(row.updated_at)!,
+    serverVersion: row.server_version, syncStatus: 'synced',
+  };
+  const deletedAt = mapTimestampToMs(row.deleted_at);
+  if (deletedAt !== undefined) record.deletedAt = deletedAt;
+  return record;
+}
+
+export function toDbSongTimeline(record: SongTimelineRecord): Omit<DbSongTimeline, 'server_version' | 'last_modified_by'> {
+  return {
+    id: record.id, workspace_id: record.workspaceId, song_id: record.songId,
+    start_count_in_bars: record.startCountInBars, volume: record.volume,
+    created_at: mapMsToTimestamp(record.createdAt)!, updated_at: mapMsToTimestamp(record.updatedAt)!,
+    client_updated_at: mapMsToTimestamp(record.updatedAt), deleted_at: mapMsToTimestamp(record.deletedAt),
+  };
+}
+
+export function toLocalTimelineSection(row: DbTimelineSection): TimelineSectionRecord {
+  const record: TimelineSectionRecord = {
+    id: row.id, workspaceId: row.workspace_id, timelineId: row.timeline_id, position: row.position,
+    name: row.name, bars: row.bars, tempo: row.tempo, numerator: row.numerator, denominator: row.denominator,
+    tempoUnit: row.tempo_unit, clickEnabled: row.click_enabled, accentFirstBeat: row.accent_first_beat,
+    clickResolution: row.click_resolution, subdivision: row.subdivision ?? 1,
+    beatSounds: row.beat_sounds?.length ? row.beat_sounds : Array.from({ length: row.numerator }, (_, index) => [index === 0 ? 0 : 1]),
+    countInMode: row.count_in_mode, countInBars: row.count_in_bars,
+    createdAt: mapTimestampToMs(row.created_at)!,
+    updatedAt: mapTimestampToMs(row.client_updated_at) ?? mapTimestampToMs(row.updated_at)!,
+    serverVersion: row.server_version, syncStatus: 'synced',
+  };
+  if (row.color) record.color = row.color;
+  const deletedAt = mapTimestampToMs(row.deleted_at);
+  if (deletedAt !== undefined) record.deletedAt = deletedAt;
+  return record;
+}
+
+export function toDbTimelineSection(record: TimelineSectionRecord): Omit<DbTimelineSection, 'server_version' | 'last_modified_by'> {
+  return {
+    id: record.id, workspace_id: record.workspaceId, timeline_id: record.timelineId,
+    position: record.position, name: record.name, bars: record.bars, tempo: record.tempo,
+    numerator: record.numerator, denominator: record.denominator, tempo_unit: record.tempoUnit,
+    click_enabled: record.clickEnabled, accent_first_beat: record.accentFirstBeat,
+    click_resolution: record.clickResolution, subdivision: record.subdivision, beat_sounds: record.beatSounds, count_in_mode: record.countInMode,
+    count_in_bars: record.countInBars, color: record.color ?? null,
+    created_at: mapMsToTimestamp(record.createdAt)!, updated_at: mapMsToTimestamp(record.updatedAt)!,
+    client_updated_at: mapMsToTimestamp(record.updatedAt), deleted_at: mapMsToTimestamp(record.deletedAt),
+  };
 }
 
 export interface DbEvent {

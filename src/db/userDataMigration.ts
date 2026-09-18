@@ -29,6 +29,8 @@ const WORKSPACE_DATA_TABLES = [
   'setlists',
   'setlistSongs',
   'songAssets',
+  'songTimelines',
+  'timelineSections',
   'events',
   'eventContacts',
   'workspaceContacts',

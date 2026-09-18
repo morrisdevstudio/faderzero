@@ -8,10 +8,34 @@ import {
   serializeSyncQrFragment,
   SYNC_PROTOCOL,
   SYNC_PROTOCOL_VERSION,
+  LEGACY_SYNC_PROTOCOL_VERSION,
+  createPayloadHash,
 } from '@/features/sync/qrTransfer';
 import LZString from 'lz-string';
 
 describe('qrTransfer', () => {
+  it('reconstructs legacy V1 payloads without timeline fields', async () => {
+    const payload = { songs: [], setlists: [], setlistSongs: [] };
+    const payloadHash = await createPayloadHash(payload);
+    const legacyEnvelope = {
+      protocol: SYNC_PROTOCOL,
+      protocolVersion: LEGACY_SYNC_PROTOCOL_VERSION as typeof LEGACY_SYNC_PROTOCOL_VERSION,
+      exportedAt: 1,
+      sourceApp: 'faderzero-pwa',
+      payloadHash,
+      payload,
+    };
+    const compressed = LZString.compressToEncodedURIComponent(JSON.stringify(legacyEnvelope));
+    const fragments = fragmentCompressedPayload(compressed, payloadHash).map((fragment) => ({
+      ...fragment,
+      protocolVersion: LEGACY_SYNC_PROTOCOL_VERSION as typeof LEGACY_SYNC_PROTOCOL_VERSION,
+    }));
+    const rebuilt = await reconstructSyncExportPayload(fragments);
+    expect(rebuilt.protocolVersion).toBe(LEGACY_SYNC_PROTOCOL_VERSION);
+    expect(rebuilt.payload.songTimelines).toEqual([]);
+    expect(rebuilt.payload.timelineSections).toEqual([]);
+  });
+
   it('fragments and reconstructs a compressed sync payload', async () => {
     const exportPayload = await buildSyncExportPayload({
       songs: [

@@ -19,13 +19,15 @@ import type {
   BookingLeadContactRecord,
   EventContactRecord,
   IssueReportDraftRecord,
+  SongTimelineRecord,
+  TimelineSectionRecord,
 } from '@/db/schema';
 import { createId } from '@/lib/createId';
 import { now } from '@/lib/now';
 import { normalizeSongDocument, SONG_DOCUMENT_VERSION } from '@/db/songDocument';
 
 export const FADERZERO_DB_NAME = 'faderzero-pwa';
-export const FADERZERO_LOCAL_SCHEMA_VERSION = 15;
+export const FADERZERO_LOCAL_SCHEMA_VERSION = 17;
 
 const version1Stores = {
   songs: 'id, title, updatedAt',
@@ -103,11 +105,17 @@ const version13Stores = {
 const version14Stores = {
   ...version13Stores,
   eventContacts: 'id, workspaceId, eventId, contactId, [eventId+contactId], updatedAt, deletedAt, syncStatus',
-} satisfies Record<Exclude<keyof DatabaseSchema, 'issueReportDrafts'>, string>;
+} satisfies Record<Exclude<keyof DatabaseSchema, 'issueReportDrafts' | 'songTimelines' | 'timelineSections'>, string>;
 const version15Stores = {
   ...version14Stores,
   issueReportDrafts: 'id, userId, [userId+updatedAt], stage, updatedAt',
+} satisfies Record<Exclude<keyof DatabaseSchema, 'songTimelines' | 'timelineSections'>, string>;
+const version16Stores = {
+  ...version15Stores,
+  songTimelines: 'id, songId, workspaceId, updatedAt, deletedAt, syncStatus',
+  timelineSections: 'id, timelineId, workspaceId, [timelineId+position], updatedAt, deletedAt, syncStatus',
 } satisfies Record<keyof DatabaseSchema, string>;
+const version17Stores = version16Stores;
 
 export class FaderZeroDatabase extends Dexie {
   songs!: EntityTable<SongRecord, 'id'>;
@@ -128,6 +136,8 @@ export class FaderZeroDatabase extends Dexie {
   bookingLeadContacts!: EntityTable<BookingLeadContactRecord, 'id'>;
   eventContacts!: EntityTable<EventContactRecord, 'id'>;
   issueReportDrafts!: EntityTable<IssueReportDraftRecord, 'id'>;
+  songTimelines!: EntityTable<SongTimelineRecord, 'id'>;
+  timelineSections!: EntityTable<TimelineSectionRecord, 'id'>;
 
   constructor(name = FADERZERO_DB_NAME) {
     super(name);
@@ -271,6 +281,18 @@ export class FaderZeroDatabase extends Dexie {
     this.version(13).stores(version13Stores);
     this.version(14).stores(version14Stores);
     this.version(15).stores(version15Stores);
+    this.version(16).stores(version16Stores);
+    this.version(17)
+      .stores(version17Stores)
+      .upgrade(async (transaction) => {
+        await transaction
+          .table<TimelineSectionRecord, string>('timelineSections')
+          .toCollection()
+          .modify((section) => {
+            section.subdivision ||= 1;
+            section.beatSounds ||= Array.from({ length: section.numerator || 4 }, (_, index) => [index === 0 ? 0 : 1]);
+          });
+      });
   }
 }
 

@@ -1,16 +1,16 @@
-# Graph Report - FaderZeroPWA  (2026-09-18)
+# Graph Report - FaderZeroPWA  (2026-09-14)
 
 ## Corpus Check
-- 417 files · ~435,264 words
+- 389 files · ~415,680 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 11699 nodes · 13983 edges · 1135 communities (282 shown, 690 thin omitted)
-- Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 124 edges (avg confidence: 0.85)
+- 11625 nodes · 13881 edges · 1128 communities (278 shown, 688 thin omitted)
+- Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 123 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `8e2a0739`
+- Built from commit: `24ab820e`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -483,13 +483,13 @@
 - ../.githooks/pre-push
 - EPK Runtime Secrets
 - Cloudflare Audio Worker
-- src/features/epk/epk.ts
+- src/features/epk/EpkPage.tsx
 - SongsPage
 - ServiceWorkerGlobalScope
 - ServiceWorkerGlobalScope
 - cloudflare/epk-public/src/index.ts
 - src/features/epk/EpkEditorFields.tsx
-- EpkPage
+- src/features/epk/epk.ts
 - src/features/metronome/metronomeEngine.ts
 - src/db/schema.ts
 - AccountPage
@@ -636,7 +636,7 @@
 - Vectorize
 - ../src/ui/components/Button.tsx
 - Français
-- Plan : Retour selon le chemin
+- ../src/features/audio/AudioQuotaBanner.tsx
 - src/components/SortMenu.tsx
 - src/features/audio/audioPlayerStore.ts
 - src/features/songs/songPresentation.ts
@@ -673,7 +673,7 @@
 - D1PreparedStatement
 - KVNamespace
 - ReadableByteStreamController
-- inAppBack.ts
+- WorkspaceSelectionPage
 - TextDecoder
 - AiSearchItems
 - Artifacts
@@ -730,7 +730,7 @@
 - lib
 - types
 - post-commit
-- PRD.md
+- ../src/features/events/CalendarPage.test.tsx
 - scripts/run-cloudflare-checks.mjs
 - validate-cloudflare-free-tier.test.mjs
 - src/components/WorkspaceInvitePage.tsx
@@ -802,7 +802,6 @@
 - src/services/newsFeed.ts
 - src/services/supabase/profile.test.ts
 - src/features/audio/AudioQuotaBanner.tsx
-- src/features/epk/epk.test.ts
 - src/ui/components/SelectField.tsx
 - private.can_bootstrap_workspace_membership
 - public.setlist_songs
@@ -943,7 +942,6 @@
 - UnsafeTraceMetrics
 - WebSearch
 - deploy/bootstrap-remote-server.sh
-- useGoBack.ts
 - src/app/App.test.tsx
 - src/components/LoginPage.test.tsx
 - src/db/repositories/eventsRepository.ts
@@ -981,16 +979,12 @@
 - public.personal_contacts
 - public.workspace_contacts
 - src/stores/authStore.test.ts
-- ../src/components/UndoToast.tsx
+- src/ui/components/AddButton.tsx
 - src/ui/components/FieldLabel.tsx
-- ../src/features/home/HomePage.tsx
-- ../src/ui/components/AddButton.tsx
-- ../src/ui/components/SelectField.tsx
-- src/features/events/CalendarPage.test.tsx
 
 ## God Nodes (most connected - your core abstractions)
-1. `react` - 154 edges
-2. `EpkPage()` - 38 edges
+1. `react` - 151 edges
+2. `EpkPage()` - 33 edges
 3. `EpkPage()` - 32 edges
 4. `scripts` - 29 edges
 5. `scripts` - 29 edges
@@ -1020,7 +1014,7 @@
 - **Offline-First Data Flow** — readme_local_indexeddb_storage, readme_sync_queue, readme_supabase_cloud_sync, readme_qr_data_transfer [EXTRACTED 1.00]
 - **Database Security Validation** — github_workflows_ci_database_security, github_workflows_ci_supabase_local_validation, supabase_readme_local_database_validation, supabase_readme_rls_security [INFERRED 0.95]
 
-## Communities (1135 total, 690 thin omitted)
+## Communities (1128 total, 688 thin omitted)
 
 ### Community 0 - "../cloudflare/audio-worker/worker-configuration.d.ts"
 Cohesion: 0.00
@@ -1084,7 +1078,7 @@ Nodes (60): @breezystack/lamejs, dependencies, @breezystack/lamejs, dexie, dexie
 
 ### Community 15 - "react"
 Cohesion: 0.03
-Nodes (23): FeatureCardProps, WorkspaceSelectionPage(), AudioQuotaBanner(), AudioQuotaBannerProps, formatQuotaValue(), eventMocks, SetlistsPage(), UseLongPressOptions (+15 more)
+Nodes (24): FeatureCardProps, UndoToast(), UndoToastProps, formatRelativeTimeFr(), HomePage(), SetlistsPage(), UseLongPressOptions, AddButton() (+16 more)
 
 ### Community 16 - "../src/db/schema.ts"
 Cohesion: 0.06
@@ -1602,9 +1596,9 @@ Nodes (47): AUDIO_TYPES, auditR2Bucket(), auditR2Objects(), authenticate(), Auth
 Cohesion: 0.08
 Nodes (48): applySyncImport(), assertExactKeys(), assertFiniteNumber(), assertIdentifier(), assertInteger(), assertOptionalString(), assertRecord(), assertString() (+40 more)
 
-### Community 493 - "src/features/epk/epk.ts"
-Cohesion: 0.08
-Nodes (53): addEpkContact(), addEpkDocument(), addEpkLink(), addEpkPhoto(), addEpkTrack(), createEpk(), createEpkAssetSignedUrl(), CreateEpkContactInput (+45 more)
+### Community 493 - "src/features/epk/EpkPage.tsx"
+Cohesion: 0.07
+Nodes (49): addEpkContact(), addEpkLink(), addEpkTrack(), AvailableEpkTrack, createEpkAssetSignedUrl(), deleteEpkContact(), deleteEpkDocument(), deleteEpkLink() (+41 more)
 
 ### Community 494 - "SongsPage"
 Cohesion: 0.06
@@ -1623,12 +1617,12 @@ Cohesion: 0.10
 Nodes (43): createDocumentSession(), createTrackSession(), EpkContact, EpkDocument, EpkLink, EpkPhoto, EpkRow, epkSlugExists() (+35 more)
 
 ### Community 498 - "src/features/epk/EpkEditorFields.tsx"
-Cohesion: 0.06
-Nodes (33): AvailableEpkTrack, EpkContact, EpkDocument, EpkDocumentType, EpkPhoto, EpkTrack, EpkVideo, brandByLabel (+25 more)
+Cohesion: 0.08
+Nodes (21): EpkContact, EpkVideo, EpkVideoType, accentSwatches, ContactFormDialog(), DeleteIconButton(), EditIconButton(), EpkUrlDialog() (+13 more)
 
-### Community 499 - "EpkPage"
-Cohesion: 0.13
-Nodes (27): EpkPage(), addEditorContact(), addEditorDocument(), addEditorLink(), addEditorPhoto(), addEditorTrack(), addEditorVideo(), createDraft() (+19 more)
+### Community 499 - "src/features/epk/epk.ts"
+Cohesion: 0.09
+Nodes (35): addEpkDocument(), addEpkPhoto(), addEpkVideo(), createEpk(), CreateEpkContactInput, CreateEpkLinkInput, CreateEpkVideoInput, deleteEpkAsset() (+27 more)
 
 ### Community 500 - "src/features/metronome/metronomeEngine.ts"
 Cohesion: 0.08
@@ -1671,8 +1665,8 @@ Cohesion: 0.14
 Nodes (26): addSegueArrow(), addText(), buildPageContent(), buildPdfDocument(), buildPdfEntries(), buildTransitionMeta(), clampText(), curveTo() (+18 more)
 
 ### Community 510 - "SongDetailPage"
-Cohesion: 0.10
-Nodes (21): areFormValuesEqual(), buildRenamedFileName(), DuplicateDecision, DuplicatePromptState, durationMinuteOptions, durationSecondOptions, getPrimaryTrackStorageKey(), initialFormValues (+13 more)
+Cohesion: 0.11
+Nodes (20): areFormValuesEqual(), buildRenamedFileName(), DuplicateDecision, DuplicatePromptState, durationMinuteOptions, durationSecondOptions, getPrimaryTrackStorageKey(), initialFormValues (+12 more)
 
 ### Community 512 - "SyncTab"
 Cohesion: 0.09
@@ -1695,8 +1689,8 @@ Cohesion: 0.15
 Nodes (21): createEmptySongDocument(), createSongSection(), deriveSongTitle(), getDefaultSectionLabel(), isSongDocument(), normalizeSongDocument(), paragraph(), paragraphText() (+13 more)
 
 ### Community 593 - "src/features/epk/EpkPublicView.tsx"
-Cohesion: 0.11
-Nodes (21): EpkDraftDocument, EpkPublishedSnapshotV1, EpkRecord, DEFAULT_EPK_ACCENT, DEFAULT_EPK_EDITORIAL, DEFAULT_EPK_SECTION_ORDER, EPK_SECTION_IDS, EpkEditorialContent (+13 more)
+Cohesion: 0.08
+Nodes (32): EpkDraftDocument, EpkPublishedSnapshotV1, EpkRecord, getEpkCompleteness(), supabaseMock, validateEpkDraft(), brandByLabel, brandForLink() (+24 more)
 
 ### Community 594 - "SetlistDetailPage"
 Cohesion: 0.09
@@ -1719,7 +1713,7 @@ Cohesion: 0.10
 Nodes (7): CompressionStream, DecompressionStream, FixedLengthStream, IdentityTransformStream, TextDecoderStream, TextEncoderStream, TransformStream
 
 ### Community 603 - "useDialogAccessibility"
-Cohesion: 0.15
+Cohesion: 0.16
 Nodes (13): ConfirmDialog(), ConfirmDialogProps, FormDialog(), FormDialogProps, PickerDialog(), WheelColumn(), commitCenteredValue(), handleScroll() (+5 more)
 
 ### Community 604 - "src/features/songs/editor/SongEditor.tsx"
@@ -1819,7 +1813,7 @@ Cohesion: 0.18
 Nodes (8): private.audio_upload_rate_events, public.complete_audio_upload_reservation(), public.reserve_audio_upload(), auth.users, private.audio_upload_reservations, public.audio_files, public.song_assets, public.workspaces
 
 ### Community 649 - "src/features/account/AccountPage.test.tsx"
-Cohesion: 0.18
+Cohesion: 0.15
 Nodes (6): adminWorkspace, initialAuthState, profile, profileMocks, userSession, workspaceMocks
 
 ### Community 652 - "ExtendableEvent"
@@ -1918,9 +1912,9 @@ Nodes (6): Button, ButtonProps, ButtonSize, ButtonVariant, sizeClasses, variantC
 Cohesion: 0.25
 Nodes (8): 1. Responsable du traitement, 2. Données traitées et finalités, 3. Destinataires et prestataires, 4. Durées de conservation et suppression, 5. Vos droits, 6. Cookies, stockage local et sécurité, 7. Mineurs et modifications, Français
 
-### Community 706 - "Plan : Retour selon le chemin"
-Cohesion: 0.06
-Nodes (30): Bloquée par, Bloquée par, Bloquée par, Bloquée par, Bloquée par, Bloquée par, Bloquée par, Ce qu’on livre (+22 more)
+### Community 706 - "../src/features/audio/AudioQuotaBanner.tsx"
+Cohesion: 0.67
+Nodes (3): AudioQuotaBanner(), AudioQuotaBannerProps, formatQuotaValue()
 
 ### Community 707 - "src/components/SortMenu.tsx"
 Cohesion: 0.25
@@ -1990,10 +1984,6 @@ Nodes (5): AccountDeletionBlocker, deleteCurrentAccount(), getAccountDeletionBlo
 Cohesion: 0.57
 Nodes (5): clearPendingInviteToken(), persistInviteToken(), readPendingInviteToken(), removeInviteFromUrl(), StoredInviteContext
 
-### Community 743 - "inAppBack.ts"
-Cohesion: 0.21
-Nodes (10): backLayers, dismissTopBackLayer(), goBackInApp(), hasInAppHistory(), HistoryIndexSource, historyState(), HOME_FALLBACK, leaveScreen() (+2 more)
-
 ### Community 754 - "Français"
 Cohesion: 0.33
 Nodes (6): Données personnelles, Français, Hébergeur, Propriété intellectuelle, Responsabilité, Éditeur
@@ -2041,10 +2031,6 @@ Nodes (5): types, vite/client, vite-plugin-pwa/client, vitest/globals, types
 ### Community 799 - "post-commit"
 Cohesion: 0.40
 Nodes (4): post-commit script, GRAPHIFY_CHANGED, GRAPHIFY_REBUILD_LOG, PYTHONHASHSEED
-
-### Community 800 - "PRD.md"
-Cohesion: 0.22
-Nodes (8): Critères de succès, Décisions d’implémentation, Hors périmètre, Notes complémentaires, Problème, Solution, User Stories, Utilisateur cible
 
 ### Community 801 - "scripts/run-cloudflare-checks.mjs"
 Cohesion: 0.33
@@ -2098,10 +2084,6 @@ Nodes (6): Contact, Notre position, Politique relative aux cookies, Services tie
 Cohesion: 0.67
 Nodes (3): AudioQuotaBanner(), AudioQuotaBannerProps, formatQuotaValue()
 
-### Community 875 - "src/features/epk/epk.test.ts"
-Cohesion: 0.22
-Nodes (7): addEpkVideo(), getEpkCompleteness(), listEpkVideos(), parseEpkVideoUrl(), supabaseMock, toVideo(), validateEpkDraft()
-
 ### Community 877 - "private.can_bootstrap_workspace_membership"
 Cohesion: 0.50
 Nodes (3): private.can_bootstrap_workspace_membership(), public.workspace_members, public.workspaces
@@ -2146,24 +2128,18 @@ Nodes (3): @tiptap/core, @tiptap/core, @tiptap/core
 Cohesion: 0.67
 Nodes (3): vite-plugin-pwa, vite-plugin-pwa, vite-plugin-pwa
 
-### Community 1020 - "useGoBack.ts"
-Cohesion: 0.70
-Nodes (4): useGoBack(), useHistoryIndexSource(), useLeaveScreen(), useLeaveTo()
-
 ## Knowledge Gaps
-- **4675 isolated node(s):** `Décisions architecturales`, `Ce qu’on livre`, `Critères d’acceptation`, `Bloquée par`, `Ce qu’on livre` (+4670 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 8420 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **690 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **4639 isolated node(s):** `workspaceMocks`, `profileMocks`, `adminWorkspace`, `userSession`, `profile` (+4634 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 8374 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **688 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `react` connect `react` to `SyncTab`, `src/app/router.tsx`, `../src/features/recorder/QuickVoiceRecorder.tsx`, `SongsPage`, `../src/features/landing/LandingPage.tsx`, `../src/features/epk/EpkPage.tsx`, `../src/app/router.tsx`, `AccountPage`, `../src/features/epk/EpkEditorFields.tsx`, `../src/features/epk/EpkPublicView.tsx`, `../src/features/events/CalendarPage.tsx`, `SongDetailPage`, `SyncTab`, `../src/ui/icons/FzIcon.tsx`, `SetlistDetailPage`, `useDialogAccessibility`, `../src/features/songs/editor/SongEditor.tsx`, `../src/features/songs/SongFormFields.tsx`, `MetronomePage`, `SongWriterPage`, `../src/services/workspaceColors.ts`, `../src/features/booking/BookingOverview.tsx`, `../src/features/prompter/PrompterPage.tsx`, `src/ui/icons/FzIcon.tsx`, `../src/ui/components/FormFields.test.tsx`, `src/features/epk/EpkPublicView.tsx`, `SetlistDetailPage`, `useDialogAccessibility`, `src/features/songs/editor/SongEditor.tsx`, `src/features/songs/SongFormFields.tsx`, `../src/features/booking/BookingPage.tsx`, `MetronomePage`, `SongWriterPage`, `../src/components/UndoToast.tsx`, `src/services/workspaceColors.ts`, `../src/features/home/HomePage.tsx`, `../src/ui/components/AddButton.tsx`, `../src/ui/components/SelectField.tsx`, `src/features/booking/BookingOverview.tsx`, `src/features/events/CalendarPage.test.tsx`, `src/features/prompter/PrompterPage.tsx`, `src/ui/components/FieldLabel.tsx`, `../src/ui/components/TemporalFields.test.tsx`, `src/ui/components/FormFields.test.tsx`, `plugins`, `src/features/account/AccountPage.test.tsx`, `FaderHeaderLogo`, `src/app/App.tsx`, `src/features/booking/BookingPage.tsx`, `SyncBootstrap`, `../src/components/SortMenu.tsx`, `src/ui/components/TemporalFields.test.tsx`, `../src/ui/components/ContentRow.tsx`, `../src/features/booking/CopyContactModal.tsx`, `src/components/AppShell.tsx`, `../src/ui/components/Button.tsx`, `src/components/SortMenu.tsx`, `src/ui/components/Button.tsx`, `src/ui/components/ContentRow.tsx`, `../src/components/LoginPage.tsx`, `useOnlineStatus`, `../src/ui/components/AppHeader.tsx`, `../src/ui/components/ContextMenu.tsx`, `src/components/LoginPage.tsx`, `src/features/booking/CopyContactModal.tsx`, `useOnlineStatus`, `src/ui/components/AppHeader.tsx`, `src/ui/components/ContextMenu.tsx`, `WorkspaceInvitePage`, `../src/features/songs/CopySongModal.tsx`, `../src/features/trash/TrashModal.tsx`, `../src/ui/components/PageHeader.tsx`, `src/components/WorkspaceInvitePage.tsx`, `src/features/songs/CopySongModal.tsx`, `src/features/trash/TrashModal.tsx`, `src/ui/components/PageHeader.tsx`, `../src/ui/components/DetailHeader.tsx`, `../src/components/SplashScreen.tsx`, `../src/ui/components/FieldLabel.tsx`, `src/components/UndoToast.tsx`, `src/features/audio/AudioQuotaBanner.tsx`, `src/ui/components/SelectField.tsx`, `src/features/home/HomePage.tsx`, `LegalPage.tsx`, `src/features/recorder/QuickVoiceRecorder.tsx`, `Language`, `src/features/epk/epk.ts`, `SongsPage`, `src/features/epk/EpkEditorFields.tsx`, `AccountPage`, `src/features/events/CalendarPage.tsx`, `useGoBack.ts`, `SongDetailPage`?**
-  _High betweenness centrality (0.026) - this node is a cross-community bridge._
-- **Why does `Console` connect `Console` to `cloudflare/audio-worker/worker-configuration.d.ts`?**
-  _High betweenness centrality (0.002) - this node is a cross-community bridge._
-- **What connects `Décisions architecturales`, `Ce qu’on livre`, `Critères d’acceptation` to the rest of the system?**
-  _4675 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Why does `react` connect `react` to `SyncTab`, `src/app/router.tsx`, `../src/features/recorder/QuickVoiceRecorder.tsx`, `SongsPage`, `../src/features/landing/LandingPage.tsx`, `../src/features/epk/EpkPage.tsx`, `../src/app/router.tsx`, `AccountPage`, `../src/features/epk/EpkEditorFields.tsx`, `../src/features/epk/EpkPublicView.tsx`, `../src/features/events/CalendarPage.tsx`, `SongDetailPage`, `SyncTab`, `../src/ui/icons/FzIcon.tsx`, `SetlistDetailPage`, `useDialogAccessibility`, `../src/features/songs/editor/SongEditor.tsx`, `../src/features/songs/SongFormFields.tsx`, `MetronomePage`, `SongWriterPage`, `../src/services/workspaceColors.ts`, `../src/features/booking/BookingOverview.tsx`, `../src/features/prompter/PrompterPage.tsx`, `src/ui/icons/FzIcon.tsx`, `../src/ui/components/FormFields.test.tsx`, `src/features/epk/EpkPublicView.tsx`, `SetlistDetailPage`, `useDialogAccessibility`, `src/features/songs/editor/SongEditor.tsx`, `src/features/songs/SongFormFields.tsx`, `../src/features/booking/BookingPage.tsx`, `MetronomePage`, `SongWriterPage`, `src/services/workspaceColors.ts`, `src/ui/components/AddButton.tsx`, `src/ui/components/FieldLabel.tsx`, `src/features/booking/BookingOverview.tsx`, `src/features/prompter/PrompterPage.tsx`, `../src/ui/components/TemporalFields.test.tsx`, `src/ui/components/FormFields.test.tsx`, `plugins`, `src/features/account/AccountPage.test.tsx`, `FaderHeaderLogo`, `src/app/App.tsx`, `src/features/booking/BookingPage.tsx`, `SyncBootstrap`, `../src/components/SortMenu.tsx`, `src/ui/components/TemporalFields.test.tsx`, `../src/ui/components/ContentRow.tsx`, `../src/features/booking/CopyContactModal.tsx`, `src/components/AppShell.tsx`, `../src/ui/components/Button.tsx`, `../src/features/audio/AudioQuotaBanner.tsx`, `src/components/SortMenu.tsx`, `src/ui/components/Button.tsx`, `src/ui/components/ContentRow.tsx`, `../src/components/LoginPage.tsx`, `useOnlineStatus`, `../src/ui/components/AppHeader.tsx`, `../src/ui/components/ContextMenu.tsx`, `src/components/LoginPage.tsx`, `src/features/booking/CopyContactModal.tsx`, `WorkspaceSelectionPage`, `useOnlineStatus`, `src/ui/components/AppHeader.tsx`, `src/ui/components/ContextMenu.tsx`, `WorkspaceInvitePage`, `../src/features/songs/CopySongModal.tsx`, `../src/features/trash/TrashModal.tsx`, `../src/ui/components/PageHeader.tsx`, `../src/features/events/CalendarPage.test.tsx`, `src/components/WorkspaceInvitePage.tsx`, `src/features/songs/CopySongModal.tsx`, `src/features/trash/TrashModal.tsx`, `src/ui/components/PageHeader.tsx`, `../src/ui/components/DetailHeader.tsx`, `../src/components/SplashScreen.tsx`, `../src/ui/components/FieldLabel.tsx`, `src/components/UndoToast.tsx`, `src/features/audio/AudioQuotaBanner.tsx`, `src/ui/components/SelectField.tsx`, `src/features/home/HomePage.tsx`, `LegalPage.tsx`, `src/features/recorder/QuickVoiceRecorder.tsx`, `Language`, `src/features/epk/EpkPage.tsx`, `SongsPage`, `src/features/epk/EpkEditorFields.tsx`, `AccountPage`, `src/features/events/CalendarPage.tsx`, `SongDetailPage`?**
+  _High betweenness centrality (0.028) - this node is a cross-community bridge._
+- **What connects `workspaceMocks`, `profileMocks`, `adminWorkspace` to the rest of the system?**
+  _4639 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `../cloudflare/audio-worker/worker-configuration.d.ts` be split into smaller, more focused modules?**
   _Cohesion score 0.0023501762632197414 - nodes in this community are weakly interconnected._
 - **Should `../cloudflare/epk-public/worker-configuration.d.ts` be split into smaller, more focused modules?**
@@ -2172,3 +2148,5 @@ _Questions this graph is uniquely positioned to answer:_
   _Cohesion score 0.06453028972783142 - nodes in this community are weakly interconnected._
 - **Should `../src/features/recorder/QuickVoiceRecorder.tsx` be split into smaller, more focused modules?**
   _Cohesion score 0.060285563194077206 - nodes in this community are weakly interconnected._
+- **Should `../cloudflare/audio-worker/src/index.ts` be split into smaller, more focused modules?**
+  _Cohesion score 0.09551020408163265 - nodes in this community are weakly interconnected._

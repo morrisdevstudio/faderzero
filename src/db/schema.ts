@@ -72,6 +72,50 @@ export interface SongAssetRecord {
   syncStatus?: 'synced' | 'pending' | 'conflict';
 }
 
+export type TimelineTempoUnit = 'quarter' | 'eighth' | 'dottedQuarter' | 'half';
+export type TimelineClickResolution = 'tempoUnit' | 'denominator';
+export type TimelineCountInMode = 'none' | 'inserted' | 'overlay';
+export type TimelineSubdivision = 1 | 2 | 3 | 4 | 5 | 6;
+
+export interface SongTimelineRecord {
+  id: string;
+  songId: string;
+  workspaceId: string;
+  startCountInBars: number;
+  volume: number;
+  createdAt: number;
+  updatedAt: number;
+  deletedAt?: number;
+  serverVersion?: number;
+  syncStatus?: 'synced' | 'pending' | 'conflict';
+}
+
+export interface TimelineSectionRecord {
+  id: string;
+  timelineId: string;
+  workspaceId: string;
+  position: number;
+  name: string;
+  bars: number;
+  tempo: number;
+  numerator: number;
+  denominator: 1 | 2 | 4 | 8 | 16 | 32;
+  tempoUnit: TimelineTempoUnit;
+  clickEnabled: boolean;
+  accentFirstBeat: boolean;
+  clickResolution: TimelineClickResolution;
+  subdivision: TimelineSubdivision;
+  beatSounds: number[][];
+  countInMode: TimelineCountInMode;
+  countInBars: number;
+  color?: string;
+  createdAt: number;
+  updatedAt: number;
+  deletedAt?: number;
+  serverVersion?: number;
+  syncStatus?: 'synced' | 'pending' | 'conflict';
+}
+
 export interface PendingAudioUploadRecord {
   id: string;
   workspaceId: string;
@@ -234,7 +278,7 @@ export interface SyncStateRecord {
   lastPulledAt: number;
 }
 
-export type LocalEntityType = 'song' | 'setlist' | 'setlistSong' | 'songAsset' | 'event' | 'eventContact' | 'personalContact' | 'workspaceContact' | 'bookingLead' | 'bookingNote' | 'bookingLeadContact';
+export type LocalEntityType = 'song' | 'setlist' | 'setlistSong' | 'songAsset' | 'songTimeline' | 'timelineSection' | 'event' | 'eventContact' | 'personalContact' | 'workspaceContact' | 'bookingLead' | 'bookingNote' | 'bookingLeadContact';
 
 export interface LocalMigrationJournalRecord {
   id: string;
@@ -315,6 +359,8 @@ export interface DatabaseSchema {
   setlists: SetlistRecord;
   setlistSongs: SetlistSongRecord;
   songAssets: SongAssetRecord;
+  songTimelines: SongTimelineRecord;
+  timelineSections: TimelineSectionRecord;
   pendingAudioUploads: PendingAudioUploadRecord;
   syncQueue: SyncQueueItem;
   syncConflicts: SyncConflictRecord;
