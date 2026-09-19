@@ -32,6 +32,12 @@ interface AudioPlayerState {
 
 let audioElement: HTMLAudioElement | null = null;
 let activeObjectURL: string | null = null;
+let playbackGeneration = 0;
+let assignedPlaybackGeneration = 0;
+
+function isCurrentAudioPlayback() {
+  return assignedPlaybackGeneration === playbackGeneration;
+}
 
 function getCurrentTrack(state: AudioPlayerState) {
   return state.currentIndex >= 0 ? state.queue[state.currentIndex] : undefined;
@@ -46,14 +52,16 @@ function ensureAudioElement(
   }
 
   audioElement = new Audio();
-  audioElement.addEventListener('play', () => set({ status: 'playing', error: null }));
+  audioElement.addEventListener('play', () => {
+    if (isCurrentAudioPlayback()) set({ status: 'playing', error: null });
+  });
   audioElement.addEventListener('pause', () => {
-    if (get().status !== 'idle') {
+    if (isCurrentAudioPlayback() && get().status === 'playing') {
       set({ status: 'paused' });
     }
   });
   audioElement.addEventListener('timeupdate', () => {
-    if (!audioElement) {
+    if (!audioElement || !isCurrentAudioPlayback()) {
       return;
     }
 
@@ -63,7 +71,7 @@ function ensureAudioElement(
     });
   });
   audioElement.addEventListener('loadedmetadata', () => {
-    if (!audioElement) {
+    if (!audioElement || !isCurrentAudioPlayback()) {
       return;
     }
 
@@ -72,10 +80,10 @@ function ensureAudioElement(
     });
   });
   audioElement.addEventListener('ended', () => {
-    void get().next();
+    if (isCurrentAudioPlayback()) void get().next();
   });
   audioElement.addEventListener('error', () => {
-    set({ status: 'error', error: 'Impossible de lire cette piste.' });
+    if (isCurrentAudioPlayback()) set({ status: 'error', error: 'Impossible de lire cette piste.' });
   });
 
   return audioElement;
@@ -91,8 +99,10 @@ async function playTrackAtIndex(
     return;
   }
 
+  const generation = ++playbackGeneration;
   const audio = ensureAudioElement(set, get);
   const workspaceId = useAuthStore.getState().activeWorkspace?.id || 'default-workspace';
+  const isCurrentRequest = () => generation === playbackGeneration;
   set({ currentIndex: index, status: 'loading', error: null, currentTime: 0, duration: 0 });
 
   try {
@@ -103,20 +113,29 @@ async function playTrackAtIndex(
     }
 
     const cachedUrl = await getCachedAudioUrl(track.assetId);
+    if (!isCurrentRequest()) {
+      if (cachedUrl) URL.revokeObjectURL(cachedUrl);
+      return;
+    }
     if (cachedUrl) {
       audio.src = cachedUrl;
       activeObjectURL = cachedUrl;
     } else {
       if (!isAppOnline()) {
+        if (!isCurrentRequest()) return;
         set({ status: 'error', error: 'Hors ligne et morceau non disponible en cache.' });
         return;
       }
-      audio.src = await getSongAssetPlaybackUrl(workspaceId, track.assetId);
+      const playbackUrl = await getSongAssetPlaybackUrl(workspaceId, track.assetId);
+      if (!isCurrentRequest()) return;
+      audio.src = playbackUrl;
     }
+    assignedPlaybackGeneration = generation;
     audio.currentTime = 0;
     await audio.play();
+    if (!isCurrentRequest()) return;
   } catch {
-    set({ status: 'error', error: 'Impossible de lancer la lecture audio.' });
+    if (isCurrentRequest()) set({ status: 'error', error: 'Impossible de lancer la lecture audio.' });
   }
 }
 
@@ -160,14 +179,20 @@ export const useAudioPlayerStore = create<AudioPlayerState>((set, get) => ({
       return;
     }
 
+    const generation = playbackGeneration;
     try {
       await audio.play();
+      if (generation !== playbackGeneration) return;
     } catch {
-      set({ status: 'error', error: 'Impossible de reprendre la lecture audio.' });
+      if (generation === playbackGeneration) {
+        set({ status: 'error', error: 'Impossible de reprendre la lecture audio.' });
+      }
     }
   },
 
   stop() {
+    playbackGeneration += 1;
+    assignedPlaybackGeneration = 0;
     if (audioElement) {
       audioElement.pause();
       audioElement.currentTime = 0;

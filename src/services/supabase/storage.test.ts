@@ -3,12 +3,24 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   compressAudioForUpload: vi.fn(),
   createAsset: vi.fn(),
+  getActiveDatabase: vi.fn(),
+  repositoryDatabases: [] as unknown[],
   rpc: vi.fn(),
   uploadAudioObject: vi.fn(),
 }));
 
 vi.mock('@/lib/createId', () => ({ createId: () => 'asset-1' }));
+vi.mock('@/db/db', () => ({
+  getActiveDatabase: mocks.getActiveDatabase,
+}));
 vi.mock('@/db/repositories/songAssetsRepository', () => ({
+  SongAssetsRepository: class {
+    constructor(database: unknown) {
+      mocks.repositoryDatabases.push(database);
+    }
+
+    create = mocks.createAsset;
+  },
   songAssetsRepository: { create: mocks.createAsset },
 }));
 vi.mock('@/services/audio/r2Client', () => ({
@@ -29,6 +41,8 @@ describe('uploadSongAsset quota reservation', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     vi.clearAllMocks();
+    mocks.repositoryDatabases.length = 0;
+    mocks.getActiveDatabase.mockReturnValue({ name: 'database-a' });
     mocks.compressAudioForUpload.mockResolvedValue(
       new File(['compressed'], 'track.mp3', { type: 'audio/mpeg' })
     );
@@ -60,6 +74,9 @@ describe('uploadSongAsset quota reservation', () => {
       p_storage_path: 'workspaces/workspace-1/songs/song-1/asset-1.mp3',
     });
     expect(mocks.createAsset).toHaveBeenCalledOnce();
+    expect(mocks.createAsset).toHaveBeenCalledWith(
+      expect.objectContaining({ workspaceId: 'workspace-1' })
+    );
     expect(mocks.rpc.mock.invocationCallOrder[1]).toBeLessThan(
       mocks.createAsset.mock.invocationCallOrder[0] ?? Number.POSITIVE_INFINITY
     );
@@ -67,6 +84,31 @@ describe('uploadSongAsset quota reservation', () => {
       expect.any(File),
       undefined,
       { normalizePeak: false }
+    );
+  });
+
+  it('keeps the original database and workspace when the active context changes during upload', async () => {
+    const originalDatabase = { name: 'database-a' };
+    const nextDatabase = { name: 'database-b' };
+    mocks.getActiveDatabase.mockReturnValue(originalDatabase);
+    mocks.rpc
+      .mockResolvedValueOnce({ data: 'reservation-1', error: null })
+      .mockResolvedValueOnce({ data: null, error: null });
+    mocks.uploadAudioObject.mockImplementationOnce(async () => {
+      mocks.getActiveDatabase.mockReturnValue(nextDatabase);
+    });
+
+    await uploadSongAsset('workspace-1', undefined, new File(['source'], 'voice.webm'), {
+      durationSeconds: 6,
+    });
+
+    expect(mocks.getActiveDatabase).toHaveBeenCalledOnce();
+    expect(mocks.repositoryDatabases).toEqual([originalDatabase]);
+    expect(mocks.createAsset).toHaveBeenCalledWith(
+      expect.objectContaining({
+        workspaceId: 'workspace-1',
+        storagePath: 'workspaces/workspace-1/imports/asset-1.mp3',
+      })
     );
   });
 

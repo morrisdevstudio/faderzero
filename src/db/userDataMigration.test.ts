@@ -131,10 +131,28 @@ describe('user local data migration', () => {
       status: 'pending',
       queuedAt: 1,
     });
+    await database.personalContacts.put({
+      id: 'personal-contact', ownerId: 'user-a', name: 'Contact personnel',
+      createdAt: 1, updatedAt: 1, syncStatus: 'pending',
+    });
+    await database.syncQueue.add({
+      workspaceId: 'user:user-a',
+      entityType: 'personalContact',
+      entityId: 'personal-contact',
+      operation: 'create',
+      payload: {},
+      status: 'failed',
+      queuedAt: 1,
+    });
 
     await expect(purgeRevokedWorkspaceData(new Set(['workspace-a']), database)).resolves.toEqual(['workspace-b']);
     expect((await database.songs.toArray()).map(({ id }) => id)).toEqual(['kept']);
-    expect(await database.syncQueue.count()).toBe(0);
+    expect(await database.syncQueue.toArray()).toEqual([
+      expect.objectContaining({ workspaceId: 'user:user-a', entityId: 'personal-contact' }),
+    ]);
+    await expect(database.personalContacts.get('personal-contact')).resolves.toMatchObject({
+      syncStatus: 'pending',
+    });
     await expect(database.events.count()).resolves.toBe(0);
     await expect(database.eventContacts.count()).resolves.toBe(0);
     await expect(database.workspaceContacts.count()).resolves.toBe(0);

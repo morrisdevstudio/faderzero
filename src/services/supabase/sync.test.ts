@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import { pushPendingMutations, pullRemoteChanges } from './sync';
+import { pushPendingMutations, pullRemoteChanges, repairPersonalContactSyncQueue } from './sync';
 import { supabase } from './client';
 import { createTestDatabase, destroyTestDatabase } from '@/test/dbTestUtils';
 import type { FaderZeroDatabase } from '@/db/db';
@@ -29,6 +29,7 @@ const insertMock = vi.fn();
 const updateMock = vi.fn();
 const eqMock = vi.fn();
 const gtMock = vi.fn();
+const limitMock = vi.fn();
 const orderMock = vi.fn();
 const isMock = vi.fn();
 
@@ -38,6 +39,7 @@ const queryBuilder = {
   update: updateMock,
   eq: eqMock,
   gt: gtMock,
+  limit: limitMock,
   is: isMock,
   order: orderMock,
   maybeSingle: maybeSingleMock,
@@ -49,6 +51,7 @@ insertMock.mockReturnValue(queryBuilder);
 updateMock.mockReturnValue(queryBuilder);
 eqMock.mockReturnValue(queryBuilder);
 gtMock.mockReturnValue(queryBuilder);
+limitMock.mockReturnValue(queryBuilder);
 isMock.mockReturnValue(queryBuilder);
 orderMock.mockReturnValue(queryBuilder);
 maybeSingleMock.mockReturnValue(queryBuilder);
@@ -94,6 +97,7 @@ describe('Sync Engine', () => {
     updateMock.mockReturnValue(queryBuilder);
     eqMock.mockReturnValue(queryBuilder);
     gtMock.mockReturnValue(queryBuilder);
+    limitMock.mockReturnValue(queryBuilder);
     isMock.mockReturnValue(queryBuilder);
     orderMock.mockReturnValue(queryBuilder);
     maybeSingleMock.mockReturnValue(queryBuilder);
@@ -105,6 +109,30 @@ describe('Sync Engine', () => {
   });
 
   describe('pushPendingMutations', () => {
+    it('repairs a pending personal contact whose queue item was lost', async () => {
+      await database.personalContacts.put({
+        id: 'personal-contact',
+        ownerId: 'user-1',
+        name: 'Contact local',
+        createdAt: 1,
+        updatedAt: 2,
+        syncStatus: 'pending',
+      });
+
+      await expect(repairPersonalContactSyncQueue('user-1')).resolves.toBe(1);
+      expect(await database.syncQueue.toArray()).toEqual([
+        expect.objectContaining({
+          workspaceId: 'user:user-1',
+          entityType: 'personalContact',
+          entityId: 'personal-contact',
+          operation: 'create',
+          status: 'pending',
+        }),
+      ]);
+      await expect(repairPersonalContactSyncQueue('user-1')).resolves.toBe(0);
+      expect(await database.syncQueue.count()).toBe(1);
+    });
+
     it('successfully pushes a new creation mutation and clears the queue', async () => {
       const songId = 'new-song-id';
       const timestamp = now();
@@ -668,6 +696,50 @@ describe('Sync Engine', () => {
 
       const checkpoint = await database.syncState.get(`${workspaceId}:songs`);
       expect(checkpoint?.lastPulledVersion).toBe(11);
+    });
+
+    it('continues pulling later pages when the first page contains a pending row', async () => {
+      await database.syncState.put({
+        id: `${workspaceId}:songs`,
+        workspaceId,
+        tableName: 'songs',
+        lastPulledVersion: 10,
+        lastPulledAt: now(),
+      });
+      await database.songs.add({
+        id: 'pending-song',
+        workspaceId,
+        title: 'Local change',
+        lyrics: '',
+        status: 'Pret',
+        durationSeconds: 120,
+        createdAt: now(),
+        updatedAt: now(),
+        syncStatus: 'pending',
+      });
+
+      const firstPage = Array.from({ length: 1000 }, (_, index) =>
+        makeRemoteSongRow({
+          id: index === 0 ? 'pending-song' : `page-one-${index}`,
+          title: index === 0 ? 'Remote pending change' : `Page one ${index}`,
+          server_version: index + 11,
+        }),
+      );
+      const laterRow = makeRemoteSongRow({
+        id: 'later-clean-song',
+        title: 'Applied from the second page',
+        server_version: 1011,
+      });
+
+      orderMock
+        .mockResolvedValueOnce({ data: firstPage, error: null } as any)
+        .mockResolvedValueOnce({ data: [laterRow], error: null } as any);
+
+      await pullRemoteChanges(workspaceId);
+
+      expect((await database.songs.get('later-clean-song'))?.title).toBe('Applied from the second page');
+      expect((await database.syncState.get(`${workspaceId}:songs`))?.lastPulledVersion).toBe(10);
+      expect(gtMock).toHaveBeenCalledWith('server_version', 1010);
     });
   });
 });

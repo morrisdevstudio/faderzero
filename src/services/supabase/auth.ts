@@ -7,6 +7,8 @@ export interface PasswordSignUpResult {
   session: Session | null;
 }
 
+const SIGN_IN_TIMEOUT_MS = 10_000;
+
 function normalizeAuthError(error: unknown): Error {
   if (
     error &&
@@ -42,12 +44,22 @@ export async function signInWithPassword(email: string, password: string) {
     email,
     password,
   });
-  const timeoutPromise = new Promise<{ data: null; error: Error }>((_, reject) =>
-    setTimeout(() => reject(new Error('NETWORK_TIMEOUT')), 1500)
-  );
-  const { data, error } = (await Promise.race([authPromise, timeoutPromise])) as any;
-  if (error) throw normalizeAuthError(error);
-  return data;
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(() => reject(new Error('NETWORK_TIMEOUT')), SIGN_IN_TIMEOUT_MS);
+    });
+    const { data, error } = (await Promise.race([authPromise, timeoutPromise])) as any;
+    if (error) throw normalizeAuthError(error);
+    return data;
+  } catch (error) {
+    if (error instanceof Error && error.message === 'NETWORK_TIMEOUT') {
+      throw new Error('La connexion prend trop de temps. Vérifiez votre réseau puis réessayez.');
+    }
+    throw normalizeAuthError(error);
+  } finally {
+    if (timeoutId !== undefined) clearTimeout(timeoutId);
+  }
 }
 
 function getOAuthRedirectUrl(): string {

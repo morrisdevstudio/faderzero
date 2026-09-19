@@ -97,4 +97,24 @@ describe('SongAssetsRepository', () => {
 
     await destroyTestDatabase(database);
   });
+
+  it('uses an explicit workspace captured by a long-running operation', async () => {
+    const database = await createTestDatabase('song-assets-explicit-workspace');
+    const repository = new SongAssetsRepository(database);
+
+    const asset = await repository.create({
+      workspaceId: 'captured-workspace',
+      storagePath: 'workspaces/captured-workspace/imports/asset-captured.mp3',
+      filename: 'captured.mp3',
+      mimeType: 'audio/mpeg',
+      sizeBytes: 2048,
+    });
+
+    expect(asset.workspaceId).toBe('captured-workspace');
+    expect(await database.syncQueue.toArray()).toEqual([
+      expect.objectContaining({ workspaceId: 'captured-workspace', entityId: asset.id }),
+    ]);
+
+    await destroyTestDatabase(database);
+  });
 });

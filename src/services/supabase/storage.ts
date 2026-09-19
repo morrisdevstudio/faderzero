@@ -1,5 +1,6 @@
 import { createId } from '@/lib/createId';
-import { songAssetsRepository } from '@/db/repositories/songAssetsRepository';
+import { getActiveDatabase } from '@/db/db';
+import { SongAssetsRepository, songAssetsRepository } from '@/db/repositories/songAssetsRepository';
 import { createAudioSignedUrl, uploadAudioObject } from '@/services/audio/r2Client';
 import { supabase } from '@/services/supabase/client';
 import {
@@ -29,6 +30,7 @@ export async function uploadSongAsset(
   file: File,
   options: UploadSongAssetOptions = {}
 ): Promise<string> {
+  const database = getActiveDatabase();
   const durationSeconds = options.durationSeconds ?? await getAudioDurationSeconds(file);
   const uploadFile = await compressAudioForUpload(file, options.onProgress, {
     normalizePeak: options.normalizePeak ?? false,
@@ -65,8 +67,9 @@ export async function uploadSongAsset(
   }
 
   // 2. Création de l'enregistrement de métadonnées local (qui alimente la file syncQueue)
-  await songAssetsRepository.create({
+  await new SongAssetsRepository(database).create({
     id: assetId,
+    workspaceId,
     ...(songId !== undefined ? { songId } : {}),
     storagePath,
     filename,

@@ -28,6 +28,7 @@ import {
   signInWithGoogle,
   linkGoogleIdentity,
   hasGoogleIdentity,
+  signInWithPassword,
   signUpWithPassword,
 } from '@/services/supabase/auth';
 
@@ -63,6 +64,28 @@ describe('service Auth', () => {
       provider: 'google',
       options: { redirectTo: `${window.location.origin}/auth/callback?view=app` },
     });
+  });
+
+  it('attend un délai réseau réaliste et annule son minuteur après une connexion réussie', async () => {
+    vi.useFakeTimers();
+    authMocks.signInWithPassword.mockResolvedValue({ data: { session: null }, error: null });
+
+    await expect(signInWithPassword('compte@example.test', 'MotDePasse123')).resolves.toEqual({ session: null });
+    await vi.advanceTimersByTimeAsync(10_000);
+
+    expect(authMocks.signInWithPassword).toHaveBeenCalledOnce();
+    vi.useRealTimers();
+  });
+
+  it('retourne un message clair lorsque la connexion expire', async () => {
+    vi.useFakeTimers();
+    authMocks.signInWithPassword.mockImplementation(() => new Promise(() => undefined));
+    const attempt = signInWithPassword('compte@example.test', 'MotDePasse123');
+    const rejection = expect(attempt).rejects.toThrow('La connexion prend trop de temps');
+
+    await vi.advanceTimersByTimeAsync(10_000);
+    await rejection;
+    vi.useRealTimers();
   });
 
   it('associe Google et lit les identités déjà rattachées', async () => {

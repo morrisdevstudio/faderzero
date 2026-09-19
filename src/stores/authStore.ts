@@ -73,6 +73,7 @@ const LOCAL_STORAGE_KEY = 'faderzero_active_workspace_id';
 const LOCAL_WORKSPACES_KEY_PREFIX = 'faderzero_cached_workspaces';
 const WORKSPACE_REQUEST_TIMEOUT_MS = 5000;
 const preparedAudioCacheFingerprints = new Map<string, string>();
+let signInGeneration = 0;
 
 interface LoadedWorkspaces {
   workspaces: Workspace[];
@@ -253,17 +254,22 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   signIn: async (email, password) => {
+    const generation = ++signInGeneration;
+    const isCurrentSignIn = () => generation === signInGeneration;
     set({ loading: true, error: null, infoMessage: null });
     try {
       const authRes = await apiSignInWithPassword(email, password);
+      if (!isCurrentSignIn()) return;
       const userSession = authRes.session;
       if (userSession) {
         const userId = userSession.user.id;
         const loaded = await loadWorkspaces(userId);
+        if (!isCurrentSignIn()) return;
         const workspaces = loaded.workspaces;
         const active = selectInitialWorkspace(workspaces);
 
         await prepareUserLocalData(userId, loaded);
+        if (!isCurrentSignIn()) return;
         configureAudioCacheContext(userId, active?.id ?? null);
 
         if (active) {
@@ -280,14 +286,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         });
         return;
       }
+      if (!isCurrentSignIn()) return;
       set({ loading: false });
     } catch (err: any) {
+      if (!isCurrentSignIn()) return;
       set({ error: err.message, loading: false });
       throw err;
     }
   },
 
   signInWithGoogle: async () => {
+    signInGeneration += 1;
     set({ loading: true, error: null, infoMessage: null });
     try {
       await apiSignInWithGoogle();
@@ -308,6 +317,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   signUp: async (displayName, email, password) => {
+    signInGeneration += 1;
     set({ loading: true, error: null, infoMessage: null });
     try {
       const result = await apiSignUpWithPassword(displayName, email, password);
@@ -352,6 +362,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   signOut: async () => {
+    signInGeneration += 1;
     set({ loading: true, error: null, infoMessage: null });
     try {
       if (!isAppOnline()) {

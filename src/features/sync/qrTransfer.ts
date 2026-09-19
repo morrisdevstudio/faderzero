@@ -1,6 +1,7 @@
 import LZString from 'lz-string';
 import { db, type FaderZeroDatabase } from '@/db/db';
 import { normalizeCountInSound, type SetlistRecord, type SetlistSongRecord, type SongRecord, type SongStatus, type SongTimelineRecord, type TimelineSectionRecord } from '@/db/schema';
+import { normalizeBeatSounds } from '@/features/metronome/metronomeEngine';
 import { createId } from '@/lib/createId';
 import { now } from '@/lib/now';
 import {
@@ -287,7 +288,7 @@ function validateSongTimelinePayload(value: unknown, index: number): asserts val
 function validateTimelineSectionPayload(value: unknown, index: number): asserts value is SyncTimelineSectionPayload {
   const label = `payload.timelineSections[${index}]`;
   assertRecord(value, label);
-  assertExactKeys(value, ['id', 'timelineId', 'position', 'name', 'bars', 'tempo', 'numerator', 'denominator', 'tempoUnit', 'clickEnabled', 'accentFirstBeat', 'clickResolution', 'countInMode', 'countInBars', 'color', 'createdAt', 'updatedAt'], label);
+  assertExactKeys(value, ['id', 'timelineId', 'position', 'name', 'bars', 'tempo', 'numerator', 'denominator', 'tempoUnit', 'clickEnabled', 'accentFirstBeat', 'clickResolution', 'subdivision', 'beatSounds', 'countInMode', 'countInBars', 'color', 'createdAt', 'updatedAt'], label);
   assertIdentifier(value.id, `${label}.id`);
   assertIdentifier(value.timelineId, `${label}.timelineId`);
   assertInteger(value.position, `${label}.position`, 0, MAX_QR_RECORDS_PER_TYPE - 1);
@@ -299,6 +300,23 @@ function validateTimelineSectionPayload(value: unknown, index: number): asserts 
   if (!['quarter', 'eighth', 'dottedQuarter', 'half'].includes(value.tempoUnit as string)) throw new Error(`${label}.tempoUnit is invalid.`);
   if (typeof value.clickEnabled !== 'boolean' || typeof value.accentFirstBeat !== 'boolean') throw new Error(`${label}.click settings are invalid.`);
   if (!['tempoUnit', 'denominator'].includes(value.clickResolution as string)) throw new Error(`${label}.clickResolution is invalid.`);
+  if (value.subdivision !== undefined) {
+    assertInteger(value.subdivision, `${label}.subdivision`, 1, 6);
+  }
+  if (value.beatSounds !== undefined) {
+    if (!Array.isArray(value.beatSounds) || value.beatSounds.length !== value.numerator) {
+      throw new Error(`${label}.beatSounds is invalid.`);
+    }
+    const subdivision = typeof value.subdivision === 'number' ? value.subdivision : 1;
+    for (const [beatIndex, beat] of value.beatSounds.entries()) {
+      if (!Array.isArray(beat) || beat.length !== subdivision) {
+        throw new Error(`${label}.beatSounds[${beatIndex}] is invalid.`);
+      }
+      beat.forEach((sound, soundIndex) => {
+        assertInteger(sound, `${label}.beatSounds[${beatIndex}][${soundIndex}]`, 0, 2);
+      });
+    }
+  }
   if (!['none', 'inserted', 'overlay'].includes(value.countInMode as string)) throw new Error(`${label}.countInMode is invalid.`);
   assertInteger(value.countInBars, `${label}.countInBars`, 0, 8);
   assertOptionalString(value.color, `${label}.color`, 32);
@@ -753,7 +771,16 @@ export async function applySyncImport(
     const sectionsToAdd: TimelineSectionRecord[] = exportPayload.payload.timelineSections.map((section) => {
       const timelineId = timelineIdMap.get(section.timelineId);
       if (!timelineId) throw new Error('QR payload contains an invalid timeline section.');
-      return { ...section, id: createUniqueImportId(existingSectionIds), timelineId, workspaceId: targetWorkspaceId, syncStatus: 'pending' };
+      const subdivision = section.subdivision ?? 1;
+      return {
+        ...section,
+        id: createUniqueImportId(existingSectionIds),
+        timelineId,
+        workspaceId: targetWorkspaceId,
+        subdivision,
+        beatSounds: normalizeBeatSounds(section.beatSounds, section.numerator, subdivision),
+        syncStatus: 'pending',
+      };
     });
 
     if (songsToAdd.length > 0) {

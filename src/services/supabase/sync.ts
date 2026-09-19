@@ -1,5 +1,6 @@
 import { supabase } from './client';
 import { db } from '@/db/db';
+import { enqueueMutation } from '@/db/syncQueueHelper';
 import { now } from '@/lib/now';
 import type { SyncQueueItem } from '@/db/schema';
 import {
@@ -74,6 +75,7 @@ const ENTITY_CONFIGS = {
 const DEFAULT_RETRY_DELAY_MS = 5000;
 const DEFAULT_MAX_RETRIES = 3;
 const DEFAULT_PROCESSING_STALE_AFTER_MS = 30000;
+const REMOTE_PULL_PAGE_SIZE = 1000;
 
 export interface PushPendingMutationsOptions {
   includeFailed?: boolean;
@@ -484,24 +486,27 @@ export async function pullRemoteChanges(workspaceId: string): Promise<void> {
     if ((config.scope === 'owner') !== isUserScope) continue;
     const stateKey = `${workspaceId}:${config.localTable}`;
     const state = await db.syncState.get(stateKey);
-    const lastPulledVersion = state ? state.lastPulledVersion : 0;
+    let lastPulledVersion = state ? state.lastPulledVersion : 0;
 
     try {
       const scopeId = config.scope === 'owner' ? workspaceId.replace(/^user:/, '') : workspaceId;
       const scopeColumn = config.scope === 'owner' ? 'owner_id' : 'workspace_id';
-      const { data: remoteRows, error: pullError } = await supabase
-        .from(config.dbTable)
-        .select('*')
-        .eq(scopeColumn, scopeId)
-        .gt('server_version', lastPulledVersion)
-        .order('server_version', { ascending: true });
+      let pageAfterVersion = lastPulledVersion;
+      let firstBlockedVersion: number | null = null;
 
-      if (pullError) throw pullError;
+      while (true) {
+        const { data: remoteRows, error: pullError } = await supabase
+          .from(config.dbTable)
+          .select('*')
+          .eq(scopeColumn, scopeId)
+          .gt('server_version', pageAfterVersion)
+          .limit(REMOTE_PULL_PAGE_SIZE)
+          .order('server_version', { ascending: true });
 
-      if (remoteRows && remoteRows.length > 0) {
+        if (pullError) throw pullError;
+        if (!remoteRows || remoteRows.length === 0) break;
+
         await db.transaction('rw', db.table(config.localTable), db.syncState, async () => {
-          let blockedVersion: number | null = null;
-
           for (const row of remoteRows) {
             const localRecord = config.toLocal(row);
             const existingLocal = await db.table(config.localTable).get(row.id);
@@ -511,28 +516,34 @@ export async function pullRemoteChanges(workspaceId: string): Promise<void> {
               existingLocal &&
               (existingLocal.syncStatus === 'pending' || existingLocal.syncStatus === 'conflict')
             ) {
-              blockedVersion = blockedVersion === null ? serverVersion : Math.min(blockedVersion, serverVersion);
+              firstBlockedVersion = firstBlockedVersion === null
+                ? serverVersion
+                : Math.min(firstBlockedVersion, serverVersion);
               continue;
             }
 
             await db.table(config.localTable).put(localRecord);
           }
 
-          const maxVersion = Math.max(...remoteRows.map((r) => Number(r.server_version)));
-          const lastSafeVersion = blockedVersion === null ? maxVersion : blockedVersion - 1;
+          const pageMaxVersion = Math.max(...remoteRows.map((row) => Number(row.server_version)));
+          const lastSafeVersion = firstBlockedVersion === null
+            ? pageMaxVersion
+            : firstBlockedVersion - 1;
 
-          if (lastSafeVersion <= lastPulledVersion) {
-            return;
+          if (lastSafeVersion > lastPulledVersion) {
+            await db.syncState.put({
+              id: stateKey,
+              workspaceId,
+              tableName: config.localTable,
+              lastPulledVersion: lastSafeVersion,
+              lastPulledAt: now(),
+            });
+            lastPulledVersion = lastSafeVersion;
           }
-
-          await db.syncState.put({
-            id: stateKey,
-            workspaceId,
-            tableName: config.localTable,
-            lastPulledVersion: lastSafeVersion,
-            lastPulledAt: now(),
-          });
         });
+
+        pageAfterVersion = Math.max(...remoteRows.map((row) => Number(row.server_version)));
+        if (remoteRows.length < REMOTE_PULL_PAGE_SIZE) break;
       }
     } catch (err) {
       console.error(`[Pull Error] Table ${config.localTable} failed:`, err);
@@ -543,8 +554,48 @@ export async function pullRemoteChanges(workspaceId: string): Promise<void> {
 
 export async function syncPersonalContacts(ownerId: string): Promise<void> {
   const scope = `user:${ownerId}`;
+  await repairPersonalContactSyncQueue(ownerId);
   await pushPendingMutations(scope);
   await pullRemoteChanges(scope);
+}
+
+export async function repairPersonalContactSyncQueue(ownerId: string): Promise<number> {
+  const scope = `user:${ownerId}`;
+  const [pendingContacts, queuedMutations] = await Promise.all([
+    db.personalContacts
+      .where('ownerId')
+      .equals(ownerId)
+      .filter((contact) => contact.syncStatus === 'pending')
+      .toArray(),
+    db.syncQueue.where('workspaceId').equals(scope).toArray(),
+  ]);
+  const queuedContactIds = new Set(
+    queuedMutations
+      .filter((mutation) => mutation.entityType === 'personalContact')
+      .map((mutation) => mutation.entityId),
+  );
+  let repairedCount = 0;
+
+  for (const contact of pendingContacts) {
+    if (queuedContactIds.has(contact.id)) continue;
+    const operation = contact.deletedAt !== undefined
+      ? 'soft_delete'
+      : contact.serverVersion === undefined
+        ? 'create'
+        : 'update';
+    await enqueueMutation(
+      db,
+      scope,
+      'personalContact',
+      contact.id,
+      operation,
+      contact,
+      contact.serverVersion,
+    );
+    repairedCount += 1;
+  }
+
+  return repairedCount;
 }
 
 export async function resolveConflict(conflictId: string, resolution: 'local' | 'remote'): Promise<void> {

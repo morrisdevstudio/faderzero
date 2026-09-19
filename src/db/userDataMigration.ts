@@ -305,7 +305,13 @@ export async function purgeRevokedWorkspaceData(
   for (const tableName of WORKSPACE_DATA_TABLES) {
     const keys = await database.table(tableName).orderBy('workspaceId').uniqueKeys();
     for (const key of keys) {
-      if (typeof key === 'string' && key !== 'default-workspace') workspaceIds.add(key);
+      if (
+        typeof key === 'string' &&
+        key !== 'default-workspace' &&
+        !key.startsWith('user:')
+      ) {
+        workspaceIds.add(key);
+      }
     }
   }
   const revokedWorkspaceIds = [...workspaceIds].filter((workspaceId) => !allowedWorkspaceIds.has(workspaceId));

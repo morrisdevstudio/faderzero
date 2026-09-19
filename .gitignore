@@ -25,7 +25,6 @@ playwright/.auth/
 **/.smoke-tmp/
 .env.e2e
 .env.e2e.local
-docs/icon-audit/
 src/features/icon-admin/
 tools/icon-catalog/
 e2e/icon-audit-routes.spec.ts
@@ -41,11 +40,8 @@ supabase/functions/publish-icon-system/
 AGENTS.md
 PRODUCT.md
 scripts/ai/project-snapshot.ps1
-docs/AUDIT_SECURITE_FADERZERO.md
-docs/FONCTIONNALITES_FADERZERO.md
-docs/VALIDATION_COMMANDS_FADERZERO.md
 supabase/audit/
-docs/NETTOYAGE_DEPOT_GITHUB.md
+docs/
 
 # Temporary files & mocks
 preview_*.html

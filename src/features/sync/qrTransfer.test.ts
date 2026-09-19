@@ -296,4 +296,32 @@ describe('qrTransfer', () => {
     const rebuilt = await reconstructSyncExportPayload(fragments);
     expect(rebuilt.payload.songTimelines[0]).toMatchObject({ countInSound: 'voice' });
   });
+
+  it('round-trips timeline subdivisions and per-pulse sounds', async () => {
+    const exportPayload = await buildSyncExportPayload({
+      songs: [{ id: 'song-1', title: 'Song', lyrics: '', createdAt: 1, updatedAt: 1 }],
+      setlists: [],
+      setlistSongs: [],
+      songTimelines: [{
+        id: 'timeline-1', songId: 'song-1', startCountInBars: 1, volume: 1,
+        createdAt: 1, updatedAt: 1,
+      }],
+      timelineSections: [{
+        id: 'section-1', timelineId: 'timeline-1', position: 0, name: 'Intro',
+        bars: 4, tempo: 120, numerator: 2, denominator: 4, tempoUnit: 'quarter',
+        clickEnabled: true, accentFirstBeat: true, clickResolution: 'denominator',
+        subdivision: 2, beatSounds: [[0, 2], [1, 2]], countInMode: 'none',
+        countInBars: 0, createdAt: 1, updatedAt: 1,
+      }],
+    });
+    const compressedPayload = LZString.compressToEncodedURIComponent(JSON.stringify(exportPayload));
+    const rebuilt = await reconstructSyncExportPayload(
+      fragmentCompressedPayload(compressedPayload, exportPayload.payloadHash),
+    );
+
+    expect(rebuilt.payload.timelineSections[0]).toMatchObject({
+      subdivision: 2,
+      beatSounds: [[0, 2], [1, 2]],
+    });
+  });
 });

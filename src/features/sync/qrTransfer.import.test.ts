@@ -310,4 +310,37 @@ describe('qrTransfer import', () => {
       await destroyTestDatabase(database);
     }
   });
+
+  it('fills rhythm defaults when importing a timeline created before subdivision fields', async () => {
+    const database = await createTestDatabase('sync-import-legacy-rhythm');
+
+    try {
+      const exportPayload = await buildSyncExportPayload({
+        songs: [{ id: 's1', title: 'Song 1', lyrics: '', createdAt: 1, updatedAt: 1 }],
+        setlists: [],
+        setlistSongs: [],
+        songTimelines: [{
+          id: 'timeline-1', songId: 's1', startCountInBars: 1, volume: 1,
+          createdAt: 1, updatedAt: 1,
+        }],
+        timelineSections: [{
+          id: 'section-1', timelineId: 'timeline-1', position: 0, name: 'Intro',
+          bars: 4, tempo: 120, numerator: 4, denominator: 4, tempoUnit: 'quarter',
+          clickEnabled: true, accentFirstBeat: true, clickResolution: 'denominator',
+          countInMode: 'none', countInBars: 0, createdAt: 1, updatedAt: 1,
+        } as never],
+      });
+
+      await applySyncImport(exportPayload, database, 'target-ws');
+
+      expect(await database.timelineSections.toArray()).toEqual([
+        expect.objectContaining({
+          subdivision: 1,
+          beatSounds: [[0], [1], [1], [1]],
+        }),
+      ]);
+    } finally {
+      await destroyTestDatabase(database);
+    }
+  });
 });

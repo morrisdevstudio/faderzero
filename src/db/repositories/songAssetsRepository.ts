@@ -56,6 +56,7 @@ export class SongAssetsRepository {
 
   async create(input: {
     id?: string;
+    workspaceId?: string;
     songId?: string;
     storagePath: string;
     filename: string;
@@ -64,7 +65,7 @@ export class SongAssetsRepository {
     durationSeconds?: number;
   }) {
     const timestamp = now();
-    const workspaceId = this.getActiveWorkspaceId();
+    const workspaceId = input.workspaceId ?? this.getActiveWorkspaceId();
 
     const asset: SongAssetRecord = {
       id: input.id || createId(),

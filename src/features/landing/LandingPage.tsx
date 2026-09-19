@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import landingReferenceHtml from '../../../docs/landing page demo.html?raw';
+import landingReferenceHtml from './landing-reference.html?raw';
 import './landing-reference.css';
 
 /** This view mounts the supplied reference document unchanged. */
