@@ -27,7 +27,7 @@ import { now } from '@/lib/now';
 import { normalizeSongDocument, SONG_DOCUMENT_VERSION } from '@/db/songDocument';
 
 export const FADERZERO_DB_NAME = 'faderzero-pwa';
-export const FADERZERO_LOCAL_SCHEMA_VERSION = 17;
+export const FADERZERO_LOCAL_SCHEMA_VERSION = 18;
 
 const version1Stores = {
   songs: 'id, title, updatedAt',
@@ -116,6 +116,7 @@ const version16Stores = {
   timelineSections: 'id, timelineId, workspaceId, [timelineId+position], updatedAt, deletedAt, syncStatus',
 } satisfies Record<keyof DatabaseSchema, string>;
 const version17Stores = version16Stores;
+const version18Stores = version17Stores;
 
 export class FaderZeroDatabase extends Dexie {
   songs!: EntityTable<SongRecord, 'id'>;
@@ -291,6 +292,17 @@ export class FaderZeroDatabase extends Dexie {
           .modify((section) => {
             section.subdivision ||= 1;
             section.beatSounds ||= Array.from({ length: section.numerator || 4 }, (_, index) => [index === 0 ? 0 : 1]);
+          });
+      });
+    this.version(18)
+      .stores(version18Stores)
+      .upgrade(async (transaction) => {
+        await transaction
+          .table<SongAssetRecord, string>('songAssets')
+          .toCollection()
+          .modify((asset) => {
+            asset.assetType ||= 'other';
+            asset.sortOrder ??= 0;
           });
       });
   }

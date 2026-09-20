@@ -1,6 +1,6 @@
 import type { FaderZeroDatabase } from '@/db/db';
 import { db } from '@/db/db';
-import type { SongAssetRecord, SongRecord } from '@/db/schema';
+import type { SongAssetRecord, SongAssetType, SongRecord } from '@/db/schema';
 import { createId } from '@/lib/createId';
 import { now } from '@/lib/now';
 import { useAuthStore } from '@/stores/authStore';
@@ -21,7 +21,7 @@ export class SongAssetsRepository {
     const assets = await this.database.songAssets.where('songId').equals(songId).toArray();
     return assets
       .filter((asset) => includeDeleted || asset.deletedAt === undefined)
-      .sort((a, b) => b.createdAt - a.createdAt);
+      .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || b.createdAt - a.createdAt);
   }
 
   async listImportedTracks(): Promise<Array<SongAssetRecord & { song?: SongRecord }>> {
@@ -59,10 +59,16 @@ export class SongAssetsRepository {
     workspaceId?: string;
     songId?: string;
     storagePath: string;
+    audioFileId?: string;
     filename: string;
     mimeType: string;
     sizeBytes: number;
     durationSeconds?: number;
+    assetType?: SongAssetType;
+    label?: string;
+    recordedAt?: string;
+    sortOrder?: number;
+    contentHash?: string;
   }) {
     const timestamp = now();
     const workspaceId = input.workspaceId ?? this.getActiveWorkspaceId();
@@ -74,10 +80,13 @@ export class SongAssetsRepository {
       filename: input.filename,
       mimeType: input.mimeType,
       sizeBytes: input.sizeBytes,
+      assetType: input.assetType ?? 'other',
+      sortOrder: input.sortOrder ?? 0,
       createdAt: timestamp,
       updatedAt: timestamp,
       syncStatus: 'pending',
     };
+    if (input.audioFileId) asset.audioFileId = input.audioFileId;
 
     if (input.songId !== undefined) {
       asset.songId = input.songId;
@@ -86,6 +95,9 @@ export class SongAssetsRepository {
     if (input.durationSeconds !== undefined) {
       asset.durationSeconds = input.durationSeconds;
     }
+    if (input.label) asset.label = input.label.trim();
+    if (input.recordedAt) asset.recordedAt = input.recordedAt;
+    if (input.contentHash) asset.contentHash = input.contentHash;
 
     await this.database.transaction('rw', this.database.songAssets, this.database.syncQueue, async () => {
       await this.database.songAssets.add(asset);
@@ -98,10 +110,16 @@ export class SongAssetsRepository {
         {
           songId: asset.songId,
           storagePath: asset.storagePath,
+          audioFileId: asset.audioFileId,
           filename: asset.filename,
           mimeType: asset.mimeType,
           sizeBytes: asset.sizeBytes,
           durationSeconds: asset.durationSeconds,
+          assetType: asset.assetType,
+          label: asset.label,
+          recordedAt: asset.recordedAt,
+          sortOrder: asset.sortOrder,
+          contentHash: asset.contentHash,
           createdAt: asset.createdAt,
           updatedAt: asset.updatedAt,
         }
@@ -109,6 +127,32 @@ export class SongAssetsRepository {
     });
 
     return asset;
+  }
+
+  async updateMetadata(
+    id: string,
+    updates: Partial<Pick<SongAssetRecord, 'assetType' | 'label' | 'recordedAt' | 'sortOrder' | 'contentHash'>>
+  ) {
+    const existing = await this.database.songAssets.get(id);
+    if (!existing) throw new Error(`Song asset not found: ${id}`);
+    const timestamp = now();
+    const updated: SongAssetRecord = { ...existing, ...updates, updatedAt: timestamp, syncStatus: 'pending' };
+    if (!updated.label) delete updated.label;
+    if (!updated.recordedAt) delete updated.recordedAt;
+    if (!updated.contentHash) delete updated.contentHash;
+    await this.database.transaction('rw', this.database.songAssets, this.database.syncQueue, async () => {
+      await this.database.songAssets.put(updated);
+      await enqueueMutation(
+        this.database,
+        updated.workspaceId,
+        'songAsset',
+        updated.id,
+        'update',
+        { ...updates, updatedAt: timestamp },
+        existing.serverVersion
+      );
+    });
+    return updated;
   }
 
   async linkToSong(assetId: string, songId: string) {

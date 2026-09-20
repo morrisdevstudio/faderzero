@@ -474,23 +474,34 @@ describe('AccountPage', () => {
     expect(useAuthStore.getState().activeWorkspace?.id).toBe('other');
     expect(screen.getByRole('heading', { name: 'Autre groupe' })).toBeInTheDocument();
     const epk = screen.getByRole('button', { name: /Kit de presse public/ });
+    expect(screen.getByRole('button', { name: /Données du groupe/ })).toBeInTheDocument();
     expect(epk.querySelector('[data-icon-usage="account.menu.epk"]')).toBeInTheDocument();
     fireEvent.click(epk);
     expect(window.location.pathname).toBe('/account/epk');
     expect(useAuthStore.getState().activeWorkspace?.id).toBe('other');
   });
 
-  it.each(['member', 'guest'] as const)('préserve les droits du rôle %s, même via un lien direct', () => {
-    const workspace = { ...adminWorkspace, role: 'member' as const };
+  it.each(['member', 'guest'] as const)('préserve les droits du rôle %s, même via un lien direct', (role) => {
+    const workspace = { ...adminWorkspace, role };
     useAuthStore.setState({ workspaces: [workspace], activeWorkspace: workspace });
     window.history.replaceState({}, '', '/account?view=group-admin&workspace=workspace-test');
     render(<AccountPage />);
     expect(screen.getByRole('heading', { name: 'Groupe test' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Administration/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Kit de presse/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Données du groupe/ })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Membres et invitations' }));
     expect(screen.queryByRole('button', { name: 'Inviter des membres' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Quitter le groupe' })).toBeInTheDocument();
+  });
+
+  it.each(['member', 'guest'] as const)('refuse l’accès direct aux données du groupe pour le rôle %s', (role) => {
+    const workspace = { ...adminWorkspace, role };
+    useAuthStore.setState({ workspaces: [workspace], activeWorkspace: workspace });
+    window.history.replaceState({}, '', '/account?view=group-data&workspace=workspace-test');
+    render(<AccountPage />);
+    expect(screen.getByRole('heading', { name: 'Groupe test' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Créer l’archive/ })).not.toBeInTheDocument();
   });
 
   it('revient à l’accueil pour un groupe inconnu ou devenu inaccessible', () => {

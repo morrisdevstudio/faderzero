@@ -1,3 +1,5 @@
-# Import Export
+# Import / export du répertoire
 
-Les services d'import/export JSON seront ajoutés ici lors de l'étape de migration des données.
+`archive.ts` contient le format Archive FaderZero v1, l’export ZIP, l’analyse locale
+des archives et dossiers, le contrôle d’intégrité, les conflits, le quota, la
+déduplication et l’import avec rapport final.

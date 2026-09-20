@@ -77,10 +77,16 @@ export interface DbSongAsset {
   workspace_id: string;
   song_id: string | null;
   storage_path: string;
+  audio_file_id?: string | null;
   filename: string;
   mime_type: string;
   size_bytes: string | number;
   duration_seconds: number | null;
+  asset_type?: NonNullable<SongAssetRecord['assetType']>;
+  label?: string | null;
+  recorded_at?: string | null;
+  sort_order?: number;
+  content_hash?: string | null;
   created_at: string;
   updated_at: string;
   client_updated_at: string | null;
@@ -371,10 +377,13 @@ export function toLocalSongAsset(dbSongAsset: DbSongAsset): SongAssetRecord {
     filename: dbSongAsset.filename,
     mimeType: dbSongAsset.mime_type,
     sizeBytes: Number(dbSongAsset.size_bytes),
+    assetType: dbSongAsset.asset_type ?? 'other',
+    sortOrder: dbSongAsset.sort_order ?? 0,
     createdAt: mapTimestampToMs(dbSongAsset.created_at)!,
     updatedAt: logicalUpdatedAt,
     syncStatus: 'synced',
   };
+  if (dbSongAsset.audio_file_id) songAsset.audioFileId = dbSongAsset.audio_file_id;
 
   if (dbSongAsset.song_id !== null) {
     songAsset.songId = dbSongAsset.song_id;
@@ -383,6 +392,9 @@ export function toLocalSongAsset(dbSongAsset: DbSongAsset): SongAssetRecord {
   if (dbSongAsset.duration_seconds !== null && dbSongAsset.duration_seconds !== undefined) {
     songAsset.durationSeconds = dbSongAsset.duration_seconds;
   }
+  if (dbSongAsset.label) songAsset.label = dbSongAsset.label;
+  if (dbSongAsset.recorded_at) songAsset.recordedAt = dbSongAsset.recorded_at;
+  if (dbSongAsset.content_hash) songAsset.contentHash = dbSongAsset.content_hash;
 
   const deletedAt = mapTimestampToMs(dbSongAsset.deleted_at);
   if (deletedAt !== undefined) songAsset.deletedAt = deletedAt;
@@ -402,10 +414,16 @@ export function toDbSongAsset(
     workspace_id: songAsset.workspaceId,
     song_id: songAsset.songId ?? null,
     storage_path: songAsset.storagePath,
+    audio_file_id: songAsset.audioFileId ?? null,
     filename: songAsset.filename,
     mime_type: songAsset.mimeType,
     size_bytes: songAsset.sizeBytes,
     duration_seconds: songAsset.durationSeconds || null,
+    asset_type: songAsset.assetType ?? 'other',
+    label: songAsset.label ?? null,
+    recorded_at: songAsset.recordedAt ?? null,
+    sort_order: songAsset.sortOrder ?? 0,
+    content_hash: songAsset.contentHash ?? null,
     created_at: mapMsToTimestamp(songAsset.createdAt)!,
     updated_at: mapMsToTimestamp(songAsset.updatedAt)!,
     client_updated_at: mapMsToTimestamp(songAsset.updatedAt),

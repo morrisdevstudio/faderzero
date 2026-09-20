@@ -39,6 +39,15 @@ describe('SongAssetsRepository', () => {
     expect(activeAssets).toHaveLength(1);
     expect(activeAssets[0]?.filename).toBe('backing_track.mp3');
 
+    const enriched = await repository.updateMetadata(asset.id, {
+      assetType: 'master', label: 'Final', recordedAt: '2026-09-20', sortOrder: 4, contentHash: 'sha256-test',
+    });
+    expect(enriched).toMatchObject({ assetType: 'master', label: 'Final', recordedAt: '2026-09-20', sortOrder: 4, contentHash: 'sha256-test' });
+
+    const cleared = await repository.updateMetadata(asset.id, { label: '', recordedAt: '' });
+    expect(cleared.label).toBeUndefined();
+    expect(cleared.recordedAt).toBeUndefined();
+
     // Vérification de la syncQueue
     const queue = await database.syncQueue.toArray();
     expect(queue).toHaveLength(1);

@@ -1,6 +1,7 @@
 import type { SongDocumentV1 } from '@/db/songDocument';
 
 export type SongStatus = 'Idee' | 'En cours' | 'Pret';
+export type SongAssetType = 'demo' | 'rehearsal' | 'mix' | 'master' | 'live' | 'other';
 export type SetlistDisplayMode = 'all' | 'none' | 'per-song';
 
 export interface SongRecord {
@@ -61,10 +62,16 @@ export interface SongAssetRecord {
   workspaceId: string;
   songId?: string;
   storagePath: string;
+  audioFileId?: string;
   filename: string;
   mimeType: string;
   sizeBytes: number;
   durationSeconds?: number;
+  assetType?: SongAssetType;
+  label?: string;
+  recordedAt?: string;
+  sortOrder?: number;
+  contentHash?: string;
   createdAt: number;
   updatedAt: number;
   deletedAt?: number;

@@ -22,6 +22,7 @@ export interface UploadSongAssetOptions {
   filename?: string;
   normalizePeak?: boolean;
   durationSeconds?: number;
+  contentHash?: string;
 }
 
 export async function uploadSongAsset(
@@ -35,6 +36,7 @@ export async function uploadSongAsset(
   const uploadFile = await compressAudioForUpload(file, options.onProgress, {
     normalizePeak: options.normalizePeak ?? false,
   });
+  const contentHash = options.contentHash ?? await sha256File(uploadFile);
   const filename = buildCompressedFileName(options.filename ?? file.name);
   const assetId = createId();
   const storagePath = songId
@@ -76,10 +78,16 @@ export async function uploadSongAsset(
     mimeType: uploadFile.type || 'audio/mpeg',
     sizeBytes: uploadFile.size,
     ...(durationSeconds !== undefined ? { durationSeconds } : {}),
+    contentHash,
   });
   options.onProgress?.({ phase: 'upload', progress: 100, label: 'Upload termine' });
 
   return assetId;
+}
+
+async function sha256File(file: Blob): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', await file.arrayBuffer());
+  return [...new Uint8Array(digest)].map((value) => value.toString(16).padStart(2, '0')).join('');
 }
 
 async function getAudioDurationSeconds(file: File): Promise<number | undefined> {

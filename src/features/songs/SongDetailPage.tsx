@@ -27,7 +27,7 @@ import { useLongPress } from '@/hooks/useLongPress';
 import { useAudioCacheStore } from '@/features/audio/audioCacheStore';
 import { canWriteWorkspace } from '@/services/supabase/workspace';
 import { CopySongModal } from '@/features/songs/CopySongModal';
-import type { SongStatus } from '@/db/schema';
+import type { SongAssetType, SongStatus } from '@/db/schema';
 import { QuickVoiceRecorder } from '@/features/recorder/QuickVoiceRecorder';
 import { ContentRow } from '@/ui/components/ContentRow';
 import { ContextMenu } from '@/ui/components/ContextMenu';
@@ -55,6 +55,9 @@ const initialFormValues: SongFormValues = {
 const keyOptions = ['', 'C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'] as const;
 const durationMinuteOptions = Array.from({ length: 100 }, (_, index) => String(index).padStart(2, '0'));
 const durationSecondOptions = Array.from({ length: 60 }, (_, index) => String(index).padStart(2, '0'));
+const assetTypeLabels: Record<SongAssetType, string> = {
+  demo: 'Démo', rehearsal: 'Répétition', mix: 'Mix', master: 'Master', live: 'Live', other: 'Autre',
+};
 
 type DuplicateDecision =
   | { action: 'replace' }
@@ -183,6 +186,9 @@ export function SongDetailPage() {
   const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false);
   const [isAudioActionsOpen, setIsAudioActionsOpen] = useState(false);
   const [assetPendingDeletion, setAssetPendingDeletion] = useState<{ id: string; filename: string } | null>(null);
+  const [editingAssetMetadata, setEditingAssetMetadata] = useState<{
+    id: string; filename: string; assetType: SongAssetType; label: string; recordedAt: string; sortOrder: string;
+  } | null>(null);
   const [isVoiceRecorderOpen, setIsVoiceRecorderOpen] = useState(false);
   const [duplicatePrompt, setDuplicatePrompt] = useState<DuplicatePromptState | null>(null);
   const [selectedAssetToLinkId, setSelectedAssetToLinkId] = useState('');
@@ -963,6 +969,7 @@ export function SongDetailPage() {
                           {asset.filename}
                         </button>
                       }
+                      subtitle={[assetTypeLabels[asset.assetType ?? 'other'], asset.label, asset.recordedAt].filter(Boolean).join(' · ')}
                       trailing={
                         <div className="flex shrink-0 items-center gap-1">
                           {canWrite ? (
@@ -988,6 +995,15 @@ export function SongDetailPage() {
                             ariaLabel={`Actions pour ${asset.filename}`}
                             trigger={<FzIcon name="menu" usageId="song-detail.track.menu" size="sm" />}
                             items={[
+                              ...(canWrite ? [{
+                                id: `metadata-audio-${asset.id}`,
+                                label: 'Modifier les informations',
+                                icon: 'edit' as const,
+                                onSelect: () => {
+                                  setIsAudioActionsOpen(false);
+                                  setEditingAssetMetadata({ id: asset.id, filename: asset.filename, assetType: asset.assetType ?? 'other', label: asset.label ?? '', recordedAt: asset.recordedAt ?? '', sortOrder: String(asset.sortOrder ?? 0) });
+                                },
+                              }] : []),
                               {
                                 id: `download-local-${asset.id}`,
                                 label: isCached ? 'Retirer du local' : 'Télécharger en local',
@@ -1108,6 +1124,27 @@ export function SongDetailPage() {
               </button>
             </div> : null}
           </div>
+        </FormDialog>
+      ) : null}
+
+      {editingAssetMetadata ? (
+        <FormDialog title={`Informations · ${editingAssetMetadata.filename}`} closeLabel="Fermer" onClose={() => setEditingAssetMetadata(null)}>
+          <form className="space-y-4" onSubmit={(event) => {
+            event.preventDefault();
+            const metadata = editingAssetMetadata;
+            void songAssetsRepository.updateMetadata(metadata.id, {
+              assetType: metadata.assetType,
+              label: metadata.label.trim(),
+              recordedAt: metadata.recordedAt,
+              sortOrder: Number.isFinite(Number(metadata.sortOrder)) ? Number(metadata.sortOrder) : 0,
+            }).then(() => setEditingAssetMetadata(null)).catch((caught) => setError(caught instanceof Error ? caught.message : 'Impossible de modifier la piste.'));
+          }}>
+            <label className="block space-y-1"><span className="fz-field-label">Type</span><SelectField value={editingAssetMetadata.assetType} onChange={(event) => setEditingAssetMetadata({ ...editingAssetMetadata, assetType: event.target.value as SongAssetType })}>{Object.entries(assetTypeLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</SelectField></label>
+            <label className="block space-y-1"><span className="fz-field-label">Libellé</span><TextField value={editingAssetMetadata.label} onChange={(event) => setEditingAssetMetadata({ ...editingAssetMetadata, label: event.target.value })} placeholder="Version courte, mix voix…" /></label>
+            <label className="block space-y-1"><span className="fz-field-label">Date d’enregistrement</span><input className="fz-text-field fz-temporal-field" type="date" value={editingAssetMetadata.recordedAt} onChange={(event) => setEditingAssetMetadata({ ...editingAssetMetadata, recordedAt: event.target.value })} /></label>
+            <label className="block space-y-1"><span className="fz-field-label">Ordre</span><TextField type="number" min="0" step="1" value={editingAssetMetadata.sortOrder} onChange={(event) => setEditingAssetMetadata({ ...editingAssetMetadata, sortOrder: event.target.value })} /></label>
+            <Button type="submit" variant="primary" fullWidth>Enregistrer</Button>
+          </form>
         </FormDialog>
       ) : null}
 
