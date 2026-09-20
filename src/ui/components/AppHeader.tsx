@@ -9,6 +9,7 @@ interface AppHeaderGroup {
 
 interface AppHeaderProps {
   logo: ReactNode;
+  installAction?: ReactNode;
   currentGroup: AppHeaderGroup;
   onChangeGroup: () => void;
   status?: ReactNode;
@@ -37,11 +38,11 @@ function GroupBadge({ group }: { group: AppHeaderGroup }) {
   );
 }
 
-export function AppHeader({ logo, currentGroup, onChangeGroup, status }: AppHeaderProps) {
+export function AppHeader({ logo, installAction, currentGroup, onChangeGroup, status }: AppHeaderProps) {
   return (
     <div className="mx-auto h-16 w-full max-w-md px-4 sm:h-[72px] sm:px-5">
       <div className="flex h-full items-center justify-between gap-3">
-        <div className="shrink-0">{logo}</div>
+        <div className="flex min-w-0 shrink items-center gap-2">{logo}{installAction}</div>
         <button
           type="button"
           onClick={onChangeGroup}

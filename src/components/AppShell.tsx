@@ -15,6 +15,7 @@ import { AppHeader } from '@/ui/components/AppHeader';
 import { FaderLogo } from '@/ui/components/FaderLogo';
 import { UndoToast } from '@/components/UndoToast';
 import { useUndoToastStore } from '@/stores/undoToastStore';
+import { InstallButton } from '@/features/install/InstallButton';
 
 const scrollPositions = new Map<string, number>();
 
@@ -249,6 +250,7 @@ export function AppShell() {
         >
           <AppHeader
             logo={<FaderHeaderLogo />}
+            installAction={<InstallButton />}
             currentGroup={{
               name: activeWorkspace?.name ?? 'Mon Espace',
               initials: workspaceInitials,
