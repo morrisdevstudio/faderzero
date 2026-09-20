@@ -18,6 +18,7 @@ import { PwaUpdateNotice } from '@/app/PwaUpdateNotice';
 import { AppErrorBoundary } from '@/app/AppErrorBoundary';
 import { resolveViewTarget } from '@/utils/domainRouting';
 import { normalizeOAuthCallbackPath } from '@/utils/oauthCallback';
+import { InstallProvider } from '@/features/install/InstallProvider';
 
 import { SplashScreen } from '@/components/SplashScreen';
 
@@ -308,6 +309,7 @@ export function App() {
   const isPublicEpk = resolveViewTarget() === 'epk';
   return (
     <AppProviders>
+      <InstallProvider>
       {isPublicEpk ? (
         <Suspense fallback={<SplashScreen animated={false} />}><EpkPublicPage /></Suspense>
       ) : (
@@ -319,6 +321,7 @@ export function App() {
         </>
       )}
       <PwaUpdateNotice />
+      </InstallProvider>
     </AppProviders>
   );
 }

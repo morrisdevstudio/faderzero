@@ -6,6 +6,7 @@ import { assertValidPassword, getPasswordRequirements } from '@/services/supabas
 import { PasswordField } from '@/ui/components/PasswordField';
 import { TextField } from '@/ui/components/TextField';
 import { FaderLogo } from '@/ui/components/FaderLogo';
+import { InstallButton } from '@/features/install/InstallButton';
 
 type AuthMode = 'signin' | 'signup' | 'forgot';
 
@@ -113,13 +114,14 @@ export function LoginPage({ inviteTokenPresent = false }: LoginPageProps) {
 
       <div className="relative w-full max-w-md rounded-[1.8rem] border border-white/10 bg-[rgba(16,18,24,0.96)] p-7 sm:p-8 shadow-[0_32px_80px_rgba(0,0,0,0.6)] backdrop-blur-2xl">
         {/* Brand Header */}
-        <div className="flex flex-col items-center justify-center text-center mb-8">
+        <div className="mb-8 flex flex-wrap items-center justify-center gap-3 text-center">
           <div role="img" aria-label="FaderZero">
             <FaderLogo
               className="h-[54px] w-[147px] text-white"
               preserveAspectRatio="none"
             />
           </div>
+          <InstallButton />
         </div>
 
         {/* Tab Selector */}
