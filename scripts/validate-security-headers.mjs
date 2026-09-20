@@ -15,6 +15,7 @@ const activeConfiguration = caddyfile
 const requiredFragments = [
   "Content-Security-Policy \"default-src 'self'",
   "script-src 'self'",
+  "worker-src 'self' blob:",
   "style-src 'self'",
   "img-src 'self' data: blob: https://faderzero-audio-api.admin-morris-studio.workers.dev https://i.ytimg.com https://img.youtube.com",
   "media-src 'self' blob: https://faderzero-audio-api.admin-morris-studio.workers.dev",
@@ -46,6 +47,7 @@ if (/:8080\s*\{/i.test(activeConfiguration)) {
 const requiredPagesFragments = [
   "Content-Security-Policy: default-src 'self'",
   "script-src 'self'",
+  "worker-src 'self' blob:",
   "style-src 'self'",
   "img-src 'self' data: blob: https://faderzero-audio-api.admin-morris-studio.workers.dev https://i.ytimg.com https://img.youtube.com",
   "media-src 'self' blob: https://faderzero-audio-api.admin-morris-studio.workers.dev",
