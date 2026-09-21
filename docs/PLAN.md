@@ -1,4 +1,4 @@
-# Plan : Parcours d’installation de la webapp
+# Plan : Export, sauvegarde, restauration et import massif du répertoire
 
 > PRD source : `docs/PRD.md`
 
@@ -6,106 +6,314 @@
 
 Décisions durables qui s’appliquent à toutes les phases :
 
-- **Routes et domaine** : le parcours ne crée aucune route dédiée et n’est proposé que dans l’application servie sur `app.faderzero.com`. La landing publique reste inchangée.
-- **Persistance** : aucune donnée d’installation n’est enregistrée en base. L’état du parcours et l’éventuelle capacité d’installation directe restent limités à la session du navigateur.
-- **Modèle clé** : un environnement d’installation commun expose le système d’exploitation, le navigateur, le mode navigateur ou standalone et la disponibilité éventuelle d’une installation directe.
-- **Authentification** : le parcours est indépendant de l’état de connexion et utilise le même comportement sur les écrans de connexion, d’inscription et dans l’app connectée.
-- **Frontière navigateur** : l’installation directe repose exclusivement sur la capacité offerte par le navigateur après une action explicite de l’utilisateur. Une aide manuelle adaptée reste toujours disponible en secours.
-- **État installé** : FaderZero masque le point d’entrée lorsqu’il est ouvert en mode standalone ou lorsqu’une installation réussit pendant la session. Il ne tente pas de détecter une installation réalisée depuis un autre navigateur.
-- **Présentation** : le parcours utilise un panneau remontant du bas sur mobile et une modale centrée sur ordinateur. Les tutoriels emploient des illustrations simplifiées plutôt que des captures d’écran.
-- **Accessibilité** : le bouton, la modale, le panneau et toutes les actions restent utilisables au clavier, annonçables par un lecteur d’écran et refermables sans installer l’application.
+- **Routes** : tout passe par Compte → Groupe → **Données du groupe**, URL `/account?view=group-data&workspace=<id>`. Parent : vue Groupe. Pas d’export/import depuis la fiche morceau, la liste, ni une route `/songs/…`. L’export, la prévisualisation, la progression et le rapport sont des **étapes** de cette vue, pas des URLs séparées.
+- **Autorisation** : `admin` du **groupe** uniquement (`canAdministerWorkspace`). Membre et invité ne voient pas l’entrée. L’espace personnel n’est pas concerné. Export et import **uniquement en ligne** ; hors ligne, les actions restent visibles mais indisponibles.
+- **Format** : **Archive FaderZero v1**. Manifeste global + un dossier par morceau (infos du morceau, paroles texte, paroles mises en forme, fichiers audio relatifs). Jamais une copie brute de la base, des identifiants d’infrastructure ou des chemins de stockage internes. Le titre réel vit dans les infos du morceau ; le nom de dossier est uniquement lisible (caractères interdits remplacés, homonymes `Intro` / `Intro (2)`).
+- **Schéma audio (song assets)** : `assetType` (`demo` | `rehearsal` | `mix` | `master` | `live` | `other`), `label`, `recordedAt`, `sortOrder`, `contentHash`. Les libellés UI : Démo, Répétition, Mix, Master, Live, Autre.
+- **Modèles clés** : Archive FaderZero, Morceau d’import normalisé, Prévisualisation d’import, Rapport d’import, Politique de conflit (`mettre à jour` | `créer` | `ignorer`).
+- **Import** : passe par les APIs métier existantes (création / mise à jour de morceau, envoi audio, réservation de quota **durée**). L’identifiant d’origine de l’archive sert à reconnaître un morceau **dans ce groupe**, jamais comme nouvel identifiant imposé.
+- **Priorités d’analyse** : titre = infos archive → nom de dossier → nom de fichier isolé. Paroles = mises en forme FaderZero → texte → aucune. Type audio = infos archive → convention de nom → Autre.
 
 ---
 
-## Phase 1 : Point d’entrée et parcours générique
+## Phase 1 : Types audio des fichiers d’un morceau
 
-**User stories** : US-1, US-2, US-3, US-6, US-11, US-13, US-14
+**User stories** : prérequis de US-33
 
 ### Ce qu’on livre
 
-Un premier parcours complet permet d’ouvrir l’aide à l’installation depuis les écrans de connexion, d’inscription et depuis l’app connectée. FaderZero reconnaît l’environnement courant, masque le bouton en mode standalone et affiche une aide générique exploitable lorsqu’aucun parcours plus précis n’est disponible. L’interface adopte dès cette tranche son format mobile ou ordinateur définitif.
+Sur un morceau déjà dans le groupe, chaque fichier audio a un type (Démo, Répétition, Mix, Master, Live, Autre), un libellé optionnel, une date d’enregistrement optionnelle et un ordre. Ces infos survivent à un rechargement. Les fichiers existants sans type valent Autre. Sans ça, une archive ne peut pas restituer les types.
 
 ### Critères d’acceptation
 
-- [ ] Sur `app.faderzero.com` dans un navigateur, le bouton **Installer** est visible près du logo avant et après connexion.
-- [ ] Sur mobile, le bouton conserve une icône et le libellé **Installer** sans empêcher l’utilisation des autres contrôles de l’en-tête.
-- [ ] Lorsque FaderZero est ouvert en mode standalone, le bouton est absent.
-- [ ] Le clic ouvre un panneau remontant du bas sur mobile et une modale centrée sur ordinateur.
-- [ ] Un environnement non reconnu reçoit une aide générique et ne produit jamais un contenu vide.
-- [ ] Fermer le parcours sans installer conserve le bouton et permet de le rouvrir.
-- [ ] Le bouton et le parcours sont utilisables au clavier et correctement annoncés par un lecteur d’écran.
-- [ ] Aucun bouton **Installer** n’apparaît sur la landing publique.
+- [ ] Un fichier audio d’un morceau peut recevoir un type parmi les six valeurs, un libellé et une date.
+- [ ] Après rechargement, type, libellé, date et ordre sont inchangés.
+- [ ] Un fichier créé avant cette phase s’affiche en Autre tant qu’on ne l’a pas changé.
+- [ ] Les libellés écran sont en français ; les valeurs stockées restent stables.
 
 ## Bloquée par
 
-Aucune — démarrable immédiatement.
+- Aucune — démarrable immédiatement
 
 ---
 
-## Phase 2 : Installation native
+## Phase 2 : Écran Données du groupe
 
-**User stories** : US-4, US-5, US-12, US-14
+**User stories** : US-21, US-22, US-28
 
 ### Ce qu’on livre
 
-Lorsqu’un navigateur compatible propose l’installation directe, le parcours présente **Installer maintenant** et ouvre la fenêtre native après confirmation de l’utilisateur. Une réussite masque immédiatement le bouton. Une fermeture, un refus ou l’indisponibilité ultérieure de l’installation directe bascule immédiatement vers l’aide manuelle adaptée, sans bloquer une nouvelle consultation du parcours.
+L’admin d’un groupe ouvre Données du groupe depuis Compte → Groupe. Il y voit les actions d’export et d’import. Un membre ou un invité ne voit pas cette entrée. Hors ligne, les actions sont visibles mais indisponibles, avec une phrase d’explication. S’il n’y a aucun morceau, un message l’indique et on ne lance pas d’export.
 
 ### Critères d’acceptation
 
-- [ ] Lorsque l’installation directe est disponible, le parcours affiche **Installer maintenant**.
-- [ ] Un clic sur **Installer maintenant** ouvre la fenêtre d’installation du navigateur.
-- [ ] Après une installation réussie, le bouton **Installer** disparaît immédiatement pour le reste de la session.
-- [ ] Après un refus ou la fermeture de la fenêtre native, l’aide manuelle adaptée apparaît immédiatement.
-- [ ] Après un refus, le point d’entrée reste disponible et le parcours peut être rouvert.
-- [ ] Si la capacité d’installation directe n’est plus disponible, l’utilisateur voit le parcours manuel plutôt qu’une action inopérante.
-- [ ] Les comportements de réussite, refus, fermeture et absence de capacité directe sont couverts par des tests automatisés.
+- [ ] Un admin de groupe voit Données du groupe sous le groupe concerné, URL `/account?view=group-data&workspace=<id>`.
+- [ ] Un membre ou un invité ne voit ni l’entrée ni les actions.
+- [ ] Hors ligne, export et import restent visibles, indisponibles, avec une explication.
+- [ ] Répertoire vide : message, pas de fichier téléchargé.
 
 ## Bloquée par
 
-- Phase 1 : Point d’entrée et parcours générique.
+- Aucune — démarrable immédiatement (en parallèle de la phase 1)
 
 ---
 
-## Phase 3 : Parcours iPhone et iPad
+## Phase 3 : Export données uniquement
 
-**User stories** : US-6, US-7, US-8
+**User stories** : US-1, US-2, US-3, US-4, US-5, US-30, US-31, US-32
 
 ### Ce qu’on livre
 
-Sur iPhone et iPad, le parcours explique l’installation manuelle avec des illustrations simplifiées. Safari et Chrome disposent chacun d’une variante correspondant à l’emplacement de leur commande **Partager**, puis convergent vers **Ajouter à l’écran d’accueil** et **Ajouter**.
+L’admin crée une archive du répertoire **sans** les fichiers audio. Avant création : nombre de morceaux, nombre d’audios décrits, taille estimée. Avertissement visible : cette archive ne restaure pas les audios. Une fois téléchargée et ouverte hors FaderZero : un dossier par morceau, paroles lisibles, infos (titre réel conservé même si le dossier est simplifié), deux titres identiques dans deux dossiers distincts. Un morceau sans paroles ou sans audio est quand même exporté. Choix « données uniquement » / « avec audio » : seul « données uniquement » produit un fichier dans cette phase.
 
 ### Critères d’acceptation
 
-- [ ] Sur Safari iPhone ou iPad, le parcours montre successivement **Partager**, **Ajouter à l’écran d’accueil** et **Ajouter**.
-- [ ] Sur Chrome iPhone ou iPad, le parcours montre les mêmes actions avec une illustration propre à l’interface de Chrome.
-- [ ] Les illustrations de Safari et Chrome sont visuellement distinctes et restent compréhensibles sans capture d’écran réelle.
-- [ ] Un autre navigateur sur iPhone ou iPad reçoit une aide manuelle cohérente utilisant le menu de partage.
-- [ ] Les illustrations sont ignorées par le lecteur d’écran lorsque leur information est déjà donnée par le texte.
-- [ ] Les variantes Safari, Chrome et navigateur iOS inconnu sont couvertes par des tests automatisés.
+- [ ] L’admin choisit données uniquement, voit le compteur et la taille, puis télécharge une archive.
+- [ ] L’avertissement « les fichiers audio ne pourront pas être restaurés » est visible avant et dans le flux.
+- [ ] Hors FaderZero : un dossier par morceau, fichier de paroles lisible, titre réel intact malgré un nom de dossier simplifié.
+- [ ] Deux morceaux « Intro » donnent deux dossiers distincts lisibles.
+- [ ] Un morceau sans paroles ou sans audio est présent dans l’archive.
+- [ ] L’archive porte la version 1 du format et ne contient aucun chemin de stockage interne.
 
 ## Bloquée par
 
-- Phase 1 : Point d’entrée et parcours générique.
+- Phase 1 : Types audio des fichiers d’un morceau
+- Phase 2 : Écran Données du groupe
 
 ---
 
-## Phase 4 : Parcours ordinateur sans installation native
+## Phase 4 : Export avec fichiers audio
 
-**User stories** : US-6, US-9, US-10, US-11
+**User stories** : US-1, US-5, US-20
 
 ### Ce qu’on livre
 
-Les utilisateurs sur ordinateur qui ne disposent pas de l’installation directe reçoivent une réponse adaptée. Safari sur macOS présente le parcours **Ajouter au Dock**. Firefox explique que l’installation directe n’est pas disponible et recommande d’ouvrir FaderZero avec Chrome ou Edge. Les autres environnements retombent sur l’aide générique.
+Même flux, option « inclure les fichiers audio ». L’archive contient les fichiers écoutables, nommés de façon lisible, types issus de la phase 1. Progression visible sur téléphone : analyse, préparation, finalisation, volume. La taille estimée avant création reflète le poids audio.
 
 ### Critères d’acceptation
 
-- [ ] Sur Safari macOS compatible, le parcours indique clairement **Ajouter au Dock**.
-- [ ] Sur Safari macOS sans parcours spécifique disponible, l’utilisateur reçoit une aide manuelle exploitable plutôt qu’une action d’installation directe inopérante.
-- [ ] Sur Firefox ordinateur, le parcours explique l’indisponibilité de l’installation directe et recommande Chrome ou Edge.
-- [ ] Sur un navigateur ou un système non reconnu, l’aide générique s’affiche.
-- [ ] Aucun de ces parcours ne prétend détecter une installation réalisée depuis un autre navigateur.
-- [ ] Les variantes Safari macOS, Firefox ordinateur et environnement inconnu sont couvertes par des tests automatisés.
+- [ ] L’admin inclut les audios, voit une taille estimée cohérente, lance la création.
+- [ ] Hors FaderZero, les fichiers audio s’ouvrent et correspondent aux morceaux.
+- [ ] Les types audio de la phase 1 sont décrits dans l’archive (pas déduits du seul nom de fichier).
+- [ ] Une barre de progression distingue au moins préparation et finalisation, utilisable sur téléphone.
+- [ ] Hors ligne, l’action reste indisponible (phase 2).
 
 ## Bloquée par
 
-- Phase 1 : Point d’entrée et parcours générique.
+- Phase 3 : Export données uniquement
+
+---
+
+## Phase 5 : Sélection du dépôt et refus immédiat
+
+**User stories** : US-23, US-25, US-34, US-35
+
+### Ce qu’on livre
+
+L’admin choisit un fichier d’archive, ou un dossier si l’appareil le permet. L’analyse commence **avant** tout envoi. Une archive d’une version inconnue, dangereuse (chemins hors dossier) ou illisible est refusée tout de suite, avec un message, sans prévisualisation métier ni écriture dans le groupe.
+
+### Critères d’acceptation
+
+- [ ] Sur téléphone, l’admin peut choisir un fichier d’archive ; un dossier si l’appareil le permet.
+- [ ] Aucun envoi vers le stockage ne démarre à cette étape.
+- [ ] Version non prise en charge : refus, message du type « Cette archive utilise une version qui n’est pas encore prise en charge. »
+- [ ] Archive dangereuse ou illisible : refus immédiat, rien n’est créé dans le groupe.
+
+## Bloquée par
+
+- Phase 3 : Export données uniquement
+
+---
+
+## Phase 6 : Prévisualisation sans écriture
+
+**User stories** : US-8, US-10, US-11, US-24, US-29
+
+### Ce qu’on livre
+
+Après un dépôt acceptable, un écran liste morceaux détectés, paroles, audios, taille, avertissements (paroles absentes, BPM inconnu, type proposé) et erreurs individuelles (fichier manquant, format non supporté). Dépôt sans morceau exploitable : pas d’import possible. Archive incomplète : les morceaux encore valides sont distingués. Annuler ne change rien au groupe. Confirmer n’écrit pas encore (la confirmation réelle arrive en phase 8).
+
+### Critères d’acceptation
+
+- [ ] La prévisualisation affiche comptes, taille, valides, avertissements et erreurs par morceau.
+- [ ] Un fichier invalide est signalé sur ce morceau ; les autres restent listés comme importables.
+- [ ] Dépôt vide / inexploitable : import impossible, message clair.
+- [ ] Archive incomplète : morceaux valides vs endommagés distingués avant tout envoi.
+- [ ] Annuler : le groupe est intact.
+
+## Bloquée par
+
+- Phase 5 : Sélection du dépôt et refus immédiat
+
+---
+
+## Phase 7 : Contrôle d’intégrité avant import
+
+**User stories** : US-12
+
+### Ce qu’on livre
+
+Si l’archive déclare une empreinte pour un fichier et que le fichier ne correspond pas, la prévisualisation le signale **avant** import. L’admin peut quand même importer les éléments valides. Aucun envoi de ce fichier altéré n’est présenté comme sain.
+
+### Critères d’acceptation
+
+- [ ] Un fichier dont l’empreinte ne correspond pas à l’archive est marqué altéré dans la prévisualisation, avant tout envoi.
+- [ ] Les autres fichiers valides restent importables.
+- [ ] Une archive sans empreinte (dossier maison, phase 12) n’est pas refusée pour autant.
+
+## Bloquée par
+
+- Phase 4 : Export avec fichiers audio
+- Phase 6 : Prévisualisation sans écriture
+
+---
+
+## Phase 8 : Import création — morceaux et paroles
+
+**User stories** : US-6, US-9, US-30, US-33
+
+### Ce qu’on livre
+
+L’admin confirme l’import des éléments valides. Les morceaux et paroles (texte et mise en forme FaderZero si présentes) sont créés dans le groupe via les gestes métier habituels. Un morceau sans paroles ou sans audio peut être créé. Les fichiers audio ne sont pas encore envoyés. Round-trip données : export données uniquement → suppression → import → titre, artiste, BPM, tonalité, notes, paroles équivalents.
+
+### Critères d’acceptation
+
+- [ ] Rien n’est créé tant que l’admin n’a pas confirmé.
+- [ ] Après confirmation, les morceaux valides existent dans le répertoire avec leurs infos et paroles.
+- [ ] Les paroles mises en forme FaderZero sont restaurées quand elles étaient dans l’archive ; sinon le texte brut.
+- [ ] Un morceau sans paroles ou sans audio est créé s’il était importable.
+- [ ] Export données → suppression → import : les champs métier du morceau (hors audio) correspondent.
+
+## Bloquée par
+
+- Phase 6 : Prévisualisation sans écriture
+
+---
+
+## Phase 9 : Import des fichiers audio et progression
+
+**User stories** : US-6, US-20, US-33
+
+### Ce qu’on livre
+
+Sur la même confirmation, les audios des morceaux importés sont envoyés, rattachés, avec leur type. Progression téléphone : analyse déjà faite, envoi, finalisation, morceau en cours, compteurs. Round-trip complet : export avec audio → suppression → import → audios et types équivalents.
+
+### Critères d’acceptation
+
+- [ ] Les fichiers audio des morceaux confirmés sont écoutables dans FaderZero après import.
+- [ ] Les types (Démo, Master, etc.) correspondent à l’archive, pas au seul nom de fichier.
+- [ ] Progression visible : envoi vs finalisation, morceau en cours, volume.
+- [ ] Export avec audio → suppression → import : morceau équivalent y compris audios et types.
+- [ ] Hors ligne : indisponible (phase 2).
+
+## Bloquée par
+
+- Phase 4 : Export avec fichiers audio
+- Phase 8 : Import création — morceaux et paroles
+
+---
+
+## Phase 10 : Rapport, échec partiel, archive incomplète
+
+**User stories** : US-18, US-19, US-24
+
+### Ce qu’on livre
+
+À la fin d’un import : rapport (analysés, créés, mis à jour, ignorés, audios envoyés, déjà présents, erreurs) et accès aux détails. Si un fichier échoue en cours d’envoi, ce qui a réussi reste ; l’échec est dans le rapport. Pour une archive incomplète déjà distinguée en prévisualisation, seuls les morceaux valides confirmés sont importés.
+
+### Critères d’acceptation
+
+- [ ] Un rapport s’affiche en fin d’import, avec totaux et lien vers les détails.
+- [ ] Un audio en échec : le morceau et les audios déjà OK restent ; l’échec est listé.
+- [ ] Archive incomplète : les morceaux valides confirmés sont dans le répertoire ; les endommagés ne le sont pas (sauf pièces valides déjà gardées).
+
+## Bloquée par
+
+- Phase 8 : Import création — morceaux et paroles
+- Phase 9 : Import des fichiers audio et progression
+
+---
+
+## Phase 11 : Conflits et mise à jour
+
+**User stories** : US-15, US-16, US-17
+
+### Ce qu’on livre
+
+Réimporter une archive alors que des morceaux existent : pour chaque correspondance exacte (identifiant d’origine dans ce groupe, sinon titre + artiste, sinon titre), proposition par défaut **Mettre à jour**, sinon créer un nouveau morceau, sinon ignorer. Case « appliquer à tous les conflits similaires » et politiques globales (toujours copier / toujours mettre à jour la correspondance exacte / toujours ignorer). Mettre à jour = infos et paroles de l’archive remplacent ; audios de l’archive ajoutés s’ils n’y sont pas ; aucun audio déjà dans FaderZero n’est supprimé. Pas de fusion automatique « à peu près ».
+
+### Critères d’acceptation
+
+- [ ] Réimport de la même archive : conflit proposé, défaut = mettre à jour.
+- [ ] Appliquer à tous les conflits similaires évite de répondre morceau par morceau.
+- [ ] Mettre à jour ne supprime aucun audio déjà présent ; ajoute les audios manquants ; remplace infos et paroles.
+- [ ] Créer un nouveau morceau laisse l’existant intact et ajoute une copie.
+- [ ] Ignorer ne modifie pas le morceau existant.
+- [ ] Une correspondance seulement approximative ne fusionne pas toute seule.
+
+## Bloquée par
+
+- Phase 8 : Import création — morceaux et paroles
+
+---
+
+## Phase 12 : Import d’un dossier maison
+
+**User stories** : US-7, US-26, US-27
+
+### Ce qu’on livre
+
+L’admin dépose un dossier (ou une archive de dossier) sans fichier technique FaderZero : un sous-dossier par morceau, fichier de paroles reconnu, préfixes DEMO / MASTER / etc. pour le type. Même prévisualisation et même moteur d’import que les phases 6–8. Nom ambigu : type proposé (pas un refus). L’admin n’écrit pas de manifeste.
+
+### Critères d’acceptation
+
+- [ ] Un dossier « un sous-dossier = un morceau » + paroles texte + audios produit une prévisualisation puis des morceaux après confirmation.
+- [ ] Le titre vient du nom de dossier (sauf infos archive si présentes).
+- [ ] `DEMO__…` / `MASTER__…` (date et description optionnelles) donnent Démo / Master.
+- [ ] Un nom ambigu propose un type au lieu de refuser le fichier.
+- [ ] Aucun fichier technique n’est exigé.
+
+## Bloquée par
+
+- Phase 6 : Prévisualisation sans écriture
+- Phase 8 : Import création — morceaux et paroles
+
+---
+
+## Phase 13 : Quota avant envoi
+
+**User stories** : US-13
+
+### Ce qu’on livre
+
+Avant tout envoi audio, FaderZero compare la **durée** des nouveaux audios au quota du groupe (comme aujourd’hui) et affiche aussi la **taille** à envoyer (Mo / Go). Si la durée ne passe pas : blocage, durée manquante + taille, pas d’envoi.
+
+### Critères d’acceptation
+
+- [ ] La prévisualisation affiche la taille à envoyer et l’impact durée sur le quota.
+- [ ] Quota durée insuffisant : import bloqué avant envoi, durée manquante visible.
+- [ ] Quota suffisant : l’envoi peut démarrer (phases 9+).
+
+## Bloquée par
+
+- Phase 9 : Import des fichiers audio et progression
+
+---
+
+## Phase 14 : Déduplication
+
+**User stories** : US-14
+
+### Ce qu’on livre
+
+Deux fichiers au même contenu ne sont pas renvoyés ni recomptés dans le quota. L’import les rattache au fichier déjà présent. Le rapport indique les audios « déjà présents ».
+
+### Critères d’acceptation
+
+- [ ] Réimport d’un audio identique : pas de second envoi, pas de double comptage durée.
+- [ ] Le morceau (nouveau ou mis à jour) peut quand même jouer ce fichier.
+- [ ] Le rapport distingue audios envoyés vs déjà présents.
+
+## Bloquée par
+
+- Phase 9 : Import des fichiers audio et progression

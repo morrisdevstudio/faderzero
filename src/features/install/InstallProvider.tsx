@@ -49,6 +49,9 @@ export function InstallProvider({ children }: PropsWithChildren) {
     await deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
     setDeferredPrompt(null);
+    if (outcome === 'accepted') {
+      setIsInstalledThisSession(true);
+    }
     return outcome;
   }, [deferredPrompt]);
 

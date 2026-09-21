@@ -1,9 +1,21 @@
-import { useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { FormDialog } from '@/components/FormDialog';
 import { isAppHostname } from '@/utils/domainRouting';
 import { FzIcon } from '@/ui/icons';
-import { applyInstallGuidePreview, getInstallGuide, type InstallEnvironment } from './installEnvironment';
-import { useInstall } from './InstallContext';
+import { applyInstallGuidePreview, getInstallAvailability, getInstallGuide } from './installEnvironment';
+import { InstallContext, useInstall } from './InstallContext';
+
+const DISMISS_KEY = 'faderzero:pwa-install-dismissed-at';
+const DISMISS_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
+
+function isDismissedRecently() {
+  try {
+    const dismissedAt = Number(window.localStorage.getItem(DISMISS_KEY));
+    return Number.isFinite(dismissedAt) && Date.now() - dismissedAt < DISMISS_DURATION_MS;
+  } catch {
+    return false;
+  }
+}
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(() => window.matchMedia('(max-width: 639px)').matches);
@@ -11,7 +23,6 @@ function useIsMobile() {
   useEffect(() => {
     const mediaQuery = window.matchMedia('(max-width: 639px)');
     const update = () => setIsMobile(mediaQuery.matches);
-    update();
     mediaQuery.addEventListener('change', update);
     return () => mediaQuery.removeEventListener('change', update);
   }, []);
@@ -19,98 +30,100 @@ function useIsMobile() {
   return isMobile;
 }
 
-function InstallIllustration({ variant }: { variant: ReturnType<typeof getInstallGuide>['illustration'] }) {
-  const usesBrowserMenu = variant === 'generic' || variant === 'ios-chrome';
-  const label = variant === 'ios-chrome' || variant === 'generic' ? 'Chrome' : variant === 'ios-safari' ? 'Safari' : variant === 'macos-safari' ? 'Safari sur Mac' : 'Navigateur';
-  const action = variant === 'macos-safari' ? 'Ajouter au Dock' : variant === 'firefox' ? 'Chrome ou Edge' : usesBrowserMenu ? 'Installer' : 'Partager';
+function InstallGuideDialog({ onClose }: { onClose: () => void }) {
+  const { environment } = useInstall();
+  const isMobile = useIsMobile();
+  const guide = getInstallGuide(applyInstallGuidePreview(environment, window.location.search));
+  const icons = ['upload', 'add', 'check'] as const;
 
   return (
-    <div className="rounded-[1.75rem] border border-white/10 bg-black/25 p-3 shadow-[0_12px_28px_rgba(0,0,0,0.22)]" aria-hidden="true">
-      <div className="mx-auto flex max-w-[13rem] items-center gap-2 rounded-2xl border border-white/15 bg-[#17191f] p-2.5 shadow-lg">
-        <span className="min-w-0 flex-1 truncate text-[0.68rem] font-black text-white/75">{label}</span>
-        {usesBrowserMenu ? (
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg text-xl leading-none text-white/75">⋮</span>
-        ) : (
-          <FzIcon name={variant === 'firefox' ? 'external-link' : variant === 'macos-safari' ? 'download' : 'upload'} usageId="install.guide.illustration" size="sm" className="text-[var(--fz-accent)]" />
-        )}
+    <FormDialog
+      title={guide.title}
+      closeLabel="Fermer les instructions d’installation"
+      onClose={onClose}
+      placement={isMobile ? 'bottom' : 'center'}
+    >
+      <div className="space-y-4">
+        <p className="text-sm leading-relaxed text-[var(--fz-text-muted)]">{guide.description}</p>
+        <ol className="space-y-3">
+          {guide.steps.map((step, index) => (
+            <li key={step} className="flex items-center gap-3 text-sm leading-relaxed text-white/85">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-violet-300/20 bg-violet-400/10 text-violet-200">
+                <FzIcon name={icons[index] ?? 'check'} usageId={`install.guide.step-${index + 1}`} size="sm" />
+              </span>
+              <span>{step}</span>
+            </li>
+          ))}
+        </ol>
       </div>
-      <div className="mx-auto mt-3 flex max-w-[11rem] items-center justify-center gap-2 rounded-xl bg-white/8 px-3 py-2.5 text-[0.68rem] font-black text-white">
-        <span>{action}</span>
-        <FzIcon name="next" usageId="install.guide.illustration-next" size="sm" className="text-white/55" />
-      </div>
-    </div>
+    </FormDialog>
   );
 }
 
-function InstallDialog({ open, onClose, environment }: { open: boolean; onClose: () => void; environment: InstallEnvironment }) {
-  const { requestNativeInstall } = useInstall();
-  const isMobile = useIsMobile();
-  const [showGuide, setShowGuide] = useState(!environment.canPromptInstall);
-  const [showFallbackNotice, setShowFallbackNotice] = useState(false);
-  const guide = getInstallGuide(environment);
+export function InstallBanner() {
+  const installContext = useContext(InstallContext);
+  const [isDismissed, setIsDismissed] = useState(isDismissedRecently);
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
+  if (!installContext) return null;
 
-  useEffect(() => {
-    if (open) {
-      setShowGuide(!environment.canPromptInstall);
-      setShowFallbackNotice(false);
-    }
-  }, [environment.canPromptInstall, open]);
+  const { environment, isInstalledThisSession, requestNativeInstall } = installContext;
+  const guideEnvironment = applyInstallGuidePreview(environment, window.location.search);
+  const availability = getInstallAvailability(guideEnvironment, isInstalledThisSession);
+  const isAppEnvironment = isAppHostname() || import.meta.env.DEV;
 
-  async function handleNativeInstall() {
-    const outcome = await requestNativeInstall();
-    if (outcome === 'accepted') {
-      onClose();
-      return;
+  function dismiss() {
+    try {
+      window.localStorage.setItem(DISMISS_KEY, String(Date.now()));
+    } catch {
+      // The banner remains dismissible when storage is unavailable.
     }
-    setShowGuide(true);
-    setShowFallbackNotice(true);
+    setIsDismissed(true);
   }
 
-  const title = showGuide ? guide.title : 'Installer FaderZero';
+  async function install() {
+    if (availability === 'installable') {
+      await requestNativeInstall();
+      return;
+    }
+    setIsGuideOpen(true);
+  }
 
-  return open ? (
-    <FormDialog title={title} closeLabel="Fermer le parcours d’installation" onClose={onClose} placement={isMobile ? 'bottom' : 'center'}>
-      <div className="space-y-4">
-        {showGuide ? (
-          <>
-            {showFallbackNotice ? <p className="rounded-xl border border-amber-300/25 bg-amber-300/10 p-3 text-sm text-amber-100">L’installation automatique n’a pas abouti. Suivez ces étapes manuelles.</p> : null}
-            <p className="text-sm leading-relaxed text-[var(--fz-text-muted)]">{guide.description}</p>
-            <InstallIllustration variant={guide.illustration} />
-            <ol className="space-y-2 text-sm leading-relaxed text-white/85">
-              {guide.steps.map((step, index) => <li key={step} className="flex gap-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--fz-accent)] text-xs font-black text-white">{index + 1}</span><span>{step}</span></li>)}
-            </ol>
-          </>
-        ) : (
-          <>
-            <p className="text-sm leading-relaxed text-[var(--fz-text-muted)]">Utilisez FaderZero comme une vraie application, directement depuis votre écran d’accueil ou votre bureau.</p>
-            <InstallIllustration variant="generic" />
-            <button type="button" onClick={() => void handleNativeInstall()} className="fz-button-primary flex min-h-11 w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-black transition-transform active:scale-[0.96]">
-              <FzIcon name="download" usageId="install.dialog.native" size="md" />
-              Installer maintenant
-            </button>
-            <button type="button" onClick={() => setShowGuide(true)} className="w-full text-center text-sm font-bold text-white/65 underline decoration-white/30 underline-offset-4 transition hover:text-white">Voir les étapes manuelles</button>
-          </>
-        )}
-      </div>
-    </FormDialog>
-  ) : null;
-}
+  const canShow = isAppEnvironment
+    && !isDismissed
+    && (availability === 'installable' || availability === 'ios-instructions' || availability === 'manual-instructions');
 
-export function InstallButton() {
-  const { environment, isInstalledThisSession } = useInstall();
-  const [isOpen, setIsOpen] = useState(false);
-  const isAppEnvironment = isAppHostname() || import.meta.env.DEV;
-  const guideEnvironment = applyInstallGuidePreview(environment, window.location.search);
-
-  if (!isAppEnvironment || environment.isStandalone || isInstalledThisSession) return null;
+  if (!canShow) return null;
 
   return (
     <>
-      <button type="button" onClick={() => setIsOpen(true)} className="flex h-10 shrink-0 items-center gap-1.5 rounded-xl border border-white/15 bg-white/5 px-2.5 text-[0.68rem] font-black uppercase tracking-[0.11em] text-white/90 transition hover:border-white/30 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--fz-accent-strong)]">
-        <FzIcon name="download" usageId="install.entry" size="sm" />
-        Installer
-      </button>
-      <InstallDialog open={isOpen} onClose={() => setIsOpen(false)} environment={guideEnvironment} />
+      <aside className="fz-install-banner mx-auto w-full max-w-md px-3 pb-2 sm:px-4" aria-label="Installation de FaderZero">
+        <div className="flex min-h-14 items-center gap-2 rounded-2xl border border-violet-300/20 bg-[linear-gradient(110deg,rgba(27,22,43,0.96),rgba(17,18,28,0.96))] px-3 py-2">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-violet-400/10 text-violet-200">
+            <FzIcon name="download" usageId="install.banner.entry" size="md" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[0.8rem] font-black text-white">Installer FaderZero</p>
+            <p className="hidden truncate text-[0.68rem] leading-4 text-[var(--fz-text-muted)] min-[360px]:block">Accédez plus rapidement à vos projets, même hors ligne.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => void install()}
+            className="flex min-h-11 shrink-0 items-center gap-1 rounded-xl bg-gradient-to-r from-violet-500 to-fuchsia-500 px-3 text-[0.68rem] font-black text-white transition hover:brightness-110 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-300 motion-reduce:transition-none"
+          >
+            Installer
+            <FzIcon name="next" usageId="install.banner.action" size="sm" />
+          </button>
+          <button
+            type="button"
+            onClick={dismiss}
+            aria-label="Masquer la bannière d’installation pendant 7 jours"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white/55 transition hover:bg-white/5 hover:text-white active:scale-[0.95] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-300 motion-reduce:transition-none"
+          >
+            <FzIcon name="close" usageId="install.banner.dismiss" size="md" />
+          </button>
+        </div>
+      </aside>
+      {isGuideOpen ? <InstallGuideDialog onClose={() => setIsGuideOpen(false)} /> : null}
     </>
   );
 }

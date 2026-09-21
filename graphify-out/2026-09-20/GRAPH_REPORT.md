@@ -1,16 +1,16 @@
 # Graph Report - FaderZeroPWA  (2026-09-20)
 
 ## Corpus Check
-- 425 files · ~429,256 words
+- 425 files · ~429,254 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 11692 nodes · 13974 edges · 1135 communities (278 shown, 694 thin omitted)
+- 11690 nodes · 13974 edges · 1133 communities (278 shown, 692 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 124 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `91fa7f36`
+- Built from commit: `00e79521`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -869,7 +869,6 @@
 - src/components/AppShell.test.tsx
 - src/features/prompter/PrompterLibraryPage.tsx
 - src/types/qrcode.d.ts
-- public.personal_contacts
 - public.check_is_workspace_member
 - supabase/migrations/20260720203039_epic_1_5_quarantine_and_expand_integrity.sql
 - public.create_workspace
@@ -984,7 +983,6 @@
 - ../src/components/UndoToast.tsx
 - src/ui/components/FieldLabel.tsx
 - ../src/features/home/HomePage.tsx
-- public.workspace_contacts
 - ../src/ui/components/SelectField.tsx
 - src/features/events/CalendarPage.test.tsx
 
@@ -1019,7 +1017,7 @@
 - **Offline-First Data Flow** — readme_local_indexeddb_storage, readme_sync_queue, readme_supabase_cloud_sync, readme_qr_data_transfer [EXTRACTED 1.00]
 - **Database Security Validation** — github_workflows_ci_database_security, github_workflows_ci_supabase_local_validation, supabase_readme_local_database_validation, supabase_readme_rls_security [INFERRED 0.95]
 
-## Communities (1135 total, 694 thin omitted)
+## Communities (1133 total, 692 thin omitted)
 
 ### Community 0 - "../cloudflare/audio-worker/worker-configuration.d.ts"
 Cohesion: 0.00
@@ -2134,20 +2132,20 @@ Cohesion: 0.70
 Nodes (4): useGoBack(), useHistoryIndexSource(), useLeaveScreen(), useLeaveTo()
 
 ## Knowledge Gaps
-- **4671 isolated node(s):** `Cloudflare`, `GlobalProps`, `NodeJS`, `WorkerGlobalScopeEventMap`, `BufferSource` (+4666 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 8415 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **694 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **4671 isolated node(s):** `caddyfilePath`, `pagesHeadersPath`, `pagesRedirectsPath`, `activeConfiguration`, `requiredFragments` (+4666 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 8413 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **692 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `react` connect `react` to `SyncTab`, `src/app/router.tsx`, `../src/features/recorder/QuickVoiceRecorder.tsx`, `SongsPage`, `../src/features/landing/LandingPage.tsx`, `../src/features/epk/EpkPage.tsx`, `../src/app/router.tsx`, `AccountPage`, `../src/features/epk/EpkEditorFields.tsx`, `../src/features/epk/EpkPublicView.tsx`, `../src/features/events/CalendarPage.tsx`, `SongDetailPage`, `SyncTab`, `../src/ui/icons/FzIcon.tsx`, `SetlistDetailPage`, `useDialogAccessibility`, `../src/features/songs/editor/SongEditor.tsx`, `../src/features/songs/SongFormFields.tsx`, `MetronomePage`, `SongWriterPage`, `../src/services/workspaceColors.ts`, `../src/features/booking/BookingOverview.tsx`, `../src/features/prompter/PrompterPage.tsx`, `src/ui/icons/FzIcon.tsx`, `../src/ui/components/FormFields.test.tsx`, `src/features/epk/EpkPublicView.tsx`, `SetlistDetailPage`, `useDialogAccessibility`, `src/features/songs/editor/SongEditor.tsx`, `src/features/songs/SongFormFields.tsx`, `../src/features/booking/BookingPage.tsx`, `MetronomePage`, `SongWriterPage`, `../src/components/UndoToast.tsx`, `src/services/workspaceColors.ts`, `../src/features/home/HomePage.tsx`, `src/ui/components/FieldLabel.tsx`, `../src/ui/components/SelectField.tsx`, `src/features/booking/BookingOverview.tsx`, `src/features/events/CalendarPage.test.tsx`, `src/features/prompter/PrompterPage.tsx`, `../src/ui/components/TemporalFields.test.tsx`, `src/ui/components/FormFields.test.tsx`, `plugins`, `src/features/account/AccountPage.test.tsx`, `FaderHeaderLogo`, `src/app/App.tsx`, `src/features/booking/BookingPage.tsx`, `SyncBootstrap`, `../src/components/SortMenu.tsx`, `src/ui/components/TemporalFields.test.tsx`, `../src/ui/components/ContentRow.tsx`, `../src/features/booking/CopyContactModal.tsx`, `src/components/AppShell.tsx`, `WorkspaceSelectionPage`, `../src/ui/components/Button.tsx`, `src/components/SortMenu.tsx`, `src/ui/components/Button.tsx`, `src/ui/components/ContentRow.tsx`, `../src/components/LoginPage.tsx`, `useOnlineStatus`, `src/components/SplashScreen.tsx`, `../src/ui/components/AppHeader.tsx`, `../src/ui/components/ContextMenu.tsx`, `src/components/LoginPage.tsx`, `src/features/booking/CopyContactModal.tsx`, `../src/ui/components/FaderLogo.tsx`, `useOnlineStatus`, `src/ui/components/AppHeader.tsx`, `src/ui/components/ContextMenu.tsx`, `WorkspaceInvitePage`, `../src/features/songs/CopySongModal.tsx`, `../src/features/trash/TrashModal.tsx`, `src/ui/components/AddButton.tsx`, `../src/ui/components/PageHeader.tsx`, `src/components/WorkspaceInvitePage.tsx`, `src/features/songs/CopySongModal.tsx`, `src/features/trash/TrashModal.tsx`, `src/ui/components/PageHeader.tsx`, `../src/ui/components/DetailHeader.tsx`, `../src/components/SplashScreen.tsx`, `../src/ui/components/FieldLabel.tsx`, `src/components/UndoToast.tsx`, `src/features/landing/LandingPage.tsx`, `src/ui/components/SelectField.tsx`, `src/features/home/HomePage.tsx`, `src/features/recorder/QuickVoiceRecorder.tsx`, `Language`, `src/features/epk/epk.ts`, `SongsPage`, `src/features/epk/EpkEditorFields.tsx`, `AccountPage`, `src/features/events/CalendarPage.tsx`, `useGoBack.ts`, `SongDetailPage`?**
-  _High betweenness centrality (0.013) - this node is a cross-community bridge._
-- **Why does `Container` connect `Container` to `../cloudflare/epk-public/worker-configuration.d.ts`?**
+  _High betweenness centrality (0.019) - this node is a cross-community bridge._
+- **Why does `Console` connect `Console` to `../cloudflare/epk-public/worker-configuration.d.ts`?**
   _High betweenness centrality (0.003) - this node is a cross-community bridge._
-- **Why does `Container` connect `Container` to `cloudflare/epk-public/worker-configuration.d.ts`?**
+- **Why does `Console` connect `Console` to `cloudflare/audio-worker/worker-configuration.d.ts`?**
   _High betweenness centrality (0.002) - this node is a cross-community bridge._
-- **What connects `Cloudflare`, `GlobalProps`, `NodeJS` to the rest of the system?**
+- **What connects `caddyfilePath`, `pagesHeadersPath`, `pagesRedirectsPath` to the rest of the system?**
   _4671 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `../cloudflare/audio-worker/worker-configuration.d.ts` be split into smaller, more focused modules?**
   _Cohesion score 0.0023501762632197414 - nodes in this community are weakly interconnected._

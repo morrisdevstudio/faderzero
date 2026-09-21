@@ -120490,17 +120490,6 @@
       "source_location": "L1"
     },
     {
-      "id": "public_workspace_contacts",
-      "label": "public.workspace_contacts",
-      "_origin": "ast",
-      "community": 1131,
-      "community_name": "public.workspace_contacts",
-      "file_type": "code",
-      "norm_label": "public.workspace_contacts",
-      "source_file": "",
-      "source_location": ""
-    },
-    {
       "id": "d_app_en_dev_faderzeropwa_src_ui_components_selectfield_selectfield",
       "label": "SelectField",
       "_origin": "ast",
@@ -142408,17 +142397,6 @@
       "norm_label": "qrcode",
       "source_file": "src/types/qrcode.d.ts",
       "source_location": "L1"
-    },
-    {
-      "id": "public_personal_contacts",
-      "label": "public.personal_contacts",
-      "_origin": "ast",
-      "community": 944,
-      "community_name": "public.personal_contacts",
-      "file_type": "code",
-      "norm_label": "public.personal_contacts",
-      "source_file": "",
-      "source_location": ""
     },
     {
       "id": "supabase_migrations_20260717142743_configure_rls",
@@ -300093,5 +300071,5 @@
       "source_file": ".github/workflows/ci.yml"
     }
   ],
-  "built_at_commit": "91fa7f36120923d55c87c19041b1854f1f73f2df"
+  "built_at_commit": "00e79521e9ca4d3874f38328c2c03bcd9767740e"
 }

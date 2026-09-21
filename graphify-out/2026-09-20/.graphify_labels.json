@@ -943,7 +943,6 @@
   "941": "src/features/prompter/PrompterLibraryPage.tsx",
   "942": "src/test/dbTestUtils.ts",
   "943": "src/types/qrcode.d.ts",
-  "944": "public.personal_contacts",
   "945": "public.check_is_workspace_member",
   "946": "supabase/migrations/20260717142822_add_workspace_invite_links.sql",
   "947": "supabase/migrations/20260720203039_epic_1_5_quarantine_and_expand_integrity.sql",
@@ -1130,7 +1129,6 @@
   "1128": "../src/components/UndoToast.tsx",
   "1129": "src/ui/components/FieldLabel.tsx",
   "1130": "../src/features/home/HomePage.tsx",
-  "1131": "public.workspace_contacts",
   "1132": "../src/ui/components/SelectField.tsx",
   "1133": "src/features/events/CalendarPage.test.tsx",
   "1134": "inAppBack.test.tsx"

@@ -6,7 +6,6 @@ import { assertValidPassword, getPasswordRequirements } from '@/services/supabas
 import { PasswordField } from '@/ui/components/PasswordField';
 import { TextField } from '@/ui/components/TextField';
 import { FaderLogo } from '@/ui/components/FaderLogo';
-import { InstallButton } from '@/features/install/InstallButton';
 
 type AuthMode = 'signin' | 'signup' | 'forgot';
 
@@ -121,7 +120,6 @@ export function LoginPage({ inviteTokenPresent = false }: LoginPageProps) {
               preserveAspectRatio="none"
             />
           </div>
-          <InstallButton />
         </div>
 
         {/* Tab Selector */}

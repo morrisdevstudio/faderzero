@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { applyInstallGuidePreview, detectInstallEnvironment, getInstallGuide } from './installEnvironment';
+import { applyInstallGuidePreview, detectInstallEnvironment, getInstallAvailability, getInstallGuide } from './installEnvironment';
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
@@ -27,16 +27,16 @@ describe('installEnvironment', () => {
     expect(getInstallGuide(environment).steps).toContain('Choisissez Ajouter au Dock.');
   });
 
-  it('oriente Firefox vers Chrome ou Edge', () => {
+  it('masque l’entrée d’installation dans Firefox', () => {
     const environment = detectInstallEnvironment({ userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Firefox/123.0' });
 
-    expect(getInstallGuide(environment).title).toBe('Installation indisponible avec Firefox');
+    expect(getInstallAvailability(environment)).toBe('unsupported');
   });
 
-  it('n’invente pas le nom de FaderZero dans le menu générique', () => {
-    const guide = getInstallGuide({ os: 'unknown', browser: 'unknown', isStandalone: false, canPromptInstall: false });
+  it('ne propose rien lorsque l’installation n’est pas prise en charge', () => {
+    const environment = { os: 'unknown' as const, browser: 'unknown' as const, isStandalone: false, canPromptInstall: false };
 
-    expect(guide.steps).toEqual(['Appuyez sur les trois points en haut à droite.', 'Choisissez Installer.', 'Confirmez en appuyant sur Installer.']);
+    expect(getInstallAvailability(environment)).toBe('unsupported');
   });
 
   it('réserve l’aperçu iOS à l’environnement de développement', () => {
