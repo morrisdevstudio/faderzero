@@ -8,15 +8,17 @@ Site : [faderzero.com](https://faderzero.com)
 
 ## Ce que permet l’application
 
-- Organiser un répertoire de morceaux (statut, tonalité, BPM, durée, notes et paroles).
-- Créer des setlists, les réordonner, ajouter des annotations et les exporter en PDF.
+- Gérer un répertoire de morceaux avec statut, tonalité, BPM, durée, notes et éditeur de paroles.
+- Structurer les morceaux par sections et programmer un métronome : tempo, mesure, subdivisions, décompte et aperçu de lecture.
+- Créer des setlists de répétition ou de concert, les réordonner, ajouter des annotations et les exporter en PDF.
+- Préparer la scène avec un prompteur plein écran à défilement automatique, des repères de sections et le métronome avec Tap Tempo.
 - Importer, compresser et écouter des pistes audio ; les mettre en cache pour les utiliser hors ligne.
-- Enregistrer rapidement des mémos vocaux et les associer à des morceaux.
-- Préparer la scène avec un prompteur plein écran et un métronome avec Tap Tempo.
-- Planifier répétitions, concerts et autres événements.
-- Travailler seul ou à plusieurs dans des espaces partagés avec rôles et invitations.
+- Enregistrer des mémos vocaux et les associer directement aux morceaux.
+- Planifier répétitions, concerts et autres événements dans le calendrier.
+- Suivre la prospection de concerts : salles ou organisateurs, contacts, échanges, prochaines actions et passage au calendrier une fois confirmé.
+- Travailler seul ou à plusieurs dans des espaces partagés, avec rôles et invitations.
 - Synchroniser les changements avec Supabase ou transférer des données hors connexion par QR code.
-- Créer et publier un EPK public pour un groupe.
+- Créer, publier et partager un EPK public pour un groupe.
 
 ## Compte et accès
 
