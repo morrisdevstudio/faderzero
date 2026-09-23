@@ -3,10 +3,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   compressAudioForUpload: vi.fn(),
   createAsset: vi.fn(),
+  createStorageReadUrl: vi.fn(),
   getActiveDatabase: vi.fn(),
   repositoryDatabases: [] as unknown[],
-  rpc: vi.fn(),
-  uploadAudioObject: vi.fn(),
+  uploadStorageObject: vi.fn(),
 }));
 
 vi.mock('@/lib/createId', () => ({ createId: () => 'asset-1' }));
@@ -23,12 +23,9 @@ vi.mock('@/db/repositories/songAssetsRepository', () => ({
   },
   songAssetsRepository: { create: mocks.createAsset },
 }));
-vi.mock('@/services/audio/r2Client', () => ({
-  createAudioSignedUrl: vi.fn(),
-  uploadAudioObject: mocks.uploadAudioObject,
-}));
-vi.mock('@/services/supabase/client', () => ({
-  supabase: { rpc: mocks.rpc },
+vi.mock('@/services/storage', () => ({
+  createStorageReadUrl: mocks.createStorageReadUrl,
+  uploadStorageObject: mocks.uploadStorageObject,
 }));
 vi.mock('@/features/songs/audioCompression', () => ({
   buildCompressedFileName: (filename: string) => filename.replace(/\.[^.]+$/, '.mp3'),
@@ -37,12 +34,13 @@ vi.mock('@/features/songs/audioCompression', () => ({
 
 import { uploadSongAsset } from './storage';
 
-describe('uploadSongAsset quota reservation', () => {
+describe('uploadSongAsset storage provider flow', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     vi.clearAllMocks();
     mocks.repositoryDatabases.length = 0;
     mocks.getActiveDatabase.mockReturnValue({ name: 'database-a' });
+    mocks.uploadStorageObject.mockResolvedValue(undefined);
     mocks.compressAudioForUpload.mockResolvedValue(
       new File(['compressed'], 'track.mp3', { type: 'audio/mpeg' })
     );
@@ -50,34 +48,24 @@ describe('uploadSongAsset quota reservation', () => {
     mockAudioDuration(120);
   });
 
-  it('reserves quota, uploads, then finalizes before creating local metadata', async () => {
-    mocks.rpc
-      .mockResolvedValueOnce({ data: 'reservation-1', error: null })
-      .mockResolvedValueOnce({ data: null, error: null });
-
+  it('uploads through the workspace provider before creating local metadata', async () => {
     await expect(
       uploadSongAsset('workspace-1', 'song-1', new File(['source'], 'track.wav'))
     ).resolves.toBe('asset-1');
 
-    expect(mocks.rpc).toHaveBeenNthCalledWith(1, 'reserve_audio_upload', {
-      p_workspace_id: 'workspace-1',
-      p_requested_bytes: 10,
-      p_requested_seconds: 120,
-    });
-    expect(mocks.uploadAudioObject).toHaveBeenCalledWith(
-      'workspaces/workspace-1/songs/song-1/asset-1.mp3',
-      expect.any(File),
-      'reservation-1'
-    );
-    expect(mocks.rpc).toHaveBeenNthCalledWith(2, 'complete_audio_upload_reservation', {
-      p_reservation_id: 'reservation-1',
-      p_storage_path: 'workspaces/workspace-1/songs/song-1/asset-1.mp3',
-    });
+    expect(mocks.uploadStorageObject).toHaveBeenCalledWith({
+      workspaceId: 'workspace-1',
+      logicalKey: 'workspaces/workspace-1/songs/song-1/asset-1.mp3',
+      sizeBytes: 10,
+      mimeType: 'audio/mpeg',
+      durationSeconds: 120,
+      contentHash: expect.any(String),
+    }, expect.any(File));
     expect(mocks.createAsset).toHaveBeenCalledOnce();
     expect(mocks.createAsset).toHaveBeenCalledWith(
       expect.objectContaining({ workspaceId: 'workspace-1' })
     );
-    expect(mocks.rpc.mock.invocationCallOrder[1]).toBeLessThan(
+    expect(mocks.uploadStorageObject.mock.invocationCallOrder[0]).toBeLessThan(
       mocks.createAsset.mock.invocationCallOrder[0] ?? Number.POSITIVE_INFINITY
     );
     expect(mocks.compressAudioForUpload).toHaveBeenCalledWith(
@@ -91,10 +79,7 @@ describe('uploadSongAsset quota reservation', () => {
     const originalDatabase = { name: 'database-a' };
     const nextDatabase = { name: 'database-b' };
     mocks.getActiveDatabase.mockReturnValue(originalDatabase);
-    mocks.rpc
-      .mockResolvedValueOnce({ data: 'reservation-1', error: null })
-      .mockResolvedValueOnce({ data: null, error: null });
-    mocks.uploadAudioObject.mockImplementationOnce(async () => {
+    mocks.uploadStorageObject.mockImplementationOnce(async () => {
       mocks.getActiveDatabase.mockReturnValue(nextDatabase);
     });
 
@@ -113,10 +98,6 @@ describe('uploadSongAsset quota reservation', () => {
   });
 
   it('forwards peak normalization to MP3 conversion', async () => {
-    mocks.rpc
-      .mockResolvedValueOnce({ data: 'reservation-1', error: null })
-      .mockResolvedValueOnce({ data: null, error: null });
-
     await uploadSongAsset('workspace-1', undefined, new File(['source'], 'voice.webm'), {
       normalizePeak: true,
     });
@@ -129,48 +110,37 @@ describe('uploadSongAsset quota reservation', () => {
   });
 
   it('uses a known recorder duration when WebM metadata is unavailable', async () => {
-    mocks.rpc
-      .mockResolvedValueOnce({ data: 'reservation-1', error: null })
-      .mockResolvedValueOnce({ data: null, error: null });
-
     await uploadSongAsset('workspace-1', undefined, new File(['source'], 'voice.webm'), {
       durationSeconds: 6,
     });
 
-    expect(mocks.rpc).toHaveBeenNthCalledWith(1, 'reserve_audio_upload', {
-      p_workspace_id: 'workspace-1',
-      p_requested_bytes: 10,
-      p_requested_seconds: 6,
-    });
+    expect(mocks.uploadStorageObject).toHaveBeenCalledWith(
+      expect.objectContaining({ workspaceId: 'workspace-1', sizeBytes: 10, durationSeconds: 6 }),
+      expect.any(File),
+    );
     expect(mocks.createAsset).toHaveBeenCalledWith(
       expect.objectContaining({ durationSeconds: 6 })
     );
   });
 
-  it('releases the reservation when the R2 upload fails', async () => {
-    mocks.rpc
-      .mockResolvedValueOnce({ data: 'reservation-1', error: null })
-      .mockResolvedValueOnce({ data: null, error: null });
-    mocks.uploadAudioObject.mockRejectedValueOnce(new Error('R2 unavailable'));
+  it('does not create metadata when the provider upload fails', async () => {
+    mocks.uploadStorageObject.mockRejectedValueOnce(new Error('R2 unavailable'));
 
     await expect(
       uploadSongAsset('workspace-1', undefined, new File(['source'], 'track.wav'))
     ).rejects.toThrow('R2 unavailable');
 
-    expect(mocks.rpc).toHaveBeenNthCalledWith(2, 'release_audio_upload_reservation', {
-      p_reservation_id: 'reservation-1',
-    });
     expect(mocks.createAsset).not.toHaveBeenCalled();
   });
 
-  it('does not upload when the quota reservation is rejected', async () => {
-    mocks.rpc.mockResolvedValueOnce({ data: null, error: new Error('audio quota exceeded') });
+  it('does not create metadata when the provider rejects its reservation', async () => {
+    mocks.uploadStorageObject.mockRejectedValueOnce(new Error('audio quota exceeded'));
 
     await expect(
       uploadSongAsset('workspace-1', undefined, new File(['source'], 'track.wav'))
     ).rejects.toThrow('audio quota exceeded');
 
-    expect(mocks.uploadAudioObject).not.toHaveBeenCalled();
+    expect(mocks.uploadStorageObject).toHaveBeenCalledOnce();
     expect(mocks.createAsset).not.toHaveBeenCalled();
   });
 });

@@ -21,6 +21,7 @@ interface QueueAudioUploadInput {
   filename: string;
   normalizePeak?: boolean;
   durationSeconds?: number;
+  targetProviderId?: PendingAudioUploadRecord['targetProviderId'];
 }
 
 interface ProcessPendingUploadsOptions {
@@ -36,6 +37,7 @@ interface UploadOrQueueOptions {
   database?: FaderZeroDatabase;
   upload?: typeof uploadSongAsset;
   isOnline?: () => boolean;
+  targetProviderId?: PendingAudioUploadRecord['targetProviderId'];
 }
 
 const processingByWorkspace = new Map<string, Promise<void>>();
@@ -77,6 +79,9 @@ export async function queueAudioUpload(
   if (input.durationSeconds !== undefined) {
     record.durationSeconds = input.durationSeconds;
   }
+  if (input.targetProviderId !== undefined) {
+    record.targetProviderId = input.targetProviderId;
+  }
 
   try {
     await database.pendingAudioUploads.add(record);
@@ -108,6 +113,7 @@ export async function uploadOrQueueSongAsset(
         normalizePeak: options.normalizePeak ?? false,
         ...(options.durationSeconds !== undefined ? { durationSeconds: options.durationSeconds } : {}),
         ...(options.onProgress ? { onProgress: options.onProgress } : {}),
+        ...(options.targetProviderId ? { targetProviderId: options.targetProviderId } : {}),
       });
       return { status: 'uploaded', assetId };
     } catch (error) {
@@ -125,6 +131,7 @@ export async function uploadOrQueueSongAsset(
       filename: options.filename,
       normalizePeak: options.normalizePeak ?? false,
       ...(options.durationSeconds !== undefined ? { durationSeconds: options.durationSeconds } : {}),
+      ...(options.targetProviderId !== undefined ? { targetProviderId: options.targetProviderId } : {}),
     },
     database
   );
@@ -199,6 +206,17 @@ async function processPendingAudioUploadsInternal(
         filename: item.filename,
         normalizePeak: item.normalizePeak ?? false,
         ...(item.durationSeconds !== undefined ? { durationSeconds: item.durationSeconds } : {}),
+        ...(item.targetProviderId ? { targetProviderId: item.targetProviderId } : {}),
+        ...(item.resumableSessionId ? { resumeSessionId: item.resumableSessionId } : {}),
+        onStorageSession: async (session) => {
+          await database.pendingAudioUploads.update(item.id, {
+            targetProviderId: session.providerId,
+            resumableSessionId: session.sessionId,
+            ...(session.resumableSessionUri ? { resumableSessionUri: session.resumableSessionUri } : {}),
+            confirmedBytes: session.confirmedBytes ?? 0,
+            updatedAt: now(),
+          });
+        },
       });
       await database.pendingAudioUploads.delete(item.id);
     } catch (error) {

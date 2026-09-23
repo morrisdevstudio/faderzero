@@ -2,7 +2,7 @@ export type SettingsTab = 'compte' | 'groupe' | 'sync';
 
 export const settingsViews = [
   'home', 'add-group', 'create-group', 'join-group', 'group', 'group-identity',
-  'group-members', 'group-admin', 'group-data', 'profile', 'security', 'email', 'google',
+  'group-members', 'group-admin', 'group-data', 'group-storage', 'profile', 'security', 'email', 'google',
   'password', 'delete-account', 'personal', 'sync',
 ] as const;
 export type SettingsView = typeof settingsViews[number];
@@ -20,7 +20,7 @@ export function readSettingsView(search: string, defaultTab?: SettingsTab, hasDe
 }
 
 export function settingsParent(view: SettingsView): SettingsView {
-  if (['group-identity', 'group-members', 'group-admin', 'group-data'].includes(view)) return 'group';
+  if (['group-identity', 'group-members', 'group-admin', 'group-data', 'group-storage'].includes(view)) return 'group';
   if (view === 'create-group' || view === 'join-group') return 'add-group';
   if (['email', 'google', 'password', 'delete-account'].includes(view)) return 'security';
   return 'home';
@@ -43,7 +43,7 @@ export function settingsUrl(view: SettingsView, search = '', workspaceId?: strin
 export const settingsTitles: Record<SettingsView, string> = {
   home: 'Paramètres', 'add-group': 'Ajouter un groupe', 'create-group': 'Créer un groupe',
   'join-group': 'Rejoindre un groupe', group: 'Groupe', 'group-identity': 'Identité du groupe',
-  'group-members': 'Membres et invitations', 'group-admin': 'Administration', 'group-data': 'Données du groupe', profile: 'Profil',
+  'group-members': 'Membres et invitations', 'group-admin': 'Administration', 'group-data': 'Données du groupe', 'group-storage': 'Stockage', profile: 'Profil',
   security: 'Connexion et sécurité', email: 'Adresse e-mail', google: 'Connexion Google',
   password: 'Mot de passe', 'delete-account': 'Supprimer mon compte', personal: 'Mon espace', sync: 'Synchronisation',
 };

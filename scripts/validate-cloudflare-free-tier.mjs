@@ -17,7 +17,7 @@ const wranglerConfigs = wranglerFiles.map((path) => ({
   contents: readFileSync(`${root}/${path}`, 'utf8'),
 }));
 const migration = readFileSync(
-  `${root}/supabase/migrations/20260817132753_cloudflare_free_tier_guardrails.sql`,
+  `${root}/supabase/migrations/20260817134850_cloudflare_free_tier_guardrails.sql`,
   'utf8',
 );
 

@@ -59,6 +59,7 @@ export class SongAssetsRepository {
     workspaceId?: string;
     songId?: string;
     storagePath: string;
+    storageObjectId?: string;
     audioFileId?: string;
     filename: string;
     mimeType: string;
@@ -86,6 +87,7 @@ export class SongAssetsRepository {
       updatedAt: timestamp,
       syncStatus: 'pending',
     };
+    if (input.storageObjectId) asset.storageObjectId = input.storageObjectId;
     if (input.audioFileId) asset.audioFileId = input.audioFileId;
 
     if (input.songId !== undefined) {
@@ -110,6 +112,7 @@ export class SongAssetsRepository {
         {
           songId: asset.songId,
           storagePath: asset.storagePath,
+          storageObjectId: asset.storageObjectId,
           audioFileId: asset.audioFileId,
           filename: asset.filename,
           mimeType: asset.mimeType,

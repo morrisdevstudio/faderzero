@@ -4,6 +4,7 @@ import { songsRepository } from '@/db/repositories/songsRepository';
 import { songAssetsRepository } from '@/db/repositories/songAssetsRepository';
 import { uploadSongAsset } from '@/services/supabase/storage';
 import { refreshAudioQuota } from '@/services/supabase/audioQuota';
+import { listWorkspaceStorageConnections } from '@/services/supabase/workspaceStorage';
 import {
   FADERZERO_ARCHIVE_FORMAT,
   FADERZERO_ARCHIVE_VERSION,
@@ -225,10 +226,14 @@ export async function importPreview(
 ): Promise<ImportReport> {
   const report: ImportReport = { analyzed: preview.songs.length, created: 0, updated: 0, ignored: 0, audioUploaded: 0, audioReused: 0, errors: [] };
   const validSongs = preview.songs.filter((song) => song.valid);
-  const quota = await refreshAudioQuota(workspaceId);
-  if (preview.durationSecondsToUpload > quota.remainingAmount) {
-    const missing = preview.durationSecondsToUpload - quota.remainingAmount;
-    throw new Error(`Quota audio insuffisant : il manque ${Math.ceil(missing / 60)} min pour envoyer ${formatBytes(preview.bytesToUpload)}.`);
+  const connections = await listWorkspaceStorageConnections(workspaceId);
+  const defaultConnection = connections.find((connection) => connection.isDefault && connection.status === 'connected');
+  if (defaultConnection?.providerId === 'faderzero_r2') {
+    const quota = await refreshAudioQuota(workspaceId);
+    if (preview.durationSecondsToUpload > quota.remainingAmount) {
+      const missing = preview.durationSecondsToUpload - quota.remainingAmount;
+      throw new Error(`Quota audio insuffisant : il manque ${Math.ceil(missing / 60)} min pour envoyer ${formatBytes(preview.bytesToUpload)}.`);
+    }
   }
   const existingAssets = await songAssetsRepository.listImportedTracks();
   const assetByHash = new Map(existingAssets.flatMap((asset) => asset.contentHash ? [[asset.contentHash, asset] as const] : []));

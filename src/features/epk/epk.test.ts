@@ -20,6 +20,7 @@ vi.mock('@/services/supabase/client', () => ({
 vi.mock('@/services/audio/r2Client', () => ({
   createAudioSignedUrl: vi.fn(),
   deleteEpkObject: vi.fn(async () => undefined),
+  uploadAudioObject: vi.fn(),
   uploadEpkObject: vi.fn(),
 }));
 

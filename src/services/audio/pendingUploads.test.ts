@@ -17,6 +17,7 @@ describe('pending audio uploads', () => {
       filename: 'take.mp3',
       normalizePeak: true,
       durationSeconds: 6,
+      targetProviderId: 'google_drive',
       database,
       isOnline: () => false,
       upload: vi.fn(),
@@ -34,6 +35,7 @@ describe('pending audio uploads', () => {
       status: 'pending',
       normalizePeak: true,
       durationSeconds: 6,
+      targetProviderId: 'google_drive',
     });
     expect(queued[0]!.fileBlob).toBeDefined();
 

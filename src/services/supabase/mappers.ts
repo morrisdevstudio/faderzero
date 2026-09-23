@@ -77,6 +77,7 @@ export interface DbSongAsset {
   workspace_id: string;
   song_id: string | null;
   storage_path: string;
+  storage_object_id?: string | null;
   audio_file_id?: string | null;
   filename: string;
   mime_type: string;
@@ -384,6 +385,7 @@ export function toLocalSongAsset(dbSongAsset: DbSongAsset): SongAssetRecord {
     syncStatus: 'synced',
   };
   if (dbSongAsset.audio_file_id) songAsset.audioFileId = dbSongAsset.audio_file_id;
+  if (dbSongAsset.storage_object_id) songAsset.storageObjectId = dbSongAsset.storage_object_id;
 
   if (dbSongAsset.song_id !== null) {
     songAsset.songId = dbSongAsset.song_id;
@@ -414,6 +416,7 @@ export function toDbSongAsset(
     workspace_id: songAsset.workspaceId,
     song_id: songAsset.songId ?? null,
     storage_path: songAsset.storagePath,
+    ...(songAsset.storageObjectId ? { storage_object_id: songAsset.storageObjectId } : {}),
     audio_file_id: songAsset.audioFileId ?? null,
     filename: songAsset.filename,
     mime_type: songAsset.mimeType,

@@ -62,6 +62,7 @@ export interface SongAssetRecord {
   workspaceId: string;
   songId?: string;
   storagePath: string;
+  storageObjectId?: string;
   audioFileId?: string;
   filename: string;
   mimeType: string;
@@ -146,6 +147,10 @@ export interface PendingAudioUploadRecord {
   errorMessage?: string;
   normalizePeak?: boolean;
   durationSeconds?: number;
+  targetProviderId?: 'faderzero_r2' | 'google_drive' | 'dropbox' | 'onedrive' | 'webdav';
+  resumableSessionUri?: string;
+  resumableSessionId?: string;
+  confirmedBytes?: number;
 }
 
 
