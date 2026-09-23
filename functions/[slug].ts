@@ -11,6 +11,7 @@ const PUBLIC_ORIGIN = 'https://faderzero.com';
 const DEFAULT_MEDIA_ORIGIN = 'https://media.faderzero.com';
 
 export const onRequestGet = async (context: PagesContext): Promise<Response> => {
+  if (new URL(context.request.url).hostname === 'app.faderzero.com') return context.next();
   const slug = context.params.slug?.toLowerCase();
   if (!slug || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) return redirectToLanding();
 
@@ -38,6 +39,7 @@ export const onRequestGet = async (context: PagesContext): Promise<Response> => 
 };
 
 export const onRequestHead = async (context: PagesContext): Promise<Response> => {
+  if (new URL(context.request.url).hostname === 'app.faderzero.com') return context.next();
   const slug = context.params.slug?.toLowerCase();
   const row = slug ? await loadEpk(context.env, slug) : null;
   return row?.status === 'PUBLISHED' ? new Response(null, { status: 200, headers: publicHeaders(row.published_revision) }) : redirectToLanding();
