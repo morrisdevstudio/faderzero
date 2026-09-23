@@ -2,6 +2,16 @@ import { describe, expect, it, vi } from 'vitest';
 import { onRequestGet } from './[slug]';
 
 describe('public EPK Pages Function', () => {
+  it('leaves PWA routes on app.faderzero.com to the static fallback', async () => {
+    const next = vi.fn().mockResolvedValue(new Response('PWA shell'));
+    const response = await onRequestGet({
+      request: new Request('https://app.faderzero.com/account?view=group-storage&storage=connected'), params: { slug: 'account' },
+      env: { SUPABASE_URL: 'https://example.supabase.co', SUPABASE_SECRET_KEY: 'secret' }, next,
+    });
+    expect(next).toHaveBeenCalledOnce();
+    expect(await response.text()).toBe('PWA shell');
+  });
+
   it('embeds only the published snapshot and prevents HTML caching', async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify([{
       display_name: 'Kicked To Heaven', slug: 'kickedtoheaven', status: 'PUBLISHED', published_revision: 7,
