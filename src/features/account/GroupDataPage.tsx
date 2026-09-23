@@ -4,7 +4,7 @@ import { db } from '@/db/db';
 import { Button } from '@/ui/components/Button';
 import { FzIcon } from '@/ui/icons';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
-import { createAudioSignedUrl } from '@/services/audio/r2Client';
+import { createStorageReadUrl } from '@/services/storage';
 import {
   analyzeArchiveFile,
   analyzeFolderFiles,
@@ -55,7 +55,7 @@ export function GroupDataPage({ workspace }: { workspace: Workspace }) {
         includeAudio,
         onProgress: setProgress,
         readAudio: async (asset) => {
-          const url = await createAudioSignedUrl(asset.storagePath);
+          const url = await createStorageReadUrl(workspace.id, asset.storagePath);
           const response = await fetch(url);
           if (!response.ok) throw new Error(`Impossible de télécharger ${asset.filename}.`);
           return response.blob();

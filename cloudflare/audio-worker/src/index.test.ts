@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import worker from './index';
 import type { WorkerEnv } from './index';
+import { handleGoogleDriveRequest } from './googleDrive';
 
 const baseEnv = {
   ALLOWED_ORIGINS:
@@ -390,6 +391,55 @@ describe('audio Worker request boundary', () => {
     const response = await worker.fetch(new Request(tamperedUrl), env);
     expect(response.status).toBe(403);
     expect(env.AUDIO_BUCKET.get).not.toHaveBeenCalled();
+  });
+});
+
+describe('Google Drive storage boundary', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it('creates an admin-only OAuth request with PKCE and the minimal scope', async () => {
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+      if (url.includes('/auth/v1/user')) return Response.json({ id: 'user-123' });
+      if (url.includes('/workspace_members')) return Response.json([{ role: 'admin' }]);
+      if (url.includes('/rpc/create_google_drive_oauth_state')) return Response.json(null);
+      throw new Error(`Unexpected request: ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const env = {
+      ...makeAudioEnv(),
+      GOOGLE_OAUTH_CLIENT_ID: 'google-client', GOOGLE_OAUTH_CLIENT_SECRET: 'google-secret',
+      GOOGLE_OAUTH_REDIRECT_URI: 'https://faderzero-audio-api.admin-morris-studio.workers.dev/storage/google-drive/oauth/callback',
+      GOOGLE_TOKEN_ENCRYPTION_KEY: 'encryption-secret', APP_URL: 'https://app.faderzero.com',
+    } as WorkerEnv;
+    const response = await handleGoogleDriveRequest(new Request('https://audio.example/storage/google-drive/oauth/start', {
+      method: 'POST', headers: { authorization: 'Bearer user-token', 'content-type': 'application/json' },
+      body: JSON.stringify({ workspaceId }),
+    }), env);
+    const body = await response!.json() as { authorizationUrl: string };
+    const authorization = new URL(body.authorizationUrl);
+    expect(response?.status).toBe(200);
+    expect(authorization.searchParams.get('scope')).toBe('https://www.googleapis.com/auth/drive.file');
+    expect(authorization.searchParams.get('access_type')).toBe('offline');
+    expect(authorization.searchParams.get('code_challenge_method')).toBe('S256');
+    expect(authorization.searchParams.get('state')).toBeTruthy();
+  });
+
+  it('refuses OAuth setup to a regular member', async () => {
+    vi.stubGlobal('fetch', vi.fn()
+      .mockResolvedValueOnce(Response.json({ id: 'user-123' }))
+      .mockResolvedValueOnce(Response.json([{ role: 'member' }])));
+    const env = {
+      ...makeAudioEnv(), GOOGLE_OAUTH_CLIENT_ID: 'client', GOOGLE_OAUTH_CLIENT_SECRET: 'secret',
+      GOOGLE_OAUTH_REDIRECT_URI: 'https://faderzero-audio-api.admin-morris-studio.workers.dev/storage/google-drive/oauth/callback', GOOGLE_TOKEN_ENCRYPTION_KEY: 'key', APP_URL: 'https://app.faderzero.com',
+    } as WorkerEnv;
+    const response = await handleGoogleDriveRequest(new Request('https://audio.example/storage/google-drive/oauth/start', {
+      method: 'POST', headers: { authorization: 'Bearer user-token', 'content-type': 'application/json' }, body: JSON.stringify({ workspaceId }),
+    }), env);
+    expect(response?.status).toBe(403);
   });
 });
 

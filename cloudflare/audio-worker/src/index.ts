@@ -1,6 +1,11 @@
+import { fetchStorageObjectForPublication, handleGoogleDriveRequest } from './googleDrive';
+
 export interface WorkerEnv extends Cloudflare.Env {
   URL_SIGNING_SECRET: string;
   SUPABASE_SECRET_KEY?: string;
+  GOOGLE_OAUTH_CLIENT_ID: string;
+  GOOGLE_OAUTH_CLIENT_SECRET: string;
+  GOOGLE_TOKEN_ENCRYPTION_KEY: string;
 }
 
 const MAX_AUDIO_BYTES = 50 * 1024 * 1024;
@@ -42,6 +47,9 @@ export default {
       if (url.pathname === '/health' && request.method === 'GET') {
         return jsonResponse(request, env, { status: 'ok' });
       }
+
+      const storageResponse = await handleGoogleDriveRequest(request, env);
+      if (storageResponse) return storageResponse;
 
       if (url.pathname === '/signed-url' && request.method === 'POST') {
         return await createSignedUrl(request, env);
@@ -102,7 +110,7 @@ async function publishEpkMedia(request: Request, env: WorkerEnv, epkId: string):
   if (!isRecord(epk) || typeof epk.workspace_id !== 'string' || Number(epk.draft_revision) !== expectedRevision) return jsonResponse(request, env, { error: 'EPK_DRAFT_CONFLICT' }, 409);
   if ((await getWorkspaceRole(user, epk.workspace_id, env)) !== 'admin') return jsonResponse(request, env, { error: 'Forbidden' }, 403);
 
-  const assets = await serviceRows(env, 'epk_assets', `select=id,storage_path,mime_type&epk_id=eq.${epkId}`);
+  const assets = await serviceRows(env, 'epk_assets', `select=id,storage_path,storage_object_id,mime_type&epk_id=eq.${epkId}`);
   const assetById = new Map(assets.filter(isRecord).flatMap((asset) => typeof asset.id === 'string' && typeof asset.storage_path === 'string' ? [[asset.id, asset]] : []));
   const [photos, documents, tracks] = await Promise.all([
     serviceRows(env, 'epk_photos', `select=id,preview_asset_id&epk_id=eq.${epkId}`),
@@ -110,7 +118,7 @@ async function publishEpkMedia(request: Request, env: WorkerEnv, epkId: string):
     serviceRows(env, 'epk_tracks', `select=id,source_type,audio_asset_id,song_asset_id&epk_id=eq.${epkId}&visibility=eq.PUBLIC`),
   ]);
   const songIds = tracks.filter(isRecord).map((track) => track.song_asset_id).filter((id): id is string => typeof id === 'string');
-  const songs = songIds.length ? await serviceRows(env, 'song_assets', `select=id,storage_path,mime_type&id=in.(${songIds.join(',')})`) : [];
+  const songs = songIds.length ? await serviceRows(env, 'song_assets', `select=id,storage_path,storage_object_id,mime_type&id=in.(${songIds.join(',')})`) : [];
   for (const song of songs) if (isRecord(song) && typeof song.id === 'string' && typeof song.storage_path === 'string') assetById.set(song.id, song);
 
   const copied: string[] = [];
@@ -120,9 +128,13 @@ async function publishEpkMedia(request: Request, env: WorkerEnv, epkId: string):
     if (!asset || typeof asset.storage_path !== 'string') throw new Error('EPK_MEDIA_MISSING');
     const key = `epks/${epkId}/revisions/${expectedRevision}/${assetId}`;
     if (await env.EPK_PUBLIC_BUCKET.head(key)) return key;
-    const source = await env.AUDIO_BUCKET.get(asset.storage_path);
-    if (!source) throw new Error('EPK_MEDIA_MISSING');
-    const contentType = typeof asset.mime_type === 'string' ? asset.mime_type : source.httpMetadata?.contentType;
+    const source = typeof asset.storage_object_id === 'string'
+      ? await fetchStorageObjectForPublication(env, asset.storage_object_id)
+      : await env.AUDIO_BUCKET.get(asset.storage_path).then((object) => object
+        ? new Response(object.body, object.httpMetadata?.contentType ? { headers: { 'content-type': object.httpMetadata.contentType } } : {})
+        : null);
+    if (!source?.body) throw new Error('EPK_MEDIA_MISSING');
+    const contentType = typeof asset.mime_type === 'string' ? asset.mime_type : source.headers.get('content-type') ?? undefined;
     await env.EPK_PUBLIC_BUCKET.put(key, source.body, { httpMetadata: contentType ? { contentType, cacheControl: 'public, max-age=31536000, immutable' } : { cacheControl: 'public, max-age=31536000, immutable' } });
     copied.push(key);
     return key;

@@ -1,6 +1,7 @@
 import { supabase } from '@/services/supabase/client';
 import { createId } from '@/lib/createId';
-import { createAudioSignedUrl, deleteEpkObject, publishEpkMedia, uploadEpkObject } from '@/services/audio/r2Client';
+import { publishEpkMedia } from '@/services/audio/r2Client';
+import { createStorageReadUrl, deleteStorageObject, uploadStorageObject } from '@/services/storage';
 import { db } from '@/db/db';
 import { songAssetsRepository } from '@/db/repositories/songAssetsRepository';
 import { getCachedAudioUrl } from '@/features/audio/audioCacheStore';
@@ -100,6 +101,20 @@ export interface CreateEpkLinkInput {
 }
 
 const RESERVED_SLUGS = new Set(['home', 'calendar', 'booking', 'songs', 'setlists', 'prompter', 'sync', 'metronome', 'account', 'api', 'assets', 'media', 'preview', 'internal']);
+
+function workspaceIdFromStoragePath(storagePath: string): string {
+  const match = storagePath.match(/^workspaces\/([^/]+)\//);
+  if (!match?.[1]) throw new Error('Chemin de stockage invalide.');
+  return match[1];
+}
+
+function createAudioSignedUrl(storagePath: string): Promise<string> {
+  return createStorageReadUrl(workspaceIdFromStoragePath(storagePath), storagePath);
+}
+
+function deleteEpkObject(storagePath: string): Promise<void> {
+  return deleteStorageObject(workspaceIdFromStoragePath(storagePath), storagePath);
+}
 
 export function normalizeEpkSlug(value: string): string {
   return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
@@ -404,10 +419,16 @@ function extensionFor(file: File): string {
 async function uploadAsset(epk: EpkRecord, file: File, kind: 'image_preview' | 'image_original' | 'document'): Promise<string> {
   const id = createId();
   const storagePath = `workspaces/${epk.workspaceId}/epks/${epk.id}/${id}.${extensionFor(file)}`;
-  await uploadEpkObject(storagePath, file, kind);
-  const { error } = await supabase.from('epk_assets').insert({ id, epk_id: epk.id, storage_path: storagePath, mime_type: file.type, size_bytes: file.size, kind, original_filename: file.name });
+  const location = await uploadStorageObject({
+    workspaceId: epk.workspaceId,
+    logicalKey: storagePath,
+    sizeBytes: file.size,
+    mimeType: file.type,
+    objectKind: kind === 'document' ? 'document' : 'epk_media',
+  }, file);
+  const { error } = await supabase.from('epk_assets').insert({ id, epk_id: epk.id, storage_path: storagePath, storage_object_id: location.storageObjectId ?? null, mime_type: file.type, size_bytes: file.size, kind, original_filename: file.name });
   if (!error) return id;
-  await deleteEpkObject(storagePath).catch(() => undefined);
+  await deleteStorageObject(epk.workspaceId, storagePath).catch(() => undefined);
   throw error;
 }
 
@@ -417,10 +438,12 @@ async function uploadAsset(epk: EpkRecord, file: File, kind: 'image_preview' | '
  * pointing the editor at a non-existent local `/media/preview/...` route.
  */
 export async function createEpkAssetSignedUrl(assetId: string): Promise<string> {
-  const { data, error } = await supabase.from('epk_assets').select('storage_path').eq('id', assetId).single();
+  const { data, error } = await supabase.from('epk_assets').select('storage_path, epks!inner(workspace_id)').eq('id', assetId).single();
   if (error) throw error;
   if (!data?.storage_path) throw new Error('Média EPK introuvable.');
-  return createAudioSignedUrl(data.storage_path);
+  const workspaceId = (data.epks as unknown as { workspace_id?: string } | null)?.workspace_id;
+  if (!workspaceId) throw new Error('Groupe EPK introuvable.');
+  return createStorageReadUrl(workspaceId, data.storage_path);
 }
 
 export async function uploadEpkHeroImage(epk: EpkRecord, file: File): Promise<EpkRecord> {

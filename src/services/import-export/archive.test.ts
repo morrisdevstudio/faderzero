@@ -4,13 +4,14 @@ import type { SongAssetRecord, SongRecord } from '@/db/schema';
 
 const mocks = vi.hoisted(() => ({
   createSong: vi.fn(), updateSong: vi.fn(), createAsset: vi.fn(), updateMetadata: vi.fn(), listAssets: vi.fn(),
-  upload: vi.fn(), quota: vi.fn(),
+  upload: vi.fn(), quota: vi.fn(), listConnections: vi.fn(),
 }));
 
 vi.mock('@/db/repositories/songsRepository', () => ({ songsRepository: { create: mocks.createSong, update: mocks.updateSong } }));
 vi.mock('@/db/repositories/songAssetsRepository', () => ({ songAssetsRepository: { create: mocks.createAsset, updateMetadata: mocks.updateMetadata, listImportedTracks: mocks.listAssets } }));
 vi.mock('@/services/supabase/storage', () => ({ uploadSongAsset: mocks.upload }));
 vi.mock('@/services/supabase/audioQuota', () => ({ refreshAudioQuota: mocks.quota }));
+vi.mock('@/services/supabase/workspaceStorage', () => ({ listWorkspaceStorageConnections: mocks.listConnections }));
 
 import { analyzeArchiveFile, analyzeEntries, analyzeFolderFiles, createFaderZeroArchive, importPreview } from './archive';
 
@@ -30,6 +31,7 @@ describe('Archive FaderZero v1', () => {
     mocks.createSong.mockResolvedValue({ id: 'created-song' });
     mocks.listAssets.mockResolvedValue([]);
     mocks.quota.mockResolvedValue({ remainingAmount: 10_000 });
+    mocks.listConnections.mockResolvedValue([{ providerId: 'faderzero_r2', isDefault: true, status: 'connected' }]);
     mocks.upload.mockResolvedValue('uploaded-asset');
   });
 

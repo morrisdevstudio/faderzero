@@ -53,6 +53,7 @@ import { SelectField } from '@/ui/components/SelectField';
 import { TextField } from '@/ui/components/TextField';
 import { FzIcon } from '@/ui/icons';
 import { GroupDataPage } from './GroupDataPage';
+import { GroupStoragePage } from './GroupStoragePage';
 
 const INVITE_ROLE_LABELS: Record<WorkspaceRole, string> = {
   admin: 'Administrateur',
@@ -417,7 +418,7 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
   const needsPersonal = requestedView === 'personal';
   const workspaceMissing = (needsGroup && selectedWorkspace?.type !== 'group') || (needsPersonal && selectedWorkspace?.type !== 'personal');
   const view: SettingsView = workspaceMissing ? 'home'
-    : (requestedView === 'group-admin' || requestedView === 'group-data') && selectedWorkspace && !canAdministerWorkspace(selectedWorkspace.role) ? 'group'
+    : (requestedView === 'group-admin' || requestedView === 'group-data' || requestedView === 'group-storage') && selectedWorkspace && !canAdministerWorkspace(selectedWorkspace.role) ? 'group'
     : requestedView;
   const openView = (next: SettingsView, id?: string) => navigate(settingsUrl(next, location.search, id));
 
@@ -900,6 +901,7 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
         {menuRow('Membres et invitations', 'group-members', 'users', undefined, selectedWorkspace.id)}
         {canAdministerWorkspace(selectedWorkspace.role) && <>
           {menuRow('Données du groupe', 'group-data', 'file-archive', 'Sauvegarder ou restaurer le répertoire', selectedWorkspace.id)}
+          {menuRow('Stockage', 'group-storage', 'folder', 'Configurer les fichiers du groupe', selectedWorkspace.id)}
           <ContentRow mode="button" title="Kit de presse public" subtitle="Gérer l’EPK" leading={<FzIcon name="file-text" usageId="account.menu.epk" />} trailing={<FzIcon name="next" usageId="account.epk.open" />} onClick={() => { setActiveWorkspace(selectedWorkspace); navigate('/account/epk'); }} />
           {menuRow('Administration', 'group-admin', 'wrench', 'Stockage et gestion du groupe', selectedWorkspace.id)}
         </>}
@@ -1123,6 +1125,7 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
             </div>
           </section>)}
       {view === 'group-data' && selectedWorkspace && canAdministerWorkspace(selectedWorkspace.role) ? <GroupDataPage workspace={selectedWorkspace} /> : null}
+      {view === 'group-storage' && selectedWorkspace && canAdministerWorkspace(selectedWorkspace.role) ? <GroupStoragePage workspace={selectedWorkspace} /> : null}
       {(view === 'personal' || view === 'group-identity' || view === 'group-members' || view === 'group-admin') && selectedWorkspace && <section className="space-y-4">
         {groupActionError && <p role="alert" className="text-sm text-red-400">{groupActionError}</p>}
         {workspaces.filter(ws => ws.id === selectedWorkspace.id).map(ws => {

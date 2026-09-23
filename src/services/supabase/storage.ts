@@ -1,8 +1,7 @@
 import { createId } from '@/lib/createId';
 import { getActiveDatabase } from '@/db/db';
 import { SongAssetsRepository, songAssetsRepository } from '@/db/repositories/songAssetsRepository';
-import { createAudioSignedUrl, uploadAudioObject } from '@/services/audio/r2Client';
-import { supabase } from '@/services/supabase/client';
+import { createStorageReadUrl, uploadStorageObject } from '@/services/storage';
 import {
   buildCompressedFileName,
   compressAudioForUpload,
@@ -23,6 +22,9 @@ export interface UploadSongAssetOptions {
   normalizePeak?: boolean;
   durationSeconds?: number;
   contentHash?: string;
+  targetProviderId?: import('@/services/storage').StorageProviderId;
+  resumeSessionId?: string;
+  onStorageSession?: (session: import('@/services/storage').StorageUploadSession) => void | Promise<void>;
 }
 
 export async function uploadSongAsset(
@@ -42,31 +44,19 @@ export async function uploadSongAsset(
   const storagePath = songId
     ? `workspaces/${workspaceId}/songs/${songId}/${assetId}.mp3`
     : `workspaces/${workspaceId}/imports/${assetId}.mp3`;
-  const { data: reservationId, error: reservationError } = await supabase.rpc('reserve_audio_upload', {
-    p_workspace_id: workspaceId,
-    p_requested_bytes: uploadFile.size,
-    p_requested_seconds: durationSeconds ?? null,
-  });
-  if (reservationError || typeof reservationId !== 'string') {
-    throw reservationError ?? new Error('Reservation audio invalide.');
-  }
   options.onProgress?.({ phase: 'upload', progress: 10, label: 'Envoi vers le stockage' });
-
-  try {
-    await uploadAudioObject(storagePath, uploadFile, reservationId);
-  } catch (error) {
-    await supabase.rpc('release_audio_upload_reservation', { p_reservation_id: reservationId });
-    throw error;
-  }
+  const location = await uploadStorageObject({
+    workspaceId,
+    logicalKey: storagePath,
+    sizeBytes: uploadFile.size,
+    mimeType: uploadFile.type || 'audio/mpeg',
+    ...(durationSeconds !== undefined ? { durationSeconds } : {}),
+    contentHash,
+    ...(options.targetProviderId ? { targetProviderId: options.targetProviderId } : {}),
+    ...(options.resumeSessionId ? { resumeSessionId: options.resumeSessionId } : {}),
+    ...(options.onStorageSession ? { onSessionCreated: options.onStorageSession } : {}),
+  }, uploadFile);
   options.onProgress?.({ phase: 'upload', progress: 88, label: "Finalisation de l'upload" });
-
-  const { error: completionError } = await supabase.rpc('complete_audio_upload_reservation', {
-    p_reservation_id: reservationId,
-    p_storage_path: storagePath,
-  });
-  if (completionError) {
-    throw completionError;
-  }
 
   // 2. Création de l'enregistrement de métadonnées local (qui alimente la file syncQueue)
   await new SongAssetsRepository(database).create({
@@ -74,6 +64,7 @@ export async function uploadSongAsset(
     workspaceId,
     ...(songId !== undefined ? { songId } : {}),
     storagePath,
+    ...(location?.storageObjectId ? { storageObjectId: location.storageObjectId } : {}),
     filename,
     mimeType: uploadFile.type || 'audio/mpeg',
     sizeBytes: uploadFile.size,
@@ -139,5 +130,5 @@ export async function getSongAssetPlaybackUrl(
   }
 
   // Génération par le Worker d'une URL R2 signée temporaire (durée de cinq minutes)
-  return createAudioSignedUrl(asset.storagePath);
+  return createStorageReadUrl(asset.workspaceId, asset.storagePath);
 }

@@ -27,7 +27,7 @@ describe('settings navigation', () => {
     expect(settingsUrl('home', '?workspace=old&view=sync&tab=sync')).toBe('/account');
   });
   it.each([
-    ['group-identity', 'group'], ['group-members', 'group'], ['group-admin', 'group'],
+    ['group-identity', 'group'], ['group-members', 'group'], ['group-admin', 'group'], ['group-storage', 'group'],
     ['create-group', 'add-group'], ['join-group', 'add-group'],
     ['email', 'security'], ['google', 'security'], ['password', 'security'], ['delete-account', 'security'],
     ['group', 'home'], ['personal', 'home'], ['profile', 'home'], ['sync', 'home'],
