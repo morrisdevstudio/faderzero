@@ -36,14 +36,21 @@ export const googleDriveStorageProvider: StorageProvider = {
   capabilities: new Set(['resumable_upload', 'read', 'download', 'delete', 'quota', 'health']),
 
   async createUploadSession(request) {
-    const body = await responseRecord(await authenticatedRequest('/storage/google-drive/upload-sessions', {
+    const payload = {
       workspaceId: request.workspaceId,
       logicalKey: request.logicalKey,
       objectKind: request.objectKind ?? 'audio',
       mimeType: request.mimeType,
       sizeBytes: request.sizeBytes,
+    };
+    let response = await authenticatedRequest('/storage/google-drive/upload-sessions', {
+      ...payload,
       ...(request.resumeSessionId ? { sessionId: request.resumeSessionId } : {}),
-    }));
+    });
+    if (request.resumeSessionId && (response.status === 409 || response.status === 410)) {
+      response = await authenticatedRequest('/storage/google-drive/upload-sessions', payload);
+    }
+    const body = await responseRecord(response);
     if (typeof body.sessionId !== 'string' || typeof body.resumableSessionUri !== 'string') {
       throw new StorageProviderError('invalid_upload', 'Session Google Drive incomplète.', 'google_drive');
     }
@@ -54,28 +61,31 @@ export const googleDriveStorageProvider: StorageProvider = {
       logicalKey: request.logicalKey,
       resumableSessionUri: body.resumableSessionUri,
       ...(typeof body.confirmedBytes === 'number' ? { confirmedBytes: body.confirmedBytes } : {}),
+      ...(typeof body.completedPhysicalIdentifier === 'string' ? { completedPhysicalIdentifier: body.completedPhysicalIdentifier } : {}),
       ...(typeof body.expiresAt === 'string' ? { expiresAt: body.expiresAt } : {}),
     };
   },
 
   async upload(session, body) {
     assertGoogleSession(session);
+    if (session.completedPhysicalIdentifier) return { physicalIdentifier: session.completedPhysicalIdentifier };
     const offset = session.confirmedBytes ?? 0;
     const uploadBody = offset > 0 ? body.slice(offset) : body;
-    const response = await fetch(session.resumableSessionUri, {
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (!apiUrl || !token) throw new StorageProviderError('connection_unavailable', 'Connexion Supabase requise.', 'google_drive');
+    const response = await fetch(`${apiUrl}/storage/google-drive/upload-sessions/${encodeURIComponent(session.sessionId)}/content`, {
       method: 'PUT',
       headers: {
+        authorization: `Bearer ${token}`,
         'content-type': body.type || 'application/octet-stream',
-        'content-length': String(uploadBody.size),
         'content-range': `bytes ${offset}-${body.size - 1}/${body.size}`,
       },
       body: uploadBody,
     });
-    const result: unknown = await response.json().catch(() => null);
-    if (!response.ok || !result || typeof result !== 'object' || typeof (result as { id?: unknown }).id !== 'string') {
-      throw new StorageProviderError('provider_unavailable', 'L’envoi Google Drive a été interrompu et pourra être repris.', 'google_drive');
-    }
-    return { physicalIdentifier: (result as { id: string }).id };
+    const result = await responseRecord(response);
+    if (typeof result.physicalIdentifier !== 'string') throw new StorageProviderError('invalid_upload', 'Réponse d’envoi Google Drive invalide.', 'google_drive');
+    return { physicalIdentifier: result.physicalIdentifier };
   },
 
   async finalizeUpload(session, receipt, request) {

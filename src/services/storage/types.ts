@@ -56,6 +56,7 @@ export interface StorageUploadSession {
   logicalKey: string;
   resumableSessionUri?: string;
   confirmedBytes?: number;
+  completedPhysicalIdentifier?: string;
   expiresAt?: string;
 }
 

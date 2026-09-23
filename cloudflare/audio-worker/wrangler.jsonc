@@ -4,6 +4,16 @@
   "compatibility_date": "2026-07-17",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
+  "keep_vars": true,
+  "secrets": {
+    "required": [
+      "GOOGLE_OAUTH_CLIENT_ID",
+      "GOOGLE_OAUTH_CLIENT_SECRET",
+      "GOOGLE_TOKEN_ENCRYPTION_KEY",
+      "SUPABASE_SECRET_KEY",
+      "URL_SIGNING_SECRET"
+    ]
+  },
   "observability": {
     "enabled": true,
     "logs": { "head_sampling_rate": 1 },

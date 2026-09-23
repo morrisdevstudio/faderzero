@@ -2,7 +2,7 @@ import { fetchStorageObjectForPublication, handleGoogleDriveRequest } from './go
 
 export interface WorkerEnv extends Cloudflare.Env {
   URL_SIGNING_SECRET: string;
-  SUPABASE_SECRET_KEY?: string;
+  SUPABASE_SECRET_KEY: string;
   GOOGLE_OAUTH_CLIENT_ID: string;
   GOOGLE_OAUTH_CLIENT_SECRET: string;
   GOOGLE_TOKEN_ENCRYPTION_KEY: string;
@@ -747,7 +747,7 @@ function matchesOrigin(origin: string, allowed: string): boolean {
 function corsHeaders(request: Request, env: WorkerEnv): Headers {
   const headers = new Headers({
     'access-control-allow-methods': 'GET, HEAD, PUT, POST, DELETE, OPTIONS',
-    'access-control-allow-headers': 'authorization, content-type, x-audio-reservation-id, x-epk-asset-kind',
+    'access-control-allow-headers': 'authorization, content-type, content-range, x-audio-reservation-id, x-epk-asset-kind',
     'access-control-expose-headers': 'content-length, content-range, etag',
     'access-control-max-age': '86400',
     vary: 'Origin',

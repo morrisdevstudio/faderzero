@@ -52,6 +52,10 @@ export async function handleGoogleDriveRequest(request: Request, env: GoogleDriv
   if (url.pathname === '/storage/google-drive/upload-sessions' && request.method === 'POST') {
     return createUploadSession(request, env);
   }
+  const uploadMatch = url.pathname.match(/^\/storage\/google-drive\/upload-sessions\/([0-9a-f-]{36})\/content$/i);
+  if (uploadMatch && request.method === 'PUT') {
+    return uploadSessionContent(request, env, uploadMatch[1]!);
+  }
   if (url.pathname === '/storage/google-drive/uploads/finalize' && request.method === 'POST') {
     return finalizeUpload(request, env);
   }
@@ -102,6 +106,9 @@ export async function fetchStorageObjectForPublication(env: GoogleDriveEnv, stor
 async function startOAuth(request: Request, env: GoogleDriveEnv): Promise<Response> {
   const user = await authenticate(request, env);
   if (!user) return json(request, env, { error: 'Unauthorized' }, 401);
+  if (!env.GOOGLE_OAUTH_CLIENT_ID || !env.GOOGLE_OAUTH_CLIENT_SECRET || !env.GOOGLE_OAUTH_REDIRECT_URI) {
+    return json(request, env, { error: 'Google Drive OAuth unavailable' }, 503);
+  }
   const body = await request.json().catch(() => null);
   const workspaceId = recordString(body, 'workspaceId');
   if (!workspaceId || !UUID.test(workspaceId)) return json(request, env, { error: 'Invalid workspace' }, 400);
@@ -220,6 +227,16 @@ async function createUploadSession(request: Request, env: GoogleDriveEnv): Promi
       method: 'PUT',
       headers: { 'content-length': '0', 'content-range': `bytes */${sizeBytes}` },
     });
+    if (probe.ok) {
+      const completed: unknown = await probe.json().catch(() => null);
+      const physicalIdentifier = recordString(completed, 'id');
+      if (!physicalIdentifier) return json(request, env, { error: 'Completed upload receipt unavailable' }, 502);
+      return json(request, env, {
+        providerId: 'google_drive', sessionId: session.id, workspaceId, logicalKey,
+        resumableSessionUri: session.provider_session_uri,
+        confirmedBytes: sizeBytes, completedPhysicalIdentifier: physicalIdentifier,
+      });
+    }
     if (probe.status !== 308) return json(request, env, { error: 'Upload session expired' }, 410);
     return json(request, env, {
       providerId: 'google_drive', sessionId: session.id, workspaceId, logicalKey,
@@ -269,6 +286,48 @@ async function createUploadSession(request: Request, env: GoogleDriveEnv): Promi
     providerId: 'google_drive', sessionId, workspaceId, logicalKey,
     resumableSessionUri: sessionUri, confirmedBytes: 0, expiresAt,
   }, 201);
+}
+
+async function uploadSessionContent(request: Request, env: GoogleDriveEnv, sessionId: string): Promise<Response> {
+  const user = await authenticate(request, env);
+  if (!user) return json(request, env, { error: 'Unauthorized' }, 401);
+  const session = await loadUploadSession(sessionId, env);
+  if (!session || session.user_id !== user.id || session.status !== 'created') {
+    return json(request, env, { error: 'Upload session unavailable' }, 404);
+  }
+  const role = await workspaceRole(user, session.workspace_id, env);
+  if (role !== 'admin' && role !== 'member') return json(request, env, { error: 'Forbidden' }, 403);
+  const range = request.headers.get('content-range');
+  const match = range?.match(/^bytes (\d+)-(\d+)\/(\d+)$/);
+  const start = Number(match?.[1]);
+  const end = Number(match?.[2]);
+  const total = Number(match?.[3]);
+  const length = end - start + 1;
+  if (!match || !Number.isSafeInteger(start) || !Number.isSafeInteger(end) ||
+      start < 0 || end < start || total !== session.size_bytes || end !== total - 1 ||
+      length > MAX_FILE_BYTES || !request.body ||
+      request.headers.get('content-type')?.split(';', 1)[0]?.toLowerCase() !== session.mime_type ||
+      (request.headers.has('content-length') && Number(request.headers.get('content-length')) !== length)) {
+    return json(request, env, { error: 'Invalid upload content' }, 400);
+  }
+  const sessionUrl = new URL(session.provider_session_uri);
+  if (sessionUrl.origin !== 'https://www.googleapis.com' || sessionUrl.pathname !== '/upload/drive/v3/files') {
+    return json(request, env, { error: 'Invalid provider session' }, 409);
+  }
+  const upstream = await fetch(sessionUrl, {
+    method: 'PUT',
+    headers: {
+      'content-type': session.mime_type,
+      'content-length': String(length),
+      'content-range': match[0],
+    },
+    body: request.body.pipeThrough(new FixedLengthStream(length)),
+  });
+  if (!upstream.ok) return driveError(request, env, upstream);
+  const result: unknown = await upstream.json().catch(() => null);
+  const physicalIdentifier = recordString(result, 'id');
+  if (!physicalIdentifier) return json(request, env, { error: 'Google Drive upload response invalid' }, 502);
+  return json(request, env, { physicalIdentifier });
 }
 
 async function finalizeUpload(request: Request, env: GoogleDriveEnv): Promise<Response> {
@@ -509,6 +568,7 @@ async function findOrCreateFolder(
 }
 
 async function connectionAccessToken(connection: ConnectionRow, env: GoogleDriveEnv): Promise<string | null> {
+  if (!env.GOOGLE_OAUTH_CLIENT_ID || !env.GOOGLE_OAUTH_CLIENT_SECRET) return null;
   const secretResponse = await serviceRpc(env, 'get_storage_connection_secret', { p_connection_id: connection.id });
   const rows = await responseRows(secretResponse);
   const encrypted = recordString(rows[0], 'encrypted_credentials');
@@ -527,6 +587,7 @@ async function connectionAccessToken(connection: ConnectionRow, env: GoogleDrive
   const body: unknown = await response.json().catch(() => null);
   const token = recordString(body, 'access_token');
   if (!response.ok || !token) {
+    if (recordString(body, 'error') !== 'invalid_grant') return null;
     await servicePatch(env, 'workspace_storage_connections', { id: `eq.${connection.id}` }, { status: 'authorization_expired', last_health_check_at: new Date().toISOString() });
     return null;
   }
@@ -798,7 +859,7 @@ function json(request: Request, env: GoogleDriveEnv, body: Record<string, unknow
 
 function cors(request: Request, env: GoogleDriveEnv): Headers {
   const headers = new Headers({
-    'access-control-allow-methods': 'GET, HEAD, POST, DELETE, OPTIONS',
+    'access-control-allow-methods': 'GET, HEAD, PUT, POST, DELETE, OPTIONS',
     'access-control-allow-headers': 'authorization, content-type, range',
     'access-control-expose-headers': 'content-length, content-range, accept-ranges, etag, content-disposition',
     vary: 'Origin',
