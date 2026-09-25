@@ -210,7 +210,16 @@ export async function getEpk(workspaceId: string): Promise<EpkRecord | null> {
 
 export async function createEpk(workspaceId: string, displayName: string): Promise<EpkRecord> {
   const slug = normalizeEpkSlug(displayName);
-  const { data, error } = await supabase.from('epks').insert({ workspace_id: workspaceId, display_name: displayName.trim(), slug, genres: [] }).select().single();
+  const { data, error } = await supabase.from('epks').insert({
+    workspace_id: workspaceId,
+    display_name: displayName.trim(),
+    slug,
+    genres: [],
+    accent_color: DEFAULT_EPK_ACCENT,
+    section_order: DEFAULT_EPK_SECTION_ORDER,
+    hidden_sections: [],
+    editorial_content: DEFAULT_EPK_EDITORIAL,
+  }).select().single();
   if (error) throw error;
   return toRecord(data);
 }

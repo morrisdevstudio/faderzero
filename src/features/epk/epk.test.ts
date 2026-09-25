@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
-import { deleteEpkHeroImage, epkHasUnpublishedChanges, epkUnpublishedLeavePrompt, getEpkCompleteness, getEpkLiveStatus, normalizeEpkSlug, parseEpkVideoUrl, validateEpkDraft, type EpkRecord } from './epk';
-import { DEFAULT_EPK_EDITORIAL } from './epkPresentation';
+import { createEpk, deleteEpkHeroImage, epkHasUnpublishedChanges, epkUnpublishedLeavePrompt, getEpkCompleteness, getEpkLiveStatus, normalizeEpkSlug, parseEpkVideoUrl, validateEpkDraft, type EpkRecord } from './epk';
+import { DEFAULT_EPK_ACCENT, DEFAULT_EPK_EDITORIAL, DEFAULT_EPK_SECTION_ORDER } from './epkPresentation';
 
-const supabaseMock = vi.hoisted(() => ({ updates: [] as Record<string, unknown>[] }));
+const supabaseMock = vi.hoisted(() => ({ updates: [] as Record<string, unknown>[], inserts: [] as Record<string, unknown>[] }));
 
 vi.mock('@/services/supabase/client', () => ({
   supabase: {
@@ -10,6 +10,10 @@ vi.mock('@/services/supabase/client', () => ({
       update(payload: Record<string, unknown>) {
         supabaseMock.updates.push({ table, ...payload });
         return { eq: () => ({ select: () => ({ single: async () => ({ data: { id: 'epk', workspace_id: 'workspace', display_name: 'Fader', slug: 'fader', status: 'PUBLISHED', genres: ['Rock'], theme: 'stage-dark' }, error: null }) }) }) };
+      },
+      insert(payload: Record<string, unknown>) {
+        supabaseMock.inserts.push({ table, ...payload });
+        return { select: () => ({ single: async () => ({ data: { id: 'epk', workspace_id: 'workspace', display_name: 'Fader', slug: 'fader', status: 'DRAFT', genres: [], theme: 'stage-dark', ...payload }, error: null }) }) };
       },
       select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { storage_path: 'workspaces/w/epks/e/hero.webp' }, error: null }) }) }),
       delete: () => ({ eq: async () => ({ error: null }) }),
@@ -27,6 +31,22 @@ vi.mock('@/services/audio/r2Client', () => ({
 describe('EPK helpers', () => {
   it('normalizes accented public slugs', () => {
     expect(normalizeEpkSlug(' Les Étoiles Noires! ')).toBe('les-etoiles-noires');
+  });
+
+  it('initializes a new EPK with database-valid section defaults', async () => {
+    await createEpk('workspace', 'Fader');
+
+    expect(supabaseMock.inserts.at(-1)).toMatchObject({
+      table: 'epks',
+      workspace_id: 'workspace',
+      display_name: 'Fader',
+      slug: 'fader',
+      genres: [],
+      accent_color: DEFAULT_EPK_ACCENT,
+      section_order: DEFAULT_EPK_SECTION_ORDER,
+      hidden_sections: [],
+      editorial_content: DEFAULT_EPK_EDITORIAL,
+    });
   });
 
   it('detects unpublished editor changes and leave-prompt copy', () => {
