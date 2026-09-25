@@ -416,6 +416,44 @@ describe('Google Drive storage boundary', () => {
     expect(response.headers.get('access-control-allow-headers')).toContain('content-range');
   });
 
+  it('does not store an overlong logical key in Google Drive app properties', async () => {
+    const logicalKey = `workspaces/${workspaceId}/songs/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb.mp3`;
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes('/auth/v1/user')) return Response.json({ id: 'user-123' });
+      if (url.includes('/workspace_members')) return Response.json([{ role: 'member' }]);
+      if (url.includes('/workspace_storage_connections') && !url.includes('/rpc/')) return Response.json([{
+        id: workspaceId, workspace_id: workspaceId, root_identifier: 'root-folder',
+        provider_metadata: { folders: { audio: 'audio-folder' } }, status: 'connected', is_default: true,
+      }]);
+      if (url.includes('/rpc/get_storage_connection_secret')) return Response.json([{
+        encrypted_credentials: btoa(String.fromCharCode(1, ...new Uint8Array(12), ...new Uint8Array(17))),
+      }]);
+      if (url === 'https://oauth2.googleapis.com/token') return Response.json({ access_token: 'google-access-token' });
+      if (url.startsWith('https://www.googleapis.com/upload/drive/v3/files')) {
+        const metadata = JSON.parse(String(init?.body));
+        expect(metadata.appProperties).toEqual({ faderzeroWorkspaceId: workspaceId });
+        return new Response(null, { status: 200, headers: { location: 'https://www.googleapis.com/upload/drive/v3/files?upload_id=test' } });
+      }
+      if (url.includes('/rpc/create_storage_upload_session')) return Response.json(reservationId);
+      throw new Error(`Unexpected request: ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    vi.stubGlobal('crypto', {
+      subtle: {
+        digest: vi.fn(async () => new Uint8Array(32).buffer),
+        importKey: vi.fn(async () => ({})),
+        decrypt: vi.fn(async () => new TextEncoder().encode(JSON.stringify({ refreshToken: 'refresh-token' })).buffer),
+      },
+    });
+    const response = await handleGoogleDriveRequest(new Request('https://audio.example/storage/google-drive/upload-sessions', {
+      method: 'POST',
+      headers: { authorization: 'Bearer user-token', 'content-type': 'application/json' },
+      body: JSON.stringify({ workspaceId, logicalKey, objectKind: 'audio', mimeType: 'audio/mpeg', sizeBytes: 4 }),
+    }), { ...makeAudioEnv(), GOOGLE_OAUTH_CLIENT_ID: 'client', GOOGLE_OAUTH_CLIENT_SECRET: 'secret', GOOGLE_TOKEN_ENCRYPTION_KEY: 'key' });
+    expect(response?.status).toBe(201);
+  });
+
   it('streams upload content through the authenticated Worker', async () => {
     const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
       const url = String(input);
@@ -428,8 +466,16 @@ describe('Google Drive storage boundary', () => {
         status: 'created',
       });
       if (url.includes('/workspace_members')) return Response.json([{ role: 'member' }]);
+      if (url.includes('/workspace_storage_connections') && !url.includes('/rpc/')) return Response.json([{
+        id: workspaceId, workspace_id: workspaceId, root_identifier: 'root-folder', provider_metadata: {}, status: 'connected',
+      }]);
+      if (url.includes('/rpc/get_storage_connection_secret')) return Response.json([{
+        encrypted_credentials: btoa(String.fromCharCode(1, ...new Uint8Array(12), ...new Uint8Array(17))),
+      }]);
+      if (url === 'https://oauth2.googleapis.com/token') return Response.json({ access_token: 'google-access-token' });
       if (url.startsWith('https://www.googleapis.com/upload/drive/v3/files')) {
         expect(init?.method).toBe('PUT');
+        expect(new Headers(init?.headers).get('authorization')).toBe('Bearer google-access-token');
         expect(new Headers(init?.headers).get('content-range')).toBe('bytes 0-3/4');
         expect(await new Response(init?.body).arrayBuffer()).toEqual(validMp3Bytes.buffer);
         return Response.json({ id: 'drive-file-1' });
@@ -437,6 +483,13 @@ describe('Google Drive storage boundary', () => {
       throw new Error(`Unexpected request: ${url}`);
     });
     vi.stubGlobal('fetch', fetchMock);
+    vi.stubGlobal('crypto', {
+      subtle: {
+        digest: vi.fn(async () => new Uint8Array(32).buffer),
+        importKey: vi.fn(async () => ({})),
+        decrypt: vi.fn(async () => new TextEncoder().encode(JSON.stringify({ refreshToken: 'refresh-token' })).buffer),
+      },
+    });
     const response = await handleGoogleDriveRequest(new Request(`https://audio.example/storage/google-drive/upload-sessions/${reservationId}/content`, {
       method: 'PUT',
       headers: {
@@ -444,7 +497,7 @@ describe('Google Drive storage boundary', () => {
         'content-range': 'bytes 0-3/4',
       },
       body: validMp3Bytes,
-    }), makeAudioEnv());
+    }), { ...makeAudioEnv(), GOOGLE_OAUTH_CLIENT_ID: 'client', GOOGLE_OAUTH_CLIENT_SECRET: 'secret', GOOGLE_TOKEN_ENCRYPTION_KEY: 'key' });
     expect(response?.status).toBe(200);
     expect(await response?.json()).toEqual({ physicalIdentifier: 'drive-file-1' });
   });

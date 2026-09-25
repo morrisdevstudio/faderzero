@@ -36,6 +36,18 @@ describe('EPK public worker', () => {
     expect(forwardedUrl.searchParams.get('verify')).toBe('7');
   });
 
+  it.each(['/legal-notices', '/cookies', '/privacy', '/terms'])('forwards the legal route %s without EPK mode', async (pathname) => {
+    const fetchMock = vi.fn(async () => new Response('<html><head></head><body></body></html>'));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await worker.fetch(new Request(`https://faderzero.com${pathname}`), env as never);
+
+    const forwardedRequest = fetchMock.mock.calls[0]?.[0] as Request;
+    const forwardedUrl = new URL(forwardedRequest.url);
+    expect(forwardedUrl.pathname).toBe(pathname);
+    expect(forwardedUrl.searchParams.get('view')).toBeNull();
+  });
+
   it('serves an image preview through the asset owning relation', async () => {
     const mediaBucket = {
       get: vi.fn(async () => ({ body: new Response('image').body, size: 5, httpEtag: 'etag', range: undefined })),

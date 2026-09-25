@@ -103,7 +103,7 @@ export const CopySongModal: React.FC<CopySongModalProps> = ({
             className="h-5 w-5 shrink-0 accent-[var(--fz-accent)]"
           />
           <label htmlFor="includeAudioOption" className="cursor-pointer text-sm leading-5 text-white/80">
-            Inclure les fichiers audio (référence partagée sans duplication R2)
+            Inclure les fichiers audio (une copie est créée dans le stockage de destination)
           </label>
         </div>
       </div>

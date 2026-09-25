@@ -263,7 +263,10 @@ async function createUploadSession(request: Request, env: GoogleDriveEnv): Promi
       name: logicalKey.split('/').at(-1) ?? 'faderzero-file',
       mimeType,
       parents: [folderId],
-      appProperties: { faderzeroWorkspaceId: workspaceId, faderzeroLogicalKey: logicalKey },
+      // Google Drive limits each app-property key/value pair to 124 UTF-8 bytes.
+      // A full FaderZero logical key can exceed that limit, while workspace ownership
+      // remains sufficient for the post-upload verification below.
+      appProperties: { faderzeroWorkspaceId: workspaceId },
     }),
   });
   const sessionUri = driveResponse.headers.get('location');
@@ -314,9 +317,14 @@ async function uploadSessionContent(request: Request, env: GoogleDriveEnv, sessi
   if (sessionUrl.origin !== 'https://www.googleapis.com' || sessionUrl.pathname !== '/upload/drive/v3/files') {
     return json(request, env, { error: 'Invalid provider session' }, 409);
   }
+  const connection = await connectionById(session.connection_id, env);
+  if (!connection) return json(request, env, { error: 'Storage connection unavailable' }, 409);
+  const accessToken = await connectionAccessToken(connection, env);
+  if (!accessToken) return json(request, env, { error: 'Google Drive token renewal failed' }, 401);
   const upstream = await fetch(sessionUrl, {
     method: 'PUT',
     headers: {
+      authorization: `Bearer ${accessToken}`,
       'content-type': session.mime_type,
       'content-length': String(length),
       'content-range': match[0],
@@ -357,8 +365,7 @@ async function finalizeUpload(request: Request, env: GoogleDriveEnv): Promise<Re
     return json(request, env, { error: 'Uploaded file verification failed' }, 422);
   }
   const properties = isRecord(metadata.appProperties) ? metadata.appProperties : {};
-  if (recordString(properties, 'faderzeroWorkspaceId') !== session.workspace_id ||
-      recordString(properties, 'faderzeroLogicalKey') !== session.logical_key) {
+  if (recordString(properties, 'faderzeroWorkspaceId') !== session.workspace_id) {
     return json(request, env, { error: 'Uploaded file does not belong to this workspace' }, 422);
   }
   const finalized = await serviceRpc(env, 'finalize_storage_upload', {
@@ -837,8 +844,12 @@ function confirmedUploadBytes(range: string | null): number {
 
 async function driveError(request: Request, env: GoogleDriveEnv, response: Response): Promise<Response> {
   const status = response.status === 401 || response.status === 403 ? 401 : response.status === 429 ? 429 : response.status === 507 ? 507 : 502;
+  const body: unknown = await response.clone().json().catch(() => null);
+  const providerMessage = isRecord(body) && isRecord(body.error) ? recordString(body.error, 'message') : undefined;
   return json(request, env, {
-    error: status === 401 ? 'Google Drive authorization expired' : status === 429 ? 'Google Drive rate limit reached' : status === 507 ? 'Google Drive storage is full' : 'Google Drive unavailable',
+    error: status === 401
+      ? `Google Drive rejected the request${providerMessage ? `: ${providerMessage}` : ''}`
+      : status === 429 ? 'Google Drive rate limit reached' : status === 507 ? 'Google Drive storage is full' : 'Google Drive unavailable',
   }, status);
 }
 

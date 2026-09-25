@@ -17,7 +17,7 @@ type EpkRow = { id: string; display_name: string; slug: string; tagline: string 
 type PublicAsset = { storage_path: string; mime_type: string; kind: string };
 type PublicTrack = { audio_asset_id: string; epk_assets: PublicAsset };
 const PHOTO_CAROUSEL_SCRIPT = '';
-const RESERVED_PAGE_SLUGS = new Set(['account', 'assets', 'booking', 'calendar', 'en', 'fr', 'home', 'imports', 'landing', 'legal-notices', 'login', 'metronome', 'musiques', 'privacy', 'prompter', 'robots.txt', 'sitemap.xml', 'songs', 'setlists', 'sync', 'terms']);
+const RESERVED_PAGE_SLUGS = new Set(['account', 'assets', 'booking', 'calendar', 'cookies', 'en', 'fr', 'home', 'imports', 'landing', 'legal-notices', 'login', 'metronome', 'musiques', 'privacy', 'prompter', 'robots.txt', 'sitemap.xml', 'songs', 'setlists', 'sync', 'terms']);
 
 const LANDING_SEO = {
   fr: { title: 'FaderZero — Le cockpit de scène des groupes', description: 'Préparez vos répétitions et concerts : setlists, paroles, prompteur, métronome et audio, même hors connexion.', locale: 'fr_FR' },
