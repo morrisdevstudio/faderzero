@@ -647,6 +647,93 @@ describe('Google Drive storage boundary', () => {
   });
 });
 
+describe('EPK publication media copy', () => {
+  const epkId = '33333333-3333-4333-8333-333333333333';
+  const assetId = '44444444-4444-4444-8444-444444444444';
+
+  function publicationEnv() {
+    const env = makeAudioEnv();
+    env.EPK_PUBLIC_BUCKET = {
+      head: vi.fn(async () => null),
+      put: vi.fn(async () => undefined),
+      delete: vi.fn(async () => undefined),
+    } as unknown as WorkerEnv['EPK_PUBLIC_BUCKET'];
+    return env;
+  }
+
+  function mockPublicationReads(tracks: unknown[], assets: unknown[]) {
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes('/auth/v1/user')) return Response.json({ id: 'user-123' });
+      if (url.includes('/rest/v1/epks')) {
+        return Response.json([{ id: epkId, workspace_id: workspaceId, draft_revision: 1, hero_asset_id: assetId }]);
+      }
+      if (url.includes('/rest/v1/workspace_members')) return Response.json([{ role: 'admin' }]);
+      if (url.includes('/rest/v1/epk_assets')) return Response.json(assets);
+      if (url.includes('/rest/v1/epk_tracks')) return Response.json(tracks);
+      if (url.includes('/rest/v1/song_assets')) return Response.json([]);
+      return Response.json([]);
+    }));
+  }
+
+  it('copies an audio file stored in the EPK workspace', async () => {
+    const storagePath = `workspaces/${workspaceId}/epks/${epkId}/${assetId}.jpg`;
+    mockPublicationReads([], [{ id: assetId, storage_path: storagePath, mime_type: 'image/jpeg' }]);
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes('/auth/v1/user')) return Response.json({ id: 'user-123' });
+      if (url.includes('/rest/v1/epks')) {
+        return Response.json([{ id: epkId, workspace_id: workspaceId, draft_revision: 1, hero_asset_id: assetId }]);
+      }
+      if (url.includes('/rest/v1/workspace_members')) return Response.json([{ role: 'admin' }]);
+      if (url.includes('/rest/v1/epk_assets')) return Response.json([{ id: assetId, storage_path: storagePath, mime_type: 'image/jpeg' }]);
+      if (url.includes('/rest/v1/rpc/publish_epk_with_media')) return Response.json({ id: epkId });
+      return Response.json([]);
+    });
+    const env = publicationEnv();
+    const response = await worker.fetch(new Request(`https://audio.example/epk-publications/${epkId}`, {
+      method: 'POST',
+      headers: { authorization: 'Bearer token', origin: 'https://app.faderzero.com', 'content-type': 'application/json' },
+      body: JSON.stringify({ expectedRevision: 1 }),
+    }), env);
+
+    expect(response.status).toBe(200);
+    expect(env.AUDIO_BUCKET.get).toHaveBeenCalledWith(storagePath);
+  });
+
+  it('refuses to copy an audio file stored outside the EPK workspace', async () => {
+    mockPublicationReads([], [{
+      id: assetId,
+      storage_path: 'workspaces/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/imports/stolen.mp3',
+      mime_type: 'audio/mpeg',
+    }]);
+    const env = publicationEnv();
+    const response = await worker.fetch(new Request(`https://audio.example/epk-publications/${epkId}`, {
+      method: 'POST',
+      headers: { authorization: 'Bearer token', origin: 'https://app.faderzero.com', 'content-type': 'application/json' },
+      body: JSON.stringify({ expectedRevision: 1 }),
+    }), env);
+
+    expect(response.status).toBe(422);
+    expect(env.AUDIO_BUCKET.get).not.toHaveBeenCalled();
+  });
+
+  it('refuses a song id that is not a UUID before querying storage', async () => {
+    mockPublicationReads([{ id: 'track-1', source_type: 'SONG_ASSET', song_asset_id: 'x)&or=(workspace_id.eq.victim)' }], []);
+    const env = publicationEnv();
+    const response = await worker.fetch(new Request(`https://audio.example/epk-publications/${epkId}`, {
+      method: 'POST',
+      headers: { authorization: 'Bearer token', origin: 'https://app.faderzero.com', 'content-type': 'application/json' },
+      body: JSON.stringify({ expectedRevision: 1 }),
+    }), env);
+
+    expect(response.status).toBe(422);
+    const songLookup = vi.mocked(fetch).mock.calls.some(([input]) => String(input).includes('/rest/v1/song_assets'));
+    expect(songLookup).toBe(false);
+  });
+});
+
 describe('audio Worker R2 audit', () => {
   beforeEach(() => {
     vi.restoreAllMocks();

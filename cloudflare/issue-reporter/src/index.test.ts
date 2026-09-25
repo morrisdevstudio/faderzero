@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import worker, { type IssueReporterEnv } from './index';
+import worker, { issueAssetSignature, type IssueReporterEnv } from './index';
 
 class MemoryBucket {
   values = new Map<string, { value: Uint8Array; contentType?: string }>();
@@ -147,6 +147,7 @@ describe('issue reporter worker', () => {
     const issueCall = fetchMock.mock.calls.find(([input, init]) => String(input).endsWith('/issues') && init?.method === 'POST');
     expect(String(issueCall?.[1]?.body)).toContain('faderzero-report-id:aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
     expect(String(issueCall?.[1]?.body)).toContain('Capture annotée');
+    expect(String(issueCall?.[1]?.body)).toContain('?sig=');
   });
 
   it('returns the previous receipt instead of creating a duplicate', async () => {
@@ -201,10 +202,15 @@ describe('issue reporter worker', () => {
     expect(response.status).toBe(413);
   });
 
-  it('serves stored captures without exposing a listing route', async () => {
+  it('serves stored captures only with the signature embedded in the GitHub issue', async () => {
     const bucket = new MemoryBucket();
-    await bucket.put('assets/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.webp', new Uint8Array([1, 2, 3]).buffer, { httpMetadata: { contentType: 'image/webp' } });
-    const response = await worker.fetch(new Request('https://reports.example.com/assets/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.webp'), environment(bucket));
+    const id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    await bucket.put(`assets/${id}.webp`, new Uint8Array([1, 2, 3]).buffer, { httpMetadata: { contentType: 'image/webp' } });
+    const env = environment(bucket);
+    const signature = await issueAssetSignature(env.GITHUB_TOKEN, id);
+    const hidden = await worker.fetch(new Request(`https://reports.example.com/assets/${id}.webp`), env);
+    expect(hidden.status).toBe(404);
+    const response = await worker.fetch(new Request(`https://reports.example.com/assets/${id}.webp?sig=${signature}`), env);
     expect(response.status).toBe(200);
     expect(response.headers.get('content-type')).toBe('image/webp');
     expect(response.headers.get('cache-control')).toContain('immutable');

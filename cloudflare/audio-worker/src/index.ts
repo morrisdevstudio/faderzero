@@ -118,6 +118,7 @@ async function publishEpkMedia(request: Request, env: WorkerEnv, epkId: string):
     serviceRows(env, 'epk_tracks', `select=id,source_type,audio_asset_id,song_asset_id&epk_id=eq.${epkId}&visibility=eq.PUBLIC`),
   ]);
   const songIds = tracks.filter(isRecord).map((track) => track.song_asset_id).filter((id): id is string => typeof id === 'string');
+  if (songIds.some((id) => !UUID_PATTERN.test(id))) return jsonResponse(request, env, { error: 'EPK_MEDIA_MISSING' }, 422);
   const songs = songIds.length ? await serviceRows(env, 'song_assets', `select=id,storage_path,storage_object_id,mime_type&id=in.(${songIds.join(',')})`) : [];
   for (const song of songs) if (isRecord(song) && typeof song.id === 'string' && typeof song.storage_path === 'string') assetById.set(song.id, song);
 
@@ -126,6 +127,8 @@ async function publishEpkMedia(request: Request, env: WorkerEnv, epkId: string):
     if (typeof assetId !== 'string') return undefined;
     const asset = assetById.get(assetId);
     if (!asset || typeof asset.storage_path !== 'string') throw new Error('EPK_MEDIA_MISSING');
+    const owned = parseObjectKey(asset.storage_path);
+    if (!owned || owned.workspaceId !== epk.workspace_id) throw new Error('EPK_MEDIA_MISSING');
     const key = `epks/${epkId}/revisions/${expectedRevision}/${assetId}`;
     if (await env.EPK_PUBLIC_BUCKET.head(key)) return key;
     const source = typeof asset.storage_object_id === 'string'

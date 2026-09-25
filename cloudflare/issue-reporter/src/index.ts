@@ -131,7 +131,7 @@ async function createReport(request: Request, env: IssueReporterEnv): Promise<Re
       });
       uploaded = true;
     }
-    const body = buildIssueBody(env, id, description, diagnostics, Boolean(screenshot));
+    const body = await buildIssueBody(env, id, description, diagnostics, Boolean(screenshot));
     const response = await githubFetch(env, `/repos/${env.GITHUB_REPOSITORY}/issues`, {
       method: 'POST',
       body: JSON.stringify({ title, body, labels: [category] }),
@@ -162,8 +162,30 @@ async function authenticate(request: Request, env: IssueReporterEnv): Promise<{ 
   return typeof user.id === 'string' && typeof user.email === 'string' ? { id: user.id, email: user.email } : null;
 }
 
+export async function issueAssetSignature(secret: string, id: string): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  );
+  const bytes = new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(`issue-asset:${id}`)));
+  return [...bytes].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+function signaturesMatch(left: string, right: string): boolean {
+  if (left.length !== right.length) return false;
+  let difference = 0;
+  for (let index = 0; index < left.length; index += 1) difference |= left.charCodeAt(index) ^ right.charCodeAt(index);
+  return difference === 0;
+}
+
 async function serveAsset(request: Request, env: IssueReporterEnv, id: string): Promise<Response> {
-  if (!REPORT_ID.test(id)) return new Response('Not found', { status: 404 });
+  if (!REPORT_ID.test(id) || !env.GITHUB_TOKEN?.trim()) return new Response('Not found', { status: 404 });
+  const provided = new URL(request.url).searchParams.get('sig') ?? '';
+  const expected = await issueAssetSignature(env.GITHUB_TOKEN, id);
+  if (!signaturesMatch(provided, expected)) return new Response('Not found', { status: 404, headers: securityHeaders() });
   const object = await env.ISSUE_REPORTS_BUCKET.get(`assets/${id}.webp`);
   if (!object) return new Response('Not found', { status: 404, headers: securityHeaders() });
   return new Response(request.method === 'HEAD' ? null : object.body, {
@@ -171,8 +193,9 @@ async function serveAsset(request: Request, env: IssueReporterEnv, id: string): 
   });
 }
 
-function buildIssueBody(env: IssueReporterEnv, id: string, description: string, diagnostics: Record<string, unknown>, hasScreenshot: boolean): string {
-  const screenshot = hasScreenshot ? `\n\n![Capture annotée](${env.PUBLIC_ASSET_ORIGIN.replace(/\/$/, '')}/assets/${id}.webp)` : '';
+async function buildIssueBody(env: IssueReporterEnv, id: string, description: string, diagnostics: Record<string, unknown>, hasScreenshot: boolean): Promise<string> {
+  const signature = hasScreenshot ? await issueAssetSignature(env.GITHUB_TOKEN, id) : '';
+  const screenshot = hasScreenshot ? `\n\n![Capture annotée](${env.PUBLIC_ASSET_ORIGIN.replace(/\/$/, '')}/assets/${id}.webp?sig=${signature})` : '';
   const rows = [
     ['Route', diagnostics.route], ['Version', diagnostics.appVersion], ['Date UTC', diagnostics.capturedAt],
     ['Viewport', diagnostics.viewport], ['Mode', diagnostics.displayMode], ['Réseau', diagnostics.online === true ? 'en ligne' : 'hors ligne'],
