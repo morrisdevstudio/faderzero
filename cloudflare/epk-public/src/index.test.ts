@@ -37,13 +37,16 @@ describe('EPK public worker', () => {
   });
 
   it.each(['/legal-notices', '/cookies', '/privacy', '/terms'])('forwards the legal route %s without EPK mode', async (pathname) => {
-    const fetchMock = vi.fn(async () => new Response('<html><head></head><body></body></html>'));
+    const fetchMock = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>(
+      async () => new Response('<html><head></head><body></body></html>'),
+    );
     vi.stubGlobal('fetch', fetchMock);
 
     await worker.fetch(new Request(`https://faderzero.com${pathname}`), env as never);
 
-    const forwardedRequest = fetchMock.mock.calls[0]?.[0] as Request;
-    const forwardedUrl = new URL(forwardedRequest.url);
+    const forwardedInput = fetchMock.mock.calls[0]?.[0];
+    if (!(forwardedInput instanceof Request)) throw new Error('La requête légale n’a pas été relayée.');
+    const forwardedUrl = new URL(forwardedInput.url);
     expect(forwardedUrl.pathname).toBe(pathname);
     expect(forwardedUrl.searchParams.get('view')).toBeNull();
   });
