@@ -8,6 +8,7 @@ import { useLeaveTo } from '@/hooks/useGoBack';
 import { useAuthStore } from '@/stores/authStore';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { canAdministerWorkspace } from '@/services/supabase/workspace';
+import { hasConnectedWorkspaceStorage } from '@/services/supabase/workspaceStorage';
 import { addEpkContact, addEpkDocument, addEpkLink, addEpkPhoto, addEpkTrack, addEpkVideo, createEpk, createEpkAssetSignedUrl, deleteEpkContact, deleteEpkDocument, deleteEpkHeroImage, deleteEpkLink, deleteEpkPhoto, deleteEpkTrack, deleteEpkVideo, epkHasUnpublishedChanges, epkUnpublishedLeavePrompt, getEpk, getEpkLiveStatus, getEpkTrackAudioUrl, listAvailableEpkTracks, listEpkContacts, listEpkDocuments, listEpkLinks, listEpkPhotos, listEpkTracks, listEpkVideos, publishEpkDraft, saveEpk, unpublishEpk, updateEpkContact, updateEpkDocument, updateEpkLink, uploadEpkHeroImage, type AvailableEpkTrack, type EpkContact, type EpkDocument, type EpkLink, type EpkLiveStatus, type EpkPhoto, type EpkRecord, type EpkTrack, type EpkVideo, type EpkVideoType } from './epk';
 import { EpkPublicView } from './EpkPublicView';
 import { EpkEditorFields } from './EpkEditorFields';
@@ -88,6 +89,15 @@ export function EpkPage() {
   async function publishPresentation(options?: { leaveAfter?: boolean }) {
     if (!epk) return;
     if (!isOnline) { setMessage('La publication nécessite une connexion Internet.'); return; }
+    try {
+      if (!await hasConnectedWorkspaceStorage(epk.workspaceId)) {
+        setMessage('Connecte un stockage avant de publier l’EPK. Le brouillon texte et liens reste disponible.');
+        return;
+      }
+    } catch {
+      setMessage('Impossible de vérifier le stockage du groupe avant publication.');
+      return;
+    }
     flushPendingAutosave();
     setSaving(true); setMessage(null);
     try {
@@ -398,5 +408,9 @@ function getEpkErrorMessage(error: unknown, fallback: string): string {
     : typeof error === 'object' && error !== null && 'message' in error && typeof error.message === 'string' ? error.message
     : '';
   const known = Object.keys(EPK_ERROR_MESSAGES).find((code) => raw.includes(code));
-  return known ? EPK_ERROR_MESSAGES[known]! : raw || fallback;
+  if (known) return EPK_ERROR_MESSAGES[known]!;
+  // Database and storage messages are not user-facing: keep the technical
+  // detail in the console and answer with the action-oriented fallback.
+  if (raw) console.error('[EPK]', error);
+  return fallback;
 }

@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { getSupabaseConfigError } from '@/services/supabase/client';
-import { normalizeDisplayName } from '@/services/supabase/profile';
 import { assertValidPassword, getPasswordRequirements } from '@/services/supabase/passwordPolicy';
 import { PasswordField } from '@/ui/components/PasswordField';
 import { TextField } from '@/ui/components/TextField';
@@ -15,7 +14,6 @@ interface LoginPageProps {
 
 export function LoginPage({ inviteTokenPresent = false }: LoginPageProps) {
   const [mode, setMode] = useState<AuthMode>('signin');
-  const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -58,12 +56,11 @@ export function LoginPage({ inviteTokenPresent = false }: LoginPageProps) {
       } else if (mode === 'signin') {
         await signIn(normalizedEmail, password);
       } else {
-        const normalizedDisplayName = normalizeDisplayName(displayName);
         assertValidPassword(password);
         if (password !== confirmPassword) {
           throw new Error('Les mots de passe ne correspondent pas.');
         }
-        const result = await signUp(normalizedDisplayName, normalizedEmail, password);
+        const result = await signUp(normalizedEmail, password);
         setPendingConfirmationEmail(result.needsEmailConfirmation ? normalizedEmail : null);
       }
     } catch (err) {
@@ -178,27 +175,6 @@ export function LoginPage({ inviteTokenPresent = false }: LoginPageProps) {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
-          {mode === 'signup' ? (
-            <div>
-              <label htmlFor="displayName" className="fz-field-label">
-                Pseudo
-              </label>
-              <TextField
-                id="displayName"
-                type="text"
-                required
-                minLength={2}
-                maxLength={30}
-                autoComplete="nickname"
-                value={displayName}
-                onChange={(event) => setDisplayName(event.target.value)}
-                placeholder="Votre nom affiché"
-                disabled={loading}
-              />
-              <p className="mt-1.5 text-[0.68rem] text-white/40">2 à 30 caractères, non unique.</p>
-            </div>
-          ) : null}
-
           <div>
             <label htmlFor="email" className="fz-field-label">
               Adresse e-mail
@@ -321,7 +297,7 @@ export function LoginPage({ inviteTokenPresent = false }: LoginPageProps) {
               || !email.trim()
               || Boolean(configError)
               || (mode !== 'forgot' && !password)
-              || (mode === 'signup' && (!displayName.trim() || !confirmPassword))
+              || (mode === 'signup' && !confirmPassword)
             }
             className="fz-button-primary relative w-full overflow-hidden rounded-[1.1rem] px-4 py-3.5 text-[0.72rem] font-black uppercase tracking-[0.2em] transition active:scale-[0.99] disabled:opacity-40 disabled:shadow-none"
           >
@@ -349,6 +325,11 @@ export function LoginPage({ inviteTokenPresent = false }: LoginPageProps) {
                 ? "Vous devrez valider votre adresse e-mail avant votre première connexion."
                 : "Pour votre sécurité, l’application ne confirme jamais si une adresse possède un compte."}
           </p>
+          {/* Google exige que la page de connexion publique expose la politique de confidentialité. */}
+          <nav aria-label="Informations légales" className="mt-2 flex flex-wrap items-center justify-center gap-x-4">
+            <a className="inline-flex min-h-11 items-center text-[0.7rem] font-bold text-white/55 transition hover:text-white" href="/privacy">Confidentialité</a>
+            <a className="inline-flex min-h-11 items-center text-[0.7rem] font-bold text-white/55 transition hover:text-white" href="/terms">Conditions d’utilisation</a>
+          </nav>
         </div>
       </div>
     </div>

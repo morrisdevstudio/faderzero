@@ -557,7 +557,7 @@ describe('Google Drive storage boundary', () => {
   });
 
   it('creates an admin-only OAuth request with PKCE and the minimal scope', async () => {
-    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+    const fetchMock = vi.fn(async (input: string | URL | Request, _init?: RequestInit) => {
       const url = String(input);
       if (url.includes('/auth/v1/user')) return Response.json({ id: 'user-123' });
       if (url.includes('/workspace_members')) return Response.json([{ role: 'admin' }]);
@@ -573,7 +573,7 @@ describe('Google Drive storage boundary', () => {
     } as WorkerEnv;
     const response = await handleGoogleDriveRequest(new Request('https://audio.example/storage/google-drive/oauth/start', {
       method: 'POST', headers: { authorization: 'Bearer user-token', 'content-type': 'application/json' },
-      body: JSON.stringify({ workspaceId }),
+      body: JSON.stringify({ workspaceId, returnTo: 'onboarding' }),
     }), env);
     const body = await response!.json() as { authorizationUrl: string };
     const authorization = new URL(body.authorizationUrl);
@@ -582,6 +582,32 @@ describe('Google Drive storage boundary', () => {
     expect(authorization.searchParams.get('access_type')).toBe('offline');
     expect(authorization.searchParams.get('code_challenge_method')).toBe('S256');
     expect(authorization.searchParams.get('state')).toBeTruthy();
+    const oauthStateCall = fetchMock.mock.calls.find(([input]) => String(input).includes('/rpc/create_google_drive_oauth_state'));
+    expect(oauthStateCall?.[1]).toMatchObject({ body: expect.stringContaining('"p_return_to":"onboarding"') });
+  });
+
+  it('returns an OAuth cancellation to the onboarding tunnel', async () => {
+    const fetchMock = vi.fn(async (input: string | URL | Request, _init?: RequestInit) => {
+      if (String(input).includes('/rpc/consume_google_drive_oauth_state_server')) {
+        return Response.json([{
+          workspace_id: workspaceId,
+          user_id: 'user-123',
+          pkce_verifier: 'verifier',
+          return_to: 'onboarding',
+        }]);
+      }
+      throw new Error(`Unexpected request: ${String(input)}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const env = { ...makeAudioEnv(), APP_URL: 'https://app.faderzero.com' } as WorkerEnv;
+
+    const response = await handleGoogleDriveRequest(
+      new Request('https://audio.example/storage/google-drive/oauth/callback?state=state-1&error=access_denied'),
+      env,
+    );
+
+    expect(response?.status).toBe(302);
+    expect(response?.headers.get('location')).toBe(`https://app.faderzero.com/?workspace=${workspaceId}&storage=error`);
   });
 
   it('refuses OAuth setup when the client ID is missing', async () => {

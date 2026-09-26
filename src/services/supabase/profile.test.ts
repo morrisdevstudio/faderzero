@@ -17,6 +17,7 @@ vi.mock('@/services/supabase/client', () => ({
 
 import {
   getCurrentProfile,
+  completeCurrentProfileOnboarding,
   getGeneratedAvatar,
   getProfileAvatarUrl,
   normalizeDisplayName,
@@ -29,6 +30,7 @@ const profileRow = {
   display_name: 'Élodie !',
   avatar_path: null,
   avatar_updated_at: null,
+  onboarding_completed_at: null,
   created_at: '2026-07-22T10:00:00.000Z',
   updated_at: '2026-07-22T10:00:00.000Z',
 };
@@ -91,6 +93,16 @@ describe('profile service', () => {
       displayName: 'Élodie !',
     });
     expect(chain.update).toHaveBeenCalledWith({ display_name: 'Nouveau pseudo' });
+    expect(chain.eq).toHaveBeenCalledWith('id', 'profile-1');
+  });
+
+  it('marque l’accueil comme terminé pour la session courante', async () => {
+    const chain = selectChain();
+    supabaseMocks.from.mockReturnValue(chain);
+
+    await completeCurrentProfileOnboarding();
+
+    expect(chain.update).toHaveBeenCalledWith(expect.objectContaining({ onboarding_completed_at: expect.any(String) }));
     expect(chain.eq).toHaveBeenCalledWith('id', 'profile-1');
   });
 

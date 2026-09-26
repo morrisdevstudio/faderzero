@@ -34,7 +34,9 @@ function forwardToPages(request: Request, env: WorkerEnv): Promise<Response> {
     method: request.method,
     headers,
     body: request.body,
-    redirect: 'follow',
+    // Never follow a redirect that points back at faderzero.com: the browser
+    // would loop through this worker and Cloudflare would answer 522.
+    redirect: 'manual',
   }));
 }
 
@@ -106,14 +108,14 @@ async function loadPublishedAsset(assetId: string, env: WorkerEnv, allowedKinds:
   const url = new URL(`${env.SUPABASE_URL}/rest/v1/epk_assets`);
   // `epks` also references media through hero/logo fields. Name the asset's
   // owning FK explicitly so PostgREST does not reject this embed as ambiguous.
-  url.searchParams.set('select', 'storage_path,mime_type,kind,epks!epk_assets_epk_id_fkey!inner(status)');
+  url.searchParams.set('select', 'storage_path,mime_type,kind,epks!epk_assets_epk_id_fkey!inner(status,workspace_id)');
   url.searchParams.set('id', `eq.${assetId}`);
   url.searchParams.set('epks.status', 'eq.PUBLISHED');
   url.searchParams.set('limit', '1');
   const response = await fetch(url, { headers: serviceHeaders(env) });
   if (!response.ok) throw new Error(`Supabase asset lookup returned ${response.status}`);
   const body: unknown = await response.json();
-  if (!Array.isArray(body) || !isPublicAsset(body[0]) || !allowedKinds.includes(body[0].kind)) return null;
+  if (!Array.isArray(body) || !isPublicAsset(body[0]) || !allowedKinds.includes(body[0].kind) || !isStoredInEpkWorkspace(body[0])) return null;
   return body[0];
 }
 
@@ -161,7 +163,7 @@ async function loadPublishedEpkTrackAsset(env: WorkerEnv, slug: string, trackId:
 async function loadOwnedPublishedAudioAsset(env: WorkerEnv, epkId: string, assetId: string): Promise<PublicAsset | null> {
   if (!isUuid(epkId) || !isUuid(assetId)) return null;
   const url = new URL(`${env.SUPABASE_URL}/rest/v1/epk_assets`);
-  url.searchParams.set('select', 'storage_path,mime_type,kind,epks!epk_assets_epk_id_fkey!inner(status)');
+  url.searchParams.set('select', 'storage_path,mime_type,kind,epks!epk_assets_epk_id_fkey!inner(status,workspace_id)');
   url.searchParams.set('id', `eq.${assetId}`);
   url.searchParams.set('epk_id', `eq.${epkId}`);
   url.searchParams.set('kind', 'eq.audio');
@@ -170,7 +172,7 @@ async function loadOwnedPublishedAudioAsset(env: WorkerEnv, epkId: string, asset
   const response = await fetch(url, { headers: serviceHeaders(env) });
   if (!response.ok) return null;
   const body: unknown = await response.json();
-  if (!Array.isArray(body) || !isPublicAsset(body[0]) || body[0].kind !== 'audio') return null;
+  if (!Array.isArray(body) || !isPublicAsset(body[0]) || body[0].kind !== 'audio' || !isStoredInEpkWorkspace(body[0])) return null;
   return body[0];
 }
 
@@ -388,6 +390,11 @@ function isEpkRow(value: unknown): value is EpkRow { return typeof value === 'ob
 function isPublicAsset(value: unknown): value is PublicAsset { return typeof value === 'object' && value !== null && typeof (value as Record<string, unknown>).storage_path === 'string' && typeof (value as Record<string, unknown>).mime_type === 'string' && typeof (value as Record<string, unknown>).kind === 'string'; }
 function isPublicTrack(value: unknown): value is PublicTrack { return typeof value === 'object' && value !== null && typeof (value as Record<string, unknown>).audio_asset_id === 'string' && isPublicAsset((value as Record<string, unknown>).epk_assets); }
 function isRecord(value: unknown): value is Record<string, unknown> { return typeof value === 'object' && value !== null && !Array.isArray(value); }
+// EPK assets share the private media bucket: never serve a key outside the publishing workspace.
+function isStoredInEpkWorkspace(asset: PublicAsset): boolean {
+  const epk = (asset as PublicAsset & { epks?: unknown }).epks;
+  return isRecord(epk) && typeof epk.workspace_id === 'string' && isUuid(epk.workspace_id) && asset.storage_path.startsWith(`workspaces/${epk.workspace_id}/`);
+}
 function isUuid(value: string): boolean { return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value); }
 
 async function verifyMediaSignature(assetId: string, expires: number, signature: string, secret: string): Promise<boolean> {

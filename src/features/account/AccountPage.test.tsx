@@ -278,38 +278,16 @@ describe('AccountPage', () => {
     expect(screen.getByText('Invitation révoquée.')).toBeInTheDocument();
   });
 
-  it('cr?e un nouveau groupe et met ? jour les espaces de travail', async () => {
+  it('ouvre le tunnel de création de groupe', async () => {
     window.history.replaceState({}, '', '/account?tab=groupe');
-    const createWorkspace = vi.fn().mockImplementation(async (name: string) => {
-      const newWs: Workspace = {
-        id: 'workspace-new',
-        name,
-        createdBy: 'user-test',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        role: 'admin',
-        type: 'group',
-      };
-      useAuthStore.setState((state) => ({
-        workspaces: [newWs, ...state.workspaces],
-        activeWorkspace: newWs,
-      }));
-    });
-
-    useAuthStore.setState({ createWorkspace });
-
     render(<AccountPage />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Ajouter un groupe' }));
     fireEvent.click(screen.getByRole('button', { name: 'Créer un groupe' }));
-    const input = screen.getByPlaceholderText('Nom du groupe');
-    fireEvent.change(input, { target: { value: 'Nouveau Groupe Rock' } });
-    fireEvent.click(screen.getByRole('button', { name: /Cr.er un nouveau groupe/i }));
 
     await waitFor(() => {
-      expect(createWorkspace).toHaveBeenCalledWith('Nouveau Groupe Rock');
+      expect(window.location.pathname).toBe('/groups/new');
     });
-    expect(input).toHaveValue('');
   });
 
   it('affiche la photo d’un membre de groupe ou ses initiales générées', async () => {

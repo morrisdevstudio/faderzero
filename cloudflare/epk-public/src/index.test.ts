@@ -7,6 +7,7 @@ const env = {
   MEDIA_SIGNING_SECRET: 'media-signing-test-key',
   MEDIA_BUCKET: {},
 };
+const workspaceId = '11111111-1111-4111-8111-111111111111';
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -36,6 +37,18 @@ describe('EPK public worker', () => {
     expect(forwardedUrl.searchParams.get('verify')).toBe('7');
   });
 
+  it('forwards to Pages without following redirects back to the apex domain', async () => {
+    const fetchMock = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>(
+      async () => new Response('<html><head></head><body></body></html>'),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await worker.fetch(new Request('https://faderzero.com/unknown-slug'), env as never);
+
+    const forwardedRequest = fetchMock.mock.calls[0]?.[0] as Request;
+    expect(forwardedRequest.redirect).toBe('manual');
+  });
+
   it.each(['/legal-notices', '/cookies', '/privacy', '/terms'])('forwards the legal route %s without EPK mode', async (pathname) => {
     const fetchMock = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>(
       async () => new Response('<html><head></head><body></body></html>'),
@@ -58,7 +71,7 @@ describe('EPK public worker', () => {
     let requestedUrl = '';
     vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
       requestedUrl = String(input);
-      return Response.json([{ storage_path: 'workspaces/w/epks/e/image.jpg', mime_type: 'image/jpeg', kind: 'image_preview' }]);
+      return Response.json([{ storage_path: `workspaces/${workspaceId}/epks/e/image.jpg`, mime_type: 'image/jpeg', kind: 'image_preview', epks: { status: 'PUBLISHED', workspace_id: workspaceId } }]);
     }));
 
     const response = await worker.fetch(new Request('https://faderzero.com/media/preview/00000000-0000-0000-0000-000000000001'), {
@@ -70,8 +83,26 @@ describe('EPK public worker', () => {
 
     expect(response.status).toBe(200);
     expect(requestedUrl).toContain('epks%21epk_assets_epk_id_fkey%21inner');
-    expect(mediaBucket.get).toHaveBeenCalledWith('workspaces/w/epks/e/image.jpg', expect.anything());
+    expect(mediaBucket.get).toHaveBeenCalledWith(`workspaces/${workspaceId}/epks/e/image.jpg`, expect.anything());
     expect(response.headers.get('content-type')).toBe('image/jpeg');
+  });
+
+  it('refuses an EPK asset whose storage key belongs to another workspace', async () => {
+    const mediaBucket = { get: vi.fn() };
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json([{
+      storage_path: 'workspaces/99999999-9999-4999-8999-999999999999/songs/s/private.mp3',
+      mime_type: 'image/jpeg',
+      kind: 'image_preview',
+      epks: { status: 'PUBLISHED', workspace_id: workspaceId },
+    }])));
+
+    const response = await worker.fetch(new Request('https://faderzero.com/media/preview/00000000-0000-0000-0000-000000000001'), {
+      ...env,
+      MEDIA_BUCKET: mediaBucket,
+    } as never);
+
+    expect(response.status).toBe(404);
+    expect(mediaBucket.get).not.toHaveBeenCalled();
   });
 
   it('streams a published song track without a signed session', async () => {

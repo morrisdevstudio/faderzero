@@ -92,7 +92,6 @@ export async function hasGoogleIdentity(): Promise<boolean> {
 }
 
 export async function signUpWithPassword(
-  displayName: string,
   email: string,
   password: string
 ): Promise<PasswordSignUpResult> {
@@ -102,7 +101,6 @@ export async function signUpWithPassword(
     password,
     options: {
       emailRedirectTo: window.location.origin,
-      data: { display_name: displayName },
     },
   });
   if (error) throw normalizeAuthError(error);

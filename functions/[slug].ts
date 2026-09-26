@@ -10,10 +10,20 @@ const APP_ORIGIN = 'https://app.faderzero.com';
 const PUBLIC_ORIGIN = 'https://faderzero.com';
 const DEFAULT_MEDIA_ORIGIN = 'https://media.faderzero.com';
 
+// App, legal, and asset paths belong to the PWA shell, never to an EPK slug.
+// Treating them as EPK slugs answered with a redirect to the landing page,
+// which the apex worker followed in a loop until Cloudflare answered 522.
+const RESERVED_APP_SLUGS = new Set([
+  'account', 'assets', 'booking', 'calendar', 'cookies', 'en', 'fr', 'home',
+  'imports', 'landing', 'legal-notices', 'login', 'metronome', 'musiques',
+  'privacy', 'prompter', 'robots.txt', 'sitemap.xml', 'songs', 'setlists', 'sync', 'terms',
+]);
+
 export const onRequestGet = async (context: PagesContext): Promise<Response> => {
   if (new URL(context.request.url).hostname === 'app.faderzero.com') return context.next();
   const slug = context.params.slug?.toLowerCase();
   if (!slug || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) return redirectToLanding();
+  if (RESERVED_APP_SLUGS.has(slug)) return context.next();
 
   const row = await loadEpk(context.env, slug);
   if (!row) return redirectToLanding();
@@ -41,7 +51,8 @@ export const onRequestGet = async (context: PagesContext): Promise<Response> => 
 export const onRequestHead = async (context: PagesContext): Promise<Response> => {
   if (new URL(context.request.url).hostname === 'app.faderzero.com') return context.next();
   const slug = context.params.slug?.toLowerCase();
-  const row = slug ? await loadEpk(context.env, slug) : null;
+  if (!slug || RESERVED_APP_SLUGS.has(slug)) return context.next();
+  const row = await loadEpk(context.env, slug);
   return row?.status === 'PUBLISHED' ? new Response(null, { status: 200, headers: publicHeaders(row.published_revision) }) : redirectToLanding();
 };
 

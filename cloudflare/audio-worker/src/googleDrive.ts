@@ -111,6 +111,7 @@ async function startOAuth(request: Request, env: GoogleDriveEnv): Promise<Respon
   }
   const body = await request.json().catch(() => null);
   const workspaceId = recordString(body, 'workspaceId');
+  const returnTo = recordString(body, 'returnTo') === 'onboarding' ? 'onboarding' : 'settings';
   if (!workspaceId || !UUID.test(workspaceId)) return json(request, env, { error: 'Invalid workspace' }, 400);
   if ((await workspaceRole(user, workspaceId, env)) !== 'admin') return json(request, env, { error: 'Forbidden' }, 403);
 
@@ -124,6 +125,7 @@ async function startOAuth(request: Request, env: GoogleDriveEnv): Promise<Respon
     p_state_hash: stateHash,
     p_pkce_verifier: verifier,
     p_expires_at: expiresAt,
+    p_return_to: returnTo,
   });
   if (!stored.ok) return json(request, env, { error: 'OAuth state unavailable' }, 502);
 
@@ -144,7 +146,7 @@ async function finishOAuth(request: Request, env: GoogleDriveEnv): Promise<Respo
   const url = new URL(request.url);
   const state = url.searchParams.get('state');
   const code = url.searchParams.get('code');
-  if (!state || !code || url.searchParams.has('error')) return redirectResult(env, null, 'error');
+  if (!state) return redirectResult(env, null, 'error');
   const stateHash = bytesToHex(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(state))));
   const consumed = await serviceRpc(env, 'consume_google_drive_oauth_state_server', { p_state_hash: stateHash });
   const stateRows = await responseRows(consumed);
@@ -153,7 +155,9 @@ async function finishOAuth(request: Request, env: GoogleDriveEnv): Promise<Respo
   const workspaceId = recordString(oauthState, 'workspace_id');
   const userId = recordString(oauthState, 'user_id');
   const verifier = recordString(oauthState, 'pkce_verifier');
-  if (!workspaceId || !userId || !verifier) return redirectResult(env, workspaceId, 'expired');
+  const returnTo = recordString(oauthState, 'return_to') === 'onboarding' ? 'onboarding' : 'settings';
+  if (!workspaceId || !userId || !verifier) return redirectResult(env, workspaceId, 'expired', returnTo);
+  if (!code || url.searchParams.has('error')) return redirectResult(env, workspaceId, 'error', returnTo);
 
   const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
@@ -168,16 +172,16 @@ async function finishOAuth(request: Request, env: GoogleDriveEnv): Promise<Respo
     }),
   });
   const tokenBody: unknown = await tokenResponse.json().catch(() => null);
-  if (!tokenResponse.ok || !isRecord(tokenBody)) return redirectResult(env, workspaceId, 'error');
+  if (!tokenResponse.ok || !isRecord(tokenBody)) return redirectResult(env, workspaceId, 'error', returnTo);
   const accessToken = recordString(tokenBody, 'access_token');
   const refreshToken = recordString(tokenBody, 'refresh_token');
-  if (!accessToken || !refreshToken) return redirectResult(env, workspaceId, 'no_refresh_token');
+  if (!accessToken || !refreshToken) return redirectResult(env, workspaceId, 'no_refresh_token', returnTo);
 
   const aboutResponse = await fetch('https://www.googleapis.com/drive/v3/about?fields=user(displayName,emailAddress),storageQuota(limit,usage)', {
     headers: { authorization: `Bearer ${accessToken}` },
   });
   const about: unknown = await aboutResponse.json().catch(() => null);
-  if (!aboutResponse.ok || !isRecord(about)) return redirectResult(env, workspaceId, 'error');
+  if (!aboutResponse.ok || !isRecord(about)) return redirectResult(env, workspaceId, 'error', returnTo);
   const userInfo = isRecord(about.user) ? about.user : {};
   const quota = isRecord(about.storageQuota) ? about.storageQuota : {};
   const folders = await ensureWorkspaceFolders(accessToken, workspaceId);
@@ -197,7 +201,7 @@ async function finishOAuth(request: Request, env: GoogleDriveEnv): Promise<Respo
     p_encrypted_credentials: encrypted,
     p_encryption_key_version: 1,
   });
-  return saved.ok ? redirectResult(env, workspaceId, 'connected') : redirectResult(env, workspaceId, 'error');
+  return saved.ok ? redirectResult(env, workspaceId, 'connected', returnTo) : redirectResult(env, workspaceId, 'error', returnTo);
 }
 
 async function createUploadSession(request: Request, env: GoogleDriveEnv): Promise<Response> {
@@ -853,9 +857,9 @@ async function driveError(request: Request, env: GoogleDriveEnv, response: Respo
   }, status);
 }
 
-function redirectResult(env: GoogleDriveEnv, workspaceId: string | null, result: string): Response {
-  const url = new URL('/account', env.APP_URL);
-  url.searchParams.set('view', 'group-storage');
+function redirectResult(env: GoogleDriveEnv, workspaceId: string | null, result: string, returnTo: 'settings' | 'onboarding' = 'settings'): Response {
+  const url = new URL(returnTo === 'onboarding' ? '/' : '/account', env.APP_URL);
+  if (returnTo === 'settings') url.searchParams.set('view', 'group-storage');
   if (workspaceId) url.searchParams.set('workspace', workspaceId);
   url.searchParams.set('storage', result);
   return Response.redirect(url.toString(), 302);

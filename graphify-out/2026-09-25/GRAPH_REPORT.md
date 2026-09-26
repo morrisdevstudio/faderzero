@@ -1,16 +1,16 @@
 # Graph Report - FaderZeroPWA  (2026-09-25)
 
 ## Corpus Check
-- 445 files · ~439,910 words
+- 457 files · ~448,759 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 11651 nodes · 13911 edges · 1149 communities (282 shown, 710 thin omitted)
-- Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 123 edges (avg confidence: 0.85)
+- 11650 nodes · 13914 edges · 1145 communities (282 shown, 708 thin omitted)
+- Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 124 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `9558c6d1`
+- Built from commit: `f6a68271`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -195,7 +195,7 @@
 - ../src/features/booking/CopyContactModal.tsx
 - FakeAudioContext
 - ../src/lib/contactUrls.ts
-- issue-reporter/src/index.ts
+- WorkspaceSelectionPage
 - ../src/services/supabase/inviteContext.ts
 - private.reject_workspace_id_change
 - AiSearchItem
@@ -466,7 +466,7 @@
 - WebSearch
 - src/services/supabase/sync.ts
 - src/features/recorder/QuickVoiceRecorder.tsx
-- ExtendableEvent
+- Language
 - cloudflare/audio-worker/src/index.ts
 - testWorkspace
 - authMocks
@@ -794,7 +794,7 @@
 - scripts/scan-repository-secrets.mjs
 - scripts/serve-dist.js
 - src/app/AppContent.test.tsx
-- src/features/songs/CopySongModal.tsx
+- src/components/UndoToast.tsx
 - src/db/userDataMigration.test.ts
 - src/features/audio/AudioMiniPlayer.tsx
 - Politique relative aux cookies
@@ -974,13 +974,13 @@
 - public.song_assets
 - public.workspace_invites
 - private.audio_upload_reservations
-- ../src/components/SplashScreen.tsx
+- ../src/features/audio/AudioQuotaBanner.tsx
 - public.personal_contacts
 - public.workspace_contacts
 - ../src/ui/components/AddButton.tsx
-- ../src/features/home/HomePage.tsx
-- src/components/SplashScreen.tsx
-- src/ui/components/AddButton.tsx
+- WorkspaceSelectionPage
+- src/features/audio/AudioQuotaBanner.tsx
+- LegalPage.tsx
 - public.epk_contacts
 - auth.users
 - public
@@ -995,7 +995,7 @@
 - public.audio_files
 - public.workspace_contacts
 - ../src/ui/components/SelectField.tsx
-- src/ui/components/DetailHeader.tsx
+- src/features/events/CalendarPage.test.tsx
 - public.song_assets
 - auth.users
 - public.bump_server_version
@@ -1005,11 +1005,9 @@
 - public.song_assets
 - public.workspace_members
 - public.workspaces
-- ../src/ui/components/FaderLogo.tsx
-- src/ui/components/FaderLogo.tsx
 
 ## God Nodes (most connected - your core abstractions)
-1. `react` - 149 edges
+1. `react` - 154 edges
 2. `EpkPage()` - 38 edges
 3. `EpkPage()` - 32 edges
 4. `scripts` - 29 edges
@@ -1039,7 +1037,7 @@
 - **Offline-First Data Flow** — readme_local_indexeddb_storage, readme_sync_queue, readme_supabase_cloud_sync, readme_qr_data_transfer [EXTRACTED 1.00]
 - **Database Security Validation** — github_workflows_ci_database_security, github_workflows_ci_supabase_local_validation, supabase_readme_local_database_validation, supabase_readme_rls_security [INFERRED 0.95]
 
-## Communities (1149 total, 710 thin omitted)
+## Communities (1145 total, 708 thin omitted)
 
 ### Community 0 - "../cloudflare/audio-worker/worker-configuration.d.ts"
 Cohesion: 0.00
@@ -1103,7 +1101,7 @@ Nodes (60): @breezystack/lamejs, dependencies, @breezystack/lamejs, dexie, dexie
 
 ### Community 15 - "react"
 Cohesion: 0.04
-Nodes (21): FeatureCardProps, WorkspaceSelectionPage(), AudioQuotaBanner(), AudioQuotaBannerProps, formatQuotaValue(), eventMocks, SetlistsPage(), UseLongPressOptions (+13 more)
+Nodes (24): FeatureCardProps, SPLASH_ANIMATION_DURATION_MS, SplashScreenProps, eventMocks, formatRelativeTimeFr(), HomePage(), SetlistsPage(), UseLongPressOptions (+16 more)
 
 ### Community 16 - "../src/db/schema.ts"
 Cohesion: 0.06
@@ -1473,10 +1471,6 @@ Nodes (4): CopyContactModal(), CopyContactModalProps, contact, copyMocks
 Cohesion: 0.48
 Nodes (5): normalizeFacebookUrl(), normalizeInstagramUrl(), normalizeSocialProfile(), normalizeWebsiteUrl(), trimmed()
 
-### Community 183 - "issue-reporter/src/index.ts"
-Cohesion: 0.09
-Nodes (33): acquireLock(), authenticate(), buildIssueBody(), CATEGORIES, Category, cors(), createReport(), ensureLabel() (+25 more)
-
 ### Community 184 - "../src/services/supabase/inviteContext.ts"
 Cohesion: 0.57
 Nodes (5): clearPendingInviteToken(), persistInviteToken(), readPendingInviteToken(), removeInviteFromUrl(), StoredInviteContext
@@ -1609,13 +1603,13 @@ Nodes (61): contactFields, DbEvent, DbSetlist, DbSetlistSong, DbSong, DbSongAsse
 Cohesion: 0.06
 Nodes (31): formatProgress(), getSaveErrorMessage(), normalizeRecordingName(), QuickVoiceRecorder(), chooseDestination(), openDestinationChoice(), saveRecording(), QuickVoiceRecorderProps (+23 more)
 
-### Community 468 - "ExtendableEvent"
-Cohesion: 0.17
-Nodes (6): EmailEvent, ExtendableEvent, FetchEvent, QueueEvent, ScheduledEvent, TailEvent
+### Community 468 - "Language"
+Cohesion: 0.08
+Nodes (23): LandingFaq(), LandingFaqProps, LandingFeaturesGridProps, LandingFooterProps, LandingHeaderProps, DemoTab, LandingInteractiveDemoProps, LandingOfflineBannerProps (+15 more)
 
 ### Community 469 - "cloudflare/audio-worker/src/index.ts"
 Cohesion: 0.09
-Nodes (49): AUDIO_TYPES, auditR2Bucket(), auditR2Objects(), authenticate(), AuthenticatedUser, bytesToHex(), callServiceRpc(), callSupabaseRpc() (+41 more)
+Nodes (47): AUDIO_TYPES, auditR2Bucket(), auditR2Objects(), authenticate(), AuthenticatedUser, bytesToHex(), callServiceRpc(), callSupabaseRpc() (+39 more)
 
 ### Community 483 - "src/features/sync/qrTransfer.ts"
 Cohesion: 0.08
@@ -1666,8 +1660,8 @@ Cohesion: 0.13
 Nodes (33): acceptWorkspaceInvite(), buildWorkspaceInviteUrl(), canAdministerWorkspace(), checkWorkspaceNameAvailable(), createWorkspace(), createWorkspaceInviteLink(), extractWorkspaceInviteToken(), leaveWorkspace() (+25 more)
 
 ### Community 504 - "Event"
-Cohesion: 0.06
-Nodes (6): CloseEvent, CustomEvent, ErrorEvent, Event, MessageEvent, PromiseRejectionEvent
+Cohesion: 0.04
+Nodes (12): CloseEvent, CustomEvent, EmailEvent, ErrorEvent, Event, ExtendableEvent, FetchEvent, MessageEvent (+4 more)
 
 ### Community 505 - "Event"
 Cohesion: 0.06
@@ -2109,10 +2103,6 @@ Nodes (3): files, findings, patterns
 Cohesion: 0.50
 Nodes (3): distDir, mimeTypes, server
 
-### Community 866 - "src/features/songs/CopySongModal.tsx"
-Cohesion: 0.50
-Nodes (3): CopySongModal(), CopySongModalProps, copyMocks
-
 ### Community 869 - "Politique relative aux cookies"
 Cohesion: 0.29
 Nodes (6): Contact, Notre position, Politique relative aux cookies, Services tiers, Stockage nécessaire au fonctionnement, Évolutions
@@ -2169,22 +2159,30 @@ Nodes (3): vite-plugin-pwa, vite-plugin-pwa, vite-plugin-pwa
 Cohesion: 0.70
 Nodes (4): useGoBack(), useHistoryIndexSource(), useLeaveScreen(), useLeaveTo()
 
+### Community 1092 - "../src/features/audio/AudioQuotaBanner.tsx"
+Cohesion: 0.67
+Nodes (3): AudioQuotaBanner(), AudioQuotaBannerProps, formatQuotaValue()
+
+### Community 1097 - "src/features/audio/AudioQuotaBanner.tsx"
+Cohesion: 0.67
+Nodes (3): AudioQuotaBanner(), AudioQuotaBannerProps, formatQuotaValue()
+
 ## Knowledge Gaps
-- **4674 isolated node(s):** `baseEnv`, `validMp3Bytes`, `AUDIO_TYPES`, `AuthenticatedUser`, `ObjectKeyDetails` (+4669 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 8407 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **710 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **4673 isolated node(s):** `supabaseMock`, `EpkStatus`, `EpkTheme`, `EpkContactRole`, `EpkLinkKind` (+4668 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 8411 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **708 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `react` connect `react` to `SyncTab`, `src/app/router.tsx`, `../src/features/recorder/QuickVoiceRecorder.tsx`, `SongsPage`, `../src/features/landing/LandingPage.tsx`, `../src/features/epk/EpkPage.tsx`, `../src/app/router.tsx`, `AccountPage`, `../src/features/epk/EpkEditorFields.tsx`, `../src/features/epk/EpkPublicView.tsx`, `../src/features/events/CalendarPage.tsx`, `SongDetailPage`, `SyncTab`, `../src/ui/icons/FzIcon.tsx`, `SetlistDetailPage`, `useDialogAccessibility`, `../src/features/songs/editor/SongEditor.tsx`, `../src/features/songs/SongFormFields.tsx`, `MetronomePage`, `SongWriterPage`, `../src/services/workspaceColors.ts`, `../src/features/booking/BookingOverview.tsx`, `../src/features/prompter/PrompterPage.tsx`, `../src/components/SplashScreen.tsx`, `../src/ui/components/AddButton.tsx`, `../src/features/home/HomePage.tsx`, `src/components/SplashScreen.tsx`, `src/ui/components/AddButton.tsx`, `src/ui/icons/FzIcon.tsx`, `../src/ui/components/FormFields.test.tsx`, `src/features/epk/EpkPublicView.tsx`, `SetlistDetailPage`, `useDialogAccessibility`, `src/features/songs/editor/SongEditor.tsx`, `src/features/songs/SongFormFields.tsx`, `../src/features/booking/BookingPage.tsx`, `MetronomePage`, `SongWriterPage`, `../src/components/UndoToast.tsx`, `src/services/workspaceColors.ts`, `src/ui/components/FieldLabel.tsx`, `../src/ui/components/SelectField.tsx`, `src/features/booking/BookingOverview.tsx`, `src/features/prompter/PrompterPage.tsx`, `src/ui/components/DetailHeader.tsx`, `../src/ui/components/TemporalFields.test.tsx`, `../src/ui/components/FaderLogo.tsx`, `src/ui/components/FaderLogo.tsx`, `src/ui/components/FormFields.test.tsx`, `plugins`, `src/features/account/AccountPage.test.tsx`, `FaderHeaderLogo`, `src/features/epk/EpkPage.tsx`, `src/app/App.tsx`, `src/features/booking/BookingPage.tsx`, `SyncBootstrap`, `../src/components/SortMenu.tsx`, `src/ui/components/TemporalFields.test.tsx`, `../src/ui/components/ContentRow.tsx`, `../src/features/booking/CopyContactModal.tsx`, `src/components/AppShell.tsx`, `../src/ui/components/Button.tsx`, `src/components/SortMenu.tsx`, `src/ui/components/Button.tsx`, `src/ui/components/ContentRow.tsx`, `../src/components/LoginPage.tsx`, `useOnlineStatus`, `../src/ui/components/AppHeader.tsx`, `../src/ui/components/ContextMenu.tsx`, `src/components/LoginPage.tsx`, `src/features/booking/CopyContactModal.tsx`, `useOnlineStatus`, `src/ui/components/AppHeader.tsx`, `src/ui/components/ContextMenu.tsx`, `WorkspaceInvitePage`, `../src/features/songs/CopySongModal.tsx`, `../src/features/trash/TrashModal.tsx`, `../src/ui/components/PageHeader.tsx`, `src/components/WorkspaceInvitePage.tsx`, `src/features/trash/TrashModal.tsx`, `src/ui/components/PageHeader.tsx`, `../src/ui/components/DetailHeader.tsx`, `../src/ui/components/FieldLabel.tsx`, `src/features/songs/CopySongModal.tsx`, `src/features/landing/LandingPage.tsx`, `src/ui/components/SelectField.tsx`, `src/features/home/HomePage.tsx`, `src/features/recorder/QuickVoiceRecorder.tsx`, `SongsPage`, `src/features/epk/EpkEditorFields.tsx`, `AccountPage`, `src/features/events/CalendarPage.tsx`, `useGoBack.ts`, `SongDetailPage`?**
-  _High betweenness centrality (0.014) - this node is a cross-community bridge._
-- **Why does `URL` connect `URL` to `cloudflare/epk-public/worker-configuration.d.ts`?**
+- **Why does `react` connect `react` to `SyncTab`, `src/app/router.tsx`, `../src/features/recorder/QuickVoiceRecorder.tsx`, `SongsPage`, `../src/features/landing/LandingPage.tsx`, `../src/features/epk/EpkPage.tsx`, `../src/app/router.tsx`, `AccountPage`, `../src/features/epk/EpkEditorFields.tsx`, `../src/features/epk/EpkPublicView.tsx`, `../src/features/events/CalendarPage.tsx`, `SongDetailPage`, `SyncTab`, `../src/ui/icons/FzIcon.tsx`, `SetlistDetailPage`, `useDialogAccessibility`, `../src/features/songs/editor/SongEditor.tsx`, `../src/features/songs/SongFormFields.tsx`, `MetronomePage`, `SongWriterPage`, `../src/services/workspaceColors.ts`, `../src/features/booking/BookingOverview.tsx`, `../src/features/prompter/PrompterPage.tsx`, `../src/features/audio/AudioQuotaBanner.tsx`, `../src/ui/components/AddButton.tsx`, `WorkspaceSelectionPage`, `src/features/audio/AudioQuotaBanner.tsx`, `LegalPage.tsx`, `src/ui/icons/FzIcon.tsx`, `../src/ui/components/FormFields.test.tsx`, `src/features/epk/EpkPublicView.tsx`, `SetlistDetailPage`, `useDialogAccessibility`, `src/features/songs/editor/SongEditor.tsx`, `src/features/songs/SongFormFields.tsx`, `../src/features/booking/BookingPage.tsx`, `MetronomePage`, `SongWriterPage`, `../src/components/UndoToast.tsx`, `src/services/workspaceColors.ts`, `src/ui/components/FieldLabel.tsx`, `../src/ui/components/SelectField.tsx`, `src/features/booking/BookingOverview.tsx`, `src/features/events/CalendarPage.test.tsx`, `src/features/prompter/PrompterPage.tsx`, `../src/ui/components/TemporalFields.test.tsx`, `src/ui/components/FormFields.test.tsx`, `plugins`, `src/features/account/AccountPage.test.tsx`, `FaderHeaderLogo`, `src/features/epk/EpkPage.tsx`, `src/app/App.tsx`, `src/features/booking/BookingPage.tsx`, `SyncBootstrap`, `../src/components/SortMenu.tsx`, `src/ui/components/TemporalFields.test.tsx`, `../src/ui/components/ContentRow.tsx`, `../src/features/booking/CopyContactModal.tsx`, `src/components/AppShell.tsx`, `WorkspaceSelectionPage`, `../src/ui/components/Button.tsx`, `src/components/SortMenu.tsx`, `src/ui/components/Button.tsx`, `src/ui/components/ContentRow.tsx`, `../src/components/LoginPage.tsx`, `useOnlineStatus`, `../src/ui/components/AppHeader.tsx`, `../src/ui/components/ContextMenu.tsx`, `src/components/LoginPage.tsx`, `src/features/booking/CopyContactModal.tsx`, `useOnlineStatus`, `src/ui/components/AppHeader.tsx`, `src/ui/components/ContextMenu.tsx`, `WorkspaceInvitePage`, `../src/features/songs/CopySongModal.tsx`, `../src/features/trash/TrashModal.tsx`, `../src/ui/components/PageHeader.tsx`, `src/components/WorkspaceInvitePage.tsx`, `src/features/trash/TrashModal.tsx`, `src/ui/components/PageHeader.tsx`, `../src/ui/components/DetailHeader.tsx`, `../src/ui/components/FieldLabel.tsx`, `src/components/UndoToast.tsx`, `src/features/landing/LandingPage.tsx`, `src/ui/components/SelectField.tsx`, `src/features/home/HomePage.tsx`, `src/features/recorder/QuickVoiceRecorder.tsx`, `Language`, `SongsPage`, `src/features/epk/EpkEditorFields.tsx`, `AccountPage`, `src/features/events/CalendarPage.tsx`, `useGoBack.ts`, `SongDetailPage`?**
+  _High betweenness centrality (0.018) - this node is a cross-community bridge._
+- **Why does `URLPattern` connect `URLPattern` to `../cloudflare/epk-public/worker-configuration.d.ts`?**
   _High betweenness centrality (0.002) - this node is a cross-community bridge._
-- **Why does `Element` connect `Element` to `../cloudflare/epk-public/worker-configuration.d.ts`?**
+- **Why does `ServiceWorkerGlobalScope` connect `ServiceWorkerGlobalScope` to `../cloudflare/epk-public/worker-configuration.d.ts`?**
   _High betweenness centrality (0.002) - this node is a cross-community bridge._
-- **What connects `baseEnv`, `validMp3Bytes`, `AUDIO_TYPES` to the rest of the system?**
-  _4674 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **What connects `supabaseMock`, `EpkStatus`, `EpkTheme` to the rest of the system?**
+  _4673 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `../cloudflare/audio-worker/worker-configuration.d.ts` be split into smaller, more focused modules?**
   _Cohesion score 0.0023501762632197414 - nodes in this community are weakly interconnected._
 - **Should `../cloudflare/epk-public/worker-configuration.d.ts` be split into smaller, more focused modules?**

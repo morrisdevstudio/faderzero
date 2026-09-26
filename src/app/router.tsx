@@ -21,6 +21,7 @@ const CalendarPage = lazy(async () => ({ default: (await import('@/features/even
 const LandingPage = lazy(async () => ({ default: (await import('@/features/landing/LandingPage')).LandingPage }));
 const EpkPage = lazy(async () => ({ default: (await import('@/features/epk/EpkPage')).EpkPage }));
 const SongTimelineEditorPage = lazy(async () => ({ default: (await import('@/features/song-timeline/SongTimelineEditorPage')).SongTimelineEditorPage }));
+const OnboardingPage = lazy(async () => ({ default: (await import('@/features/onboarding/OnboardingPage')).OnboardingPage }));
 
 function RouteFallback() {
   return <SplashScreen animated={false} />;
@@ -34,6 +35,7 @@ export function AppRouter() {
       <Route path="/prompter/play" element={<PrompterPage />} />
       <Route path="/songs/:songId/write" element={<SongWriterPage />} />
       <Route path="/account/epk" element={<EpkPage />} />
+      <Route path="/groups/new" element={<OnboardingPage startGroupCreation />} />
       <Route element={<AppShell />}>
         <Route index element={<HomePage />} />
         <Route path="/home" element={<HomePage />} />

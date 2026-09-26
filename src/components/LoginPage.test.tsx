@@ -48,16 +48,15 @@ describe('LoginPage inscription et récupération', () => {
     expect(screen.getByText('Mot de passe')).toHaveClass('fz-field-label');
 
     fireEvent.click(screen.getByRole('button', { name: 'Inscription' }));
-    expect(screen.getByText('Pseudo')).toHaveClass('fz-field-label');
+    expect(screen.queryByText('Pseudo')).not.toBeInTheDocument();
     expect(screen.getByText('Confirmer le mot de passe')).toHaveClass('fz-field-label');
   });
 
-  it('valide le pseudo, les règles du mot de passe et sa confirmation', async () => {
+  it('valide les règles du mot de passe et sa confirmation avant de créer le compte', async () => {
     authMocks.signUp.mockResolvedValue({ session: null, needsEmailConfirmation: true });
     render(<LoginPage />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Inscription' }));
-    fireEvent.change(screen.getByRole('textbox', { name: 'Pseudo' }), { target: { value: '  Élodie !  ' } });
     fireEvent.change(screen.getByRole('textbox', { name: 'Adresse e-mail' }), { target: { value: 'ELODIE@example.test' } });
     fireEvent.change(screen.getByLabelText('Mot de passe'), { target: { value: 'Fader123' } });
     fireEvent.change(screen.getByLabelText('Confirmer le mot de passe'), { target: { value: 'Fader123' } });
@@ -68,7 +67,7 @@ describe('LoginPage inscription et récupération', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Creer mon compte' }));
 
     await waitFor(() => {
-      expect(authMocks.signUp).toHaveBeenCalledWith('Élodie !', 'elodie@example.test', 'Fader123');
+      expect(authMocks.signUp).toHaveBeenCalledWith('elodie@example.test', 'Fader123');
     });
 
     authMocks.resendSignupConfirmation.mockResolvedValue(undefined);
@@ -81,7 +80,6 @@ describe('LoginPage inscription et récupération', () => {
   it('refuse un mot de passe faible sans appeler Supabase', async () => {
     render(<LoginPage />);
     fireEvent.click(screen.getByRole('button', { name: 'Inscription' }));
-    fireEvent.change(screen.getByRole('textbox', { name: 'Pseudo' }), { target: { value: 'Yann' } });
     fireEvent.change(screen.getByRole('textbox', { name: 'Adresse e-mail' }), { target: { value: 'yann@example.test' } });
     fireEvent.change(screen.getByLabelText('Mot de passe'), { target: { value: 'faible12' } });
     fireEvent.change(screen.getByLabelText('Confirmer le mot de passe'), { target: { value: 'faible12' } });

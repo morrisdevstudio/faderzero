@@ -12,6 +12,22 @@ describe('public EPK Pages Function', () => {
     expect(await response.text()).toBe('PWA shell');
   });
 
+  it('serves the legal and app routes through the shell instead of redirecting them', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    for (const slug of ['privacy', 'terms', 'login']) {
+      const next = vi.fn().mockResolvedValue(new Response('PWA shell'));
+      const response = await onRequestGet({
+        request: new Request(`https://faderzero.com/${slug}`), params: { slug },
+        env: { SUPABASE_URL: 'https://example.supabase.co', SUPABASE_SECRET_KEY: 'secret' }, next,
+      });
+      expect(next).toHaveBeenCalledOnce();
+      expect(response.status).toBe(200);
+      expect(await response.text()).toBe('PWA shell');
+    }
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('embeds only the published snapshot and prevents HTML caching', async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify([{
       display_name: 'Kicked To Heaven', slug: 'kickedtoheaven', status: 'PUBLISHED', published_revision: 7,

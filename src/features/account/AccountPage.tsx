@@ -875,7 +875,7 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
         <section aria-labelledby="settings-groups"><h2 id="settings-groups" className="fz-field-label">Groupes</h2>
           {workspaces.filter(ws => ws.type === 'group').map(ws => <ContentRow key={ws.id} mode="button" title={ws.name} aria-label={'Réglages de ' + ws.name} leading={<span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-xs font-black text-white" style={{ backgroundColor: getBadgeColor(ws.id, ws.type).hex }}>{getBadgeText(ws.id, ws.name)}</span>} status={activeWorkspace?.id === ws.id ? <StatusPill label="Actif" tone="accent" /> : undefined} trailing={<FzIcon name="next" usageId="account.group.open" />} onClick={() => { clearFeedback(); setActiveWorkspace(ws); openView('group', ws.id); }} />)}
           {loading ? <p role="status" className="py-3 text-sm text-[var(--fz-text-muted)]">Chargement des groupes…</p> : !workspaces.some(ws => ws.type === 'group') ? <p className="py-3 text-sm text-[var(--fz-text-muted)]">Tu n’as pas encore de groupe.</p> : null}
-          {menuRow('Ajouter un groupe', 'add-group', 'add')}
+        <ContentRow mode="button" title="Ajouter un groupe" leading={<FzIcon name="add" usageId="account.menu.add-group" />} trailing={<FzIcon name="next" usageId="account.menu.next" />} onClick={() => openView('add-group')} />
         </section>
         <section aria-labelledby="settings-account"><h2 id="settings-account" className="fz-field-label">Mon compte</h2>
           {menuRow('Profil', 'profile', 'user-round', 'Photo et pseudo')}
@@ -893,7 +893,7 @@ export function AccountPage({ defaultTab }: AccountPageProps = {}) {
         <Button variant="ghost" onClick={() => openView('delete-account')}>Supprimer mon compte</Button>
       </section>}
       {view === 'add-group' && <section aria-label="Ajouter un groupe">
-        {menuRow('Créer un groupe', 'create-group', 'add')}
+        <ContentRow mode="button" title="Créer un groupe" leading={<FzIcon name="add" usageId="account.menu.create-group" />} trailing={<FzIcon name="next" usageId="account.menu.next" />} onClick={() => navigate('/groups/new')} />
         {menuRow('Rejoindre un groupe', 'join-group', 'users')}
       </section>}
       {view === 'group' && selectedWorkspace && <section aria-label="Réglages du groupe">

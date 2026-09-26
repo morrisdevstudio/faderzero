@@ -33,6 +33,11 @@ export async function listWorkspaceStorageConnections(workspaceId: string): Prom
   return (data ?? []).flatMap(mapStorageConnection);
 }
 
+export async function hasConnectedWorkspaceStorage(workspaceId: string): Promise<boolean> {
+  const connections = await listWorkspaceStorageConnections(workspaceId);
+  return connections.some((connection) => connection.status === 'connected');
+}
+
 function mapStorageConnection(value: unknown): WorkspaceStorageConnection[] {
   if (!value || typeof value !== 'object') return [];
   const row = value as Record<string, unknown>;
@@ -57,7 +62,7 @@ function mapStorageConnection(value: unknown): WorkspaceStorageConnection[] {
   }];
 }
 
-export async function startGoogleDriveConnection(workspaceId: string): Promise<string> {
+export async function startGoogleDriveConnection(workspaceId: string, returnTo: 'settings' | 'onboarding' = 'settings'): Promise<string> {
   const apiUrl = (import.meta.env.VITE_AUDIO_API_URL ?? '').replace(/\/$/, '');
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
@@ -65,7 +70,7 @@ export async function startGoogleDriveConnection(workspaceId: string): Promise<s
   const response = await fetch(`${apiUrl}/storage/google-drive/oauth/start`, {
     method: 'POST',
     headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
-    body: JSON.stringify({ workspaceId }),
+    body: JSON.stringify({ workspaceId, returnTo }),
   });
   const body: unknown = await response.json().catch(() => null);
   if (!response.ok || !isRecord(body) || typeof body.authorizationUrl !== 'string') {

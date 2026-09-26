@@ -3,13 +3,14 @@ import { assertSupabaseConfig, supabase } from './client';
 const AVATAR_BUCKET = 'avatars';
 const MAX_AVATAR_SOURCE_BYTES = 5 * 1024 * 1024;
 const AVATAR_SIZE = 512;
-const PROFILE_COLUMNS = 'id, display_name, avatar_path, avatar_updated_at, created_at, updated_at';
+const PROFILE_COLUMNS = 'id, display_name, avatar_path, avatar_updated_at, onboarding_completed_at, created_at, updated_at';
 
 export interface Profile {
   id: string;
   displayName: string;
   avatarPath: string | null;
   avatarUpdatedAt: string | null;
+  onboardingCompletedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -19,6 +20,7 @@ interface ProfileRow {
   display_name: string;
   avatar_path: string | null;
   avatar_updated_at: string | null;
+  onboarding_completed_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -34,6 +36,7 @@ function mapProfile(row: ProfileRow): Profile {
     displayName: row.display_name,
     avatarPath: row.avatar_path,
     avatarUpdatedAt: row.avatar_updated_at,
+    onboardingCompletedAt: row.onboarding_completed_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -136,6 +139,20 @@ export async function updateCurrentProfileDisplayName(value: string): Promise<Pr
   const { data, error } = await supabase
     .from('profiles')
     .update({ display_name: displayName })
+    .eq('id', userId)
+    .select(PROFILE_COLUMNS)
+    .single();
+
+  if (error) throw error;
+  return mapProfile(data as ProfileRow);
+}
+
+export async function completeCurrentProfileOnboarding(): Promise<Profile> {
+  assertSupabaseConfig();
+  const userId = await getCurrentUserId();
+  const { data, error } = await supabase
+    .from('profiles')
+    .update({ onboarding_completed_at: new Date().toISOString() })
     .eq('id', userId)
     .select(PROFILE_COLUMNS)
     .single();

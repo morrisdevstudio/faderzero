@@ -13,6 +13,7 @@ dist
 dist-ssr
 .cert
 .env
+.env.deploy
 .env.deploy.local
 *.local
 .backups/

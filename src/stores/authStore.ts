@@ -53,7 +53,7 @@ interface AuthState {
   signIn: (email: string, password: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   linkGoogleIdentity: () => Promise<void>;
-  signUp: (displayName: string, email: string, password: string) => Promise<PasswordSignUpResult>;
+  signUp: (email: string, password: string) => Promise<PasswordSignUpResult>;
   requestPasswordReset: (email: string) => Promise<void>;
   resendSignupConfirmation: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -63,7 +63,7 @@ interface AuthState {
   requestAccountDeletion: () => Promise<void>;
   deleteCurrentAccount: (token: string) => Promise<void>;
   setActiveWorkspace: (workspace: Workspace) => void;
-  createWorkspace: (name: string) => Promise<void>;
+  createWorkspace: (name: string) => Promise<Workspace>;
   joinWorkspaceByInvite: (token: string) => Promise<Workspace>;
   refreshWorkspaceAccess: () => Promise<Workspace[]>;
   clearFeedback: () => void;
@@ -316,11 +316,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  signUp: async (displayName, email, password) => {
+  signUp: async (email, password) => {
     signInGeneration += 1;
     set({ loading: true, error: null, infoMessage: null });
     try {
-      const result = await apiSignUpWithPassword(displayName, email, password);
+      const result = await apiSignUpWithPassword(email, password);
 
       await deactivateUserDatabase();
       configureAudioCacheContext(null, null);
@@ -512,6 +512,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
       localStorage.setItem(LOCAL_STORAGE_KEY, newWorkspace.id);
       configureAudioCacheContext(userId, newWorkspace.id);
+      return newWorkspace;
     } catch (err: any) {
       console.error('[createWorkspace error]', err);
       set({ error: err.message || 'Erreur lors de la création du groupe.', loading: false });

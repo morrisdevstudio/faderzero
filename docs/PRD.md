@@ -1,218 +1,100 @@
+# Parcours d’inscription et de création de groupe
+
 ## Problème
 
-Faderzero stocke aujourd’hui physiquement les fichiers des groupes dans son propre espace. Même lorsqu’un utilisateur utilise gratuitement l’application, ses audios, documents et médias génèrent donc un coût récurrent pour Faderzero. Ce modèle rend difficile la création d’une offre gratuite économiquement soutenable.
+Une personne qui rejoint FaderZero doit aujourd’hui passer par plusieurs endroits pour commencer : création du compte, modification du pseudo et de la pastille dans le profil, puis création du groupe dans les paramètres. Après la création, elle reste sur le même écran sans indication claire de la suite. Le branchement du stockage et l’invitation des membres arrivent tard ou sont faciles à manquer.
 
-Les groupes ne peuvent pas choisir où leurs fichiers sont stockés. Ils ne peuvent ni utiliser leur propre espace cloud, ni choisir une offre gérée par Faderzero pour éviter de s’occuper de leur stockage. Le stockage est également trop lié au fonctionnement historique de Faderzero pour ajouter proprement plusieurs fournisseurs sans dupliquer les parcours d’envoi, de lecture, de suppression et de partage public.
-
-Cette évolution ne doit pas interrompre les groupes existants, rendre Google obligatoire, casser l’utilisation hors ligne, ni rendre indisponibles les fichiers déjà stockés. Les permissions Faderzero doivent rester la source de vérité : connecter un compte de stockage ne doit pas obliger les autres membres du groupe à posséder un compte chez ce fournisseur.
+Les écrans Google montrent parfois une adresse technique à la place du nom FaderZero. Cette présentation rend le parcours moins cohérent au moment où la personne confie son compte ou son espace de stockage à l’application.
 
 ## Solution
 
-Chaque groupe choisit un stockage commun pour ses fichiers.
+Après sa première inscription, la personne choisit son pseudo et peut ajouter une photo à sa pastille. Elle choisit ensuite de créer immédiatement un morceau dans son espace personnel ou de créer un groupe.
 
-L’offre gratuite permet à un admin de connecter l’espace cloud de son choix, en commençant par Google Drive. Le groupe utilise alors cet espace pour ses nouveaux fichiers sans que chaque membre ait à connecter son propre compte. Les membres continuent à utiliser leurs identifiants et leurs rôles Faderzero habituels.
+La création d’un groupe suit un tunnel continu : donner un nom, connecter Google Drive ou ignorer le stockage, inviter des membres ou passer cette étape, puis choisir une première action. Chaque écran explique ce qui vient d’être fait et ce qu’il reste à faire. Après la connexion à Google Drive, la personne revient à l’étape suivante du tunnel.
 
-Faderzero Cloud constitue l’alternative payante destinée aux groupes qui préfèrent un stockage entièrement géré par Faderzero. Tant que sa facturation n’est pas disponible, l’offre apparaît comme « À venir » pour les nouveaux groupes. Les groupes existants conservent cependant leur stockage Faderzero actuel sans interruption.
-
-Un groupe peut fonctionner sans stockage configuré. Les fonctions ne nécessitant pas de fichiers restent disponibles. Au premier besoin d’envoyer un fichier, l’admin est invité à configurer le stockage et les autres membres sont informés qu’un admin doit intervenir.
-
-Chaque fichier conserve l’identité du fournisseur qui l’héberge. Un groupe peut donc changer de stockage sans perdre l’accès à ses anciens fichiers. Dans un premier temps, un transfert manuel assisté permet d’exporter l’ensemble des fichiers, de connecter un nouveau fournisseur, puis de les réimporter sans dupliquer les données métier. Un transfert automatique progressif pourra être ajouté ensuite.
+Sans stockage connecté, le groupe peut utiliser le texte et les liens. L’application prévient clairement que les fichiers, notamment les audios, photos et documents, ne pourront pas être ajoutés avant la connexion d’un stockage. L’EPK peut être préparé en texte et liens, mais l’ajout de fichiers et sa publication attendent cette connexion.
 
 ## Utilisateur cible
 
-L’utilisateur principal est l’admin d’un groupe musical utilisant Faderzero pour centraliser morceaux, enregistrements, documents et EPK. Il souhaite soit utiliser gratuitement un espace cloud qu’il possède déjà, soit payer pour déléguer entièrement la gestion du stockage à Faderzero.
+Une personne qui découvre FaderZero, seule ou comme responsable d’un groupe musical, et souhaite commencer à écrire ou à organiser son groupe depuis son téléphone sans devoir chercher les réglages nécessaires.
 
-Les membres du groupe envoient, écoutent et téléchargent les fichiers selon leurs permissions Faderzero. Ils n’ont pas besoin de connaître le compte cloud connecté ni de posséder un compte chez le même fournisseur.
-
-Les invités disposent uniquement des accès explicitement accordés par leur rôle.
-
-Les visiteurs d’un EPK publié peuvent consulter les médias autorisés sans accéder au stockage privé du groupe.
+Le parcours concerne aussi un membre déjà inscrit qui crée un nouveau groupe. Les personnes qui se reconnectent à un compte existant retrouvent directement leur espace habituel.
 
 ## User Stories
 
-US-1. En tant qu’admin créant un groupe, je veux choisir où stocker ses fichiers, afin d’adopter le modèle correspondant à mes besoins.
+US-1. En tant que nouvelle personne inscrite avec Google, je veux choisir mon pseudo après la connexion, afin de commencer avec l’identité que je souhaite afficher.
 
-US-2. En tant qu’admin, je veux choisir Google Drive gratuitement, afin d’utiliser un espace que je possède déjà.
+US-2. En tant que nouvelle personne inscrite par e-mail, je veux retrouver le même parcours après confirmation de mon adresse, afin de commencer de la même manière.
 
-US-3. En tant qu’admin, je veux voir Faderzero Cloud comme une offre « À venir », afin de savoir qu’une solution gérée sera proposée ultérieurement.
+US-3. En tant que nouvelle personne inscrite, je veux pouvoir ajouter une photo à ma pastille ou garder les initiales proposées, afin de personnaliser mon profil sans étape obligatoire supplémentaire.
 
-US-4. En tant qu’admin, je veux choisir « Configurer plus tard », afin de commencer à utiliser Faderzero sans connecter immédiatement un stockage.
+US-4. En tant que nouvelle personne inscrite, je veux choisir entre créer un morceau et créer un groupe, afin d’arriver directement à mon premier objectif.
 
-US-5. En tant qu’utilisateur d’un groupe sans stockage, je veux continuer à utiliser toutes les fonctions sans fichier, afin que le groupe ne soit pas bloqué.
+US-5. En tant que personne qui choisit un morceau, je veux arriver sur sa page de création dans mon espace personnel, afin de commencer à écrire immédiatement.
 
-US-6. En tant qu’admin tentant un premier upload sans stockage, je veux être conduit vers sa configuration, afin de pouvoir poursuivre.
+US-6. En tant que personne qui crée un groupe, je veux renseigner son nom dans un parcours guidé, afin de ne pas devoir passer par les paramètres.
 
-US-7. En tant que membre tentant un upload sans stockage, je veux être informé qu’un admin doit le configurer, afin de savoir pourquoi l’action est bloquée.
+US-7. En tant que personne qui crée un groupe, je veux connecter Google Drive ou ignorer cette étape, afin de choisir quand préparer le stockage.
 
-US-8. En tant qu’invité, je veux que les restrictions habituelles de mon rôle restent appliquées, afin de ne pas obtenir de droits supplémentaires par le parcours de stockage.
+US-8. En tant que personne qui ignore le stockage, je veux voir avant de confirmer que les fichiers seront indisponibles, afin de savoir ce que mon groupe pourra faire.
 
-US-9. En tant qu’admin, je veux connecter Google Drive avec mon compte, afin qu’il devienne le stockage commun du groupe.
+US-9. En tant que membre d’un groupe sans stockage, je veux pouvoir utiliser le texte et les liens, afin de travailler sans attendre.
 
-US-10. En tant qu’admin, je veux que Faderzero prépare automatiquement l’espace nécessaire, afin de ne pas créer ou organiser manuellement des dossiers.
+US-10. En tant que membre d’un groupe sans stockage, je veux voir une explication lorsque j’essaie d’ajouter un fichier, afin de savoir qu’un administrateur doit connecter un stockage.
 
-US-11. En tant qu’admin, je veux que le stockage reste associé au groupe même si celui-ci est renommé, afin qu’un changement de nom ne casse aucun fichier.
+US-11. En tant que personne qui connecte Google Drive, je veux revenir au tunnel après l’autorisation Google, afin de terminer la création du groupe.
 
-US-12. En tant que membre, je veux envoyer un fichier vers le stockage du groupe sans connecter mon propre compte Google, afin de collaborer normalement.
+US-12. En tant que personne qui crée un groupe, je veux obtenir un lien d’invitation à copier ou partager et pouvoir ignorer cette étape, afin d’inviter les autres au moment qui me convient.
 
-US-13. En tant que membre autorisé, je veux lire un fichier stocké sur le compte cloud connecté par l’admin, afin de ne pas dépendre d’un accès direct à ce compte.
+US-13. En tant que personne qui termine la création du groupe, je veux pouvoir créer un morceau, préparer un EPK, inviter des membres ou explorer le groupe, afin de choisir une première action concrète.
 
-US-14. En tant que membre autorisé, je veux télécharger un fichier pour une utilisation hors ligne, afin de continuer à l’utiliser sans réseau.
+US-14. En tant que personne qui interrompt le tunnel, je veux reprendre à l’étape atteinte, afin de ne pas recommencer après un rechargement ou un retour de Google.
 
-US-15. En tant qu’utilisateur hors ligne, je veux que mon fichier soit conservé localement et envoyé au retour du réseau, afin de ne pas perdre mon travail.
+US-15. En tant que personne qui arrive avec une invitation, je veux rejoindre le groupe reçu avant toute proposition de création, afin de ne pas suivre le mauvais parcours.
 
-US-16. En tant qu’utilisateur, je veux pouvoir relancer un upload interrompu, afin de ne pas recommencer inutilement une opération importante.
+US-16. En tant que personne déjà inscrite, je veux accéder directement à mon espace lors d’une connexion habituelle, afin de ne pas refaire l’accueil initial.
 
-US-17. En tant qu’utilisateur, je veux écouter un audio pendant son chargement et déplacer la position de lecture, afin de conserver une lecture fluide des fichiers longs.
+US-17. En tant que personne déjà inscrite qui crée un autre groupe, je veux retrouver le tunnel de création, afin de préparer ce groupe de la même manière.
 
-US-18. En tant qu’utilisateur, je veux que les fichiers déjà téléchargés restent disponibles hors ligne après le changement de stockage du groupe, afin de préserver mon cache local.
-
-US-19. En tant qu’admin, je veux consulter le fournisseur actif, son état, le compte connecté et l’espace disponible, afin de surveiller le stockage du groupe.
-
-US-20. En tant qu’admin, je veux ouvrir l’espace du groupe dans Google Drive, afin de retrouver directement les fichiers hébergés.
-
-US-21. En tant qu’admin, je veux reconnecter Google Drive après une autorisation expirée ou révoquée, afin de rétablir l’accès aux fichiers.
-
-US-22. En tant qu’admin, je veux voir un état explicite lorsque le stockage est plein, indisponible, déconnecté ou doit être réautorisé, afin de savoir quelle action entreprendre.
-
-US-23. En tant qu’admin, je veux déconnecter le stockage avec un avertissement précis, afin de comprendre quels fichiers deviendront indisponibles.
-
-US-24. En tant qu’admin, je veux que la déconnexion ne supprime aucun fichier, afin d’éviter une perte irréversible.
-
-US-25. En tant qu’admin, je veux changer le fournisseur par défaut du groupe, afin que les nouveaux fichiers utilisent un autre stockage.
-
-US-26. En tant que membre, je veux continuer à lire les anciens fichiers après un changement de fournisseur, afin que la transition soit transparente.
-
-US-27. En tant qu’admin, je veux voir quels fichiers restent chez chaque fournisseur, afin de suivre une migration progressive.
-
-US-28. En tant qu’admin, je veux conserver temporairement l’ancienne connexion après un changement, afin que les anciens fichiers restent accessibles.
-
-US-29. En tant qu’admin, je veux lancer un transfert manuel assisté, afin de déplacer les fichiers vers le nouveau stockage avant l’arrivée du transfert automatique.
-
-US-30. En tant qu’admin, je veux exporter morceaux, audios, médias EPK et documents, afin que le transfert manuel soit complet.
-
-US-31. En tant qu’admin, je veux réimporter cette archive en mode transfert, afin de copier physiquement les fichiers sans recréer les morceaux ou leurs relations.
-
-US-32. En tant qu’admin, je veux que chaque fichier transféré soit vérifié avant de déconnecter l’ancien stockage, afin de ne pas perdre de contenu.
-
-US-33. En tant qu’admin, je veux relancer uniquement les fichiers dont le transfert a échoué, afin de ne pas recopier ceux déjà vérifiés.
-
-US-34. En tant qu’admin, je veux être empêché de supprimer prématurément l’ancienne connexion, afin de conserver l’accès aux fichiers qui y résident encore.
-
-US-35. En tant qu’admin ayant connecté son compte cloud, je veux être averti avant de quitter le groupe ou de perdre son rôle, afin que le stockage ne devienne pas inaccessible sans préparation.
-
-US-36. En tant qu’autre admin, je veux pouvoir reconnecter le stockage avec un autre compte ou changer de fournisseur, afin d’assurer la continuité après le départ du premier admin.
-
-US-37. En tant qu’admin, je veux que les limites globales de stockage Faderzero ne s’appliquent pas à mon propre cloud, afin que sa capacité réelle soit utilisée.
-
-US-38. En tant qu’utilisateur, je veux conserver des limites raisonnables par fichier et par type, afin que les uploads restent sûrs et compatibles.
-
-US-39. En tant qu’utilisateur de Faderzero Cloud, je veux voir l’espace utilisé et l’espace inclus dans mon offre, afin de suivre mon quota.
-
-US-40. En tant qu’admin d’un groupe existant, je veux que mes fichiers et mes nouveaux uploads continuent à fonctionner sur le stockage historique, afin que la migration ne provoque aucune interruption.
-
-US-41. En tant qu’admin, je veux supprimer un fichier selon les règles Faderzero, afin que son contenu physique et ses métadonnées suivent le même cycle de suppression.
-
-US-42. En tant qu’admin d’un EPK, je veux publier des médias provenant du stockage du groupe, afin de conserver le fonctionnement actuel de l’EPK.
-
-US-43. En tant que visiteur d’un EPK publié, je veux consulter uniquement les médias rendus publics par ce dernier, afin de ne jamais accéder aux autres fichiers du groupe.
-
-US-44. En tant que visiteur, je veux que les médias EPK restent accessibles sans voir de lien privé vers le stockage du groupe, afin de préserver sa confidentialité.
-
-US-45. En tant qu’admin, je veux que la dépublication ou le retrait d’un média EPK supprime son accès public, afin que les anciennes adresses ne permettent plus de le consulter.
-
-US-46. En tant qu’admin, je veux pouvoir utiliser ultérieurement Dropbox, OneDrive ou WebDAV/Nextcloud sans changer les parcours Faderzero, afin de choisir librement mon fournisseur.
+US-18. En tant que personne qui autorise FaderZero avec Google, je veux voir le nom FaderZero présenté comme celui de l’application, afin de reconnaître le service auquel je donne accès.
 
 ## Critères de succès
 
-1. Tous les fichiers historiques des groupes existants restent lisibles, téléchargeables, supprimables et utilisables dans les EPK.
-2. Les groupes existants peuvent continuer à envoyer de nouveaux fichiers sur leur stockage historique.
-3. Après création d’un groupe, l’admin voit Google Drive, Faderzero Cloud « À venir » et « Configurer plus tard ».
-4. Choisir « Configurer plus tard » permet d’accéder au reste de l’application.
-5. Un admin connecte Google Drive et voit ensuite l’état « Connecté », le compte utilisé et l’espace disponible.
-6. L’espace du groupe est créé automatiquement sans intervention manuelle dans Google Drive.
-7. Un membre autorisé envoie un audio sur le Google Drive du groupe sans connecter de compte Google.
-8. Un autre membre autorisé lit cet audio sans connecter de compte Google.
-9. Un invité ne peut ni configurer le stockage ni envoyer un fichier sans permission.
-10. Un fichier ajouté hors ligne apparaît dans la file d’attente puis est envoyé automatiquement au retour du réseau.
-11. Après interruption d’un upload, une nouvelle tentative peut reprendre ou relancer l’envoi sans perdre le fichier local.
-12. La lecture audio accepte la lecture partielle et le déplacement dans la piste.
-13. Un fichier téléchargé dans le cache reste lisible hors ligne.
-14. Une autorisation Google expirée ou révoquée produit l’état « Autorisation expirée » et bloque les nouveaux uploads sans casser le reste de l’application.
-15. Un stockage plein produit l’état « Stockage plein » avant qu’un fichier ne soit déclaré envoyé.
-16. Aucun écran utilisateur, export ordinaire ou réponse de téléchargement n’expose les autorisations privées du compte connecté.
-17. Un média Google Drive n’est jamais rendu public directement.
-18. Un EPK publié sert uniquement les fichiers qui lui appartiennent et qui ont été autorisés publiquement.
-19. Un EPK dépublié ne permet plus de créer de nouvelle session d’accès à ses médias.
-20. Un groupe peut conserver simultanément des fichiers historiques sur Faderzero Cloud et de nouveaux fichiers sur Google Drive.
-21. Après changement de fournisseur, les nouveaux uploads utilisent le nouveau fournisseur tandis que les anciens fichiers restent lisibles.
-22. L’export de transfert contient les morceaux, audios, médias EPK et documents attendus.
-23. Le réimport en mode transfert ne crée ni morceau en double ni relation métier en double.
-24. Chaque fichier transféré est vérifié avant que l’ancienne connexion puisse être supprimée sans avertissement.
-25. Le départ ou la rétrogradation de l’admin ayant connecté le stockage est bloqué jusqu’à reconnexion, changement de fournisseur ou acceptation explicite de l’indisponibilité.
-26. Le stockage personnel n’est pas bloqué par un quota total Faderzero, mais conserve les limites de taille, de format et de sécurité par fichier.
-27. Les groupes utilisant le stockage personnel ne génèrent pas de nouvelle consommation de stockage Faderzero pour leurs nouveaux fichiers.
-28. Les contrôles existants de rôles, de types de fichiers et de suppression continuent à produire les mêmes autorisations observables.
+1. Après une première connexion Google ou une première connexion suivant la confirmation de l’e-mail, l’écran du pseudo apparaît avant le choix « morceau ou groupe ».
+2. Depuis ce choix, « Créer un morceau » ouvre directement la création d’un morceau dans l’espace personnel.
+3. Après la saisie du nom d’un groupe, l’écran de stockage apparaît ; après sa validation ou son passage, l’écran d’invitation apparaît.
+4. L’écran de stockage montre Google Drive, « Ignorer » et « FaderZero Cloud — à venir », cette dernière option étant indisponible.
+5. Avant de passer le stockage, un avertissement énumère les audios, photos et documents indisponibles. Une tentative d’ajout de fichier dans ce groupe est ensuite bloquée avec une explication.
+6. Un groupe sans stockage permet de créer du contenu textuel et des liens, y compris un brouillon d’EPK. Il ne permet ni d’y ajouter un fichier ni de publier cet EPK.
+7. Après l’autorisation Google Drive, réussie ou annulée, la personne retrouve le tunnel avec un résultat explicite et peut continuer ou réessayer.
+8. L’étape d’invitation affiche un lien utilisable et offre les actions copier, partager et ignorer.
+9. Le dernier écran affiche « Créer un morceau », « Créer un EPK », « Inviter des membres » et « Explorer le groupe » ; chaque action ouvre sa destination.
+10. Un rechargement reprend le tunnel sans recréer le groupe ni refaire une étape enregistrée.
+11. Une invitation reçue et une connexion habituelle conservent leurs parcours respectifs.
+12. Les écrans restent utilisables sur un téléphone de 320 px de large.
+13. Les deux écrans d’autorisation Google présentent FaderZero comme nom de l’application après validation de la marque.
 
 ## Hors périmètre
 
-- Activation et facturation de Faderzero Cloud pour les nouveaux groupes.
-- Transfert automatique entre fournisseurs dans la première version.
-- Implémentation fonctionnelle de Dropbox, OneDrive et WebDAV/Nextcloud dans la première version.
-- Suppression immédiate du stockage historique des groupes existants.
-- Déplacement obligatoire des anciens fichiers vers Google Drive.
-- Compte Google obligatoire pour tous les membres.
-- Connexion d’un stockage différent par membre.
-- Liens Google Drive publics ou partage direct des dossiers avec les membres.
-- Publication d’identifiants ou d’autorisations privées du fournisseur.
-- Suppression automatique des fichiers de l’ancien fournisseur après un changement.
-- Déconnexion silencieuse d’un fournisseur contenant encore des fichiers.
-- Migration destructive réalisée en une seule opération sans coexistence.
-- Refonte des fonctionnalités Faderzero ne manipulant aucun fichier.
-- Historique complet de toutes les versions d’un fichier.
-- Garantie de disponibilité lorsque le fournisseur choisi par l’utilisateur est lui-même indisponible.
-- Transfert direct de fournisseur à fournisseur sans export local dans la première version.
+- Rendre Google Drive obligatoire pour créer un groupe.
+- Activer FaderZero Cloud pour les nouveaux groupes.
+- Modifier le parcours habituel des connexions à un compte existant.
+- Obliger les membres invités à connecter leur propre compte Google.
+- Transférer les fichiers des groupes existants ou modifier leur stockage actuel.
+- Ajouter d’autres fournisseurs de stockage dans ce parcours.
+- Supprimer toutes les adresses techniques des détails affichés par Google dès cette première version.
+- Refaire les fonctions de création de morceau et d’édition d’EPK au-delà des accès et restrictions nécessaires au tunnel.
 
 ## Décisions d’implémentation
 
-- Le stockage appartient au groupe et non à chaque membre.
-- Un seul fournisseur est la destination par défaut des nouveaux fichiers à un instant donné.
-- Chaque fichier conserve le fournisseur sur lequel il réside réellement.
-- Les groupes existants conservent Faderzero Cloud comme stockage actif historique tant que la facturation et la migration ne sont pas prêtes.
-- Les nouveaux groupes voient Google Drive, « Configurer plus tard » et Faderzero Cloud marqué « À venir ».
-- Faderzero Cloud ne peut pas être choisi par un nouveau groupe avant son activation commerciale.
-- Seul un admin peut connecter, reconnecter, changer ou déconnecter le stockage.
-- Les membres autorisés peuvent envoyer et lire des fichiers sans connecter leur propre compte chez le fournisseur.
-- Les invités conservent strictement les permissions prévues par leur rôle.
-- Sans stockage configuré, seules les actions nécessitant un fichier sont bloquées.
-- Au premier upload sans stockage, un admin voit le choix du fournisseur ; un membre voit qu’un admin doit intervenir.
-- Google Drive est préparé automatiquement avec un espace Faderzero propre au groupe et des catégories pour les audios, les EPK et les documents.
-- L’identité technique de cet espace ne change pas lorsque le groupe est renommé.
-- Les fichiers Google Drive restent privés et sont toujours servis à travers Faderzero.
-- Les états visibles sont : Connecté, Autorisation expirée, Stockage plein, Indisponible et Déconnecté.
-- L’écran Stockage affiche le fournisseur, l’état, le compte connecté, l’espace utilisé, l’espace disponible et les actions autorisées.
-- Pour Faderzero Cloud, l’écran affiche l’espace utilisé sur l’espace inclus ainsi qu’une action de gestion de l’offre lorsqu’elle sera disponible.
-- Pour un stockage personnel, la capacité totale dépend du fournisseur ; Faderzero conserve uniquement des limites raisonnables par fichier et par type.
-- Pour Faderzero Cloud, les quotas restent liés à l’offre gérée.
-- Changer de fournisseur modifie immédiatement la destination des nouveaux fichiers.
-- Les anciennes connexions restent disponibles en lecture tant que des fichiers leur sont associés.
-- La déconnexion ne supprime aucun fichier, mais peut rendre les fichiers concernés indisponibles jusqu’à reconnexion.
-- Une déconnexion contenant encore des fichiers exige un avertissement et une confirmation explicite.
-- Le transfert manuel assisté utilise un export complet distinct de l’export ordinaire du répertoire.
-- Le mode transfert recopie les fichiers vers le fournisseur actif sans dupliquer les morceaux, EPK, documents ou relations existantes.
-- La présence d’un fichier identique sur l’ancien fournisseur n’empêche pas sa copie physique vers le nouveau.
-- L’ancienne connexion n’est considérée comme libérable qu’après vérification de tous les fichiers ou acceptation explicite des éléments indisponibles.
-- Le transfert automatique apparaît comme une possibilité à venir, sans prétendre être disponible.
-- L’admin ayant connecté le stockage ne peut pas quitter le groupe ou perdre son rôle sans transfert de responsabilité, changement de fournisseur ou confirmation explicite des conséquences.
-- Les uploads hors ligne restent conservés localement jusqu’au retour du réseau.
-- Une erreur réseau ne supprime ni le fichier local en attente ni les éléments déjà envoyés avec succès.
-- Les médias EPK publics sont accessibles uniquement à travers une adresse Faderzero temporaire et contrôlée.
-- La dépublication d’un EPK ou le retrait d’un média invalide la création de nouveaux accès publics.
-- Dropbox, OneDrive et WebDAV/Nextcloud doivent pouvoir reprendre les mêmes parcours visibles sans refonte de l’application.
+- Le pseudo est obligatoire et contient de 2 à 30 caractères ; la photo est facultative et les initiales restent proposées par défaut.
+- Le choix « Créer un morceau » quitte le tunnel et utilise l’espace personnel.
+- « Ignorer » laisse le groupe utilisable sans fichiers ; l’administrateur pourra connecter Google Drive plus tard.
+- L’étape d’invitation peut être passée ; le dernier écran conserve une action pour inviter.
+- Le tunnel s’affiche après une première inscription et lors de la création de chaque nouveau groupe, jamais à chaque connexion.
+- En cas d’annulation ou d’échec de la connexion Google Drive, le groupe créé est conservé et l’étape indique comment réessayer ou continuer sans stockage.
+- Le nom FaderZero est recherché sur les écrans Google ; une adresse technique peut encore apparaître dans leurs détails.
 
 ## Notes complémentaires
 
-- La disponibilité de Google Drive, ses limites et ses règles d’autorisation constituent une dépendance externe.
-- Le transfert manuel de plusieurs gigaoctets peut être long et exige suffisamment d’espace local pour produire puis relire l’archive.
-- Le stockage historique doit rester exploitable pendant toute la période de transition.
-- Les changements de fournisseur nécessitent une présentation particulièrement claire de l’emplacement des anciens fichiers.
-- Aucun risque ou dépendance supplémentaire n’a été signalé pendant le cadrage.
+L’affichage du nom FaderZero dépend de la validation de sa marque par Google. Les groupes existants et leurs fichiers doivent continuer à fonctionner pendant l’arrivée du nouveau parcours.

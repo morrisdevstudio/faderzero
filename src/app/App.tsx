@@ -11,6 +11,8 @@ import { subscribeToWorkspaceChanges } from '@/services/supabase/realtime';
 import { db } from '@/db/db';
 import { canWriteWorkspace } from '@/services/supabase/workspace';
 import { clearPendingInviteToken, readPendingInviteToken } from '@/services/supabase/inviteContext';
+import { OnboardingPage } from '@/features/onboarding/OnboardingPage';
+import { getCurrentProfile } from '@/services/supabase/profile';
 import { processPendingAudioUploads } from '@/services/audio/pendingUploads';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { FzIcon } from '@/ui/icons';
@@ -231,6 +233,7 @@ export function AppContent() {
   const [inviteToken, setInviteToken] = useState<string | null>(() => readPendingInviteToken());
   const [animatedUserId, setAnimatedUserId] = useState<string | null>(null);
   const [enteredUserId, setEnteredUserId] = useState<string | null>(null);
+  const [needsOnboarding, setNeedsOnboarding] = useState<boolean | null>(null);
   const sessionUserId = session?.user.id ?? null;
   const viewTarget = resolveViewTarget();
 
@@ -242,6 +245,15 @@ export function AppContent() {
     const nextToken = readPendingInviteToken();
     setInviteToken((currentToken) => (currentToken === nextToken ? currentToken : nextToken));
   }, [session]);
+
+  useEffect(() => {
+    if (!sessionUserId) { setNeedsOnboarding(null); return; }
+    let active = true;
+    void getCurrentProfile().then((profile) => {
+      if (active) setNeedsOnboarding(profile.onboardingCompletedAt === null);
+    }).catch(() => { if (active) setNeedsOnboarding(false); });
+    return () => { active = false; };
+  }, [sessionUserId]);
 
   useEffect(() => {
     if (!sessionUserId) {
@@ -295,6 +307,10 @@ export function AppContent() {
         }}
       />
     );
+  }
+
+  if (needsOnboarding === true) {
+    return <OnboardingPage />;
   }
 
   if (!activeWorkspace) {

@@ -133,10 +133,10 @@ describe('service Auth', () => {
     expect(authMocks.signOut).toHaveBeenCalledWith({ scope: 'global' });
   });
 
-  it('transmet le pseudo et le retour de confirmation à Supabase', async () => {
+  it('transmet l’inscription et le retour de confirmation à Supabase', async () => {
     authMocks.signUp.mockResolvedValue({ data: { session: null }, error: null });
 
-    await expect(signUpWithPassword('Élodie !', 'elodie@example.test', 'Fader123')).resolves.toEqual({
+    await expect(signUpWithPassword('elodie@example.test', 'Fader123')).resolves.toEqual({
       session: null,
       needsEmailConfirmation: true,
     });
@@ -145,7 +145,6 @@ describe('service Auth', () => {
       password: 'Fader123',
       options: {
         emailRedirectTo: window.location.origin,
-        data: { display_name: 'Élodie !' },
       },
     });
   });

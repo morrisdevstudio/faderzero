@@ -1,0 +1,1 @@
+{"nodes": [{"id": "$graphify-root$_supabase_migrations_20260925151911_restrict_profile_and_avatar_reads_sql", "label": "20260925151911_restrict_profile_and_avatar_reads.sql", "file_type": "code", "source_file": "supabase/migrations/20260925151911_restrict_profile_and_avatar_reads.sql", "source_location": null}], "edges": []}

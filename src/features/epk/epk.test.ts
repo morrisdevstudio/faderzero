@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createEpk, deleteEpkHeroImage, epkHasUnpublishedChanges, epkUnpublishedLeavePrompt, getEpkCompleteness, getEpkLiveStatus, normalizeEpkSlug, parseEpkVideoUrl, validateEpkDraft, type EpkRecord } from './epk';
+import { createEpk, createEpkAssetSignedUrl, deleteEpkHeroImage, epkHasUnpublishedChanges, epkUnpublishedLeavePrompt, getEpkCompleteness, getEpkLiveStatus, normalizeEpkSlug, parseEpkVideoUrl, validateEpkDraft, type EpkRecord } from './epk';
 import { DEFAULT_EPK_ACCENT, DEFAULT_EPK_EDITORIAL, DEFAULT_EPK_SECTION_ORDER } from './epkPresentation';
 
-const supabaseMock = vi.hoisted(() => ({ updates: [] as Record<string, unknown>[], inserts: [] as Record<string, unknown>[] }));
+const supabaseMock = vi.hoisted(() => ({ updates: [] as Record<string, unknown>[], inserts: [] as Record<string, unknown>[], selects: [] as { table: string; columns: string }[] }));
 
 vi.mock('@/services/supabase/client', () => ({
   supabase: {
@@ -15,7 +15,13 @@ vi.mock('@/services/supabase/client', () => ({
         supabaseMock.inserts.push({ table, ...payload });
         return { select: () => ({ single: async () => ({ data: { id: 'epk', workspace_id: 'workspace', display_name: 'Fader', slug: 'fader', status: 'DRAFT', genres: [], theme: 'stage-dark', ...payload }, error: null }) }) };
       },
-      select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { storage_path: 'workspaces/w/epks/e/hero.webp' }, error: null }) }) }),
+      select: (columns?: string) => {
+        supabaseMock.selects.push({ table, columns: String(columns) });
+        const row = table === 'epks'
+          ? { data: { workspace_id: 'workspace' }, error: null }
+          : { data: { storage_path: 'workspaces/workspace/epks/e/hero.webp' }, error: null };
+        return { eq: () => ({ maybeSingle: async () => row, single: async () => row }) };
+      },
       delete: () => ({ eq: async () => ({ error: null }) }),
     }),
   },
@@ -27,6 +33,14 @@ vi.mock('@/services/audio/r2Client', () => ({
   uploadAudioObject: vi.fn(),
   uploadEpkObject: vi.fn(),
 }));
+
+const storageMocks = vi.hoisted(() => ({
+  createStorageReadUrl: vi.fn(async () => 'https://media.example/signed'),
+  deleteStorageObject: vi.fn(async () => undefined),
+  uploadStorageObject: vi.fn(),
+}));
+
+vi.mock('@/services/storage', () => storageMocks);
 
 describe('EPK helpers', () => {
   it('normalizes accented public slugs', () => {
@@ -91,5 +105,15 @@ describe('EPK helpers', () => {
     expect(parseEpkVideoUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ')).toEqual({ provider: 'YOUTUBE', providerVideoId: 'dQw4w9WgXcQ' });
     expect(parseEpkVideoUrl('https://vimeo.com/123456789')).toEqual({ provider: 'VIMEO', providerVideoId: '123456789' });
     expect(parseEpkVideoUrl('https://example.com/video')).toBeNull();
+  });
+
+  it('signs a banner media URL without the ambiguous epks embed', async () => {
+    const url = await createEpkAssetSignedUrl('asset');
+
+    const queries = supabaseMock.selects.slice(-2).map((query) => query.columns);
+    expect(queries.join(' ')).not.toContain('(');
+    expect(queries).toEqual(['storage_path, epk_id', 'workspace_id']);
+    expect(storageMocks.createStorageReadUrl).toHaveBeenCalledWith('workspace', 'workspaces/workspace/epks/e/hero.webp');
+    expect(url).toBe('https://media.example/signed');
   });
 });

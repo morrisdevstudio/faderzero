@@ -445,14 +445,22 @@ async function uploadAsset(epk: EpkRecord, file: File, kind: 'image_preview' | '
  * The EPK editor runs on the application origin, whereas public media routes
  * are served by the EPK Worker. Resolve a private R2 object here instead of
  * pointing the editor at a non-existent local `/media/preview/...` route.
+ * `epk_assets` reaches `epks` through three foreign keys (`epk_id`,
+ * `hero_asset_id`, `logo_asset_id`), so PostgREST rejects any embed between
+ * them as ambiguous. The owning EPK is read in a separate, unambiguous query.
  */
 export async function createEpkAssetSignedUrl(assetId: string): Promise<string> {
-  const { data, error } = await supabase.from('epk_assets').select('storage_path, epks!inner(workspace_id)').eq('id', assetId).single();
+  const { data, error } = await supabase.from('epk_assets').select('storage_path, epk_id').eq('id', assetId).single();
   if (error) throw error;
   if (!data?.storage_path) throw new Error('Média EPK introuvable.');
-  const workspaceId = (data.epks as unknown as { workspace_id?: string } | null)?.workspace_id;
-  if (!workspaceId) throw new Error('Groupe EPK introuvable.');
-  return createStorageReadUrl(workspaceId, data.storage_path);
+  return createStorageReadUrl(await epkWorkspaceId(String(data.epk_id)), data.storage_path);
+}
+
+async function epkWorkspaceId(epkId: string): Promise<string> {
+  const { data, error } = await supabase.from('epks').select('workspace_id').eq('id', epkId).single();
+  if (error) throw error;
+  if (!data?.workspace_id) throw new Error('Groupe EPK introuvable.');
+  return String(data.workspace_id);
 }
 
 export async function uploadEpkHeroImage(epk: EpkRecord, file: File): Promise<EpkRecord> {

@@ -17,8 +17,18 @@ function getProtocol(value?: string): string | null {
   }
 }
 
+const REQUIRED_PRODUCTION_ENV = ['VITE_SUPABASE_URL', 'VITE_SUPABASE_ANON_KEY'] as const;
+
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, __dirname, '');
+  // The Supabase client silently falls back to a placeholder project, so a
+  // misconfigured Cloudflare Pages production build must fail instead.
+  if (process.env.CF_PAGES === '1' && process.env.CF_PAGES_BRANCH === 'main') {
+    const missing = REQUIRED_PRODUCTION_ENV.filter((key) => !env[key]);
+    if (missing.length > 0) {
+      throw new Error(`Missing production environment variables: ${missing.join(', ')}`);
+    }
+  }
   const appVersion = env.VITE_APP_VERSION || process.env.CF_PAGES_COMMIT_SHA || 'development';
   const supabaseProtocol = getProtocol(env.VITE_SUPABASE_URL);
   const canUseHttps = fs.existsSync(devPfxPath) && supabaseProtocol !== 'http:';
