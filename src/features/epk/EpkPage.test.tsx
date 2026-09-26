@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { EpkPage } from './EpkPage';
+import { DEFAULT_EPK_EDITORIAL, DEFAULT_EPK_SECTION_ORDER } from './epkPresentation';
 
 const mocks = vi.hoisted(() => ({
   epk: null as any,
@@ -13,6 +14,8 @@ const mocks = vi.hoisted(() => ({
   },
   createEpk: vi.fn(),
   getEpk: vi.fn(),
+  saveEpk: vi.fn(),
+  publishEpkDraft: vi.fn(),
 }));
 
 vi.mock('@/stores/authStore', () => ({
@@ -30,12 +33,18 @@ vi.mock('@/services/supabase/workspace', () => ({
   canAdministerWorkspace: (role: string) => role === 'owner' || role === 'admin',
 }));
 
+vi.mock('@/services/supabase/workspaceStorage', () => ({
+  hasConnectedWorkspaceStorage: () => Promise.resolve(true),
+}));
+
 vi.mock('./epk', async () => {
   const actual = await vi.importActual<Record<string, unknown>>('./epk');
   return {
     ...actual,
     getEpk: (...args: unknown[]) => mocks.getEpk(...args),
     createEpk: (...args: unknown[]) => mocks.createEpk(...args),
+    saveEpk: (...args: unknown[]) => mocks.saveEpk(...args),
+    publishEpkDraft: (...args: unknown[]) => mocks.publishEpkDraft(...args),
     listAvailableEpkTracks: () => Promise.resolve([]),
     listEpkTracks: () => Promise.resolve([]),
     listEpkVideos: () => Promise.resolve([]),
@@ -134,5 +143,57 @@ describe('EpkPage - Empty state', () => {
     renderEpkPage();
 
     expect(screen.getByText('L’EPK public est réservé aux administrateurs d’un groupe.')).toBeInTheDocument();
+  });
+});
+
+const draftEpk = {
+  id: 'epk-1',
+  workspaceId: 'workspace-group',
+  displayName: 'Groupe Test',
+  slug: 'groupe-test',
+  status: 'DRAFT' as const,
+  genres: ['Rock'],
+  theme: 'stage-dark' as const,
+  draftRevision: 0,
+  editorial: DEFAULT_EPK_EDITORIAL,
+  sectionOrder: [...DEFAULT_EPK_SECTION_ORDER],
+  hiddenSections: [],
+};
+
+describe('EpkPage - Publication', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.workspace = { id: 'workspace-group', name: 'Groupe Test', role: 'owner', type: 'group' };
+    mocks.getEpk.mockResolvedValue(draftEpk);
+    mocks.saveEpk.mockResolvedValue(draftEpk);
+  });
+
+  async function openEditor(): Promise<void> {
+    renderEpkPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'Modifier la page EPK' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Publier la page' }));
+  }
+
+  it('affiche la raison renvoyée par la base au lieu du message générique', async () => {
+    mocks.publishEpkDraft.mockRejectedValue(new Error('{"code":"P0001","message":"EPK_MEDIA_MISSING"}'));
+
+    await openEditor();
+
+    await waitFor(() => {
+      expect(screen.getByText('Un média de l’EPK n’est plus disponible. Retire-le puis relance la publication.')).toBeInTheDocument();
+    });
+    expect(screen.queryByText('Publication impossible.')).not.toBeInTheDocument();
+  });
+
+  it('refuse de publier un EPK sans nom public sans appeler le serveur', async () => {
+    mocks.getEpk.mockResolvedValue({ ...draftEpk, displayName: '' });
+
+    await openEditor();
+
+    await waitFor(() => {
+      expect(screen.getByText('Le nom public du groupe est requis.')).toBeInTheDocument();
+    });
+    expect(mocks.saveEpk).not.toHaveBeenCalled();
+    expect(mocks.publishEpkDraft).not.toHaveBeenCalled();
   });
 });

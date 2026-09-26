@@ -9,7 +9,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { canAdministerWorkspace } from '@/services/supabase/workspace';
 import { hasConnectedWorkspaceStorage } from '@/services/supabase/workspaceStorage';
-import { addEpkContact, addEpkDocument, addEpkLink, addEpkPhoto, addEpkTrack, addEpkVideo, createEpk, createEpkAssetSignedUrl, deleteEpkContact, deleteEpkDocument, deleteEpkHeroImage, deleteEpkLink, deleteEpkPhoto, deleteEpkTrack, deleteEpkVideo, epkHasUnpublishedChanges, epkUnpublishedLeavePrompt, getEpk, getEpkLiveStatus, getEpkTrackAudioUrl, listAvailableEpkTracks, listEpkContacts, listEpkDocuments, listEpkLinks, listEpkPhotos, listEpkTracks, listEpkVideos, publishEpkDraft, saveEpk, unpublishEpk, updateEpkContact, updateEpkDocument, updateEpkLink, uploadEpkHeroImage, type AvailableEpkTrack, type EpkContact, type EpkDocument, type EpkLink, type EpkLiveStatus, type EpkPhoto, type EpkRecord, type EpkTrack, type EpkVideo, type EpkVideoType } from './epk';
+import { addEpkContact, addEpkDocument, addEpkLink, addEpkPhoto, addEpkTrack, addEpkVideo, createEpk, createEpkAssetSignedUrl, deleteEpkContact, deleteEpkDocument, deleteEpkHeroImage, deleteEpkLink, deleteEpkPhoto, deleteEpkTrack, deleteEpkVideo, epkHasUnpublishedChanges, epkUnpublishedLeavePrompt, getEpk, getEpkLiveStatus, getEpkTrackAudioUrl, listAvailableEpkTracks, listEpkContacts, listEpkDocuments, listEpkLinks, listEpkPhotos, listEpkTracks, listEpkVideos, publishEpkDraft, saveEpk, unpublishEpk, updateEpkContact, updateEpkDocument, updateEpkLink, uploadEpkHeroImage, validateEpkDraft, type AvailableEpkTrack, type EpkContact, type EpkDocument, type EpkLink, type EpkLiveStatus, type EpkPhoto, type EpkRecord, type EpkTrack, type EpkVideo, type EpkVideoType } from './epk';
 import { EpkPublicView } from './EpkPublicView';
 import { EpkEditorFields } from './EpkEditorFields';
 import { DEFAULT_EPK_ACCENT, DEFAULT_EPK_EDITORIAL, DEFAULT_EPK_SECTION_ORDER, type EpkDocumentIcon, type EpkPublicModel } from './epkPresentation';
@@ -89,6 +89,8 @@ export function EpkPage() {
   async function publishPresentation(options?: { leaveAfter?: boolean }) {
     if (!epk) return;
     if (!isOnline) { setMessage('La publication nécessite une connexion Internet.'); return; }
+    const validationError = validateEpkDraft(epk);
+    if (validationError) { setMessage(validationError); return; }
     try {
       if (!await hasConnectedWorkspaceStorage(epk.workspaceId)) {
         setMessage('Connecte un stockage avant de publier l’EPK. Le brouillon texte et liens reste disponible.');
@@ -401,6 +403,12 @@ const EPK_ERROR_MESSAGES: Record<string, string> = {
   EPK_FORBIDDEN: 'Vous n’administrez pas cet EPK.',
   EPK_DRAFT_CONFLICT: 'L’EPK a été modifié ailleurs. Rechargez la page avant de republier.',
   EPK_PUBLISH_NAME_MISSING: 'Renseignez le nom du groupe avant de publier.',
+  // Databases that still run the pre-2026-09-26 trigger reject a publication
+  // until the page carries a genre, a city, a banner and a reachable contact,
+  // while the editor exposes no city field: name the obsolete rule instead of
+  // sending the user after a field that does not exist.
+  EPK_PUBLISH_REQUIREMENTS_MISSING: 'La base refuse la publication : une règle obsolète exige encore une ville, un genre, une bannière et un contact joignable.',
+  EPK_MEDIA_MISSING: 'Un média de l’EPK n’est plus disponible. Retire-le puis relance la publication.',
 };
 
 function getEpkErrorMessage(error: unknown, fallback: string): string {
