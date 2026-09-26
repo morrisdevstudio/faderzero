@@ -110,7 +110,7 @@ async function publishEpkMedia(request: Request, env: WorkerEnv, epkId: string):
   if (!isRecord(epk) || typeof epk.workspace_id !== 'string' || Number(epk.draft_revision) !== expectedRevision) return jsonResponse(request, env, { error: 'EPK_DRAFT_CONFLICT' }, 409);
   if ((await getWorkspaceRole(user, epk.workspace_id, env)) !== 'admin') return jsonResponse(request, env, { error: 'Forbidden' }, 403);
 
-  const assets = await serviceRows(env, 'epk_assets', `select=id,storage_path,storage_object_id,mime_type&epk_id=eq.${epkId}`);
+  const assets = await serviceRows(env, 'epk_assets', `select=id,storage_path,storage_object_id,mime_type,size_bytes&epk_id=eq.${epkId}`);
   const assetById = new Map(assets.filter(isRecord).flatMap((asset) => typeof asset.id === 'string' && typeof asset.storage_path === 'string' ? [[asset.id, asset]] : []));
   const [photos, documents, tracks] = await Promise.all([
     serviceRows(env, 'epk_photos', `select=id,preview_asset_id&epk_id=eq.${epkId}`),
@@ -119,7 +119,7 @@ async function publishEpkMedia(request: Request, env: WorkerEnv, epkId: string):
   ]);
   const songIds = tracks.filter(isRecord).map((track) => track.song_asset_id).filter((id): id is string => typeof id === 'string');
   if (songIds.some((id) => !UUID_PATTERN.test(id))) return jsonResponse(request, env, { error: 'EPK_MEDIA_MISSING' }, 422);
-  const songs = songIds.length ? await serviceRows(env, 'song_assets', `select=id,storage_path,storage_object_id,mime_type&id=in.(${songIds.join(',')})`) : [];
+  const songs = songIds.length ? await serviceRows(env, 'song_assets', `select=id,storage_path,storage_object_id,mime_type,size_bytes&id=in.(${songIds.join(',')})`) : [];
   for (const song of songs) if (isRecord(song) && typeof song.id === 'string' && typeof song.storage_path === 'string') assetById.set(song.id, song);
 
   const copied: string[] = [];
@@ -133,10 +133,16 @@ async function publishEpkMedia(request: Request, env: WorkerEnv, epkId: string):
     if (await env.EPK_PUBLIC_BUCKET.head(key)) return key;
     const source = typeof asset.storage_object_id === 'string'
       ? await fetchStorageObjectForPublication(env, asset.storage_object_id)
-      : await readPrivateMedia(env, asset.storage_path);
-    if (!source?.body) throw new Error('EPK_MEDIA_MISSING');
+      : await env.AUDIO_BUCKET.get(asset.storage_path).then((object) => object
+        ? new Response(object.body, object.httpMetadata?.contentType ? { headers: { 'content-type': object.httpMetadata.contentType } } : {})
+        : null);
+    if (!source?.body) throw new Error(`EPK_MEDIA_MISSING:${assetId}`);
     const contentType = typeof asset.mime_type === 'string' ? asset.mime_type : source.headers.get('content-type') ?? undefined;
-    await env.EPK_PUBLIC_BUCKET.put(key, announcedLengthBody(source), { httpMetadata: contentType ? { contentType, cacheControl: 'public, max-age=31536000, immutable' } : { cacheControl: 'public, max-age=31536000, immutable' } });
+    try {
+      await env.EPK_PUBLIC_BUCKET.put(key, announcedLengthBody(source, asset.size_bytes), { httpMetadata: contentType ? { contentType, cacheControl: 'public, max-age=31536000, immutable' } : { cacheControl: 'public, max-age=31536000, immutable' } });
+    } catch (error) {
+      throw new Error(`EPK_MEDIA_COPY_FAILED:${assetId} ${error instanceof Error ? error.message : String(error)}`);
+    }
     copied.push(key);
     return key;
   };
@@ -151,7 +157,9 @@ async function publishEpkMedia(request: Request, env: WorkerEnv, epkId: string):
     return new Response(await response.text(), { status: 200, headers: { ...corsHeaders(request, env), 'content-type': 'application/json' } });
   } catch (error) {
     await env.EPK_PUBLIC_BUCKET.delete(copied).catch(() => undefined);
-    return jsonResponse(request, env, { error: error instanceof Error ? error.message : 'Publication failed' }, 422);
+    const message = error instanceof Error ? error.message : 'Publication failed';
+    console.error(JSON.stringify({ message: 'EPK publication failed', epkId, error: message }));
+    return jsonResponse(request, env, { error: message }, 422);
   }
 }
 
@@ -163,25 +171,18 @@ async function serviceRows(env: WorkerEnv, table: string, query: string): Promis
   return Array.isArray(value) ? value : [];
 }
 
-function readPrivateMedia(env: WorkerEnv, storagePath: string): Promise<Response | null> {
-  return env.AUDIO_BUCKET.get(storagePath).then((object) => {
-    if (!object) return null;
-    const headers = new Headers({ 'content-length': String(object.size) });
-    if (object.httpMetadata?.contentType) headers.set('content-type', object.httpMetadata.contentType);
-    return new Response(object.body, { headers });
-  });
-}
-
 /**
  * R2 refuses any write whose body length is unknown (`Provided readable stream
- * must have a known length`), and a bucket stream is one of them. The
- * publication copy therefore announces the byte length instead of forwarding
- * the source stream untouched.
+ * must have a known length`), and neither a bucket stream nor a chunked
+ * provider response qualifies. The publication copy therefore announces the
+ * size recorded on the asset row, which is the length the object was uploaded
+ * with, and falls back to the source header when a legacy row lacks it.
  */
-function announcedLengthBody(source: Response): ReadableStream | null {
-  const length = Number(source.headers.get('content-length'));
-  return Number.isSafeInteger(length) && length > 0
-    ? source.body?.pipeThrough(new FixedLengthStream(length)) ?? null
+function announcedLengthBody(source: Response, declaredLength: unknown): ReadableStream | null {
+  const declared = Number(declaredLength);
+  const length = Number.isSafeInteger(declared) && declared > 0 ? declared : Number(source.headers.get('content-length'));
+  return Number.isSafeInteger(length) && length > 0 && source.body
+    ? source.body.pipeThrough(new FixedLengthStream(length))
     : source.body;
 }
 

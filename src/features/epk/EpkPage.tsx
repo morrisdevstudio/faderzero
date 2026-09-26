@@ -409,6 +409,7 @@ const EPK_ERROR_MESSAGES: Record<string, string> = {
   // sending the user after a field that does not exist.
   EPK_PUBLISH_REQUIREMENTS_MISSING: 'La base refuse la publication : une règle obsolète exige encore une ville, un genre, une bannière et un contact joignable.',
   EPK_MEDIA_MISSING: 'Un média de l’EPK n’est plus disponible. Retire-le puis relance la publication.',
+  EPK_MEDIA_COPY_FAILED: 'La copie d’un média a échoué côté serveur. Réessaie dans un instant.',
 };
 
 function getEpkErrorMessage(error: unknown, fallback: string): string {

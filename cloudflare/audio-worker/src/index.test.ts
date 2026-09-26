@@ -732,9 +732,9 @@ describe('EPK publication media copy', () => {
     expect(env.AUDIO_BUCKET.get).toHaveBeenCalledWith(storagePath);
   });
 
-  it('announces the copied media length before writing it to the public bucket', async () => {
+  it('announces the recorded media size before writing it to the public bucket', async () => {
     const storagePath = `workspaces/${workspaceId}/epks/${epkId}/${assetId}.jpg`;
-    mockPublicationReads([], [{ id: assetId, storage_path: storagePath, mime_type: 'image/jpeg' }]);
+    mockPublicationReads([], [{ id: assetId, storage_path: storagePath, mime_type: 'image/jpeg', size_bytes: 4 }]);
     const env = publicationEnv();
 
     const response = await worker.fetch(new Request(`https://audio.example/epk-publications/${epkId}`, {
@@ -746,6 +746,23 @@ describe('EPK publication media copy', () => {
     expect(response.status).toBe(200);
     const put = env.EPK_PUBLIC_BUCKET.put as unknown as { mock: { calls: Array<[string, { expectedLength?: number }]> } };
     expect(put.mock.calls[0]?.[1]?.expectedLength).toBe(4);
+  });
+
+  it('names the failing asset when the public bucket write fails', async () => {
+    const storagePath = `workspaces/${workspaceId}/epks/${epkId}/${assetId}.jpg`;
+    mockPublicationReads([], [{ id: assetId, storage_path: storagePath, mime_type: 'image/jpeg', size_bytes: 4 }]);
+    const env = publicationEnv();
+    (env.EPK_PUBLIC_BUCKET.put as unknown as { mockRejectedValue: (error: Error) => void }).mockRejectedValue(new Error('bucket unavailable'));
+
+    const response = await worker.fetch(new Request(`https://audio.example/epk-publications/${epkId}`, {
+      method: 'POST',
+      headers: { authorization: 'Bearer token', origin: 'https://app.faderzero.com', 'content-type': 'application/json' },
+      body: JSON.stringify({ expectedRevision: 1 }),
+    }), env);
+
+    expect(response.status).toBe(422);
+    const body = await response.json() as { error: string };
+    expect(body.error).toBe(`EPK_MEDIA_COPY_FAILED:${assetId} bucket unavailable`);
   });
 
   it('refuses to copy an audio file stored outside the EPK workspace', async () => {
