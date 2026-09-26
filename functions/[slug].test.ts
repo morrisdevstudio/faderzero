@@ -12,6 +12,30 @@ describe('public EPK Pages Function', () => {
     expect(await response.text()).toBe('PWA shell');
   });
 
+  it('answers the public domain service worker with a worker that removes itself', async () => {
+    const next = vi.fn();
+    const response = await onRequestGet({
+      request: new Request('https://faderzero.com/sw.js'), params: { slug: 'sw.js' },
+      env: { SUPABASE_URL: 'https://example.supabase.co', SUPABASE_SECRET_KEY: 'secret' }, next,
+    });
+    expect(response.status).toBe(200);
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    const body = await response.text();
+    expect(body).toContain('self.registration.unregister()');
+    expect(body).toContain('caches.delete');
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('keeps the application service worker on app.faderzero.com', async () => {
+    const next = vi.fn().mockResolvedValue(new Response('workbox worker'));
+    const response = await onRequestGet({
+      request: new Request('https://app.faderzero.com/sw.js'), params: { slug: 'sw.js' },
+      env: { SUPABASE_URL: 'https://example.supabase.co', SUPABASE_SECRET_KEY: 'secret' }, next,
+    });
+    expect(next).toHaveBeenCalledOnce();
+    expect(await response.text()).toBe('workbox worker');
+  });
+
   it('serves the legal and app routes through the shell instead of redirecting them', async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);

@@ -7,6 +7,7 @@ type PagesContext = {
 
 type PublishedRow = { display_name: string; slug: string; status: string; published_revision: number; published_snapshot: unknown; hero_asset_id?: string | null };
 const APP_ORIGIN = 'https://app.faderzero.com';
+const APP_HOSTNAME = 'app.faderzero.com';
 const PUBLIC_ORIGIN = 'https://faderzero.com';
 const DEFAULT_MEDIA_ORIGIN = 'https://media.faderzero.com';
 
@@ -20,7 +21,9 @@ const RESERVED_APP_SLUGS = new Set([
 ]);
 
 export const onRequestGet = async (context: PagesContext): Promise<Response> => {
-  if (new URL(context.request.url).hostname === 'app.faderzero.com') return context.next();
+  const requestUrl = new URL(context.request.url);
+  if (requestUrl.hostname === APP_HOSTNAME) return context.next();
+  if (requestUrl.pathname === '/sw.js') return retiredServiceWorker();
   const slug = context.params.slug?.toLowerCase();
   if (!slug || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) return redirectToLanding();
   if (RESERVED_APP_SLUGS.has(slug)) return context.next();
@@ -29,7 +32,6 @@ export const onRequestGet = async (context: PagesContext): Promise<Response> => 
   if (!row) return redirectToLanding();
   if (row.status !== 'PUBLISHED') return notPublished();
 
-  const requestUrl = new URL(context.request.url);
   if (requestUrl.searchParams.get('verify')) {
     return new Response(null, { status: 204, headers: publicHeaders(row.published_revision) });
   }
@@ -49,12 +51,48 @@ export const onRequestGet = async (context: PagesContext): Promise<Response> => 
 };
 
 export const onRequestHead = async (context: PagesContext): Promise<Response> => {
-  if (new URL(context.request.url).hostname === 'app.faderzero.com') return context.next();
+  const requestUrl = new URL(context.request.url);
+  if (requestUrl.hostname === APP_HOSTNAME) return context.next();
+  if (requestUrl.pathname === '/sw.js') return retiredServiceWorker();
   const slug = context.params.slug?.toLowerCase();
   if (!slug || RESERVED_APP_SLUGS.has(slug)) return context.next();
   const row = await loadEpk(context.env, slug);
   return row?.status === 'PUBLISHED' ? new Response(null, { status: 200, headers: publicHeaders(row.published_revision) }) : redirectToLanding();
 };
+
+/**
+ * Releases before 2026-09-04 registered the application service worker on every
+ * origin, so browsers that loaded the public domain kept a cached application
+ * shell: it answered /<slug> navigations instead of the published EPK served by
+ * this Function, which sent visitors to the sign-in page. The public domain now
+ * answers /sw.js with a worker that removes itself, clears its caches and
+ * reloads the pages it was controlling, so those browsers heal on their next
+ * visit. app.faderzero.com keeps serving the real worker.
+ */
+const RETIRED_SERVICE_WORKER = [
+  "self.addEventListener('install', () => { self.skipWaiting(); });",
+  "self.addEventListener('activate', (event) => {",
+  '  event.waitUntil((async () => {',
+  '    await self.registration.unregister();',
+  '    for (const key of await caches.keys()) await caches.delete(key);',
+  "    for (const client of await self.clients.matchAll({ type: 'window' })) {",
+  '      try { await client.navigate(client.url); } catch { /* client cannot be reloaded */ }',
+  '    }',
+  '  })());',
+  '});',
+  '',
+].join('\n');
+
+function retiredServiceWorker(): Response {
+  return new Response(RETIRED_SERVICE_WORKER, {
+    status: 200,
+    headers: {
+      'cache-control': 'no-store',
+      'content-type': 'application/javascript; charset=utf-8',
+      'service-worker-allowed': '/',
+    },
+  });
+}
 
 async function loadEpk(env: PagesContext['env'], slug: string): Promise<PublishedRow | null> {
   const endpoint = new URL(`${env.SUPABASE_URL}/rest/v1/epks`);
