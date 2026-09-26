@@ -163,6 +163,10 @@ const draftEpk = {
 describe('EpkPage - Publication', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.unstubAllGlobals();
+    mocks.getEpk.mockReset();
+    mocks.saveEpk.mockReset();
+    mocks.publishEpkDraft.mockReset();
     mocks.workspace = { id: 'workspace-group', name: 'Groupe Test', role: 'owner', type: 'group' };
     mocks.getEpk.mockResolvedValue(draftEpk);
     mocks.saveEpk.mockResolvedValue(draftEpk);
@@ -195,5 +199,26 @@ describe('EpkPage - Publication', () => {
     });
     expect(mocks.saveEpk).not.toHaveBeenCalled();
     expect(mocks.publishEpkDraft).not.toHaveBeenCalled();
+  });
+
+  it('annonce la publication quand la réponse s’est perdue mais que la révision est publiée', async () => {
+    const published = { ...draftEpk, status: 'PUBLISHED' as const, publishedRevision: 0 };
+    mocks.getEpk.mockResolvedValueOnce(draftEpk).mockResolvedValueOnce(published);
+    mocks.publishEpkDraft.mockRejectedValue(new TypeError('Failed to fetch'));
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 204, headers: { 'x-fz-epk-revision': '0' } })));
+
+    await openEditor();
+
+    await waitFor(() => expect(screen.getByText('Publié')).toBeInTheDocument());
+    expect(screen.queryByText('Publication impossible.')).not.toBeInTheDocument();
+  });
+
+  it('garde le message d’échec quand la révision n’a pas été publiée', async () => {
+    mocks.getEpk.mockResolvedValueOnce(draftEpk).mockResolvedValueOnce(draftEpk);
+    mocks.publishEpkDraft.mockRejectedValue(new Error('EPK_MEDIA_COPY_FAILED:x bucket unavailable'));
+
+    await openEditor();
+
+    await waitFor(() => expect(screen.getByText('La copie d’un média a échoué côté serveur. Réessaie dans un instant.')).toBeInTheDocument());
   });
 });

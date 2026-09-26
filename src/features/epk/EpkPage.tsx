@@ -102,17 +102,34 @@ export function EpkPage() {
     }
     flushPendingAutosave();
     setSaving(true); setMessage(null);
+    const workspaceId = epk.workspaceId;
+    let expectedRevision: number | null = null;
     try {
       const saved = await saveEpk(epk);
-      const value = await publishEpkDraft(saved.id, saved.draftRevision ?? 0);
-      setEpk(value);
-      setDirtyThisSession(false);
-      setConfirmLeave(false);
-      const verified = await verifyPublishedRevision(value.slug, value.publishedRevision);
-      setMessage(verified ? 'Publié' : 'La publication prend plus de temps — Réessayer');
-      if (options?.leaveAfter) await leaveTo('/account?tab=groupe');
-    } catch (error) { setMessage(getEpkErrorMessage(error, 'Publication impossible.')); }
+      expectedRevision = saved.draftRevision ?? 0;
+      await applyPublication(await publishEpkDraft(saved.id, expectedRevision), options);
+    } catch (error) {
+      // A dropped response leaves the editor on the failure path even though the
+      // worker completed the publication: trust the stored revision first.
+      const landed = expectedRevision === null ? null : await publishedAtRevision(workspaceId, expectedRevision);
+      if (landed) await applyPublication(landed, options);
+      else setMessage(getEpkErrorMessage(error, 'Publication impossible.'));
+    }
     finally { setSaving(false); }
+  }
+  async function applyPublication(value: EpkRecord, options?: { leaveAfter?: boolean }) {
+    setEpk(value);
+    setDirtyThisSession(false);
+    setConfirmLeave(false);
+    const verified = await verifyPublishedRevision(value.slug, value.publishedRevision);
+    setMessage(verified ? 'Publié' : 'La publication prend plus de temps — Réessayer');
+    if (options?.leaveAfter) await leaveTo('/account?tab=groupe');
+  }
+  async function publishedAtRevision(workspaceId: string, revision: number): Promise<EpkRecord | null> {
+    try {
+      const current = await getEpk(workspaceId);
+      return current && current.status === 'PUBLISHED' && current.publishedRevision === revision ? current : null;
+    } catch { return null; }
   }
   async function removePublication() {
     if (!epk) return;
@@ -388,7 +405,9 @@ export function EpkPage() {
 }
 
 async function verifyPublishedRevision(slug: string, revision: number | undefined): Promise<boolean> {
-  if (!revision) return false;
+  // Revision 0 is the first publication: rejecting falsy values skipped the
+  // check and reported a successful publish as still pending.
+  if (typeof revision !== 'number' || !Number.isInteger(revision)) return false;
   try {
     const response = await fetch(`https://faderzero.com/${encodeURIComponent(slug)}?verify=${revision}`, { cache: 'no-store' });
     return response.status === 204 && response.headers.get('x-fz-epk-revision') === String(revision);
