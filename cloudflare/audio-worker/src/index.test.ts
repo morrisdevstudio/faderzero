@@ -677,6 +677,10 @@ describe('EPK publication media copy', () => {
   const epkId = '33333333-3333-4333-8333-333333333333';
   const assetId = '44444444-4444-4444-8444-444444444444';
 
+  beforeEach(() => {
+    vi.stubGlobal('FixedLengthStream', TestFixedLengthStream);
+  });
+
   function publicationEnv() {
     const env = makeAudioEnv();
     env.EPK_PUBLIC_BUCKET = {
@@ -726,6 +730,22 @@ describe('EPK publication media copy', () => {
 
     expect(response.status).toBe(200);
     expect(env.AUDIO_BUCKET.get).toHaveBeenCalledWith(storagePath);
+  });
+
+  it('announces the copied media length before writing it to the public bucket', async () => {
+    const storagePath = `workspaces/${workspaceId}/epks/${epkId}/${assetId}.jpg`;
+    mockPublicationReads([], [{ id: assetId, storage_path: storagePath, mime_type: 'image/jpeg' }]);
+    const env = publicationEnv();
+
+    const response = await worker.fetch(new Request(`https://audio.example/epk-publications/${epkId}`, {
+      method: 'POST',
+      headers: { authorization: 'Bearer token', origin: 'https://app.faderzero.com', 'content-type': 'application/json' },
+      body: JSON.stringify({ expectedRevision: 1 }),
+    }), env);
+
+    expect(response.status).toBe(200);
+    const put = env.EPK_PUBLIC_BUCKET.put as unknown as { mock: { calls: Array<[string, { expectedLength?: number }]> } };
+    expect(put.mock.calls[0]?.[1]?.expectedLength).toBe(4);
   });
 
   it('refuses to copy an audio file stored outside the EPK workspace', async () => {

@@ -133,12 +133,10 @@ async function publishEpkMedia(request: Request, env: WorkerEnv, epkId: string):
     if (await env.EPK_PUBLIC_BUCKET.head(key)) return key;
     const source = typeof asset.storage_object_id === 'string'
       ? await fetchStorageObjectForPublication(env, asset.storage_object_id)
-      : await env.AUDIO_BUCKET.get(asset.storage_path).then((object) => object
-        ? new Response(object.body, object.httpMetadata?.contentType ? { headers: { 'content-type': object.httpMetadata.contentType } } : {})
-        : null);
+      : await readPrivateMedia(env, asset.storage_path);
     if (!source?.body) throw new Error('EPK_MEDIA_MISSING');
     const contentType = typeof asset.mime_type === 'string' ? asset.mime_type : source.headers.get('content-type') ?? undefined;
-    await env.EPK_PUBLIC_BUCKET.put(key, source.body, { httpMetadata: contentType ? { contentType, cacheControl: 'public, max-age=31536000, immutable' } : { cacheControl: 'public, max-age=31536000, immutable' } });
+    await env.EPK_PUBLIC_BUCKET.put(key, announcedLengthBody(source), { httpMetadata: contentType ? { contentType, cacheControl: 'public, max-age=31536000, immutable' } : { cacheControl: 'public, max-age=31536000, immutable' } });
     copied.push(key);
     return key;
   };
@@ -163,6 +161,28 @@ async function serviceRows(env: WorkerEnv, table: string, query: string): Promis
   if (!response.ok) throw new Error(`Supabase ${table} lookup failed`);
   const value: unknown = await response.json();
   return Array.isArray(value) ? value : [];
+}
+
+function readPrivateMedia(env: WorkerEnv, storagePath: string): Promise<Response | null> {
+  return env.AUDIO_BUCKET.get(storagePath).then((object) => {
+    if (!object) return null;
+    const headers = new Headers({ 'content-length': String(object.size) });
+    if (object.httpMetadata?.contentType) headers.set('content-type', object.httpMetadata.contentType);
+    return new Response(object.body, { headers });
+  });
+}
+
+/**
+ * R2 refuses any write whose body length is unknown (`Provided readable stream
+ * must have a known length`), and a bucket stream is one of them. The
+ * publication copy therefore announces the byte length instead of forwarding
+ * the source stream untouched.
+ */
+function announcedLengthBody(source: Response): ReadableStream | null {
+  const length = Number(source.headers.get('content-length'));
+  return Number.isSafeInteger(length) && length > 0
+    ? source.body?.pipeThrough(new FixedLengthStream(length)) ?? null
+    : source.body;
 }
 
 async function uploadObject(
